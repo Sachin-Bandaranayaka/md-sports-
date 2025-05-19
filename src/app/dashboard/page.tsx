@@ -3,7 +3,6 @@
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
 import {
-    BarChart2,
     Package,
     Truck,
     CreditCard,

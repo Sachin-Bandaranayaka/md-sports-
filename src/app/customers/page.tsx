@@ -2,7 +2,7 @@
 
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Search, UserPlus, Users, Filter } from 'lucide-react';
+import { Search, UserPlus, Filter } from 'lucide-react';
 
 // Dummy data for demonstration
 const customers = [

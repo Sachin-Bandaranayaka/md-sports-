@@ -5,8 +5,27 @@ import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
 import { Package, Filter, Search, X } from 'lucide-react';
 
+// Define proper types for our data
+interface BranchStock {
+    branchId: string;
+    branchName: string;
+    quantity: number;
+}
+
+interface InventoryItem {
+    id: string;
+    name: string;
+    category: string;
+    stock: number;
+    retailPrice: number;
+    wholesalePrice: number;
+    averageCost: number;
+    status: string;
+    branchStock: BranchStock[];
+}
+
 // Dummy data for demonstration
-const inventoryItems = [
+const inventoryItems: InventoryItem[] = [
     {
         id: 'MD-001',
         name: 'Cricket Bat - Professional',
@@ -99,9 +118,9 @@ const getStatusBadgeClass = (status: string) => {
 };
 
 export default function Inventory() {
-    const [selectedProduct, setSelectedProduct] = useState<any>(null);
+    const [selectedProduct, setSelectedProduct] = useState<InventoryItem | null>(null);
 
-    const openProductDetails = (product: any) => {
+    const openProductDetails = (product: InventoryItem) => {
         setSelectedProduct(product);
     };
 
@@ -278,7 +297,7 @@ export default function Inventory() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {selectedProduct.branchStock.map((branch: any) => (
+                                    {selectedProduct.branchStock.map((branch: BranchStock) => (
                                         <tr key={branch.branchId} className="border-b">
                                             <td className="px-4 py-2">{branch.branchId}</td>
                                             <td className="px-4 py-2">{branch.branchName}</td>
