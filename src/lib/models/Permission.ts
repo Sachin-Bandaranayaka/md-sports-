@@ -8,6 +8,25 @@ class Permission extends Model {
     public module!: string;
     public readonly createdAt!: Date;
     public readonly updatedAt!: Date;
+
+    // Static method to safely find all permissions
+    public static async findAllSafe() {
+        try {
+            return await Permission.findAll({
+                order: [['module', 'ASC'], ['name', 'ASC']]
+            });
+        } catch (error) {
+            console.error('Error finding permissions:', error);
+            // If Sequelize fails, try direct SQL
+            const { performQuery } = require('../db-utils');
+            const result = await performQuery(`
+                SELECT id, name, description, module
+                FROM permissions
+                ORDER BY module ASC, name ASC
+            `);
+            return result.rows;
+        }
+    }
 }
 
 Permission.init({

@@ -1,15 +1,39 @@
 import { NextResponse } from 'next/server';
 import db from '@/utils/db';
+import { getShopId } from '@/lib/utils/middleware';
+import { NextRequest } from 'next/server';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
-        const result = await db.query(`
-            SELECT p.*, c.name as category_name 
-            FROM products p
-            LEFT JOIN categories c ON p.category_id = c.id
-            WHERE p.is_active = true
-            ORDER BY p.name
-        `);
+        // Get shop ID from token if user is restricted to a specific shop
+        const shopId = getShopId(request);
+        
+        let query;
+        let params = [];
+        
+        if (shopId) {
+            // User is restricted to a specific shop - only show products in that shop's inventory
+            query = `
+                SELECT DISTINCT p.*, c.name as category_name 
+                FROM products p
+                LEFT JOIN categories c ON p.category_id = c.id
+                INNER JOIN inventory_items i ON p.id = i.product_id
+                WHERE p.is_active = true AND i.shop_id = $1
+                ORDER BY p.name
+            `;
+            params = [shopId];
+        } else {
+            // Administrator or manager with full access - show all products
+            query = `
+                SELECT p.*, c.name as category_name 
+                FROM products p
+                LEFT JOIN categories c ON p.category_id = c.id
+                WHERE p.is_active = true
+                ORDER BY p.name
+            `;
+        }
+
+        const result = await db.query(query, params);
 
         return NextResponse.json({
             success: true,

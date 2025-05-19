@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Package, Filter, Search, Loader2 } from 'lucide-react';
+import { Package, Filter, Search, Loader2, X } from 'lucide-react';
 
 // Define proper types for our data
 interface BranchStock {
@@ -53,6 +53,10 @@ export default function Inventory() {
     const [categoryFilter, setCategoryFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [error, setError] = useState<string | null>(null);
+
+    // Add these new state variables
+    const [showAddProductModal, setShowAddProductModal] = useState(false);
+    const [showFilterPanel, setShowFilterPanel] = useState(false);
 
     useEffect(() => {
         const fetchInventoryData = async () => {
@@ -154,6 +158,17 @@ export default function Inventory() {
         router.push(`/inventory/${productId}`);
     };
 
+    // Add Product handler
+    const handleAddProduct = () => {
+        // Navigate to product form page
+        router.push('/inventory/new');
+    };
+
+    // Toggle filter panel
+    const toggleFilterPanel = () => {
+        setShowFilterPanel(!showFilterPanel);
+    };
+
     if (loading) {
         return (
             <MainLayout>
@@ -183,16 +198,86 @@ export default function Inventory() {
                         <p className="text-gray-500">Manage your product inventory across all shops</p>
                     </div>
                     <div className="flex gap-3">
-                        <Button variant="outline" size="sm">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={toggleFilterPanel}
+                        >
                             <Filter className="w-4 h-4 mr-2" />
                             Filter
                         </Button>
-                        <Button variant="primary" size="sm">
+                        <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={handleAddProduct}
+                        >
                             <Package className="w-4 h-4 mr-2" />
                             Add Product
                         </Button>
                     </div>
                 </div>
+
+                {/* Expanded Filter Panel */}
+                {showFilterPanel && (
+                    <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200 mb-4 animate-in fade-in-0 slide-in-from-top-5 duration-300">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-medium text-lg">Advanced Filters</h3>
+                            <Button variant="ghost" size="sm" onClick={toggleFilterPanel}>
+                                <X className="w-4 h-4" />
+                            </Button>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label htmlFor="category-filter" className="block text-sm font-medium text-gray-700 mb-1">
+                                    Category
+                                </label>
+                                <select
+                                    id="category-filter"
+                                    className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                                    value={categoryFilter}
+                                    onChange={(e) => setCategoryFilter(e.target.value)}
+                                >
+                                    <option value="">All Categories</option>
+                                    {categories.map((category) => (
+                                        <option key={category.id} value={category.name}>
+                                            {category.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 mb-1">
+                                    Status
+                                </label>
+                                <select
+                                    id="status-filter"
+                                    className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                                    value={statusFilter}
+                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                >
+                                    <option value="">All Status</option>
+                                    <option value="In Stock">In Stock</option>
+                                    <option value="Low Stock">Low Stock</option>
+                                    <option value="Out of Stock">Out of Stock</option>
+                                </select>
+                            </div>
+                            <div className="flex items-end">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full"
+                                    onClick={() => {
+                                        setCategoryFilter('');
+                                        setStatusFilter('');
+                                        setSearchTerm('');
+                                    }}
+                                >
+                                    Clear Filters
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Search and filter bar */}
                 <div className="bg-tertiary p-4 rounded-lg shadow-sm border border-gray-200">

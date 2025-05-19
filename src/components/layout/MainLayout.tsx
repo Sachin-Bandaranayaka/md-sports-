@@ -86,12 +86,13 @@ export default function MainLayout({ children }: MainLayoutProps) {
             {/* Sidebar */}
             <aside
                 className={cn(
-                    'fixed inset-y-0 left-0 z-40 w-64 bg-secondary text-tertiary transform transition-transform duration-300 ease-in-out',
+                    'fixed inset-y-0 left-0 z-40 w-64 bg-secondary text-tertiary transform transition-transform duration-300 ease-in-out flex flex-col',
                     isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
                     'md:translate-x-0'
                 )}
             >
-                <div className="flex items-center justify-between h-16 px-4 border-b border-gray-800">
+                {/* Header */}
+                <div className="flex items-center justify-between h-16 px-4 border-b border-gray-800 flex-shrink-0">
                     <div className="flex items-center">
                         <span className="text-xl font-bold text-primary">MD Sports</span>
                     </div>
@@ -103,95 +104,99 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     </button>
                 </div>
 
-                <nav className="mt-6 px-2">
-                    <ul className="space-y-1">
-                        {navItems.map((item) => {
-                            const Icon = item.icon;
-                            const isActive = pathname === item.href;
-                            const isExpanded = expandedItems.includes(item.href);
-                            const hasActiveChild = item.children?.some(child => pathname === child.href);
-                            const isParentActive = isActive || hasActiveChild;
+                {/* Scrollable Navigation */}
+                <div className="flex-1 overflow-y-auto">
+                    <nav className="mt-6 px-2">
+                        <ul className="space-y-1">
+                            {navItems.map((item) => {
+                                const Icon = item.icon;
+                                const isActive = pathname === item.href;
+                                const isExpanded = expandedItems.includes(item.href);
+                                const hasActiveChild = item.children?.some(child => pathname === child.href);
+                                const isParentActive = isActive || hasActiveChild;
 
-                            return (
-                                <li key={item.href} className={item.children ? 'mb-1' : ''}>
-                                    {item.children ? (
-                                        <>
-                                            <div className="flex">
-                                                <Link
-                                                    href={item.href}
-                                                    className={cn(
-                                                        'flex-grow flex items-center px-4 py-3 rounded-l-md transition-colors',
-                                                        isParentActive
-                                                            ? 'bg-primary text-tertiary'
-                                                            : 'text-gray-300 hover:bg-gray-800 hover:text-tertiary'
-                                                    )}
-                                                >
-                                                    <Icon className="mr-3 h-5 w-5" />
-                                                    <span>{item.label}</span>
-                                                </Link>
-                                                <button
-                                                    onClick={() => toggleSubmenu(item.href)}
-                                                    className={cn(
-                                                        'w-10 flex items-center justify-center rounded-r-md transition-colors',
-                                                        isParentActive
-                                                            ? 'bg-primary text-tertiary'
-                                                            : 'text-gray-300 hover:bg-gray-800 hover:text-tertiary'
-                                                    )}
-                                                    aria-label="Toggle submenu"
-                                                >
-                                                    {isExpanded ? (
-                                                        <ChevronDown className="h-4 w-4" />
-                                                    ) : (
-                                                        <ChevronRight className="h-4 w-4" />
-                                                    )}
-                                                </button>
-                                            </div>
-                                            {isExpanded && (
-                                                <ul className="mt-1 ml-6 space-y-1">
-                                                    {item.children.map(child => {
-                                                        const ChildIcon = child.icon;
-                                                        const isChildActive = pathname === child.href;
-                                                        return (
-                                                            <li key={child.href}>
-                                                                <Link
-                                                                    href={child.href}
-                                                                    className={cn(
-                                                                        'flex items-center px-4 py-2 rounded-md transition-colors',
-                                                                        isChildActive
-                                                                            ? 'bg-gray-700 text-tertiary'
-                                                                            : 'text-gray-300 hover:bg-gray-800 hover:text-tertiary'
-                                                                    )}
-                                                                >
-                                                                    <ChildIcon className="mr-3 h-4 w-4" />
-                                                                    <span>{child.label}</span>
-                                                                </Link>
-                                                            </li>
-                                                        );
-                                                    })}
-                                                </ul>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <Link
-                                            href={item.href}
-                                            className={cn(
-                                                'flex items-center px-4 py-3 rounded-md transition-colors',
-                                                isActive
-                                                    ? 'bg-primary text-tertiary'
-                                                    : 'text-gray-300 hover:bg-gray-800 hover:text-tertiary'
-                                            )}
-                                        >
-                                            <Icon className="mr-3 h-5 w-5" />
-                                            <span>{item.label}</span>
-                                        </Link>
-                                    )}
-                                </li>
-                            );
-                        })}
-                    </ul>
-                </nav>
+                                return (
+                                    <li key={item.href} className={item.children ? 'mb-1' : ''}>
+                                        {item.children ? (
+                                            <>
+                                                <div className="flex">
+                                                    <Link
+                                                        href={item.href}
+                                                        className={cn(
+                                                            'flex-grow flex items-center px-4 py-3 rounded-l-md transition-colors',
+                                                            isParentActive
+                                                                ? 'bg-primary text-tertiary'
+                                                                : 'text-gray-300 hover:bg-gray-800 hover:text-tertiary'
+                                                        )}
+                                                    >
+                                                        <Icon className="mr-3 h-5 w-5" />
+                                                        <span>{item.label}</span>
+                                                    </Link>
+                                                    <button
+                                                        onClick={() => toggleSubmenu(item.href)}
+                                                        className={cn(
+                                                            'w-10 flex items-center justify-center rounded-r-md transition-colors',
+                                                            isParentActive
+                                                                ? 'bg-primary text-tertiary'
+                                                                : 'text-gray-300 hover:bg-gray-800 hover:text-tertiary'
+                                                        )}
+                                                        aria-label="Toggle submenu"
+                                                    >
+                                                        {isExpanded ? (
+                                                            <ChevronDown className="h-4 w-4" />
+                                                        ) : (
+                                                            <ChevronRight className="h-4 w-4" />
+                                                        )}
+                                                    </button>
+                                                </div>
+                                                {isExpanded && (
+                                                    <ul className="mt-1 ml-6 space-y-1">
+                                                        {item.children.map(child => {
+                                                            const ChildIcon = child.icon;
+                                                            const isChildActive = pathname === child.href;
+                                                            return (
+                                                                <li key={child.href}>
+                                                                    <Link
+                                                                        href={child.href}
+                                                                        className={cn(
+                                                                            'flex items-center px-4 py-2 rounded-md transition-colors',
+                                                                            isChildActive
+                                                                                ? 'bg-gray-700 text-tertiary'
+                                                                                : 'text-gray-300 hover:bg-gray-800 hover:text-tertiary'
+                                                                        )}
+                                                                    >
+                                                                        <ChildIcon className="mr-3 h-4 w-4" />
+                                                                        <span>{child.label}</span>
+                                                                    </Link>
+                                                                </li>
+                                                            );
+                                                        })}
+                                                    </ul>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <Link
+                                                href={item.href}
+                                                className={cn(
+                                                    'flex items-center px-4 py-3 rounded-md transition-colors',
+                                                    isActive
+                                                        ? 'bg-primary text-tertiary'
+                                                        : 'text-gray-300 hover:bg-gray-800 hover:text-tertiary'
+                                                )}
+                                            >
+                                                <Icon className="mr-3 h-5 w-5" />
+                                                <span>{item.label}</span>
+                                            </Link>
+                                        )}
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    </nav>
+                </div>
 
-                <div className="absolute bottom-0 w-full p-4">
+                {/* Footer */}
+                <div className="p-4 border-t border-gray-800 bg-secondary flex-shrink-0">
                     <button className="flex items-center justify-center w-full px-4 py-2 text-sm text-gray-300 hover:text-tertiary hover:bg-gray-800 rounded-md transition-colors">
                         <LogOut className="mr-2 h-4 w-4" />
                         <span>Sign out</span>

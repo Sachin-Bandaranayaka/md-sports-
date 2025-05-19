@@ -1,4 +1,6 @@
-import { testConnection } from '../lib/db';
+// Using CommonJS syntax for compatibility
+const db = require('../lib/db');
+const testConnection = db.testConnection;
 
 (async () => {
     try {

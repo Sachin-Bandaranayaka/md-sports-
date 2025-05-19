@@ -1,19 +1,46 @@
 import { Sequelize } from 'sequelize';
+import pg from 'pg'; // Import pg
 
 // Get database connection string from environment variable
 const databaseUrl = process.env.DATABASE_URL || 'postgres://localhost:5432/mdsports';
 
-// Create Sequelize instance
-const sequelize = new Sequelize(databaseUrl, {
-    dialect: 'postgres',
-    dialectOptions: {
-        ssl: process.env.NODE_ENV === 'production' ? {
-            require: true,
-            rejectUnauthorized: false // This might need to be false if your SSL setup has issues
-        } : false
-    },
-    logging: false, // Set to console.log to see SQL queries
-});
+// Create a function to initialize the database connection
+const initializeSequelize = () => {
+    try {
+        // Create Sequelize instance
+        return new Sequelize(databaseUrl, {
+            dialect: 'postgres',
+            dialectModule: pg, // Explicitly pass the pg module
+            dialectOptions: {
+                ssl: {
+                    require: true,
+                    rejectUnauthorized: false
+                }
+            },
+            logging: false,
+        });
+    } catch (error) {
+        console.error('Error initializing Sequelize:', error);
+        // Return a minimal Sequelize-like object to prevent crashes
+        return {
+            authenticate: async () => {
+                throw new Error('Database connection failed to initialize');
+            },
+            model: () => {
+                throw new Error('Database connection failed to initialize');
+            },
+            define: () => { // Add a define method to the mock
+                throw new Error('Database connection failed to initialize, cannot define model');
+            },
+            sync: async () => {
+                throw new Error('Database connection failed to initialize');
+            }
+        } as unknown as Sequelize;
+    }
+};
+
+// Initialize Sequelize
+const sequelize = initializeSequelize();
 
 // Test database connection
 const testConnection = async () => {
