@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Package, Filter, Search, X } from 'lucide-react';
+import { Package, Filter, Search } from 'lucide-react';
 
 // Define proper types for our data
 interface BranchStock {
@@ -118,14 +118,10 @@ const getStatusBadgeClass = (status: string) => {
 };
 
 export default function Inventory() {
-    const [selectedProduct, setSelectedProduct] = useState<InventoryItem | null>(null);
+    const router = useRouter();
 
-    const openProductDetails = (product: InventoryItem) => {
-        setSelectedProduct(product);
-    };
-
-    const closeProductDetails = () => {
-        setSelectedProduct(null);
+    const navigateToProductDetails = (productId: string) => {
+        router.push(`/inventory/${productId}`);
     };
 
     return (
@@ -202,7 +198,7 @@ export default function Inventory() {
                                 {inventoryItems.map((item) => (
                                     <tr key={item.id}
                                         className="border-b hover:bg-gray-50 cursor-pointer"
-                                        onClick={() => openProductDetails(item)}
+                                        onClick={() => navigateToProductDetails(item.id)}
                                     >
                                         <td className="px-6 py-4 font-medium text-gray-900">
                                             {item.id}
@@ -241,79 +237,6 @@ export default function Inventory() {
                     </div>
                 </div>
             </div>
-
-            {/* Product Details Modal */}
-            {selectedProduct && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4">
-                        <div className="flex justify-between items-center border-b p-4">
-                            <h2 className="text-xl font-bold">{selectedProduct.name}</h2>
-                            <button onClick={closeProductDetails} className="text-gray-500 hover:text-gray-700">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        <div className="p-4">
-                            <div className="grid grid-cols-2 gap-4 mb-4">
-                                <div>
-                                    <p className="text-sm text-gray-500">Product ID</p>
-                                    <p className="font-medium">{selectedProduct.id}</p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">Category</p>
-                                    <p className="font-medium">{selectedProduct.category}</p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">Total Stock</p>
-                                    <p className="font-medium">{selectedProduct.stock}</p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">Status</p>
-                                    <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(selectedProduct.status)}`}>
-                                        {selectedProduct.status}
-                                    </span>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">Retail Price</p>
-                                    <p className="font-medium">Rs. {selectedProduct.retailPrice.toLocaleString()}</p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">Wholesale Price</p>
-                                    <p className="font-medium">Rs. {selectedProduct.wholesalePrice.toLocaleString()}</p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">Average Cost</p>
-                                    <p className="font-medium">Rs. {selectedProduct.averageCost.toLocaleString()}</p>
-                                </div>
-                            </div>
-
-                            <h3 className="font-semibold text-lg mb-2">Stock by Branch</h3>
-                            <table className="w-full text-sm text-left text-gray-500">
-                                <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-                                    <tr>
-                                        <th className="px-4 py-2">Branch ID</th>
-                                        <th className="px-4 py-2">Branch Name</th>
-                                        <th className="px-4 py-2">Quantity</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {selectedProduct.branchStock.map((branch: BranchStock) => (
-                                        <tr key={branch.branchId} className="border-b">
-                                            <td className="px-4 py-2">{branch.branchId}</td>
-                                            <td className="px-4 py-2">{branch.branchName}</td>
-                                            <td className="px-4 py-2">{branch.quantity}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div className="border-t p-4 flex justify-end">
-                            <Button variant="outline" size="sm" onClick={closeProductDetails}>Close</Button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </MainLayout>
     );
 } 
