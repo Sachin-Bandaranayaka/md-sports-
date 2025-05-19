@@ -45,6 +45,11 @@ export async function query(text: string, params?: any[]) {
     }
 }
 
+// Get a client from the pool
+export async function getClient() {
+    return await pool.connect();
+}
+
 // Transaction function
 export async function transaction<T>(callback: (client: any) => Promise<T>) {
     const client = await pool.connect();
@@ -64,5 +69,6 @@ export async function transaction<T>(callback: (client: any) => Promise<T>) {
 export default {
     query,
     transaction,
-    testConnection
+    testConnection,
+    getClient
 }; 
