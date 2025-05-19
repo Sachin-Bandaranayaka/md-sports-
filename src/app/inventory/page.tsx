@@ -1,8 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Package, Filter, Search } from 'lucide-react';
+import { Package, Filter, Search, X } from 'lucide-react';
 
 // Dummy data for demonstration
 const inventoryItems = [
@@ -11,40 +12,75 @@ const inventoryItems = [
         name: 'Cricket Bat - Professional',
         category: 'Cricket',
         stock: 45,
-        price: 8500,
-        status: 'In Stock'
+        retailPrice: 8500,
+        wholesalePrice: 7200,
+        averageCost: 6500,
+        status: 'In Stock',
+        branchStock: [
+            { branchId: 'SH001', branchName: 'Main Shop', quantity: 20 },
+            { branchId: 'SH002', branchName: 'City Center', quantity: 15 },
+            { branchId: 'SH003', branchName: 'Stadium Shop', quantity: 10 }
+        ]
     },
     {
         id: 'MD-002',
         name: 'Basketball - Size 7',
         category: 'Basketball',
         stock: 28,
-        price: 3200,
-        status: 'In Stock'
+        retailPrice: 3200,
+        wholesalePrice: 2800,
+        averageCost: 2300,
+        status: 'In Stock',
+        branchStock: [
+            { branchId: 'SH001', branchName: 'Main Shop', quantity: 13 },
+            { branchId: 'SH002', branchName: 'City Center', quantity: 10 },
+            { branchId: 'SH003', branchName: 'Stadium Shop', quantity: 5 }
+        ]
     },
     {
         id: 'MD-003',
         name: 'Football - Size 5',
         category: 'Football',
         stock: 15,
-        price: 2800,
-        status: 'Low Stock'
+        retailPrice: 2800,
+        wholesalePrice: 2400,
+        averageCost: 2000,
+        status: 'Low Stock',
+        branchStock: [
+            { branchId: 'SH001', branchName: 'Main Shop', quantity: 7 },
+            { branchId: 'SH002', branchName: 'City Center', quantity: 5 },
+            { branchId: 'SH003', branchName: 'Stadium Shop', quantity: 3 }
+        ]
     },
     {
         id: 'MD-004',
         name: 'Tennis Racket - Professional',
         category: 'Tennis',
         stock: 8,
-        price: 12500,
-        status: 'Low Stock'
+        retailPrice: 12500,
+        wholesalePrice: 11000,
+        averageCost: 9500,
+        status: 'Low Stock',
+        branchStock: [
+            { branchId: 'SH001', branchName: 'Main Shop', quantity: 3 },
+            { branchId: 'SH002', branchName: 'City Center', quantity: 3 },
+            { branchId: 'SH003', branchName: 'Stadium Shop', quantity: 2 }
+        ]
     },
     {
         id: 'MD-005',
         name: 'Swimming Goggles - Adult',
         category: 'Swimming',
         stock: 0,
-        price: 1500,
-        status: 'Out of Stock'
+        retailPrice: 1500,
+        wholesalePrice: 1200,
+        averageCost: 950,
+        status: 'Out of Stock',
+        branchStock: [
+            { branchId: 'SH001', branchName: 'Main Shop', quantity: 0 },
+            { branchId: 'SH002', branchName: 'City Center', quantity: 0 },
+            { branchId: 'SH003', branchName: 'Stadium Shop', quantity: 0 }
+        ]
     },
 ];
 
@@ -63,6 +99,16 @@ const getStatusBadgeClass = (status: string) => {
 };
 
 export default function Inventory() {
+    const [selectedProduct, setSelectedProduct] = useState<any>(null);
+
+    const openProductDetails = (product: any) => {
+        setSelectedProduct(product);
+    };
+
+    const closeProductDetails = () => {
+        setSelectedProduct(null);
+    };
+
     return (
         <MainLayout>
             <div className="space-y-6">
@@ -126,14 +172,19 @@ export default function Inventory() {
                                     <th className="px-6 py-3">Product Name</th>
                                     <th className="px-6 py-3">Category</th>
                                     <th className="px-6 py-3">Stock</th>
-                                    <th className="px-6 py-3">Price</th>
+                                    <th className="px-6 py-3">Retail Price</th>
+                                    <th className="px-6 py-3">Wholesale Price</th>
+                                    <th className="px-6 py-3">Avg Cost</th>
                                     <th className="px-6 py-3">Status</th>
                                     <th className="px-6 py-3">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {inventoryItems.map((item) => (
-                                    <tr key={item.id} className="border-b hover:bg-gray-50">
+                                    <tr key={item.id}
+                                        className="border-b hover:bg-gray-50 cursor-pointer"
+                                        onClick={() => openProductDetails(item)}
+                                    >
                                         <td className="px-6 py-4 font-medium text-gray-900">
                                             {item.id}
                                         </td>
@@ -142,7 +193,9 @@ export default function Inventory() {
                                         </td>
                                         <td className="px-6 py-4">{item.category}</td>
                                         <td className="px-6 py-4">{item.stock}</td>
-                                        <td className="px-6 py-4">Rs. {item.price.toLocaleString()}</td>
+                                        <td className="px-6 py-4">Rs. {item.retailPrice.toLocaleString()}</td>
+                                        <td className="px-6 py-4">Rs. {item.wholesalePrice.toLocaleString()}</td>
+                                        <td className="px-6 py-4">Rs. {item.averageCost.toLocaleString()}</td>
                                         <td className="px-6 py-4">
                                             <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(item.status)}`}>
                                                 {item.status}
@@ -150,7 +203,6 @@ export default function Inventory() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex gap-2">
-                                                <Button variant="ghost" size="sm">View</Button>
                                                 <Button variant="ghost" size="sm">Edit</Button>
                                             </div>
                                         </td>
@@ -170,6 +222,79 @@ export default function Inventory() {
                     </div>
                 </div>
             </div>
+
+            {/* Product Details Modal */}
+            {selectedProduct && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4">
+                        <div className="flex justify-between items-center border-b p-4">
+                            <h2 className="text-xl font-bold">{selectedProduct.name}</h2>
+                            <button onClick={closeProductDetails} className="text-gray-500 hover:text-gray-700">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="p-4">
+                            <div className="grid grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <p className="text-sm text-gray-500">Product ID</p>
+                                    <p className="font-medium">{selectedProduct.id}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-500">Category</p>
+                                    <p className="font-medium">{selectedProduct.category}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-500">Total Stock</p>
+                                    <p className="font-medium">{selectedProduct.stock}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-500">Status</p>
+                                    <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(selectedProduct.status)}`}>
+                                        {selectedProduct.status}
+                                    </span>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-500">Retail Price</p>
+                                    <p className="font-medium">Rs. {selectedProduct.retailPrice.toLocaleString()}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-500">Wholesale Price</p>
+                                    <p className="font-medium">Rs. {selectedProduct.wholesalePrice.toLocaleString()}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-500">Average Cost</p>
+                                    <p className="font-medium">Rs. {selectedProduct.averageCost.toLocaleString()}</p>
+                                </div>
+                            </div>
+
+                            <h3 className="font-semibold text-lg mb-2">Stock by Branch</h3>
+                            <table className="w-full text-sm text-left text-gray-500">
+                                <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                                    <tr>
+                                        <th className="px-4 py-2">Branch ID</th>
+                                        <th className="px-4 py-2">Branch Name</th>
+                                        <th className="px-4 py-2">Quantity</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {selectedProduct.branchStock.map((branch: any) => (
+                                        <tr key={branch.branchId} className="border-b">
+                                            <td className="px-4 py-2">{branch.branchId}</td>
+                                            <td className="px-4 py-2">{branch.branchName}</td>
+                                            <td className="px-4 py-2">{branch.quantity}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="border-t p-4 flex justify-end">
+                            <Button variant="outline" size="sm" onClick={closeProductDetails}>Close</Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </MainLayout>
     );
 } 
