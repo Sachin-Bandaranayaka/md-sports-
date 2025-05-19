@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
 import {
@@ -22,7 +23,6 @@ export default function Settings() {
 
     // Add modal state
     const [showAddUserModal, setShowAddUserModal] = useState(false);
-    const [showAddRoleModal, setShowAddRoleModal] = useState(false);
 
     // Form states
     const [isLoading, setIsLoading] = useState(false);
@@ -48,13 +48,6 @@ export default function Settings() {
 
     // Password visibility toggle
     const [showPassword, setShowPassword] = useState(false);
-
-    // Role form state
-    const [roleForm, setRoleForm] = useState({
-        name: '',
-        description: '',
-        permissions: [] as string[]
-    });
 
     // Permission list - will be populated from database
     const [permissions, setPermissions] = useState<any[]>([]);
@@ -260,65 +253,6 @@ export default function Settings() {
             }
         } catch (error) {
             console.error('Error adding user:', error);
-            setFormError('An error occurred. Please try again.');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleRoleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setRoleForm(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handlePermissionChange = (permissionId: string) => {
-        setRoleForm(prev => {
-            const permissions = [...prev.permissions];
-            if (permissions.includes(permissionId)) {
-                return { ...prev, permissions: permissions.filter(p => p !== permissionId) };
-            } else {
-                return { ...prev, permissions: [...permissions, permissionId] };
-            }
-        });
-    };
-
-    const handleAddRole = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsLoading(true);
-        setFormError('');
-        setFormSuccess('');
-
-        try {
-            const response = await fetch('/api/users/roles', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(roleForm),
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                setFormSuccess('Role added successfully!');
-                // Reset form
-                setRoleForm({
-                    name: '',
-                    description: '',
-                    permissions: []
-                });
-
-                // Close modal after a delay
-                setTimeout(() => {
-                    setShowAddRoleModal(false);
-                    // Refresh page to show new role
-                    window.location.reload();
-                }, 1500);
-            } else {
-                setFormError(data.message || 'Failed to add role');
-            }
-        } catch (error) {
-            console.error('Error adding role:', error);
             setFormError('An error occurred. Please try again.');
         } finally {
             setIsLoading(false);
@@ -532,13 +466,11 @@ export default function Settings() {
                             <div className="space-y-6">
                                 <div className="flex justify-between items-center">
                                     <h2 className="text-lg font-semibold text-gray-900">Roles & Permissions</h2>
-                                    <Button
-                                        variant="primary"
-                                        size="sm"
-                                        onClick={() => setShowAddRoleModal(true)}
-                                    >
-                                        Add Role
-                                    </Button>
+                                    <Link href="/settings/roles/add">
+                                        <Button variant="primary" size="sm">
+                                            Add Role
+                                        </Button>
+                                    </Link>
                                 </div>
 
                                 <div className="overflow-x-auto">
@@ -552,39 +484,24 @@ export default function Settings() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr className="border-b hover:bg-gray-50">
-                                                <td className="px-6 py-4 font-medium text-gray-900">Administrator</td>
-                                                <td className="px-6 py-4">Full system access and control</td>
-                                                <td className="px-6 py-4">1</td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex gap-2">
-                                                        <Button variant="ghost" size="sm">Edit</Button>
-                                                        <Button variant="ghost" size="sm">Permissions</Button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            <tr className="border-b hover:bg-gray-50">
-                                                <td className="px-6 py-4 font-medium text-gray-900">Manager</td>
-                                                <td className="px-6 py-4">Shop management and reporting access</td>
-                                                <td className="px-6 py-4">1</td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex gap-2">
-                                                        <Button variant="ghost" size="sm">Edit</Button>
-                                                        <Button variant="ghost" size="sm">Permissions</Button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            <tr className="border-b hover:bg-gray-50">
-                                                <td className="px-6 py-4 font-medium text-gray-900">Staff</td>
-                                                <td className="px-6 py-4">Basic inventory and sales access</td>
-                                                <td className="px-6 py-4">1</td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex gap-2">
-                                                        <Button variant="ghost" size="sm">Edit</Button>
-                                                        <Button variant="ghost" size="sm">Permissions</Button>
-                                                    </div>
-                                                </td>
-                                            </tr>
+                                            {roles.map(role => (
+                                                <tr key={role.id} className="border-b hover:bg-gray-50">
+                                                    <td className="px-6 py-4 font-medium text-gray-900">{role.name}</td>
+                                                    <td className="px-6 py-4">{role.description}</td>
+                                                    <td className="px-6 py-4">{role.userCount || 0}</td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex gap-2">
+                                                            <Button variant="ghost" size="sm">Edit</Button>
+                                                            <Button variant="ghost" size="sm">Permissions</Button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {roles.length === 0 && (
+                                                <tr>
+                                                    <td colSpan={4} className="px-6 py-4 text-center text-gray-500">No roles found.</td>
+                                                </tr>
+                                            )}
                                         </tbody>
                                     </table>
                                 </div>
@@ -941,252 +858,6 @@ export default function Settings() {
                                                 </>
                                             ) : (
                                                 <>Add User</>
-                                            )}
-                                        </Button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Add Role Modal */}
-                {showAddRoleModal && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                        <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
-                            <div className="p-6">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-lg font-semibold text-gray-900">Add New Role</h3>
-                                    <button
-                                        type="button"
-                                        className="text-gray-400 hover:text-gray-500"
-                                        onClick={() => setShowAddRoleModal(false)}
-                                    >
-                                        <X className="h-6 w-6" />
-                                    </button>
-                                </div>
-
-                                {formError && (
-                                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-4">
-                                        {formError}
-                                    </div>
-                                )}
-
-                                {formSuccess && (
-                                    <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md mb-4">
-                                        {formSuccess}
-                                    </div>
-                                )}
-
-                                <form onSubmit={handleAddRole}>
-                                    <div className="space-y-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Role Name <span className="text-red-500">*</span>
-                                            </label>
-                                            <input
-                                                type="text"
-                                                name="name"
-                                                value={roleForm.name}
-                                                onChange={handleRoleFormChange}
-                                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
-                                                required
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Description
-                                            </label>
-                                            <textarea
-                                                name="description"
-                                                value={roleForm.description}
-                                                onChange={handleRoleFormChange}
-                                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
-                                                rows={3}
-                                            ></textarea>
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Permissions
-                                            </label>
-
-                                            {/* Quick actions */}
-                                            <div className="flex flex-wrap gap-2 mb-2">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        const allPermissionIds = permissions.map(p => p.id);
-                                                        setRoleForm(prev => ({
-                                                            ...prev,
-                                                            permissions: allPermissionIds
-                                                        }));
-                                                    }}
-                                                    className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded hover:bg-blue-100"
-                                                >
-                                                    Select All
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setRoleForm(prev => ({
-                                                            ...prev,
-                                                            permissions: []
-                                                        }));
-                                                    }}
-                                                    className="text-xs px-2 py-1 bg-gray-50 text-gray-700 rounded hover:bg-gray-100"
-                                                >
-                                                    Deselect All
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        const viewPermIds = permissions
-                                                            .filter(p => String(p.id).includes(':view'))
-                                                            .map(p => p.id);
-                                                        setRoleForm(prev => ({
-                                                            ...prev,
-                                                            permissions: viewPermIds
-                                                        }));
-                                                    }}
-                                                    className="text-xs px-2 py-1 bg-green-50 text-green-700 rounded hover:bg-green-100"
-                                                >
-                                                    View Access Only
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        const managePermIds = permissions
-                                                            .filter(p => String(p.id).includes(':manage'))
-                                                            .map(p => p.id);
-                                                        setRoleForm(prev => ({
-                                                            ...prev,
-                                                            permissions: [
-                                                                ...prev.permissions,
-                                                                ...managePermIds.filter(id => !prev.permissions.includes(id))
-                                                            ]
-                                                        }));
-                                                    }}
-                                                    className="text-xs px-2 py-1 bg-amber-50 text-amber-700 rounded hover:bg-amber-100"
-                                                >
-                                                    Add All Management
-                                                </button>
-                                            </div>
-
-                                            <div className="mt-2 border border-gray-200 rounded-md p-3 max-h-[400px] overflow-y-auto">
-                                                {/* Group permissions by module */}
-                                                {(() => {
-                                                    // Group permissions by module
-                                                    const moduleGroups: { [key: string]: any[] } = {};
-
-                                                    permissions.forEach(permission => {
-                                                        const module = permission.module || permission.id.split(':')[0];
-                                                        if (!moduleGroups[module]) {
-                                                            moduleGroups[module] = [];
-                                                        }
-                                                        moduleGroups[module].push(permission);
-                                                    });
-
-                                                    // Sort modules alphabetically
-                                                    const sortedModules = Object.keys(moduleGroups).sort();
-
-                                                    return sortedModules.map(module => (
-                                                        <div key={module} className="mb-4 bg-gray-50 rounded-md p-2">
-                                                            <div className="flex items-center mb-2 pb-1 border-b border-gray-200">
-                                                                <h4 className="font-medium text-sm text-gray-900 capitalize">{module}</h4>
-                                                                <div className="flex items-center ml-auto">
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        id={`select-all-${module}`}
-                                                                        checked={moduleGroups[module].every(p => roleForm.permissions.includes(p.id))}
-                                                                        onChange={() => {
-                                                                            const allSelected = moduleGroups[module].every(p => roleForm.permissions.includes(p.id));
-
-                                                                            setRoleForm(prev => {
-                                                                                let newPermissions = [...prev.permissions];
-
-                                                                                if (allSelected) {
-                                                                                    // Remove all permissions from this module
-                                                                                    newPermissions = newPermissions.filter(
-                                                                                        p => !moduleGroups[module].some(mp => mp.id === p)
-                                                                                    );
-                                                                                } else {
-                                                                                    // Add all permissions from this module
-                                                                                    moduleGroups[module].forEach(p => {
-                                                                                        if (!newPermissions.includes(p.id)) {
-                                                                                            newPermissions.push(p.id);
-                                                                                        }
-                                                                                    });
-                                                                                }
-
-                                                                                return { ...prev, permissions: newPermissions };
-                                                                            });
-                                                                        }}
-                                                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                                                    />
-                                                                    <label htmlFor={`select-all-${module}`} className="ml-2 text-xs text-gray-700 font-medium">
-                                                                        {moduleGroups[module].every(p => roleForm.permissions.includes(p.id))
-                                                                            ? 'Deselect All'
-                                                                            : 'Select All'}
-                                                                    </label>
-                                                                </div>
-                                                            </div>
-                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1">
-                                                                {moduleGroups[module].map(permission => (
-                                                                    <div key={permission.id} className="flex items-center py-1 px-2 hover:bg-gray-100 rounded">
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            id={permission.id}
-                                                                            checked={roleForm.permissions.includes(permission.id)}
-                                                                            onChange={() => handlePermissionChange(permission.id)}
-                                                                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                                                        />
-                                                                        <label htmlFor={permission.id} className="ml-2 block text-sm text-gray-700">
-                                                                            {permission.name}
-                                                                        </label>
-                                                                        {permission.description && (
-                                                                            <span className="ml-1 text-xs text-gray-500 italic">
-                                                                                ({permission.description})
-                                                                            </span>
-                                                                        )}
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    ));
-                                                })()}
-                                            </div>
-
-                                            {/* Show selected permissions count */}
-                                            <div className="mt-1 text-xs text-gray-500">
-                                                {roleForm.permissions.length} of {permissions.length} permissions selected
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center justify-end mt-6 border-t border-gray-200 pt-4">
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={() => setShowAddRoleModal(false)}
-                                            className="mr-2"
-                                            disabled={isLoading}
-                                        >
-                                            Cancel
-                                        </Button>
-                                        <Button
-                                            type="submit"
-                                            variant="primary"
-                                            disabled={isLoading}
-                                        >
-                                            {isLoading ? (
-                                                <>
-                                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                                    Saving...
-                                                </>
-                                            ) : (
-                                                <>Add Role</>
                                             )}
                                         </Button>
                                     </div>
