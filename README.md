@@ -1,36 +1,113 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MD Sports Inventory Management System
+
+A comprehensive inventory management system for MD Sports, a retail business with multiple shop locations in Sri Lanka. This system allows for centralized inventory management, inter-shop transfers, role-based access control, and comprehensive reporting.
+
+## Features
+
+- Multi-shop inventory management with transfer capability
+- Role-based access control
+- Customer management (credit vs. cash customers)
+- Invoice generation and management
+- SMS integration for notifications
+- Export features for reports (PDF and Excel)
+- AI integration using ChatGPT 4o-mini
+
+## Tech Stack
+
+- **Frontend**: Next.js with TypeScript and Tailwind CSS
+- **Backend**: Node.js with Express.js for API development
+- **Database**: NeonDB (PostgreSQL-compatible)
+- **Authentication**: JWT-based token system with role-based permissions
+- **Deployment**: Cloud-based deployment
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18.x or later
+- npm 9.x or later
+
+### Installation
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/md-sports/inventory-management.git
+cd inventory-management
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Create a `.env.local` file in the root directory with the following variables:
+
+```
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your_secret_here
+DATABASE_URL=your_neondb_connection_string
+```
+
+4. Start the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+5. Open [http://localhost:3000](http://localhost:3000) to view the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Development Conventions
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Code Style
 
-## Learn More
+- Use TypeScript for all new files
+- Follow ESLint configuration
+- Use Tailwind CSS for styling
 
-To learn more about Next.js, take a look at the following resources:
+### Branch Naming Convention
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `feature/feature-name`: For new features
+- `fix/issue-description`: For bug fixes
+- `docs/documentation-update`: For documentation updates
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Commit Message Convention
 
-## Deploy on Vercel
+We follow the Conventional Commits standard:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `feat: add new feature`
+- `fix: resolve bug issue`
+- `docs: update README`
+- `style: format code`
+- `refactor: restructure code without changing functionality`
+- `test: add or update tests`
+- `chore: update dependencies`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Project Structure
+
+```
+src/
+├── app/              # Next.js 13+ App Router
+│   ├── api/          # API routes
+│   ├── dashboard/    # Dashboard page
+│   ├── inventory/    # Inventory management pages
+│   └── ...
+├── components/       # Reusable components
+│   ├── ui/           # UI components
+│   ├── forms/        # Form components
+│   └── layout/       # Layout components
+├── contexts/         # React contexts
+├── hooks/            # Custom hooks
+├── lib/              # Utility functions
+├── services/         # API service connectors
+└── types/            # TypeScript interfaces and types
+```
+
+## License
+
+This project is proprietary and owned by MD Sports.
+
+## Acknowledgments
+
+- Developed by Synapse Labs
