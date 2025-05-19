@@ -1,8 +1,19 @@
-import sequelize, { testConnection } from './db';
-import { Product, Category, Shop, InventoryItem } from './models';
+const sequelize = require('./db').default;
+const testConnection = require('./db').testConnection;
+const {
+    Product,
+    Category,
+    Shop,
+    InventoryItem,
+    User,
+    Role,
+    Permission,
+    Customer
+} = require('./models');
+const bcrypt = require('bcryptjs');
 
 // Function to sync database schema
-export const syncDatabase = async (force: boolean = false) => {
+const syncDatabase = async (force = false) => {
     try {
         // Test the connection
         const connected = await testConnection();
@@ -25,7 +36,7 @@ export const syncDatabase = async (force: boolean = false) => {
 };
 
 // Function to seed initial data for testing
-export const seedTestData = async () => {
+const seedTestData = async () => {
     try {
         // Check if data already exists
         const categoryCount = await Category.count();
@@ -119,6 +130,126 @@ export const seedTestData = async () => {
             reorderLevel: 3
         });
 
+        // Create roles and permissions
+        const adminRole = await Role.create({
+            name: 'Admin',
+            description: 'Administrator with full access'
+        });
+
+        const managerRole = await Role.create({
+            name: 'Shop Manager',
+            description: 'Manager of a specific shop'
+        });
+
+        const cashierRole = await Role.create({
+            name: 'Cashier',
+            description: 'Processes sales and invoices'
+        });
+
+        // Create permissions
+        const inventoryViewPermission = await Permission.create({
+            name: 'inventory:view',
+            description: 'View inventory items',
+            module: 'inventory'
+        });
+
+        const inventoryManagePermission = await Permission.create({
+            name: 'inventory:manage',
+            description: 'Create, update, delete inventory items',
+            module: 'inventory'
+        });
+
+        const invoiceCreatePermission = await Permission.create({
+            name: 'invoice:create',
+            description: 'Create new invoices',
+            module: 'invoice'
+        });
+
+        const userManagePermission = await Permission.create({
+            name: 'user:manage',
+            description: 'Manage user accounts',
+            module: 'user'
+        });
+
+        const shopManagePermission = await Permission.create({
+            name: 'shop:manage',
+            description: 'Manage shop details',
+            module: 'shop'
+        });
+
+        const reportViewPermission = await Permission.create({
+            name: 'report:view',
+            description: 'View reports',
+            module: 'report'
+        });
+
+        // Assign permissions to roles
+        await adminRole.addPermission(inventoryViewPermission.id);
+        await adminRole.addPermission(inventoryManagePermission.id);
+        await adminRole.addPermission(invoiceCreatePermission.id);
+        await adminRole.addPermission(userManagePermission.id);
+        await adminRole.addPermission(shopManagePermission.id);
+        await adminRole.addPermission(reportViewPermission.id);
+
+        await managerRole.addPermission(inventoryViewPermission.id);
+        await managerRole.addPermission(inventoryManagePermission.id);
+        await managerRole.addPermission(invoiceCreatePermission.id);
+        await managerRole.addPermission(reportViewPermission.id);
+
+        await cashierRole.addPermission(inventoryViewPermission.id);
+        await cashierRole.addPermission(invoiceCreatePermission.id);
+
+        // Create users
+        const adminPassword = await bcrypt.hash('admin123', 12);
+        await User.create({
+            username: 'admin',
+            passwordHash: adminPassword,
+            fullName: 'System Administrator',
+            email: 'admin@mdsports.lk',
+            phone: '+94123456789',
+            roleId: adminRole.id
+        });
+
+        const managerPassword = await bcrypt.hash('manager123', 12);
+        await User.create({
+            username: 'manager',
+            passwordHash: managerPassword,
+            fullName: 'Main Store Manager',
+            email: 'manager@mdsports.lk',
+            phone: '+94123456790',
+            roleId: managerRole.id,
+            shopId: mainStore.id
+        });
+
+        const cashierPassword = await bcrypt.hash('cashier123', 12);
+        await User.create({
+            username: 'cashier',
+            passwordHash: cashierPassword,
+            fullName: 'Main Store Cashier',
+            email: 'cashier@mdsports.lk',
+            phone: '+94123456791',
+            roleId: cashierRole.id,
+            shopId: mainStore.id
+        });
+
+        // Create customers
+        await Customer.create({
+            name: 'John Customer',
+            email: 'john@example.com',
+            phone: '+94771234567',
+            address: '123 Main St, Colombo',
+            type: 'cash'
+        });
+
+        await Customer.create({
+            name: 'Business Corp',
+            email: 'accounts@businesscorp.lk',
+            phone: '+94112345678',
+            address: '456 Business Ave, Colombo',
+            type: 'credit',
+            creditLimit: 50000.00
+        });
+
         console.log('Test data seeded successfully.');
         return true;
     } catch (error) {
@@ -144,4 +275,9 @@ if (require.main === module) {
         // Close database connection
         await sequelize.close();
     })();
-} 
+}
+
+module.exports = {
+    syncDatabase,
+    seedTestData
+}; 

@@ -9,25 +9,118 @@ import { Button } from '@/components/ui/Button';
 export default function LoginPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const [debugInfo, setDebugInfo] = useState<any>(null);
     const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setIsLoading(true);
         setError('');
+        setDebugInfo(null);
 
         const formData = new FormData(e.currentTarget);
         const username = formData.get('username') as string;
         const password = formData.get('password') as string;
 
-        // For demo purposes, just using hardcoded credentials
-        // In a real app, you'd call an API endpoint
+        // TEMPORARY: Directly use hardcoded credentials while fixing backend issues
         if (username === 'admin' && password === 'password') {
+            localStorage.setItem('authToken', 'dev-token');
+            localStorage.setItem('userData', JSON.stringify({
+                id: 1,
+                username: 'admin',
+                fullName: 'Admin User'
+            }));
             router.push('/dashboard');
-        } else {
-            setError('Invalid username or password');
+            return;
+        }
+
+        // First try the debug endpoint
+        try {
+            const debugResponse = await fetch('/api/auth/debug', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, password }),
+            });
+
+            // Check if the response is actually JSON
+            const contentType = debugResponse.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const debugData = await debugResponse.json();
+                setDebugInfo(debugData);
+                console.log("Debug data:", debugData);
+
+                // If debug shows database issues, show the error
+                if (!debugData.success) {
+                    setError(`Debug error: ${debugData.message}`);
+                    setIsLoading(false);
+                    return;
+                }
+            } else {
+                const textResponse = await debugResponse.text();
+                console.error('Non-JSON response:', textResponse);
+                setError('Server returned an invalid response format');
+                setIsLoading(false);
+                return;
+            }
+        } catch (debugError) {
+            console.error('Debug endpoint error:', debugError);
+            setError(`Debug API error: ${(debugError as Error).message}`);
+            setIsLoading(false);
+            return;
+        }
+
+        // Try the API login
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, password }),
+            });
+
+            // Check if the response is actually JSON
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const data = await response.json();
+
+                if (data.success) {
+                    // Store token and user data
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('userData', JSON.stringify(data.user));
+
+                    // Redirect to dashboard
+                    router.push('/dashboard');
+                } else {
+                    setError(data.message || 'Invalid username or password');
+                    setIsLoading(false);
+                }
+            } else {
+                const textResponse = await response.text();
+                console.error('Non-JSON response:', textResponse);
+                setError('Server returned an error response');
+                setIsLoading(false);
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            setError(`Login API error: ${(error as Error).message}`);
             setIsLoading(false);
         }
+    };
+
+    // For development purposes only - hardcoded login
+    const handleDevLogin = () => {
+        localStorage.setItem('authToken', 'dev-token');
+        localStorage.setItem('userData', JSON.stringify({
+            id: 1,
+            username: 'admin',
+            fullName: 'Admin User',
+            roleId: 1,
+            roleName: 'Admin',
+        }));
+        router.push('/dashboard');
     };
 
     return (
@@ -54,6 +147,7 @@ export default function LoginPage() {
                                 label="Username"
                                 required
                                 autoComplete="username"
+                                defaultValue="admin"
                             />
                         </div>
 
@@ -65,6 +159,7 @@ export default function LoginPage() {
                                 label="Password"
                                 required
                                 autoComplete="current-password"
+                                defaultValue="password"
                             />
                         </div>
 
@@ -97,6 +192,22 @@ export default function LoginPage() {
                                 Sign in
                             </Button>
                         </div>
+
+                        <div className="pt-4">
+                            <Button
+                                type="button"
+                                className="w-full bg-green-600 hover:bg-green-700"
+                                onClick={handleDevLogin}
+                            >
+                                Development Login
+                            </Button>
+                        </div>
+
+                        {debugInfo && (
+                            <div className="mt-4 p-3 text-xs font-mono bg-gray-100 rounded overflow-auto max-h-60">
+                                <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
+                            </div>
+                        )}
                     </form>
                 </div>
             </div>
