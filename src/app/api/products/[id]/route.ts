@@ -1,13 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import db from '@/utils/db';
 
 export async function GET(
-    request: Request,
-    context: { params: { id: string } }
+    req: NextRequest,
+    { params }: { params: { id: string } }
 ) {
     try {
-        const { id: idParam } = context.params;
-        const id = parseInt(idParam);
+        const id = parseInt(params.id);
 
         if (isNaN(id)) {
             return NextResponse.json({
@@ -58,12 +57,11 @@ export async function GET(
 }
 
 export async function PUT(
-    request: Request,
-    context: { params: { id: string } }
+    req: NextRequest,
+    { params }: { params: { id: string } }
 ) {
     try {
-        const { id: idParam } = context.params;
-        const id = parseInt(idParam);
+        const id = parseInt(params.id);
 
         if (isNaN(id)) {
             return NextResponse.json({
@@ -72,7 +70,7 @@ export async function PUT(
             }, { status: 400 });
         }
 
-        const productData = await request.json();
+        const productData = await req.json();
 
         // Check if product exists
         const checkResult = await db.query('SELECT id FROM products WHERE id = $1', [id]);
@@ -126,12 +124,11 @@ export async function PUT(
 }
 
 export async function DELETE(
-    request: Request,
-    context: { params: { id: string } }
+    req: NextRequest,
+    { params }: { params: { id: string } }
 ) {
     try {
-        const { id: idParam } = context.params;
-        const id = parseInt(idParam);
+        const id = parseInt(params.id);
 
         if (isNaN(id)) {
             return NextResponse.json({

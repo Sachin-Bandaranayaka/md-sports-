@@ -1,34 +1,39 @@
 import { NextResponse } from 'next/server';
-import db from '@/utils/db';
+import prisma from '@/lib/prisma';
 
 // GET: Fetch all shops
 export async function GET() {
     try {
-        // Query to get all active shops with their inventory counts
-        const result = await db.query(`
-            SELECT 
-                s.id,
-                s.name,
-                s.location,
-                s.contact_person,
-                s.phone,
-                s.email,
-                COALESCE(SUM(i.quantity), 0) as total_inventory
-            FROM 
-                shops s
-            LEFT JOIN 
-                inventory_items i ON s.id = i.shop_id
-            WHERE 
-                s.is_active = true
-            GROUP BY 
-                s.id, s.name, s.location, s.contact_person, s.phone, s.email
-            ORDER BY 
-                s.name
-        `);
+        // Get all active shops with their inventory totals
+        const shops = await prisma.shop.findMany({
+            where: {
+                // Prisma doesn't have a default is_active column in Shop model
+            },
+            orderBy: {
+                name: 'asc'
+            },
+            include: {
+                inventoryItems: true
+            }
+        });
+
+        // Calculate total inventory for each shop
+        const data = shops.map(shop => {
+            // Calculate total inventory quantity
+            const totalInventory = shop.inventoryItems.reduce((sum, item) => sum + item.quantity, 0);
+
+            // Remove the full inventory items array from the response
+            const { inventoryItems, ...shopData } = shop;
+
+            return {
+                ...shopData,
+                total_inventory: totalInventory
+            };
+        });
 
         return NextResponse.json({
             success: true,
-            data: result.rows
+            data
         });
     } catch (error) {
         console.error('Error fetching shops:', error);
@@ -43,7 +48,7 @@ export async function GET() {
 // POST: Create a new shop
 export async function POST(request: Request) {
     try {
-        const { name, location, contactPerson, phone, email } = await request.json();
+        const { name, location } = await request.json();
 
         // Validate required fields
         if (!name || !location) {
@@ -53,23 +58,18 @@ export async function POST(request: Request) {
             }, { status: 400 });
         }
 
-        // Insert new shop into database
-        const result = await db.query(`
-            INSERT INTO shops (
-                name, 
-                location, 
-                contact_person, 
-                phone, 
-                email
-            ) VALUES (
-                $1, $2, $3, $4, $5
-            ) RETURNING *
-        `, [name, location, contactPerson || null, phone || null, email || null]);
+        // Create the shop using Prisma
+        const newShop = await prisma.shop.create({
+            data: {
+                name,
+                location
+            }
+        });
 
         return NextResponse.json({
             success: true,
             message: 'Shop created successfully',
-            data: result.rows[0]
+            data: newShop
         }, { status: 201 });
     } catch (error) {
         console.error('Error creating shop:', error);

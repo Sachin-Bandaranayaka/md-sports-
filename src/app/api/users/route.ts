@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { User, Role } from '@/lib/models';
+import prisma from '@/lib/prisma';
 import { requirePermission } from '@/lib/utils/middleware';
 import bcrypt from 'bcryptjs';
-import { Op } from 'sequelize';
 
 // GET: List all users
 export async function GET(req: NextRequest) {
@@ -13,14 +12,24 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        const users = await User.findAll({
-            attributes: { exclude: ['passwordHash'] },
-            include: [
-                {
-                    model: Role,
-                    attributes: ['id', 'name']
+        const users = await prisma.user.findMany({
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+                isActive: true,
+                roleId: true,
+                shopId: true,
+                createdAt: true,
+                updatedAt: true,
+                role: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
                 }
-            ]
+            }
         });
 
         return NextResponse.json({
@@ -66,10 +75,10 @@ export async function POST(req: NextRequest) {
         }
 
         // Check if username or email already exists
-        const existingUser = await User.findOne({
+        const existingUser = await prisma.user.findFirst({
             where: {
-                [Op.or]: [
-                    { username },
+                OR: [
+                    { name: username },
                     { email }
                 ]
             }
@@ -86,24 +95,32 @@ export async function POST(req: NextRequest) {
         const passwordHash = await bcrypt.hash(password, 12);
 
         // Create user
-        const user = await User.create({
-            username,
-            passwordHash,
-            fullName,
-            email,
-            phone,
-            roleId,
-            shopId: shopId || null,
-            isActive
+        const user = await prisma.user.create({
+            data: {
+                name: username,
+                email,
+                password: passwordHash,
+                phone,
+                roleId,
+                shopId,
+                isActive
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+                isActive: true,
+                roleId: true,
+                shopId: true,
+                createdAt: true,
+                updatedAt: true
+            }
         });
-
-        // Return created user without password
-        const userData = user.toJSON();
-        delete userData.passwordHash;
 
         return NextResponse.json({
             success: true,
-            user: userData
+            user
         }, { status: 201 });
     } catch (error) {
         console.error('Error creating user:', error);

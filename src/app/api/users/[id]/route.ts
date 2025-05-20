@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { User, Role } from '@/lib/models';
+import prisma from '@/lib/prisma';
 import { requirePermission } from '@/lib/utils/middleware';
 import bcrypt from 'bcryptjs';
 
@@ -23,14 +23,25 @@ export async function GET(
             );
         }
 
-        const user = await User.findByPk(userId, {
-            attributes: { exclude: ['passwordHash'] },
-            include: [
-                {
-                    model: Role,
-                    attributes: ['id', 'name']
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+                isActive: true,
+                roleId: true,
+                shopId: true,
+                createdAt: true,
+                updatedAt: true,
+                role: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
                 }
-            ]
+            }
         });
 
         if (!user) {
@@ -73,8 +84,12 @@ export async function PUT(
             );
         }
 
-        const user = await User.findByPk(userId);
-        if (!user) {
+        // Check if user exists
+        const existingUser = await prisma.user.findUnique({
+            where: { id: userId }
+        });
+
+        if (!existingUser) {
             return NextResponse.json(
                 { success: false, message: 'User not found' },
                 { status: 404 }
@@ -92,10 +107,10 @@ export async function PUT(
             isActive
         } = body;
 
-        // Prepare update object
+        // Prepare update data
         const updateData: any = {};
 
-        if (fullName !== undefined) updateData.fullName = fullName;
+        if (fullName !== undefined) updateData.name = fullName; // name field in Prisma
         if (email !== undefined) updateData.email = email;
         if (phone !== undefined) updateData.phone = phone;
         if (roleId !== undefined) updateData.roleId = roleId;
@@ -104,21 +119,30 @@ export async function PUT(
 
         // Hash password if provided
         if (password) {
-            updateData.passwordHash = await bcrypt.hash(password, 12);
+            updateData.password = await bcrypt.hash(password, 12);
         }
 
         // Update user
-        await user.update(updateData);
-
-        // Return updated user without password
-        const updatedUser = await User.findByPk(userId, {
-            attributes: { exclude: ['passwordHash'] },
-            include: [
-                {
-                    model: Role,
-                    attributes: ['id', 'name']
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: updateData,
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+                isActive: true,
+                roleId: true,
+                shopId: true,
+                createdAt: true,
+                updatedAt: true,
+                role: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
                 }
-            ]
+            }
         });
 
         return NextResponse.json({
@@ -134,7 +158,7 @@ export async function PUT(
     }
 }
 
-// DELETE: Delete user
+// DELETE: Deactivate user (soft delete)
 export async function DELETE(
     req: NextRequest,
     { params }: { params: { id: string } }
@@ -154,7 +178,11 @@ export async function DELETE(
             );
         }
 
-        const user = await User.findByPk(userId);
+        // Check if user exists
+        const user = await prisma.user.findUnique({
+            where: { id: userId }
+        });
+
         if (!user) {
             return NextResponse.json(
                 { success: false, message: 'User not found' },
@@ -163,7 +191,10 @@ export async function DELETE(
         }
 
         // Instead of hard delete, set isActive to false
-        await user.update({ isActive: false });
+        await prisma.user.update({
+            where: { id: userId },
+            data: { isActive: false }
+        });
 
         return NextResponse.json({
             success: true,
