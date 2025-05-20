@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Store, MapPin, Phone, Mail, Plus, Search } from 'lucide-react';
+import { Store, MapPin, Phone, Mail, Plus, Search, X } from 'lucide-react';
 
 // Define the Shop type
 type Shop = {
@@ -19,6 +19,16 @@ type Shop = {
     total_inventory?: number;
 };
 
+// Initial empty shop for the form
+const emptyShop: Omit<Shop, 'id' | 'created_at' | 'updated_at'> = {
+    name: '',
+    location: '',
+    contact_person: '',
+    phone: '',
+    email: '',
+    is_active: true
+};
+
 export default function Shops() {
     const [shops, setShops] = useState<Shop[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -26,34 +36,41 @@ export default function Shops() {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
 
+    // Modal states
+    const [showAddEditModal, setShowAddEditModal] = useState(false);
+    const [showViewModal, setShowViewModal] = useState(false);
+    const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
+    const [formData, setFormData] = useState<Omit<Shop, 'id' | 'created_at' | 'updated_at'>>(emptyShop);
+    const [isEditMode, setIsEditMode] = useState(false);
+
     // Fetch shops from API
     useEffect(() => {
-        const fetchShops = async () => {
-            try {
-                setLoading(true);
-                const response = await fetch('/api/shops');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch shops');
-                }
-                const data = await response.json();
-                if (data.success) {
-                    setShops(data.data);
-                } else {
-                    throw new Error(data.message || 'Failed to fetch shops');
-                }
-                setError(null);
-            } catch (err) {
-                console.error('Error fetching shops:', err);
-                setError('Failed to load shops. Please try again later.');
-                // Fallback to empty array if fetch fails
-                setShops([]);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchShops();
     }, []);
+
+    const fetchShops = async () => {
+        try {
+            setLoading(true);
+            const response = await fetch('/api/shops');
+            if (!response.ok) {
+                throw new Error('Failed to fetch shops');
+            }
+            const data = await response.json();
+            if (data.success) {
+                setShops(data.data);
+            } else {
+                throw new Error(data.message || 'Failed to fetch shops');
+            }
+            setError(null);
+        } catch (err) {
+            console.error('Error fetching shops:', err);
+            setError('Failed to load shops. Please try again later.');
+            // Fallback to empty array if fetch fails
+            setShops([]);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // Filter shops based on search term and status filter
     const filteredShops = shops.filter(shop => {
@@ -71,6 +88,92 @@ export default function Shops() {
         return matchesSearch && matchesStatus;
     });
 
+    // Handle view button click
+    const handleViewShop = (shop: Shop) => {
+        setSelectedShop(shop);
+        setShowViewModal(true);
+    };
+
+    // Handle edit button click
+    const handleEditShop = (shop: Shop) => {
+        setSelectedShop(shop);
+        setFormData({
+            name: shop.name,
+            location: shop.location,
+            contact_person: shop.contact_person || '',
+            phone: shop.phone || '',
+            email: shop.email || '',
+            is_active: shop.is_active
+        });
+        setIsEditMode(true);
+        setShowAddEditModal(true);
+    };
+
+    // Handle add new shop button click
+    const handleAddShop = () => {
+        setSelectedShop(null);
+        setFormData(emptyShop);
+        setIsEditMode(false);
+        setShowAddEditModal(true);
+    };
+
+    // Handle form input changes
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        const { name, value, type } = e.target;
+
+        if (type === 'checkbox') {
+            const target = e.target as HTMLInputElement;
+            setFormData(prev => ({
+                ...prev,
+                [name]: target.checked
+            }));
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                [name]: value
+            }));
+        }
+    };
+
+    // Handle form submission
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        try {
+            const url = isEditMode
+                ? `/api/shops/${selectedShop?.id}`
+                : '/api/shops';
+
+            const method = isEditMode ? 'PUT' : 'POST';
+
+            const response = await fetch(url, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to ${isEditMode ? 'update' : 'create'} shop`);
+            }
+
+            // Refresh the shops list
+            fetchShops();
+
+            // Close the modal
+            setShowAddEditModal(false);
+
+            // Reset form
+            setFormData(emptyShop);
+            setIsEditMode(false);
+
+        } catch (err) {
+            console.error(`Error ${isEditMode ? 'updating' : 'creating'} shop:`, err);
+            alert(`Failed to ${isEditMode ? 'update' : 'create'} shop. Please try again.`);
+        }
+    };
+
     return (
         <MainLayout>
             <div className="space-y-6">
@@ -81,7 +184,7 @@ export default function Shops() {
                         <p className="text-gray-500">View and manage all your retail locations</p>
                     </div>
                     <div className="flex gap-3">
-                        <Button variant="primary" size="sm">
+                        <Button variant="primary" size="sm" onClick={handleAddShop}>
                             <Plus className="w-4 h-4 mr-2" />
                             Add New Shop
                         </Button>
@@ -173,18 +276,221 @@ export default function Shops() {
                                             </div>
                                             <div>
                                                 <p className="text-sm text-gray-500">Created</p>
-                                                <p className="font-medium text-gray-900">{new Date(shop.created_at).toLocaleDateString()}</p>
+                                                <p className="font-medium text-gray-900">
+                                                    {shop.created_at ? new Date(shop.created_at).toLocaleString() : 'Invalid Date'}
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="mt-4 flex space-x-2">
-                                        <Button variant="outline" className="flex-1" size="sm">View</Button>
-                                        <Button variant="outline" className="flex-1" size="sm">Edit</Button>
+                                        <Button variant="outline" className="flex-1" size="sm" onClick={() => handleViewShop(shop)}>View</Button>
+                                        <Button variant="outline" className="flex-1" size="sm" onClick={() => handleEditShop(shop)}>Edit</Button>
                                     </div>
                                 </div>
                             </div>
                         ))}
+                    </div>
+                )}
+
+                {/* View Shop Modal */}
+                {showViewModal && selectedShop && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                            <div className="flex justify-between items-center p-6 border-b">
+                                <h3 className="text-xl font-semibold text-gray-900">Shop Details</h3>
+                                <button
+                                    className="text-gray-400 hover:text-gray-500"
+                                    onClick={() => setShowViewModal(false)}
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <div className="p-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <h4 className="font-semibold text-gray-900 mb-4">General Information</h4>
+                                        <div className="space-y-3">
+                                            <div>
+                                                <p className="text-sm text-gray-500">Shop ID</p>
+                                                <p className="font-medium">{selectedShop.id}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-500">Name</p>
+                                                <p className="font-medium">{selectedShop.name}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-500">Status</p>
+                                                <p className={`font-medium ${selectedShop.is_active ? 'text-green-600' : 'text-red-600'}`}>
+                                                    {selectedShop.is_active ? 'Active' : 'Inactive'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-500">Created At</p>
+                                                <p className="font-medium">
+                                                    {selectedShop.created_at ? new Date(selectedShop.created_at).toLocaleString() : 'Invalid Date'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-500">Last Updated</p>
+                                                <p className="font-medium">
+                                                    {selectedShop.updated_at ? new Date(selectedShop.updated_at).toLocaleString() : 'Invalid Date'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold text-gray-900 mb-4">Contact Information</h4>
+                                        <div className="space-y-3">
+                                            <div>
+                                                <p className="text-sm text-gray-500">Location</p>
+                                                <p className="font-medium">{selectedShop.location || 'No location provided'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-500">Manager</p>
+                                                <p className="font-medium">{selectedShop.contact_person || 'No manager assigned'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-500">Phone</p>
+                                                <p className="font-medium">{selectedShop.phone || 'No phone number'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-500">Email</p>
+                                                <p className="font-medium">{selectedShop.email || 'No email address'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="mt-8 flex justify-end space-x-2">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setShowViewModal(false)}
+                                    >
+                                        Close
+                                    </Button>
+                                    <Button
+                                        variant="primary"
+                                        onClick={() => {
+                                            setShowViewModal(false);
+                                            handleEditShop(selectedShop);
+                                        }}
+                                    >
+                                        Edit Shop
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Add/Edit Shop Modal */}
+                {showAddEditModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                            <div className="flex justify-between items-center p-6 border-b">
+                                <h3 className="text-xl font-semibold text-gray-900">
+                                    {isEditMode ? 'Edit Shop' : 'Add New Shop'}
+                                </h3>
+                                <button
+                                    className="text-gray-400 hover:text-gray-500"
+                                    onClick={() => setShowAddEditModal(false)}
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <form onSubmit={handleSubmit}>
+                                <div className="p-6 space-y-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label htmlFor="name" className="block text-sm font-medium text-gray-700">Shop Name *</label>
+                                            <input
+                                                type="text"
+                                                id="name"
+                                                name="name"
+                                                value={formData.name}
+                                                onChange={handleInputChange}
+                                                required
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="location" className="block text-sm font-medium text-gray-700">Location *</label>
+                                            <input
+                                                type="text"
+                                                id="location"
+                                                name="location"
+                                                value={formData.location}
+                                                onChange={handleInputChange}
+                                                required
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="contact_person" className="block text-sm font-medium text-gray-700">Manager</label>
+                                            <input
+                                                type="text"
+                                                id="contact_person"
+                                                name="contact_person"
+                                                value={formData.contact_person || ''}
+                                                onChange={handleInputChange}
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Phone</label>
+                                            <input
+                                                type="tel"
+                                                id="phone"
+                                                name="phone"
+                                                value={formData.phone || ''}
+                                                onChange={handleInputChange}
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+                                            <input
+                                                type="email"
+                                                id="email"
+                                                name="email"
+                                                value={formData.email || ''}
+                                                onChange={handleInputChange}
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                            />
+                                        </div>
+                                        <div className="flex items-center h-full pt-5">
+                                            <input
+                                                type="checkbox"
+                                                id="is_active"
+                                                name="is_active"
+                                                checked={formData.is_active}
+                                                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                                                className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                                            />
+                                            <label htmlFor="is_active" className="ml-2 block text-sm text-gray-900">
+                                                Active
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="px-6 py-4 border-t flex justify-end space-x-2">
+                                    <Button
+                                        variant="outline"
+                                        type="button"
+                                        onClick={() => setShowAddEditModal(false)}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        variant="primary"
+                                        type="submit"
+                                    >
+                                        {isEditMode ? 'Update Shop' : 'Create Shop'}
+                                    </Button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 )}
             </div>
