@@ -3,6 +3,7 @@
 import React, { ReactNode, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 import {
     Home,
     Package,
@@ -60,6 +61,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [expandedItems, setExpandedItems] = useState<string[]>(['/inventory']); // Auto-expand Inventory by default
     const pathname = usePathname();
+    const { logout, user } = useAuth();
 
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
@@ -81,6 +83,11 @@ export default function MainLayout({ children }: MainLayoutProps) {
             }
         });
     }, [pathname]);
+
+    // Handle sign out
+    const handleSignOut = () => {
+        logout();
+    };
 
     return (
         <div className="min-h-screen bg-gray-100">
@@ -198,7 +205,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
                 {/* Footer */}
                 <div className="p-4 border-t border-gray-800 bg-secondary flex-shrink-0">
-                    <button className="flex items-center justify-center w-full px-4 py-2 text-sm text-gray-300 hover:text-tertiary hover:bg-gray-800 rounded-md transition-colors">
+                    <button
+                        className="flex items-center justify-center w-full px-4 py-2 text-sm text-gray-300 hover:text-tertiary hover:bg-gray-800 rounded-md transition-colors"
+                        onClick={handleSignOut}
+                    >
                         <LogOut className="mr-2 h-4 w-4" />
                         <span>Sign out</span>
                     </button>
@@ -233,9 +243,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
                         <div className="flex items-center">
                             <div className="ml-3 relative">
                                 <div className="flex items-center space-x-2">
-                                    <span className="text-sm font-medium text-gray-700">Admin User</span>
+                                    <span className="text-sm font-medium text-gray-700">{user?.fullName || 'Admin User'}</span>
                                     <div className="h-8 w-8 rounded-full bg-gray-500 flex items-center justify-center text-tertiary">
-                                        A
+                                        {user?.fullName?.charAt(0) || 'A'}
                                     </div>
                                 </div>
                             </div>
