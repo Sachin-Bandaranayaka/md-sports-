@@ -3,55 +3,46 @@
 import { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Search, Plus, Filter, FileText, Download, Eye } from 'lucide-react';
-import { prisma } from '@/lib/prisma';
+import { Search, Plus, Filter, CreditCard, ExternalLink } from 'lucide-react';
+import { formatCurrency } from '@/utils/formatters';
 
-// Interface for Invoice
-interface Invoice {
-    id: string | number;
-    invoiceNumber: string;
+// Interface for Payment
+interface Payment {
+    id: number;
+    invoiceId: number;
     customerId: number;
-    total: number;
-    status: string;
-    createdAt: Date;
-    updatedAt: Date;
-    // Relations and UI fields
-    customerName?: string;
+    amount: number;
+    paymentMethod: string;
+    referenceNumber?: string | null;
+    createdAt: string;
+    updatedAt: string;
+    // Relations
+    invoice?: {
+        invoiceNumber: string;
+    };
+    customer?: {
+        name: string;
+    };
+    // UI fields
     date?: string;
-    dueDate?: string;
-    items?: number;
 }
 
-// Status badge colors
-const getStatusBadgeClass = (status: string) => {
-    switch (status) {
-        case 'Paid':
-            return 'bg-green-100 text-green-800';
-        case 'Pending':
-            return 'bg-yellow-100 text-yellow-800';
-        case 'Overdue':
-            return 'bg-red-100 text-red-800';
-        default:
-            return 'bg-gray-100 text-gray-800';
-    }
-};
-
-export default function Invoices() {
+export default function Payments() {
     const [loading, setLoading] = useState<boolean>(true);
-    const [invoices, setInvoices] = useState<Invoice[]>([]);
+    const [payments, setPayments] = useState<Payment[]>([]);
     const [statistics, setStatistics] = useState({
-        totalOutstanding: 0,
-        paidThisMonth: 0,
-        overdueCount: 0
+        totalPayments: 0,
+        paymentsThisMonth: 0,
+        avgPaymentAmount: 0
     });
 
     useEffect(() => {
-        async function fetchInvoices() {
+        async function fetchPayments() {
             try {
-                // Fetch invoices from API
-                const response = await fetch('/api/invoices');
+                // Fetch payments from API
+                const response = await fetch('/api/payments');
                 if (!response.ok) {
-                    throw new Error('Failed to fetch invoices');
+                    throw new Error('Failed to fetch payments');
                 }
                 const data = await response.json();
 
@@ -59,63 +50,39 @@ export default function Invoices() {
                 const now = new Date();
                 const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-                let outstanding = 0;
-                let paidThisMonth = 0;
-                let overdueCount = 0;
+                let totalAmount = 0;
+                let monthlyTotal = 0;
 
-                // Transform data for UI
-                const formattedInvoices = await Promise.all(data.map(async (invoice: Invoice) => {
-                    // Get customer name - in a real app this would be included in the API response
-                    let customerName = 'Unknown Customer';
-                    try {
-                        const customerResponse = await fetch(`/api/customers/${invoice.customerId}`);
-                        if (customerResponse.ok) {
-                            const customer = await customerResponse.json();
-                            customerName = customer.name;
-                        }
-                    } catch (e) {
-                        console.error('Error fetching customer:', e);
+                // Format data for UI
+                const formattedPayments = data.map((payment: Payment) => {
+                    const paymentDate = new Date(payment.createdAt);
+
+                    // Add to statistics
+                    totalAmount += payment.amount;
+                    if (paymentDate >= firstDayOfMonth) {
+                        monthlyTotal += payment.amount;
                     }
-
-                    // Calculate statistics
-                    if (invoice.status === 'Paid' && new Date(invoice.updatedAt) >= firstDayOfMonth) {
-                        paidThisMonth += invoice.total;
-                    } else if (invoice.status !== 'Paid') {
-                        outstanding += invoice.total;
-                    }
-
-                    if (invoice.status === 'Overdue') {
-                        overdueCount++;
-                    }
-
-                    // Create date and due date (30 days later)
-                    const createdDate = new Date(invoice.createdAt);
-                    const dueDate = new Date(createdDate);
-                    dueDate.setDate(dueDate.getDate() + 30);
 
                     return {
-                        ...invoice,
-                        customerName,
-                        date: createdDate.toISOString().split('T')[0],
-                        dueDate: dueDate.toISOString().split('T')[0],
-                        items: Math.floor(Math.random() * 15) + 1 // Example: random item count (would be from line items in real app)
+                        ...payment,
+                        date: paymentDate.toISOString().split('T')[0]
                     };
-                }));
+                });
 
-                setInvoices(formattedInvoices);
+                setPayments(formattedPayments);
                 setStatistics({
-                    totalOutstanding: outstanding,
-                    paidThisMonth,
-                    overdueCount
+                    totalPayments: data.length,
+                    paymentsThisMonth: data.filter((p: Payment) => new Date(p.createdAt) >= firstDayOfMonth).length,
+                    avgPaymentAmount: data.length > 0 ? totalAmount / data.length : 0
                 });
             } catch (error) {
-                console.error('Error fetching invoices:', error);
+                console.error('Error fetching payments:', error);
             } finally {
                 setLoading(false);
             }
         }
 
-        fetchInvoices();
+        fetchPayments();
     }, []);
 
     if (loading) {
@@ -140,7 +107,6 @@ export default function Invoices() {
                         <div className="flex flex-col md:flex-row gap-4">
                             <div className="h-10 bg-gray-200 rounded w-full"></div>
                             <div className="flex flex-wrap gap-2">
-                                <div className="h-10 bg-gray-200 rounded w-32"></div>
                                 <div className="h-10 bg-gray-200 rounded w-32"></div>
                                 <div className="h-10 bg-gray-200 rounded w-32"></div>
                                 <div className="h-10 bg-gray-200 rounded w-12"></div>
@@ -185,10 +151,17 @@ export default function Invoices() {
                 {/* Header with actions */}
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Invoice Management</h1>
-                        <p className="text-gray-500">Create and manage customer invoices</p>
+                        <h1 className="text-2xl font-bold text-gray-900">Payment Management</h1>
+                        <p className="text-gray-500">View and manage payment records</p>
                     </div>
-                                        <div className="flex gap-3">                        <a href="/invoices/new">                            <Button variant="primary" size="sm">                                <Plus className="w-4 h-4 mr-2" />                                Create Invoice                            </Button>                        </a>                    </div>
+                    <div className="flex gap-3">
+                        <a href="/payments/new">
+                            <Button variant="primary" size="sm">
+                                <Plus className="w-4 h-4 mr-2" />
+                                Record Payment
+                            </Button>
+                        </a>
+                    </div>
                 </div>
 
                 {/* Search and filter bar */}
@@ -201,15 +174,17 @@ export default function Invoices() {
                             <input
                                 type="text"
                                 className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full pl-10 p-2.5"
-                                placeholder="Search invoices..."
+                                placeholder="Search payments..."
                             />
                         </div>
                         <div className="flex gap-2">
                             <select className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5">
-                                <option value="">All Status</option>
-                                <option value="paid">Paid</option>
-                                <option value="pending">Pending</option>
-                                <option value="overdue">Overdue</option>
+                                <option value="">All Methods</option>
+                                <option value="Cash">Cash</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="Check">Check</option>
+                                <option value="Credit Card">Credit Card</option>
+                                <option value="Online Payment">Online Payment</option>
                             </select>
                             <input
                                 type="date"
@@ -228,44 +203,62 @@ export default function Invoices() {
                     </div>
                 </div>
 
-                {/* Invoices table */}
+                {/* Payments table */}
                 <div className="bg-tertiary rounded-lg shadow-sm border border-gray-200">
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left text-gray-500">
                             <thead className="text-xs text-gray-700 uppercase bg-gray-50">
                                 <tr>
-                                    <th className="px-6 py-3">Invoice #</th>
-                                    <th className="px-6 py-3">Customer</th>
+                                    <th className="px-6 py-3">Payment ID</th>
                                     <th className="px-6 py-3">Date</th>
-                                    <th className="px-6 py-3">Due Date</th>
+                                    <th className="px-6 py-3">Invoice</th>
+                                    <th className="px-6 py-3">Customer</th>
+                                    <th className="px-6 py-3">Method</th>
+                                    <th className="px-6 py-3">Reference</th>
                                     <th className="px-6 py-3">Amount</th>
-                                    <th className="px-6 py-3">Items</th>
-                                    <th className="px-6 py-3">Status</th>
                                     <th className="px-6 py-3">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {invoices.length > 0 ? invoices.map((invoice) => (
-                                    <tr key={invoice.id} className="border-b hover:bg-gray-50">
-                                        <td className="px-6 py-4 font-medium text-primary">                                            <a href={`/invoices/${invoice.id}`} className="hover:underline">                                                {invoice.invoiceNumber}                                            </a>                                        </td>
-                                        <td className="px-6 py-4 font-medium text-gray-900">
-                                            {invoice.customerName}
+                                {payments.length > 0 ? payments.map((payment) => (
+                                    <tr key={payment.id} className="border-b hover:bg-gray-50">
+                                        <td className="px-6 py-4 font-medium text-primary">
+                                            {payment.id}
                                         </td>
-                                        <td className="px-6 py-4">{invoice.date}</td>
-                                        <td className="px-6 py-4">{invoice.dueDate}</td>
-                                        <td className="px-6 py-4 font-medium">Rs. {invoice.total.toLocaleString()}</td>
-                                        <td className="px-6 py-4">{invoice.items} items</td>
                                         <td className="px-6 py-4">
-                                            <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(invoice.status)}`}>
-                                                {invoice.status}
-                                            </span>
+                                            {payment.date}
                                         </td>
-                                        <td className="px-6 py-4">                                            <div className="flex gap-2">                                                <a href={`/invoices/${invoice.id}`}>                                                    <Button variant="ghost" size="sm" title="View Invoice">                                                        <Eye className="w-4 h-4" />                                                    </Button>                                                </a>                                                <a href={`/invoices/${invoice.id}`}>                                                    <Button variant="ghost" size="sm" title="Print/Download Invoice">                                                        <Download className="w-4 h-4" />                                                    </Button>                                                </a>                                            </div>                                        </td>
+                                        <td className="px-6 py-4 font-medium text-gray-900">
+                                            <a href={`/invoices/${payment.invoiceId}`} className="hover:underline">
+                                                {payment.invoice?.invoiceNumber || `Invoice #${payment.invoiceId}`}
+                                            </a>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            {payment.customer?.name || `Customer #${payment.customerId}`}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            {payment.paymentMethod}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            {payment.referenceNumber || '-'}
+                                        </td>
+                                        <td className="px-6 py-4 font-medium">
+                                            {formatCurrency(payment.amount)}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex gap-2">
+                                                <a href={`/invoices/${payment.invoiceId}`}>
+                                                    <Button variant="ghost" size="sm" title="View Invoice">
+                                                        <ExternalLink className="w-4 h-4" />
+                                                    </Button>
+                                                </a>
+                                            </div>
+                                        </td>
                                     </tr>
                                 )) : (
                                     <tr>
                                         <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
-                                            No invoices found
+                                            No payments found
                                         </td>
                                     </tr>
                                 )}
@@ -274,7 +267,7 @@ export default function Invoices() {
                     </div>
                     <div className="flex items-center justify-between p-4 border-t">
                         <div className="text-sm text-gray-700">
-                            Showing <span className="font-medium">1</span> to <span className="font-medium">{invoices.length}</span> of <span className="font-medium">{invoices.length}</span> invoices
+                            Showing <span className="font-medium">1</span> to <span className="font-medium">{payments.length}</span> of <span className="font-medium">{payments.length}</span> payments
                         </div>
                         <div className="flex gap-2">
                             <Button variant="outline" size="sm" disabled>Previous</Button>
@@ -288,11 +281,11 @@ export default function Invoices() {
                     <div className="bg-tertiary p-6 rounded-lg shadow-sm border border-gray-200">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-gray-500">Total Outstanding</p>
-                                <p className="text-2xl font-bold text-gray-900">Rs. {statistics.totalOutstanding.toLocaleString()}</p>
+                                <p className="text-sm text-gray-500">Total Payments</p>
+                                <p className="text-2xl font-bold text-gray-900">{statistics.totalPayments}</p>
                             </div>
-                            <div className="p-3 rounded-full bg-red-100">
-                                <FileText className="h-6 w-6 text-red-600" />
+                            <div className="p-3 rounded-full bg-blue-100">
+                                <CreditCard className="h-6 w-6 text-blue-600" />
                             </div>
                         </div>
                     </div>
@@ -300,11 +293,11 @@ export default function Invoices() {
                     <div className="bg-tertiary p-6 rounded-lg shadow-sm border border-gray-200">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-gray-500">Paid This Month</p>
-                                <p className="text-2xl font-bold text-gray-900">Rs. {statistics.paidThisMonth.toLocaleString()}</p>
+                                <p className="text-sm text-gray-500">Payments This Month</p>
+                                <p className="text-2xl font-bold text-gray-900">{statistics.paymentsThisMonth}</p>
                             </div>
                             <div className="p-3 rounded-full bg-green-100">
-                                <FileText className="h-6 w-6 text-green-600" />
+                                <CreditCard className="h-6 w-6 text-green-600" />
                             </div>
                         </div>
                     </div>
@@ -312,11 +305,11 @@ export default function Invoices() {
                     <div className="bg-tertiary p-6 rounded-lg shadow-sm border border-gray-200">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-gray-500">Overdue Invoices</p>
-                                <p className="text-2xl font-bold text-gray-900">{statistics.overdueCount}</p>
+                                <p className="text-sm text-gray-500">Average Payment</p>
+                                <p className="text-2xl font-bold text-gray-900">{formatCurrency(statistics.avgPaymentAmount)}</p>
                             </div>
-                            <div className="p-3 rounded-full bg-yellow-100">
-                                <FileText className="h-6 w-6 text-yellow-600" />
+                            <div className="p-3 rounded-full bg-purple-100">
+                                <CreditCard className="h-6 w-6 text-purple-600" />
                             </div>
                         </div>
                     </div>

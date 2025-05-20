@@ -6,6 +6,7 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
+        // Ensure params is fully resolved
         const id = parseInt(params.id);
 
         if (isNaN(id)) {
@@ -53,6 +54,7 @@ export async function PUT(
     { params }: { params: { id: string } }
 ) {
     try {
+        // Ensure params is fully resolved
         const id = parseInt(params.id);
 
         if (isNaN(id)) {
@@ -102,6 +104,7 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
+        // Ensure params is fully resolved
         const id = parseInt(params.id);
 
         if (isNaN(id)) {
