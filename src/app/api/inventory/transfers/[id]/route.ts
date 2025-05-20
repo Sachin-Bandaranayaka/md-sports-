@@ -13,9 +13,9 @@ export async function GET(
         return permissionError;
     }
 
-    try {
-        const id = params.id;
+    const id = params.id;
 
+    try {
         // Get transfer details
         const transferResult = await db.query(
             `SELECT 
@@ -73,7 +73,7 @@ export async function GET(
             }
         });
     } catch (error) {
-        console.error(`Error fetching transfer ${params.id}:`, error);
+        console.error(`Error fetching transfer ${id}:`, error);
         return NextResponse.json({
             success: false,
             message: 'Error fetching transfer',
@@ -93,8 +93,9 @@ export async function PATCH(
         return permissionError;
     }
 
+    const id = params.id;
+
     try {
-        const id = params.id;
         const { action } = await req.json();
 
         if (!['complete', 'cancel'].includes(action)) {
@@ -152,7 +153,7 @@ export async function PATCH(
 
                     // Decrease source inventory
                     await client.query(
-                        'UPDATE inventory_items SET quantity = quantity - $1, last_updated = NOW() WHERE shop_id = $2 AND product_id = $3',
+                        'UPDATE inventory_items SET quantity = quantity - $1, updated_at = NOW() WHERE shop_id = $2 AND product_id = $3',
                         [item.quantity, transfer.source_shop_id, item.product_id]
                     );
 
@@ -168,13 +169,13 @@ export async function PATCH(
                         const reorderLevel = sourceInventoryResult.rows[0].reorder_level;
 
                         await client.query(
-                            'INSERT INTO inventory_items(shop_id, product_id, quantity, reorder_level, last_updated) VALUES($1, $2, $3, $4, NOW())',
+                            'INSERT INTO inventory_items(shop_id, product_id, quantity, reorder_level, created_at, updated_at) VALUES($1, $2, $3, $4, NOW(), NOW())',
                             [transfer.destination_shop_id, item.product_id, item.quantity, reorderLevel]
                         );
                     } else {
                         // Increase destination inventory
                         await client.query(
-                            'UPDATE inventory_items SET quantity = quantity + $1, last_updated = NOW() WHERE shop_id = $2 AND product_id = $3',
+                            'UPDATE inventory_items SET quantity = quantity + $1, updated_at = NOW() WHERE shop_id = $2 AND product_id = $3',
                             [item.quantity, transfer.destination_shop_id, item.product_id]
                         );
                     }
@@ -208,7 +209,7 @@ export async function PATCH(
             client.release();
         }
     } catch (error) {
-        console.error(`Error updating transfer ${params.id}:`, error);
+        console.error(`Error updating transfer ${id}:`, error);
         return NextResponse.json({
             success: false,
             message: 'Error updating transfer',
@@ -228,9 +229,9 @@ export async function DELETE(
         return permissionError;
     }
 
-    try {
-        const id = params.id;
+    const id = params.id;
 
+    try {
         // Check if transfer exists and is in pending status
         const transferResult = await db.query(
             'SELECT * FROM inventory_transfers WHERE id = $1',
@@ -282,7 +283,7 @@ export async function DELETE(
             client.release();
         }
     } catch (error) {
-        console.error(`Error deleting transfer ${params.id}:`, error);
+        console.error(`Error deleting transfer ${id}:`, error);
         return NextResponse.json({
             success: false,
             message: 'Error deleting transfer',

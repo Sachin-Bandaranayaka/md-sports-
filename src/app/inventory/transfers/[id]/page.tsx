@@ -39,6 +39,7 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const transferId = params.id; // Extract ID to prevent the Next.js warning
 
     // Check if user has transfer permission
     const hasTransferPermission = user?.permissions.includes('inventory:transfer') || false;
@@ -46,7 +47,7 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
     useEffect(() => {
         const fetchTransfer = async () => {
             try {
-                const response = await authFetch(`/api/inventory/transfers/${params.id}`);
+                const response = await authFetch(`/api/inventory/transfers/${transferId}`);
                 if (!response.ok) {
                     throw new Error('Failed to load transfer details');
                 }
@@ -66,7 +67,7 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
         };
 
         fetchTransfer();
-    }, [params.id]);
+    }, [transferId]);
 
     // Calculate totals
     const totalItems = transfer?.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
@@ -81,7 +82,7 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
             setActionLoading(true);
             setError(null);
             try {
-                const response = await authFetch(`/api/inventory/transfers/${params.id}`, {
+                const response = await authFetch(`/api/inventory/transfers/${transferId}`, {
                     method: 'PATCH',
                     body: JSON.stringify({ action: 'complete' })
                 });
@@ -109,7 +110,7 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
             setActionLoading(true);
             setError(null);
             try {
-                const response = await authFetch(`/api/inventory/transfers/${params.id}`, {
+                const response = await authFetch(`/api/inventory/transfers/${transferId}`, {
                     method: 'PATCH',
                     body: JSON.stringify({ action: 'cancel' })
                 });
@@ -137,7 +138,7 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
             setActionLoading(true);
             setError(null);
             try {
-                const response = await authFetch(`/api/inventory/transfers/${params.id}`, {
+                const response = await authFetch(`/api/inventory/transfers/${transferId}`, {
                     method: 'DELETE'
                 });
 
