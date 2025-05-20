@@ -5,7 +5,7 @@ import db from '@/utils/db';
 // GET: Get details of a specific inventory transfer
 export async function GET(
     req: NextRequest,
-    context: { params: { id: string } }
+    { params }: { params: { id: string } }
 ) {
     // Check for inventory:view permission
     const permissionError = await requirePermission('inventory:view')(req);
@@ -13,8 +13,8 @@ export async function GET(
         return permissionError;
     }
 
-    // Properly await params in new Next.js
-    const { id } = context.params;
+    // Using the id directly from the async params object
+    const id = await Promise.resolve(params.id);
 
     try {
         // Get transfer details
@@ -86,7 +86,7 @@ export async function GET(
 // PATCH: Update transfer status (complete or cancel)
 export async function PATCH(
     req: NextRequest,
-    context: { params: { id: string } }
+    { params }: { params: { id: string } }
 ) {
     // Check for inventory:transfer permission
     const permissionError = await requirePermission('inventory:transfer')(req);
@@ -94,8 +94,8 @@ export async function PATCH(
         return permissionError;
     }
 
-    // Properly await params in new Next.js
-    const { id } = context.params;
+    // Using the id directly from the async params object
+    const id = await Promise.resolve(params.id);
 
     try {
         const { action } = await req.json();
@@ -227,7 +227,7 @@ export async function PATCH(
 // DELETE: Delete a pending transfer
 export async function DELETE(
     req: NextRequest,
-    context: { params: { id: string } }
+    { params }: { params: { id: string } }
 ) {
     // Check for inventory:transfer permission
     const permissionError = await requirePermission('inventory:transfer')(req);
@@ -235,8 +235,8 @@ export async function DELETE(
         return permissionError;
     }
 
-    // Properly await params in new Next.js
-    const { id } = context.params;
+    // Using the id directly from the async params object
+    const id = await Promise.resolve(params.id);
 
     try {
         // Check if transfer exists and is in pending status

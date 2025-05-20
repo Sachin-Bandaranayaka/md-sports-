@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { use } from 'react';
+import * as React from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Loader2, ArrowLeft, Check, X, AlertCircle } from 'lucide-react';
+import { Loader2, ArrowLeft, Check, X, AlertCircle, ArrowLeftRight, Package } from 'lucide-react';
 import { formatDate } from '@/utils/formatters';
 import { useAuth } from '@/hooks/useAuth';
 import { authFetch } from '@/utils/api';
@@ -34,8 +34,8 @@ interface Transfer {
 }
 
 export default function TransferDetailPage({ params }: { params: { id: string } }) {
-    // Unwrap the params Promise using React.use()
-    const unwrappedParams = use(params);
+    // Next.js requires us to unwrap params with React.use()
+    const unwrappedParams = React.use(params);
     const transferId = unwrappedParams.id;
 
     const router = useRouter();
@@ -44,6 +44,7 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showTransferAnimation, setShowTransferAnimation] = useState(false);
 
     // Check if user has transfer permission
     const hasTransferPermission = user?.permissions.includes('inventory:transfer') || false;
@@ -92,26 +93,39 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
         if (window.confirm('Are you sure you want to complete this transfer? This will move the inventory between shops.')) {
             setActionLoading(true);
             setError(null);
-            try {
-                const response = await authFetch(`/api/inventory/transfers/${transferId}`, {
-                    method: 'PATCH',
-                    body: JSON.stringify({ action: 'complete' })
-                });
 
-                const data = await response.json();
-                if (data.success) {
-                    // Refresh transfer data
-                    router.refresh();
-                    // Reload page to get updated transfer
-                    window.location.reload();
-                } else {
-                    throw new Error(data.message || 'Failed to complete transfer');
+            // Show animation first
+            setShowTransferAnimation(true);
+
+            // Delay the actual API call to show the animation
+            setTimeout(async () => {
+                try {
+                    const response = await authFetch(`/api/inventory/transfers/${transferId}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ action: 'complete' })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        // Keep animation visible for a moment after success
+                        setTimeout(() => {
+                            setShowTransferAnimation(false);
+                            // Refresh transfer data
+                            router.refresh();
+                            // Reload page to get updated transfer
+                            window.location.reload();
+                        }, 1500);
+                    } else {
+                        setShowTransferAnimation(false);
+                        throw new Error(data.message || 'Failed to complete transfer');
+                    }
+                } catch (err) {
+                    setShowTransferAnimation(false);
+                    console.error('Error completing transfer:', err);
+                    setError(err instanceof Error ? err.message : 'An error occurred');
+                    setActionLoading(false);
                 }
-            } catch (err) {
-                console.error('Error completing transfer:', err);
-                setError(err instanceof Error ? err.message : 'An error occurred');
-                setActionLoading(false);
-            }
+            }, 1500); // Allow animation to play before API call
         }
     };
 
@@ -219,6 +233,62 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
 
     return (
         <MainLayout>
+            {/* Transfer Animation Overlay */}
+            {showTransferAnimation && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+                    <div className="bg-white rounded-lg p-8 max-w-lg w-full shadow-xl">
+                        <div className="text-center mb-6">
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">Transferring Inventory</h3>
+                            <p className="text-gray-700">Moving {transfer?.items?.length || 0} products from {transfer?.source_shop_name} to {transfer?.destination_shop_name}</p>
+                        </div>
+
+                        <div className="flex items-center justify-between mb-8">
+                            <div className="text-center">
+                                <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-2 border border-gray-200">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                                        <path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"></path>
+                                        <path d="M3 9V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4"></path>
+                                    </svg>
+                                </div>
+                                <p className="font-medium text-gray-900">{transfer?.source_shop_name}</p>
+                            </div>
+
+                            <div className="flex-1 relative overflow-hidden h-8 mx-4">
+                                <div className="product-animation-container">
+                                    {Array.from({ length: Math.min(transfer?.items?.length || 0, 8) || 5 }).map((_, i) => (
+                                        <div key={i} className="product-box" style={{
+                                            animationDelay: `${i * 0.3}s`,
+                                            top: `${((i % 3) * 30) + 50}%`
+                                        }}>
+                                            <Package size={16} />
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="h-0.5 bg-gray-200 absolute left-0 right-0 top-1/2 transform -translate-y-1/2"></div>
+                                <ArrowLeftRight className="h-5 w-5 text-gray-400 absolute right-0 top-1/2 transform -translate-y-1/2" />
+                            </div>
+
+                            <div className="text-center">
+                                <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-2 border border-gray-200">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500">
+                                        <path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"></path>
+                                        <path d="M3 9V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4"></path>
+                                    </svg>
+                                </div>
+                                <p className="font-medium text-gray-900">{transfer?.destination_shop_name}</p>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-center items-center flex-col">
+                            <div className="w-full max-w-xs bg-gray-100 rounded-full h-2.5 relative overflow-hidden mb-2">
+                                <div className="bg-primary h-full absolute left-0 top-0 progress-bar-animation"></div>
+                            </div>
+                            <p className="text-sm text-gray-600">Processing transfer, please wait...</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="space-y-6">
                 {/* Header with actions */}
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
