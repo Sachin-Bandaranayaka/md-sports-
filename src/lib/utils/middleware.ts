@@ -1,60 +1,110 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken, hasPermission } from '../../services/authService';
+import { jwtVerify } from 'jose';
+import db from '@/utils/db';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-key-for-development';
 
 /**
- * Authentication middleware to verify JWT token
+ * Middleware to require authentication
  */
-export async function authMiddleware(req: NextRequest) {
-    // Get token from Authorization header
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return NextResponse.json(
-            { success: false, message: 'Authentication required' },
-            { status: 401 }
-        );
-    }
-
-    const token = authHeader.split(' ')[1];
-    const tokenData = verifyToken(token);
-
-    if (!tokenData) {
-        return NextResponse.json(
-            { success: false, message: 'Invalid or expired token' },
-            { status: 401 }
-        );
-    }
-
-    // Token is valid, proceed
-    return null;
-}
-
-/**
- * Authorization middleware to check for specific permissions
- */
-export function requirePermission(permission: string) {
+export const requireAuth = () => {
     return async (req: NextRequest) => {
-        // First authenticate
-        const authError = await authMiddleware(req);
+        try {
+            const token = req.headers.get('authorization')?.replace('Bearer ', '');
+
+            if (!token) {
+                return NextResponse.json(
+                    { success: false, message: 'Authentication required' },
+                    { status: 401 }
+                );
+            }
+
+            // Verify the token
+            const { payload } = await jwtVerify(
+                token,
+                new TextEncoder().encode(JWT_SECRET)
+            );
+
+            if (!payload.sub) {
+                return NextResponse.json(
+                    { success: false, message: 'Invalid token' },
+                    { status: 401 }
+                );
+            }
+
+            // Check if user exists and is active
+            const userResult = await db.query(
+                'SELECT * FROM users WHERE id = $1 AND is_active = true',
+                [payload.sub]
+            );
+
+            if (userResult.rows.length === 0) {
+                return NextResponse.json(
+                    { success: false, message: 'User not found or inactive' },
+                    { status: 401 }
+                );
+            }
+
+            // User is authenticated
+            return null;
+        } catch (error) {
+            console.error('Auth error:', error);
+            return NextResponse.json(
+                { success: false, message: 'Authentication failed' },
+                { status: 401 }
+            );
+        }
+    };
+};
+
+/**
+ * Middleware to require specific permission
+ */
+export const requirePermission = (permission: string) => {
+    return async (req: NextRequest) => {
+        // First check if user is authenticated
+        const authError = await requireAuth()(req);
         if (authError) {
             return authError;
         }
 
-        // Get token from header
-        const token = req.headers.get('authorization')!.split(' ')[1];
-        const tokenData = verifyToken(token);
+        try {
+            const token = req.headers.get('authorization')?.replace('Bearer ', '');
+            const { payload } = await jwtVerify(
+                token!,
+                new TextEncoder().encode(JWT_SECRET)
+            );
 
-        // Check permission
-        if (!hasPermission(tokenData!, permission)) {
+            // Get user's permissions based on their role
+            const permissionsResult = await db.query(`
+                SELECT p.name
+                FROM permissions p
+                JOIN role_permissions rp ON p.id = rp.permission_id
+                JOIN users u ON u.role_id = rp.role_id
+                WHERE u.id = $1
+            `, [payload.sub]);
+
+            const userPermissions = permissionsResult.rows.map(row => row.name);
+
+            // Check if user has the required permission
+            if (!userPermissions.includes(permission)) {
+                return NextResponse.json(
+                    { success: false, message: 'Permission denied' },
+                    { status: 403 }
+                );
+            }
+
+            // User has the required permission
+            return null;
+        } catch (error) {
+            console.error('Permission check error:', error);
             return NextResponse.json(
-                { success: false, message: 'Permission denied' },
-                { status: 403 }
+                { success: false, message: 'Permission check failed' },
+                { status: 500 }
             );
         }
-
-        // User has permission, proceed
-        return null;
     };
-}
+};
 
 /**
  * Get user ID from token

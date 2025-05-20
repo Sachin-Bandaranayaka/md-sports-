@@ -37,6 +37,7 @@ const navItems: NavItem[] = [
         href: '/inventory',
         label: 'Inventory',
         children: [
+            { icon: TruckIcon, href: '/inventory/transfers', label: 'Transfers' },
             { icon: TruckIcon, href: '/suppliers', label: 'Suppliers' },
             { icon: FileText, href: '/purchases', label: 'Purchases' },
         ]

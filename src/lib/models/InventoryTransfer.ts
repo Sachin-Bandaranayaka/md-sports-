@@ -156,4 +156,50 @@ InventoryTransfer.init({
     }
 });
 
-export default InventoryTransfer; 
+export default InventoryTransfer;
+
+/**
+ * Represents an inventory transfer between shops
+ */
+export interface InventoryTransfer {
+    id: number;
+    sourceShopId: number;
+    destinationShopId: number;
+    initiatedByUserId: number;
+    status: 'pending' | 'completed' | 'cancelled';
+    createdAt: string;
+    updatedAt: string;
+    completedAt: string | null;
+}
+
+/**
+ * Represents an item in an inventory transfer
+ */
+export interface TransferItem {
+    id: number;
+    transferId: number;
+    productId: number;
+    quantity: number;
+    notes: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
+/**
+ * Represents a transfer with additional details for display
+ */
+export interface TransferWithDetails extends InventoryTransfer {
+    sourceShopName: string;
+    destinationShopName: string;
+    initiatedBy: string;
+    items: TransferItemWithDetails[];
+}
+
+/**
+ * Represents a transfer item with additional details for display
+ */
+export interface TransferItemWithDetails extends TransferItem {
+    productName: string;
+    sku: string;
+    retailPrice: string;
+} 
