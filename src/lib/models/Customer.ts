@@ -1,13 +1,30 @@
-import { Model, DataTypes } from 'sequelize';
+import { Model, DataTypes, Optional } from 'sequelize';
 import sequelize from '../db';
 
-class Customer extends Model {
-    public id!: number;
+// Define attributes interface
+interface CustomerAttributes {
+    id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    type: 'cash' | 'credit';
+    creditLimit: number;
+    isActive: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
+// Define creation attributes (making id optional as it has a default)
+interface CustomerCreationAttributes extends Optional<CustomerAttributes, 'id' | 'createdAt' | 'updatedAt' | 'email' | 'phone' | 'address'> { }
+
+class Customer extends Model<CustomerAttributes, CustomerCreationAttributes> implements CustomerAttributes {
+    public id!: string;
     public name!: string;
     public email!: string;
     public phone!: string;
     public address!: string;
-    public type!: string; // 'cash' or 'credit'
+    public type!: 'cash' | 'credit';
     public creditLimit!: number;
     public isActive!: boolean;
     public readonly createdAt!: Date;
@@ -20,7 +37,7 @@ class Customer extends Model {
 
         // Calculate total invoice amount
         const invoices = await Invoice.findAll({
-            where: { customerId: this.id }
+            where: { customer_id: this.id }
         });
 
         const totalInvoiced = invoices.reduce((sum, invoice) =>
@@ -30,7 +47,7 @@ class Customer extends Model {
         const payments = await Payment.findAll({
             include: [{
                 model: Invoice,
-                where: { customerId: this.id }
+                where: { customer_id: this.id }
             }]
         });
 
@@ -44,9 +61,9 @@ class Customer extends Model {
 
 Customer.init({
     id: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
-        primaryKey: true
+        type: DataTypes.UUID,
+        primaryKey: true,
+        defaultValue: DataTypes.UUIDV4
     },
     name: {
         type: DataTypes.STRING(100),
@@ -72,9 +89,12 @@ Customer.init({
         allowNull: true
     },
     type: {
-        type: DataTypes.ENUM('cash', 'credit'),
+        type: DataTypes.STRING(10),
         allowNull: false,
-        defaultValue: 'cash'
+        defaultValue: 'cash',
+        validate: {
+            isIn: [['cash', 'credit']]
+        }
     },
     creditLimit: {
         type: DataTypes.DECIMAL(10, 2),
@@ -93,7 +113,8 @@ Customer.init({
     sequelize,
     modelName: 'customer',
     tableName: 'customers',
-    timestamps: true
+    timestamps: true,
+    underscored: true
 });
 
 export default Customer; 

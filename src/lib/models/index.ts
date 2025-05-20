@@ -14,63 +14,68 @@ import InventoryTransfer from './InventoryTransfer';
 import TransferItem from './TransferItem';
 import AuditLog from './AuditLog';
 import Notification from './Notification';
+import Supplier from './Supplier';
+import PurchaseInvoice from './PurchaseInvoice';
+import PurchaseInvoiceItem from './PurchaseInvoiceItem';
+import Quotation from './Quotation';
+import QuotationItem from './QuotationItem';
 
 // Set up associations
-User.belongsTo(Role, { foreignKey: 'roleId' });
-Role.hasMany(User, { foreignKey: 'roleId' });
+User.belongsTo(Role, { foreignKey: 'role_id' });
+Role.hasMany(User, { foreignKey: 'role_id' });
 
-User.belongsTo(Shop, { foreignKey: 'shopId' });
-Shop.hasMany(User, { foreignKey: 'shopId' });
+User.belongsTo(Shop, { foreignKey: 'shop_id' });
+Shop.hasMany(User, { foreignKey: 'shop_id' });
 
-Product.belongsTo(Category, { foreignKey: 'categoryId' });
-Category.hasMany(Product, { foreignKey: 'categoryId' });
+Product.belongsTo(Category, { foreignKey: 'category_id' });
+Category.hasMany(Product, { foreignKey: 'category_id' });
 
-Category.belongsTo(Category, { foreignKey: 'parentId', as: 'parent' });
-Category.hasMany(Category, { foreignKey: 'parentId', as: 'subcategories' });
+Category.belongsTo(Category, { foreignKey: 'parent_id', as: 'parent' });
+Category.hasMany(Category, { foreignKey: 'parent_id', as: 'subcategories' });
 
-InventoryItem.belongsTo(Shop, { foreignKey: 'shopId' });
-Shop.hasMany(InventoryItem, { foreignKey: 'shopId' });
+InventoryItem.belongsTo(Shop, { foreignKey: 'shop_id' });
+Shop.hasMany(InventoryItem, { foreignKey: 'shop_id' });
 
-InventoryItem.belongsTo(Product, { foreignKey: 'productId' });
-Product.hasMany(InventoryItem, { foreignKey: 'productId' });
+InventoryItem.belongsTo(Product, { foreignKey: 'product_id' });
+Product.hasMany(InventoryItem, { foreignKey: 'product_id' });
 
-InventoryTransfer.belongsTo(Shop, { foreignKey: 'sourceShopId', as: 'sourceShop' });
-InventoryTransfer.belongsTo(Shop, { foreignKey: 'destinationShopId', as: 'destinationShop' });
-InventoryTransfer.belongsTo(User, { foreignKey: 'initiatedByUserId', as: 'initiatedBy' });
+InventoryTransfer.belongsTo(Shop, { foreignKey: 'source_shop_id', as: 'sourceShop' });
+InventoryTransfer.belongsTo(Shop, { foreignKey: 'destination_shop_id', as: 'destinationShop' });
+InventoryTransfer.belongsTo(User, { foreignKey: 'initiated_by_user_id', as: 'initiatedBy' });
 
-TransferItem.belongsTo(InventoryTransfer, { foreignKey: 'transferId' });
-InventoryTransfer.hasMany(TransferItem, { foreignKey: 'transferId' });
+TransferItem.belongsTo(InventoryTransfer, { foreignKey: 'transfer_id' });
+InventoryTransfer.hasMany(TransferItem, { foreignKey: 'transfer_id' });
 
-TransferItem.belongsTo(Product, { foreignKey: 'productId' });
+TransferItem.belongsTo(Product, { foreignKey: 'product_id' });
 
-Customer.hasMany(Invoice, { foreignKey: 'customerId' });
-Invoice.belongsTo(Customer, { foreignKey: 'customerId' });
+Customer.hasMany(Invoice, { foreignKey: 'customer_id' });
+Invoice.belongsTo(Customer, { foreignKey: 'customer_id' });
 
-Invoice.belongsTo(Shop, { foreignKey: 'shopId' });
-Shop.hasMany(Invoice, { foreignKey: 'shopId' });
+Invoice.belongsTo(Shop, { foreignKey: 'shop_id' });
+Shop.hasMany(Invoice, { foreignKey: 'shop_id' });
 
-Invoice.belongsTo(User, { foreignKey: 'userId' });
-User.hasMany(Invoice, { foreignKey: 'userId' });
+Invoice.belongsTo(User, { foreignKey: 'user_id' });
+User.hasMany(Invoice, { foreignKey: 'user_id' });
 
-InvoiceItem.belongsTo(Invoice, { foreignKey: 'invoiceId' });
-Invoice.hasMany(InvoiceItem, { foreignKey: 'invoiceId' });
+InvoiceItem.belongsTo(Invoice, { foreignKey: 'invoice_id' });
+Invoice.hasMany(InvoiceItem, { foreignKey: 'invoice_id' });
 
-InvoiceItem.belongsTo(Product, { foreignKey: 'productId' });
-Product.hasMany(InvoiceItem, { foreignKey: 'productId' });
+InvoiceItem.belongsTo(Product, { foreignKey: 'product_id' });
+Product.hasMany(InvoiceItem, { foreignKey: 'product_id' });
 
-Payment.belongsTo(Invoice, { foreignKey: 'invoiceId' });
-Invoice.hasMany(Payment, { foreignKey: 'invoiceId' });
+Payment.belongsTo(Invoice, { foreignKey: 'invoice_id' });
+Invoice.hasMany(Payment, { foreignKey: 'invoice_id' });
 
-AuditLog.belongsTo(User, { foreignKey: 'userId' });
-User.hasMany(AuditLog, { foreignKey: 'userId' });
+AuditLog.belongsTo(User, { foreignKey: 'user_id' });
+User.hasMany(AuditLog, { foreignKey: 'user_id' });
 
-Notification.belongsTo(User, { foreignKey: 'targetUserId', as: 'targetUser' });
-User.hasMany(Notification, { foreignKey: 'targetUserId', as: 'notifications' });
+Notification.belongsTo(User, { foreignKey: 'target_user_id', as: 'targetUser' });
+User.hasMany(Notification, { foreignKey: 'target_user_id', as: 'notifications' });
 
 // Many-to-many relationship between Role and Permission
 const RolePermission = sequelize.define('role_permission', {}, { timestamps: false });
-Role.belongsToMany(Permission, { through: RolePermission, foreignKey: 'roleId' });
-Permission.belongsToMany(Role, { through: RolePermission, foreignKey: 'permissionId' });
+Role.belongsToMany(Permission, { through: RolePermission, foreignKey: 'role_id' });
+Permission.belongsToMany(Role, { through: RolePermission, foreignKey: 'permission_id' });
 
 export {
     Product,
@@ -88,5 +93,10 @@ export {
     TransferItem,
     AuditLog,
     Notification,
-    RolePermission
+    RolePermission,
+    Supplier,
+    PurchaseInvoice,
+    PurchaseInvoiceItem,
+    Quotation,
+    QuotationItem
 }; 

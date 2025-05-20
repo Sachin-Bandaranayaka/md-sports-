@@ -1,138 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
 import { Search, Plus, Edit, Trash, FileText, ExternalLink, Calendar, DollarSign, X } from 'lucide-react';
 import { PurchaseInvoice, Supplier } from '@/types';
-
-// Dummy data for suppliers
-const suppliers: Supplier[] = [
-    {
-        id: 'SUP001',
-        name: 'Sports World Ltd.',
-        contactPerson: 'John Smith',
-        email: 'john@sportsworld.com',
-        phone: '+92 301 1234567',
-        address: '123 Main Street, Karachi',
-        city: 'Karachi',
-        notes: 'Major supplier for cricket equipment',
-        createdAt: '2023-10-15',
-        totalPurchases: 1250000,
-        status: 'active',
-    },
-    {
-        id: 'SUP002',
-        name: 'Athletic Gear Pakistan',
-        contactPerson: 'Sarah Ahmed',
-        email: 'sarah@athleticgear.pk',
-        phone: '+92 321 9876543',
-        address: '456 Stadium Road, Lahore',
-        city: 'Lahore',
-        notes: 'Specializes in football and tennis equipment',
-        createdAt: '2023-11-05',
-        totalPurchases: 875000,
-        status: 'active',
-    }
-];
-
-// Dummy data for demonstration
-const purchaseInvoicesData: PurchaseInvoice[] = [
-    {
-        id: 'PI001',
-        invoiceNumber: 'INV-001-2023',
-        supplierId: 'SUP001',
-        supplierName: 'Sports World Ltd.',
-        date: '2023-10-25',
-        dueDate: '2023-11-25',
-        items: [
-            {
-                id: 'ITEM001',
-                productId: 'MD-001',
-                productName: 'Cricket Bat - Professional',
-                quantity: 10,
-                unitPrice: 6500,
-                total: 65000
-            },
-            {
-                id: 'ITEM002',
-                productId: 'MD-003',
-                productName: 'Football - Size 5',
-                quantity: 20,
-                unitPrice: 2000,
-                total: 40000
-            }
-        ],
-        subtotal: 105000,
-        tax: 17850,
-        discount: 5000,
-        total: 117850,
-        notes: 'Regular monthly stock replenishment',
-        status: 'paid',
-        paymentMethod: 'Bank Transfer',
-        createdAt: '2023-10-25'
-    },
-    {
-        id: 'PI002',
-        invoiceNumber: 'INV-002-2023',
-        supplierId: 'SUP002',
-        supplierName: 'Athletic Gear Pakistan',
-        date: '2023-11-10',
-        dueDate: '2023-12-10',
-        items: [
-            {
-                id: 'ITEM003',
-                productId: 'MD-002',
-                productName: 'Basketball - Size 7',
-                quantity: 15,
-                unitPrice: 2300,
-                total: 34500
-            },
-            {
-                id: 'ITEM004',
-                productId: 'MD-004',
-                productName: 'Tennis Racket - Professional',
-                quantity: 5,
-                unitPrice: 9500,
-                total: 47500
-            }
-        ],
-        subtotal: 82000,
-        tax: 13940,
-        discount: 2000,
-        total: 93940,
-        notes: 'Special order for upcoming tournament',
-        status: 'partial',
-        paymentMethod: 'Cheque',
-        createdAt: '2023-11-10'
-    },
-    {
-        id: 'PI003',
-        invoiceNumber: 'INV-003-2023',
-        supplierId: 'SUP001',
-        supplierName: 'Sports World Ltd.',
-        date: '2023-12-05',
-        dueDate: '2024-01-05',
-        items: [
-            {
-                id: 'ITEM005',
-                productId: 'MD-005',
-                productName: 'Swimming Goggles - Adult',
-                quantity: 30,
-                unitPrice: 950,
-                total: 28500
-            }
-        ],
-        subtotal: 28500,
-        tax: 4845,
-        discount: 0,
-        total: 33345,
-        notes: 'Urgent restock for swimming season',
-        status: 'unpaid',
-        paymentMethod: 'Cash',
-        createdAt: '2023-12-05'
-    }
-];
 
 // Status badge colors
 const getStatusBadgeClass = (status: string) => {
@@ -149,18 +21,55 @@ const getStatusBadgeClass = (status: string) => {
 };
 
 export default function Purchases() {
-    const [purchaseInvoices, setPurchaseInvoices] = useState<PurchaseInvoice[]>(purchaseInvoicesData);
+    const [purchaseInvoices, setPurchaseInvoices] = useState<PurchaseInvoice[]>([]);
+    const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [showAddEditModal, setShowAddEditModal] = useState(false);
     const [selectedInvoice, setSelectedInvoice] = useState<PurchaseInvoice | null>(null);
     const [isEditMode, setIsEditMode] = useState(false);
 
+    // Fetch purchase invoices from API
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+
+                // Fetch purchase invoices
+                const purchasesResponse = await fetch('/api/purchases');
+                if (!purchasesResponse.ok) {
+                    throw new Error('Failed to fetch purchase invoices');
+                }
+                const purchasesData = await purchasesResponse.json();
+                setPurchaseInvoices(purchasesData);
+
+                // Fetch suppliers for the form
+                const suppliersResponse = await fetch('/api/suppliers');
+                if (!suppliersResponse.ok) {
+                    throw new Error('Failed to fetch suppliers');
+                }
+                const suppliersData = await suppliersResponse.json();
+                setSuppliers(suppliersData);
+
+                setError(null);
+            } catch (err) {
+                console.error('Error fetching data:', err);
+                setError('Failed to load data. Please try again later.');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
+
     // Filter invoices based on search term
     const filteredInvoices = purchaseInvoices.filter((invoice) =>
-        invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        invoice.supplierName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        invoice.status.toLowerCase().includes(searchTerm.toLowerCase())
+        invoice.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (invoice.supplier?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        invoice.status?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const handleAddInvoice = () => {
@@ -180,26 +89,65 @@ export default function Purchases() {
         setShowDetailModal(true);
     };
 
-    const handleDeleteInvoice = (id: string) => {
+    const handleDeleteInvoice = async (id: string) => {
         if (confirm('Are you sure you want to delete this invoice? This action cannot be undone.')) {
-            setPurchaseInvoices(purchaseInvoices.filter(invoice => invoice.id !== id));
+            try {
+                const response = await fetch(`/api/purchases/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to delete purchase invoice');
+                }
+
+                setPurchaseInvoices(purchaseInvoices.filter(invoice => invoice.id !== id));
+            } catch (err) {
+                console.error('Error deleting purchase invoice:', err);
+                alert('Failed to delete purchase invoice. Please try again.');
+            }
         }
     };
 
-    const handleSaveInvoice = (invoice: PurchaseInvoice) => {
-        if (isEditMode) {
-            setPurchaseInvoices(purchaseInvoices.map(i => i.id === invoice.id ? invoice : i));
-        } else {
-            const newId = `PI${(purchaseInvoices.length + 1).toString().padStart(3, '0')}`;
-            const newInvoice = {
-                ...invoice,
-                id: newId,
-                invoiceNumber: `INV-${(purchaseInvoices.length + 1).toString().padStart(3, '0')}-${new Date().getFullYear()}`,
-                createdAt: new Date().toISOString().split('T')[0]
-            };
-            setPurchaseInvoices([...purchaseInvoices, newInvoice]);
+    const handleSaveInvoice = async (invoice: PurchaseInvoice) => {
+        try {
+            if (isEditMode) {
+                // Update existing invoice
+                const response = await fetch(`/api/purchases/${invoice.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(invoice)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to update purchase invoice');
+                }
+
+                const updatedInvoice = await response.json();
+                setPurchaseInvoices(purchaseInvoices.map(i => i.id === updatedInvoice.id ? updatedInvoice : i));
+            } else {
+                // Create new invoice
+                const response = await fetch('/api/purchases', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(invoice)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to create purchase invoice');
+                }
+
+                const newInvoice = await response.json();
+                setPurchaseInvoices([...purchaseInvoices, newInvoice]);
+            }
+            setShowAddEditModal(false);
+        } catch (err) {
+            console.error('Error saving purchase invoice:', err);
+            alert('Failed to save purchase invoice. Please try again.');
         }
-        setShowAddEditModal(false);
     };
 
     return (
@@ -235,111 +183,135 @@ export default function Purchases() {
                     </div>
                 </div>
 
-                {/* Invoices table */}
-                <div className="bg-tertiary rounded-lg shadow-sm border border-gray-200">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left text-gray-500">
-                            <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3">Invoice #</th>
-                                    <th className="px-6 py-3">Supplier</th>
-                                    <th className="px-6 py-3">Date</th>
-                                    <th className="px-6 py-3">Due Date</th>
-                                    <th className="px-6 py-3">Amount</th>
-                                    <th className="px-6 py-3">Status</th>
-                                    <th className="px-6 py-3">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredInvoices.map((invoice) => (
-                                    <tr key={invoice.id} className="border-b hover:bg-gray-50">
-                                        <td className="px-6 py-4 font-medium text-gray-900">
-                                            {invoice.invoiceNumber}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {invoice.supplierName}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {invoice.date}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {invoice.dueDate}
-                                        </td>
-                                        <td className="px-6 py-4 font-medium">
-                                            Rs. {invoice.total.toLocaleString()}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(invoice.status)}`}>
-                                                {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center space-x-2">
-                                                <button
-                                                    onClick={() => handleViewInvoice(invoice)}
-                                                    className="text-blue-500 hover:text-blue-700"
-                                                    title="View Details"
-                                                >
-                                                    <ExternalLink className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleEditInvoice(invoice)}
-                                                    className="text-yellow-500 hover:text-yellow-700"
-                                                    title="Edit"
-                                                >
-                                                    <Edit className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteInvoice(invoice.id)}
-                                                    className="text-red-500 hover:text-red-700"
-                                                    title="Delete"
-                                                >
-                                                    <Trash className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {filteredInvoices.length === 0 && (
-                                    <tr>
-                                        <td colSpan={7} className="px-6 py-4 text-center">
-                                            No purchase invoices found matching your search.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                {/* Loading and error states */}
+                {loading && (
+                    <div className="text-center py-4">
+                        <p className="text-gray-500">Loading purchase invoices...</p>
                     </div>
-                    <div className="flex items-center justify-between p-4 border-t">
-                        <div className="text-sm text-gray-700">
-                            Showing <span className="font-medium">{filteredInvoices.length}</span> invoices
+                )}
+
+                {error && (
+                    <div className="text-center py-4">
+                        <p className="text-red-500">{error}</p>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.location.reload()}
+                            className="mt-2"
+                        >
+                            Retry
+                        </Button>
+                    </div>
+                )}
+
+                {/* Invoices table */}
+                {!loading && !error && (
+                    <div className="bg-tertiary rounded-lg shadow-sm border border-gray-200">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left text-gray-500">
+                                <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                                    <tr>
+                                        <th className="px-6 py-3">Invoice #</th>
+                                        <th className="px-6 py-3">Supplier</th>
+                                        <th className="px-6 py-3">Date</th>
+                                        <th className="px-6 py-3">Due Date</th>
+                                        <th className="px-6 py-3">Amount</th>
+                                        <th className="px-6 py-3">Status</th>
+                                        <th className="px-6 py-3">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredInvoices.map((invoice) => (
+                                        <tr key={invoice.id} className="border-b hover:bg-gray-50">
+                                            <td className="px-6 py-4 font-medium text-gray-900">
+                                                {invoice.invoiceNumber}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                {invoice.supplier?.name || 'Unknown Supplier'}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                {new Date(invoice.date).toLocaleDateString()}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                {new Date(invoice.dueDate).toLocaleDateString()}
+                                            </td>
+                                            <td className="px-6 py-4 font-medium">
+                                                Rs. {invoice.total?.toLocaleString()}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(invoice.status)}`}>
+                                                    {invoice.status?.charAt(0).toUpperCase() + invoice.status?.slice(1)}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center space-x-2">
+                                                    <button
+                                                        onClick={() => handleViewInvoice(invoice)}
+                                                        className="text-blue-500 hover:text-blue-700"
+                                                        title="View Details"
+                                                    >
+                                                        <ExternalLink className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleEditInvoice(invoice)}
+                                                        className="text-yellow-500 hover:text-yellow-700"
+                                                        title="Edit"
+                                                    >
+                                                        <Edit className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteInvoice(invoice.id)}
+                                                        className="text-red-500 hover:text-red-700"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {filteredInvoices.length === 0 && (
+                                        <tr>
+                                            <td colSpan={7} className="px-6 py-4 text-center">
+                                                {purchaseInvoices.length === 0 ? 'No purchase invoices found.' : 'No invoices match your search criteria.'}
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="flex items-center justify-between p-4 border-t">
+                            <div className="text-sm text-gray-700">
+                                Showing <span className="font-medium">{filteredInvoices.length}</span> invoices
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
+
+                {/* Invoice Detail Modal */}
+                {showDetailModal && selectedInvoice && (
+                    <InvoiceDetailModal
+                        invoice={selectedInvoice}
+                        onClose={() => setShowDetailModal(false)}
+                        onEdit={() => {
+                            setShowDetailModal(false);
+                            setIsEditMode(true);
+                            setShowAddEditModal(true);
+                        }}
+                    />
+                )}
+
+                {/* Add/Edit Invoice Modal */}
+                {showAddEditModal && (
+                    <InvoiceFormModal
+                        invoice={selectedInvoice}
+                        isEdit={isEditMode}
+                        onClose={() => setShowAddEditModal(false)}
+                        onSave={handleSaveInvoice}
+                        suppliers={suppliers}
+                    />
+                )}
             </div>
-
-            {/* View Invoice Details Modal */}
-            {showDetailModal && selectedInvoice && (
-                <InvoiceDetailModal
-                    invoice={selectedInvoice}
-                    onClose={() => setShowDetailModal(false)}
-                    onEdit={() => {
-                        setShowDetailModal(false);
-                        handleEditInvoice(selectedInvoice);
-                    }}
-                />
-            )}
-
-            {/* Add/Edit Invoice Modal */}
-            {showAddEditModal && (
-                <InvoiceFormModal
-                    invoice={selectedInvoice}
-                    isEdit={isEditMode}
-                    onClose={() => setShowAddEditModal(false)}
-                    onSave={handleSaveInvoice}
-                    suppliers={suppliers}
-                />
-            )}
         </MainLayout>
     );
 }
@@ -366,19 +338,19 @@ function InvoiceDetailModal({ invoice, onClose, onEdit }: InvoiceDetailModalProp
                     <div className="flex flex-col md:flex-row justify-between mb-6">
                         <div>
                             <h3 className="text-lg font-semibold text-gray-800">{invoice.invoiceNumber}</h3>
-                            <p className="text-gray-600">{invoice.supplierName}</p>
+                            <p className="text-gray-600">{invoice.supplier?.name || 'Unknown Supplier'}</p>
                             <div className="flex items-center mt-1 text-gray-600">
                                 <Calendar className="w-4 h-4 mr-1" />
-                                <span>Date: {invoice.date}</span>
+                                <span>Date: {new Date(invoice.date).toLocaleDateString()}</span>
                             </div>
                             <div className="flex items-center mt-1 text-gray-600">
                                 <Calendar className="w-4 h-4 mr-1" />
-                                <span>Due: {invoice.dueDate}</span>
+                                <span>Due: {new Date(invoice.dueDate).toLocaleDateString()}</span>
                             </div>
                         </div>
                         <div className="mt-4 md:mt-0">
                             <span className={`px-3 py-1 rounded-full text-sm ${getStatusBadgeClass(invoice.status)}`}>
-                                {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+                                {invoice.status?.charAt(0).toUpperCase() + invoice.status?.slice(1)}
                             </span>
                             <div className="flex items-center mt-2 text-gray-600">
                                 <FileText className="w-4 h-4 mr-1" />
@@ -428,19 +400,19 @@ function InvoiceDetailModal({ invoice, onClose, onEdit }: InvoiceDetailModalProp
                         <div className="w-full max-w-xs">
                             <div className="flex justify-between py-2 border-b">
                                 <span>Subtotal:</span>
-                                <span>Rs. {invoice.subtotal.toLocaleString()}</span>
+                                <span>Rs. {invoice.subtotal?.toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between py-2 border-b">
                                 <span>Tax:</span>
-                                <span>Rs. {invoice.tax.toLocaleString()}</span>
+                                <span>Rs. {invoice.tax?.toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between py-2 border-b">
                                 <span>Discount:</span>
-                                <span>Rs. {invoice.discount.toLocaleString()}</span>
+                                <span>Rs. {invoice.discount?.toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between py-2 font-bold">
                                 <span>Total:</span>
-                                <span>Rs. {invoice.total.toLocaleString()}</span>
+                                <span>Rs. {invoice.total?.toLocaleString()}</span>
                             </div>
                         </div>
                     </div>

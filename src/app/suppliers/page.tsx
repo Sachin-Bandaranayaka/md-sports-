@@ -1,93 +1,49 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
 import { Search, Plus, Edit, Trash, Phone, Mail, ExternalLink, X } from 'lucide-react';
 import { Supplier } from '@/types';
 
-// Dummy data for demonstration
-const supplierData: Supplier[] = [
-    {
-        id: 'SUP001',
-        name: 'Sports World Ltd.',
-        contactPerson: 'John Smith',
-        email: 'john@sportsworld.com',
-        phone: '+92 301 1234567',
-        address: '123 Main Street, Karachi',
-        city: 'Karachi',
-        notes: 'Major supplier for cricket equipment',
-        createdAt: '2023-10-15',
-        totalPurchases: 1250000,
-        status: 'active',
-    },
-    {
-        id: 'SUP002',
-        name: 'Athletic Gear Pakistan',
-        contactPerson: 'Sarah Ahmed',
-        email: 'sarah@athleticgear.pk',
-        phone: '+92 321 9876543',
-        address: '456 Stadium Road, Lahore',
-        city: 'Lahore',
-        notes: 'Specializes in football and tennis equipment',
-        createdAt: '2023-11-05',
-        totalPurchases: 875000,
-        status: 'active',
-    },
-    {
-        id: 'SUP003',
-        name: 'Fitness Equipment Ltd.',
-        contactPerson: 'Ali Hassan',
-        email: 'ali@fitnessequip.com',
-        phone: '+92 333 1122334',
-        address: '789 Mall Road, Islamabad',
-        city: 'Islamabad',
-        notes: 'Gym and fitness equipment supplier',
-        createdAt: '2023-12-10',
-        totalPurchases: 550000,
-        status: 'active',
-    },
-    {
-        id: 'SUP004',
-        name: 'Global Sports Imports',
-        contactPerson: 'Fatima Khan',
-        email: 'fatima@globalsports.com',
-        phone: '+92 345 6789012',
-        address: '101 Trade Center, Faisalabad',
-        city: 'Faisalabad',
-        notes: 'International sports goods importer',
-        createdAt: '2024-01-20',
-        totalPurchases: 1850000,
-        status: 'active',
-    },
-    {
-        id: 'SUP005',
-        name: 'Premier Sportswear',
-        contactPerson: 'Rizwan Malik',
-        email: 'rizwan@premiersports.pk',
-        phone: '+92 312 3456789',
-        address: '202 Business Bay, Multan',
-        city: 'Multan',
-        notes: 'Sports apparel and footwear supplier',
-        createdAt: '2024-02-18',
-        totalPurchases: 750000,
-        status: 'inactive',
-    }
-];
-
 export default function Suppliers() {
-    const [suppliers, setSuppliers] = useState<Supplier[]>(supplierData);
+    const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [showAddModal, setShowAddModal] = useState(false);
     const [showViewModal, setShowViewModal] = useState(false);
     const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
     const [isEditMode, setIsEditMode] = useState(false);
 
+    // Fetch suppliers from API
+    useEffect(() => {
+        const fetchSuppliers = async () => {
+            try {
+                setLoading(true);
+                const response = await fetch('/api/suppliers');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch suppliers');
+                }
+                const data = await response.json();
+                setSuppliers(data);
+                setError(null);
+            } catch (err) {
+                console.error('Error fetching suppliers:', err);
+                setError('Failed to load suppliers. Please try again later.');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchSuppliers();
+    }, []);
+
     const filteredSuppliers = suppliers.filter(supplier =>
-        supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        supplier.contactPerson.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        supplier.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        supplier.city.toLowerCase().includes(searchTerm.toLowerCase())
+        supplier.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        supplier.contactPerson?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        supplier.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        supplier.city?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const handleAddSupplier = () => {
@@ -107,27 +63,65 @@ export default function Suppliers() {
         setShowViewModal(true);
     };
 
-    const handleDeleteSupplier = (id: string) => {
+    const handleDeleteSupplier = async (id: string) => {
         if (confirm('Are you sure you want to delete this supplier?')) {
-            setSuppliers(suppliers.filter(supplier => supplier.id !== id));
+            try {
+                const response = await fetch(`/api/suppliers/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to delete supplier');
+                }
+
+                setSuppliers(suppliers.filter(supplier => supplier.id !== id));
+            } catch (err) {
+                console.error('Error deleting supplier:', err);
+                alert('Failed to delete supplier. Please try again.');
+            }
         }
     };
 
-    const handleSaveSupplier = (supplier: Supplier) => {
-        if (isEditMode) {
-            setSuppliers(suppliers.map(s => s.id === supplier.id ? supplier : s));
-        } else {
-            // Generate a new ID for new supplier
-            const newId = `SUP${(suppliers.length + 1).toString().padStart(3, '0')}`;
-            const newSupplier = {
-                ...supplier,
-                id: newId,
-                createdAt: new Date().toISOString().split('T')[0],
-                totalPurchases: 0
-            };
-            setSuppliers([...suppliers, newSupplier]);
+    const handleSaveSupplier = async (supplier: Supplier) => {
+        try {
+            if (isEditMode) {
+                // Update existing supplier
+                const response = await fetch(`/api/suppliers/${supplier.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(supplier)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to update supplier');
+                }
+
+                const updatedSupplier = await response.json();
+                setSuppliers(suppliers.map(s => s.id === updatedSupplier.id ? updatedSupplier : s));
+            } else {
+                // Create new supplier
+                const response = await fetch('/api/suppliers', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(supplier)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to create supplier');
+                }
+
+                const newSupplier = await response.json();
+                setSuppliers([...suppliers, newSupplier]);
+            }
+            setShowAddModal(false);
+        } catch (err) {
+            console.error('Error saving supplier:', err);
+            alert('Failed to save supplier. Please try again.');
         }
-        setShowAddModal(false);
     };
 
     return (
@@ -163,118 +157,142 @@ export default function Suppliers() {
                     </div>
                 </div>
 
-                {/* Suppliers table */}
-                <div className="bg-tertiary rounded-lg shadow-sm border border-gray-200">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left text-gray-500">
-                            <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3">ID</th>
-                                    <th className="px-6 py-3">Supplier Name</th>
-                                    <th className="px-6 py-3">Contact Person</th>
-                                    <th className="px-6 py-3">City</th>
-                                    <th className="px-6 py-3">Contact</th>
-                                    <th className="px-6 py-3">Total Purchases</th>
-                                    <th className="px-6 py-3">Status</th>
-                                    <th className="px-6 py-3">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredSuppliers.map((supplier) => (
-                                    <tr key={supplier.id} className="border-b hover:bg-gray-50">
-                                        <td className="px-6 py-4 font-medium text-gray-900">
-                                            {supplier.id}
-                                        </td>
-                                        <td className="px-6 py-4 font-medium text-gray-900">
-                                            {supplier.name}
-                                        </td>
-                                        <td className="px-6 py-4">{supplier.contactPerson}</td>
-                                        <td className="px-6 py-4">{supplier.city}</td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center space-x-2">
-                                                <a href={`mailto:${supplier.email}`} className="text-blue-500 hover:text-blue-700">
-                                                    <Mail className="w-4 h-4" />
-                                                </a>
-                                                <a href={`tel:${supplier.phone}`} className="text-blue-500 hover:text-blue-700">
-                                                    <Phone className="w-4 h-4" />
-                                                </a>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">Rs. {supplier.totalPurchases.toLocaleString()}</td>
-                                        <td className="px-6 py-4">
-                                            <span className={`px-2 py-1 rounded-full text-xs ${supplier.status === 'active'
-                                                ? 'bg-green-100 text-green-800'
-                                                : 'bg-red-100 text-red-800'
-                                                }`}>
-                                                {supplier.status === 'active' ? 'Active' : 'Inactive'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center space-x-2">
-                                                <button
-                                                    onClick={() => handleViewSupplier(supplier)}
-                                                    className="text-blue-500 hover:text-blue-700"
-                                                    title="View Details"
-                                                >
-                                                    <ExternalLink className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleEditSupplier(supplier)}
-                                                    className="text-yellow-500 hover:text-yellow-700"
-                                                    title="Edit"
-                                                >
-                                                    <Edit className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteSupplier(supplier.id)}
-                                                    className="text-red-500 hover:text-red-700"
-                                                    title="Delete"
-                                                >
-                                                    <Trash className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {filteredSuppliers.length === 0 && (
-                                    <tr>
-                                        <td colSpan={8} className="px-6 py-4 text-center">
-                                            No suppliers found matching your search criteria.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                {/* Loading and error states */}
+                {loading && (
+                    <div className="text-center py-4">
+                        <p className="text-gray-500">Loading suppliers...</p>
                     </div>
-                    <div className="flex items-center justify-between p-4 border-t">
-                        <div className="text-sm text-gray-700">
-                            Showing <span className="font-medium">{filteredSuppliers.length}</span> suppliers
+                )}
+
+                {error && (
+                    <div className="text-center py-4">
+                        <p className="text-red-500">{error}</p>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.location.reload()}
+                            className="mt-2"
+                        >
+                            Retry
+                        </Button>
+                    </div>
+                )}
+
+                {/* Suppliers table */}
+                {!loading && !error && (
+                    <div className="bg-tertiary rounded-lg shadow-sm border border-gray-200">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left text-gray-500">
+                                <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                                    <tr>
+                                        <th className="px-6 py-3">ID</th>
+                                        <th className="px-6 py-3">Supplier Name</th>
+                                        <th className="px-6 py-3">Contact Person</th>
+                                        <th className="px-6 py-3">City</th>
+                                        <th className="px-6 py-3">Contact</th>
+                                        <th className="px-6 py-3">Total Purchases</th>
+                                        <th className="px-6 py-3">Status</th>
+                                        <th className="px-6 py-3">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredSuppliers.map((supplier) => (
+                                        <tr key={supplier.id} className="border-b hover:bg-gray-50">
+                                            <td className="px-6 py-4 font-medium text-gray-900">
+                                                {supplier.id}
+                                            </td>
+                                            <td className="px-6 py-4 font-medium text-gray-900">
+                                                {supplier.name}
+                                            </td>
+                                            <td className="px-6 py-4">{supplier.contactPerson}</td>
+                                            <td className="px-6 py-4">{supplier.city}</td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center space-x-2">
+                                                    <a href={`mailto:${supplier.email}`} className="text-blue-500 hover:text-blue-700">
+                                                        <Mail className="w-4 h-4" />
+                                                    </a>
+                                                    <a href={`tel:${supplier.phone}`} className="text-blue-500 hover:text-blue-700">
+                                                        <Phone className="w-4 h-4" />
+                                                    </a>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">Rs. {supplier.totalPurchases?.toLocaleString()}</td>
+                                            <td className="px-6 py-4">
+                                                <span className={`px-2 py-1 rounded-full text-xs ${supplier.status === 'active'
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : 'bg-red-100 text-red-800'
+                                                    }`}>
+                                                    {supplier.status === 'active' ? 'Active' : 'Inactive'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center space-x-2">
+                                                    <button
+                                                        onClick={() => handleViewSupplier(supplier)}
+                                                        className="text-blue-500 hover:text-blue-700"
+                                                        title="View Details"
+                                                    >
+                                                        <ExternalLink className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleEditSupplier(supplier)}
+                                                        className="text-yellow-500 hover:text-yellow-700"
+                                                        title="Edit"
+                                                    >
+                                                        <Edit className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteSupplier(supplier.id)}
+                                                        className="text-red-500 hover:text-red-700"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {filteredSuppliers.length === 0 && (
+                                        <tr>
+                                            <td colSpan={8} className="px-6 py-4 text-center">
+                                                No suppliers found matching your search criteria.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="flex items-center justify-between p-4 border-t">
+                            <div className="text-sm text-gray-700">
+                                Showing <span className="font-medium">{filteredSuppliers.length}</span> suppliers
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
+
+                {/* Add/Edit Supplier Modal */}
+                {showAddModal && (
+                    <SupplierFormModal
+                        supplier={selectedSupplier}
+                        isEdit={isEditMode}
+                        onClose={() => setShowAddModal(false)}
+                        onSave={handleSaveSupplier}
+                    />
+                )}
+
+                {/* View Supplier Modal */}
+                {showViewModal && selectedSupplier && (
+                    <SupplierDetailsModal
+                        supplier={selectedSupplier}
+                        onClose={() => setShowViewModal(false)}
+                        onEdit={() => {
+                            setShowViewModal(false);
+                            setIsEditMode(true);
+                            setShowAddModal(true);
+                        }}
+                    />
+                )}
             </div>
-
-            {/* Add/Edit Supplier Modal */}
-            {showAddModal && (
-                <SupplierFormModal
-                    supplier={selectedSupplier}
-                    isEdit={isEditMode}
-                    onClose={() => setShowAddModal(false)}
-                    onSave={handleSaveSupplier}
-                />
-            )}
-
-            {/* View Supplier Modal */}
-            {showViewModal && selectedSupplier && (
-                <SupplierDetailsModal
-                    supplier={selectedSupplier}
-                    onClose={() => setShowViewModal(false)}
-                    onEdit={() => {
-                        setShowViewModal(false);
-                        handleEditSupplier(selectedSupplier);
-                    }}
-                />
-            )}
         </MainLayout>
     );
 }
@@ -493,7 +511,7 @@ function SupplierDetailsModal({ supplier, onClose, onEdit }: SupplierDetailsModa
                         </div>
                         <div>
                             <p className="text-sm font-medium text-gray-500">Total Purchases</p>
-                            <p className="text-gray-900 font-semibold">Rs. {supplier.totalPurchases.toLocaleString()}</p>
+                            <p className="text-gray-900 font-semibold">Rs. {supplier.totalPurchases?.toLocaleString()}</p>
                         </div>
                         <div>
                             <p className="text-sm font-medium text-gray-500">Since</p>
