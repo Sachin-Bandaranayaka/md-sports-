@@ -37,7 +37,7 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                const token = localStorage.getItem('token');
+                const token = localStorage.getItem('authToken');
                 if (!token) {
                     // No token found, user is not authenticated
                     setUser(null);
@@ -57,7 +57,7 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
                     setUser(data.user);
                 } else {
                     // Invalid token
-                    localStorage.removeItem('token');
+                    localStorage.removeItem('authToken');
                     setUser(null);
                 }
             } catch (err) {
@@ -85,7 +85,7 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
 
             const data = await response.json();
             if (data.success && data.token) {
-                localStorage.setItem('token', data.token);
+                localStorage.setItem('authToken', data.token);
                 setUser(data.user);
                 router.push('/dashboard');
             } else {
@@ -99,7 +99,7 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
     };
 
     const logout = () => {
-        localStorage.removeItem('token');
+        localStorage.removeItem('authToken');
         setUser(null);
         router.push('/login');
     };

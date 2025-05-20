@@ -35,8 +35,30 @@ export default function TransfersPage() {
     useEffect(() => {
         const fetchTransfers = async () => {
             try {
-                const response = await fetch('/api/inventory/transfers');
-                if (!response.ok) throw new Error('Failed to fetch transfers');
+                setLoading(true);
+                setError(null);
+                
+                // Get the token from localStorage
+                const token = localStorage.getItem('authToken');
+                
+                if (!token) {
+                    throw new Error('Authentication token missing');
+                }
+                
+                const response = await fetch('/api/inventory/transfers', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        throw new Error('Authentication failed. Please login again.');
+                    }
+                    throw new Error(`Failed to fetch transfers: ${response.status}`);
+                }
 
                 const data = await response.json();
                 if (data.success) {

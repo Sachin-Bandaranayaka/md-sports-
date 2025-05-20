@@ -45,7 +45,12 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
     useEffect(() => {
         const fetchTransfer = async () => {
             try {
-                const response = await fetch(`/api/inventory/transfers/${params.id}`);
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`/api/inventory/transfers/${params.id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
                 if (!response.ok) {
                     throw new Error('Failed to load transfer details');
                 }

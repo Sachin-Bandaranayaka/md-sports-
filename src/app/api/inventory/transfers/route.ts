@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
                 t.completed_at,
                 ss.name as source_shop_name,
                 ds.name as destination_shop_name,
-                u.full_name as initiated_by,
+                u."fullName" as initiated_by,
                 COUNT(ti.id) as item_count,
                 SUM(ti.quantity) as total_items
             FROM 
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
             LEFT JOIN 
                 transfer_items ti ON t.id = ti.transfer_id
             GROUP BY 
-                t.id, ss.name, ds.name, u.full_name
+                t.id, ss.name, ds.name, u."fullName"
             ORDER BY 
                 t.created_at DESC
         `);

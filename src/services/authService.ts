@@ -6,9 +6,10 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const JWT_EXPIRES_IN = '24h';
 
 interface TokenPayload {
-    userId: number;
+    sub: number; // User ID as 'sub' claim
     username: string;
     roleId: number;
+    shopId?: number | null;
     permissions?: string[];
 }
 
@@ -40,9 +41,10 @@ export const authenticateUser = async (username: string, password: string) => {
 
         // Generate JWT token
         const token = generateToken({
-            userId: user.id,
+            sub: user.id,
             username: user.username,
             roleId: user.roleId,
+            shopId: user.shopId,
             permissions
         });
 
@@ -83,6 +85,7 @@ export const verifyToken = (token: string) => {
     try {
         return jwt.verify(token, JWT_SECRET) as TokenPayload;
     } catch (error) {
+        console.error('Token verification error:', error);
         return null;
     }
 };
@@ -104,7 +107,7 @@ export const getUserFromToken = async (token: string) => {
     }
 
     try {
-        const user = await User.findByPk(payload.userId, {
+        const user = await User.findByPk(payload.sub, {
             include: [{
                 model: Role,
                 include: ['permissions']

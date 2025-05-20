@@ -96,8 +96,13 @@ export default function Dashboard() {
             setError(null);
 
             try {
+                const token = localStorage.getItem('authToken');
+                const headers = {
+                    'Authorization': `Bearer ${token}`
+                };
+
                 // Fetch summary data
-                const summaryResponse = await fetch('/api/dashboard/summary');
+                const summaryResponse = await fetch('/api/dashboard/summary', { headers });
                 if (!summaryResponse.ok) {
                     throw new Error('Failed to fetch summary data');
                 }
@@ -107,7 +112,7 @@ export default function Dashboard() {
                 }
 
                 // Fetch shop performance
-                const shopsResponse = await fetch('/api/dashboard/shops');
+                const shopsResponse = await fetch('/api/dashboard/shops', { headers });
                 if (!shopsResponse.ok) {
                     throw new Error('Failed to fetch shop data');
                 }
@@ -117,7 +122,7 @@ export default function Dashboard() {
                 }
 
                 // Fetch inventory distribution
-                const inventoryResponse = await fetch('/api/dashboard/inventory');
+                const inventoryResponse = await fetch('/api/dashboard/inventory', { headers });
                 if (!inventoryResponse.ok) {
                     throw new Error('Failed to fetch inventory data');
                 }
@@ -127,7 +132,7 @@ export default function Dashboard() {
                 }
 
                 // Fetch monthly sales
-                const salesResponse = await fetch('/api/dashboard/sales');
+                const salesResponse = await fetch('/api/dashboard/sales', { headers });
                 if (!salesResponse.ok) {
                     throw new Error('Failed to fetch sales data');
                 }
@@ -137,7 +142,7 @@ export default function Dashboard() {
                 }
 
                 // Fetch recent transfers
-                const transfersResponse = await fetch('/api/dashboard/transfers');
+                const transfersResponse = await fetch('/api/dashboard/transfers', { headers });
                 if (!transfersResponse.ok) {
                     throw new Error('Failed to fetch transfers data');
                 }
