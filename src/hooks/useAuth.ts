@@ -20,7 +20,7 @@ interface AuthContextType {
     user: User | null;
     loading: boolean;
     error: string | null;
-    login: (username: string, password: string) => Promise<void>;
+    login: (email: string, password: string) => Promise<void>;
     logout: () => void;
 }
 
@@ -73,11 +73,11 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
         checkAuth();
     }, []);
 
-    const login = async (username: string, password: string) => {
+    const login = async (email: string, password: string) => {
         setLoading(true);
         setError(null);
         try {
-            const response = await authPost('/api/auth/login', { username, password });
+            const response = await authPost('/api/auth/login', { email, password });
 
             const data = await response.json();
             if (data.success && data.token) {

@@ -10,20 +10,23 @@ const JWT_EXPIRES_IN = '24h';
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { username, password } = body;
+        const { email, password } = body;
+
+        console.log('Login attempt for email:', email);
 
         // Validate request body
-        if (!username || !password) {
+        if (!email || !password) {
+            console.log('Missing email or password');
             return NextResponse.json(
-                { success: false, message: 'Username and password are required' },
+                { success: false, message: 'Email and password are required' },
                 { status: 400 }
             );
         }
 
-        // Find user by username with related role and permissions
+        // Find user by email with related role and permissions
         const user = await prisma.user.findFirst({
             where: {
-                username: username,
+                email: email,
                 isActive: true
             },
             include: {
@@ -37,31 +40,41 @@ export async function POST(req: NextRequest) {
         });
 
         if (!user) {
+            console.log('User not found with email:', email);
             return NextResponse.json(
-                { success: false, message: 'Invalid username or password' },
+                { success: false, message: 'Invalid email or password' },
                 { status: 401 }
             );
         }
 
+        console.log('User found:', user.id, user.name, user.email);
+        console.log('Stored password hash:', user.password);
+
         // Check password
         const passwordMatch = await bcrypt.compare(password, user.password);
+        console.log('Password match result:', passwordMatch);
+
         if (!passwordMatch) {
             return NextResponse.json(
-                { success: false, message: 'Invalid username or password' },
+                { success: false, message: 'Invalid email or password' },
                 { status: 401 }
             );
         }
 
         // Extract permissions
         const permissions = user.role.permissions.map(p => p.name);
+        console.log('User permissions:', permissions);
 
         // Generate JWT token
         const token = jwt.sign({
             userId: user.id,
             username: user.name,
+            email: user.email,
             roleId: user.roleId,
             permissions
         }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+
+        console.log('Login successful for user:', user.name);
 
         // Return token and user data
         return NextResponse.json({

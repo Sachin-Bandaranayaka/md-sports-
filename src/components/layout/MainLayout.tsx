@@ -28,6 +28,7 @@ type NavItem = {
     icon: React.ElementType;
     href: string;
     label: string;
+    requiredPermission?: string;
     children?: NavItem[];
 };
 
@@ -37,20 +38,21 @@ const navItems: NavItem[] = [
         icon: Package,
         href: '/inventory',
         label: 'Inventory',
+        requiredPermission: 'inventory:view',
         children: [
-            { icon: TruckIcon, href: '/inventory/transfers', label: 'Transfers' },
-            { icon: TruckIcon, href: '/suppliers', label: 'Suppliers' },
-            { icon: FileText, href: '/purchases', label: 'Purchases' },
+            { icon: TruckIcon, href: '/inventory/transfers', label: 'Transfers', requiredPermission: 'inventory:view' },
+            { icon: TruckIcon, href: '/suppliers', label: 'Suppliers', requiredPermission: 'inventory:view' },
+            { icon: FileText, href: '/purchases', label: 'Purchases', requiredPermission: 'inventory:manage' },
         ]
     },
-    { icon: ClipboardIcon, href: '/quotations', label: 'Quotations' },
-    { icon: Store, href: '/shops', label: 'Shops' },
-    { icon: Users, href: '/customers', label: 'Customers' },
-    { icon: FileText, href: '/invoices', label: 'Invoices' },
-    { icon: ReceiptIcon, href: '/receipts', label: 'Receipts' },
-    { icon: WalletIcon, href: '/accounting', label: 'Accounting' },
-    { icon: BarChart2, href: '/reports', label: 'Reports' },
-    { icon: Settings, href: '/settings', label: 'Settings' },
+    { icon: ClipboardIcon, href: '/quotations', label: 'Quotations', requiredPermission: 'sales:view' },
+    { icon: Store, href: '/shops', label: 'Shops', requiredPermission: 'inventory:view' },
+    { icon: Users, href: '/customers', label: 'Customers', requiredPermission: 'sales:view' },
+    { icon: FileText, href: '/invoices', label: 'Invoices', requiredPermission: 'sales:view' },
+    { icon: ReceiptIcon, href: '/receipts', label: 'Receipts', requiredPermission: 'sales:view' },
+    { icon: WalletIcon, href: '/accounting', label: 'Accounting', requiredPermission: 'sales:manage' },
+    { icon: BarChart2, href: '/reports', label: 'Reports', requiredPermission: 'reports:view' },
+    { icon: Settings, href: '/settings', label: 'Settings', requiredPermission: 'settings:manage' },
 ];
 
 interface MainLayoutProps {
@@ -89,6 +91,36 @@ export default function MainLayout({ children }: MainLayoutProps) {
         logout();
     };
 
+    // Check if user has the required permission for a menu item
+    const hasPermission = (requiredPermission?: string): boolean => {
+        if (!requiredPermission) return true; // No permission required
+        if (!user?.permissions) return false; // No permissions available
+
+        return user.permissions.includes(requiredPermission);
+    };
+
+    // Filter navigation items based on user permissions
+    const getAuthorizedNavItems = () => {
+        return navItems.filter(item => {
+            const itemAccess = hasPermission(item.requiredPermission);
+
+            // Handle items with children
+            if (item.children) {
+                // Filter child items that user has permission to access
+                const authorizedChildren = item.children.filter(child =>
+                    hasPermission(child.requiredPermission)
+                );
+
+                // Only show parent if there are accessible children or parent itself is accessible
+                return authorizedChildren.length > 0 && itemAccess;
+            }
+
+            return itemAccess;
+        });
+    };
+
+    const authorizedNavItems = getAuthorizedNavItems();
+
     return (
         <div className="min-h-screen bg-gray-100">
             {/* Sidebar */}
@@ -116,16 +148,21 @@ export default function MainLayout({ children }: MainLayoutProps) {
                 <div className="flex-1 overflow-y-auto">
                     <nav className="mt-6 px-2">
                         <ul className="space-y-1">
-                            {navItems.map((item) => {
+                            {authorizedNavItems.map((item) => {
                                 const Icon = item.icon;
                                 const isActive = pathname === item.href;
                                 const isExpanded = expandedItems.includes(item.href);
                                 const hasActiveChild = item.children?.some(child => pathname === child.href);
                                 const isParentActive = isActive || hasActiveChild;
 
+                                // Filter children based on permissions
+                                const authorizedChildren = item.children?.filter(child =>
+                                    hasPermission(child.requiredPermission)
+                                ) || [];
+
                                 return (
                                     <li key={item.href} className={item.children ? 'mb-1' : ''}>
-                                        {item.children ? (
+                                        {item.children && authorizedChildren.length > 0 ? (
                                             <>
                                                 <div className="flex">
                                                     <Link
@@ -159,7 +196,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                                                 </div>
                                                 {isExpanded && (
                                                     <ul className="mt-1 ml-6 space-y-1">
-                                                        {item.children.map(child => {
+                                                        {authorizedChildren.map(child => {
                                                             const ChildIcon = child.icon;
                                                             const isChildActive = pathname === child.href;
                                                             return (
@@ -234,7 +271,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                             </button>
                             <h1 className="text-xl font-semibold text-gray-800">
                                 {pathname === '/' ? 'Dashboard' : (
-                                    navItems.flatMap(item =>
+                                    authorizedNavItems.flatMap(item =>
                                         [item, ...(item.children || [])]
                                     ).find(item => pathname === item.href)?.label || 'Dashboard'
                                 )}
@@ -254,9 +291,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                 </header>
 
                 {/* Page content */}
-                <main className="p-6">
-                    {children}
-                </main>
+                <main className="p-6">{children}</main>
             </div>
         </div>
     );

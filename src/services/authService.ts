@@ -9,20 +9,21 @@ const JWT_EXPIRES_IN = '24h';
 interface TokenPayload {
     sub: number; // User ID as 'sub' claim
     username: string;
+    email: string;
     roleId: number;
     shopId?: number | null;
     permissions?: string[];
 }
 
 /**
- * Authenticate a user with username and password
+ * Authenticate a user with email and password
  */
-export const authenticateUser = async (username: string, password: string) => {
+export const authenticateUser = async (email: string, password: string) => {
     try {
-        // Find user by username with role and permissions
+        // Find user by email with role and permissions
         const user = await prisma.user.findFirst({
             where: {
-                username: username,
+                email: email,
                 isActive: true
             },
             include: {
@@ -38,7 +39,7 @@ export const authenticateUser = async (username: string, password: string) => {
         if (!user) {
             return {
                 success: false,
-                message: 'Invalid username or password'
+                message: 'Invalid email or password'
             };
         }
 
@@ -47,7 +48,7 @@ export const authenticateUser = async (username: string, password: string) => {
         if (!isPasswordValid) {
             return {
                 success: false,
-                message: 'Invalid username or password'
+                message: 'Invalid email or password'
             };
         }
 
@@ -58,6 +59,7 @@ export const authenticateUser = async (username: string, password: string) => {
         const token = generateToken({
             sub: user.id,
             username: user.name,
+            email: user.email,
             roleId: user.roleId,
             shopId: user.shopId,
             permissions

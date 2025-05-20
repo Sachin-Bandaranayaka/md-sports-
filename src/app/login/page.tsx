@@ -6,89 +6,30 @@ import Link from 'next/link';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/hooks/useAuth';
-import { authPost } from '@/utils/api';
 
 export default function LoginPage() {
     const { login } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
-    const [debugInfo, setDebugInfo] = useState<any>(null);
     const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setIsLoading(true);
         setError('');
-        setDebugInfo(null);
 
         const formData = new FormData(e.currentTarget);
-        const username = formData.get('username') as string;
+        const email = formData.get('email') as string;
         const password = formData.get('password') as string;
-
-        // TEMPORARY: Directly use hardcoded credentials while fixing backend issues
-        if (username === 'admin' && password === 'password') {
-            localStorage.setItem('authToken', 'dev-token');
-            localStorage.setItem('userData', JSON.stringify({
-                id: 1,
-                username: 'admin',
-                fullName: 'Admin User'
-            }));
-            router.push('/dashboard');
-            return;
-        }
-
-        // First try the debug endpoint
-        try {
-            const debugResponse = await authPost('/api/auth/debug', { username, password });
-
-            // Check if the response is actually JSON
-            const contentType = debugResponse.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                const debugData = await debugResponse.json();
-                setDebugInfo(debugData);
-                console.log("Debug data:", debugData);
-
-                // If debug shows database issues, show the error
-                if (!debugData.success) {
-                    setError(`Debug error: ${debugData.message}`);
-                    setIsLoading(false);
-                    return;
-                }
-            } else {
-                const textResponse = await debugResponse.text();
-                console.error('Non-JSON response:', textResponse);
-                setError('Server returned an invalid response format');
-                setIsLoading(false);
-                return;
-            }
-        } catch (debugError) {
-            console.error('Debug endpoint error:', debugError);
-            setError(`Debug API error: ${(debugError as Error).message}`);
-            setIsLoading(false);
-            return;
-        }
 
         // Try the auth login using the useAuth hook
         try {
-            await login(username, password);
+            await login(email, password);
         } catch (error) {
             console.error('Login error:', error);
-            setError(`Login API error: ${(error as Error).message}`);
+            setError(`Login failed: ${(error as Error).message}`);
             setIsLoading(false);
         }
-    };
-
-    // For development purposes only - hardcoded login
-    const handleDevLogin = () => {
-        localStorage.setItem('authToken', 'dev-token');
-        localStorage.setItem('userData', JSON.stringify({
-            id: 1,
-            username: 'admin',
-            fullName: 'Admin User',
-            roleId: 1,
-            roleName: 'Admin',
-        }));
-        router.push('/dashboard');
     };
 
     return (
@@ -109,13 +50,12 @@ export default function LoginPage() {
 
                         <div>
                             <Input
-                                id="username"
-                                name="username"
-                                type="text"
-                                label="Username"
+                                id="email"
+                                name="email"
+                                type="email"
+                                label="Email"
                                 required
-                                autoComplete="username"
-                                defaultValue="admin"
+                                autoComplete="email"
                             />
                         </div>
 
@@ -127,7 +67,6 @@ export default function LoginPage() {
                                 label="Password"
                                 required
                                 autoComplete="current-password"
-                                defaultValue="password"
                             />
                         </div>
 
@@ -139,7 +78,7 @@ export default function LoginPage() {
                                     type="checkbox"
                                     className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
                                 />
-                                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
                                     Remember me
                                 </label>
                             </div>
@@ -160,22 +99,6 @@ export default function LoginPage() {
                                 Sign in
                             </Button>
                         </div>
-
-                        <div className="pt-4">
-                            <Button
-                                type="button"
-                                className="w-full bg-green-600 hover:bg-green-700"
-                                onClick={handleDevLogin}
-                            >
-                                Development Login
-                            </Button>
-                        </div>
-
-                        {debugInfo && (
-                            <div className="mt-4 p-3 text-xs font-mono bg-gray-100 rounded overflow-auto max-h-60">
-                                <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
-                            </div>
-                        )}
                     </form>
                 </div>
             </div>
