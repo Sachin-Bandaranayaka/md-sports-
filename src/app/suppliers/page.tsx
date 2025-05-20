@@ -159,8 +159,16 @@ export default function Suppliers() {
 
                 {/* Loading and error states */}
                 {loading && (
-                    <div className="text-center py-4">
-                        <p className="text-gray-500">Loading suppliers...</p>
+                    <div className="bg-tertiary rounded-lg shadow-sm border border-gray-200 animate-pulse">
+                        {/* Loading header placeholder */}
+                        <div className="p-5">
+                            <div className="space-y-4">
+                                <div className="h-8 bg-gray-200 rounded w-full"></div>
+                                {[...Array(5)].map((_, i) => (
+                                    <div key={i} className="h-16 bg-gray-200 rounded w-full"></div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 )}
 

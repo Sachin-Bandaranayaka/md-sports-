@@ -172,10 +172,40 @@ export default function Inventory() {
     if (loading) {
         return (
             <MainLayout>
-                <div className="h-full flex items-center justify-center p-20">
-                    <div className="text-center">
-                        <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
-                        <p className="text-gray-500">Loading inventory data...</p>
+                <div className="space-y-6">
+                    {/* Loading header placeholder */}
+                    <div className="bg-tertiary p-5 rounded-xl shadow-sm border border-gray-200 animate-pulse">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                            <div className="space-y-2">
+                                <div className="h-8 bg-gray-200 rounded w-64"></div>
+                                <div className="h-4 bg-gray-200 rounded w-48"></div>
+                            </div>
+                            <div className="flex gap-3">
+                                <div className="h-9 bg-gray-200 rounded w-24"></div>
+                                <div className="h-9 bg-gray-200 rounded w-32"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Loading filters placeholder */}
+                    <div className="bg-tertiary p-5 rounded-xl shadow-sm border border-gray-200 animate-pulse">
+                        <div className="flex flex-col md:flex-row gap-4">
+                            <div className="h-10 bg-gray-200 rounded w-full"></div>
+                            <div className="h-10 bg-gray-200 rounded w-40 md:w-40"></div>
+                            <div className="h-10 bg-gray-200 rounded w-40 md:w-40"></div>
+                        </div>
+                    </div>
+
+                    {/* Loading table placeholder */}
+                    <div className="bg-tertiary rounded-xl shadow-sm overflow-hidden border border-gray-200 animate-pulse">
+                        <div className="p-5">
+                            <div className="space-y-4">
+                                <div className="h-8 bg-gray-200 rounded w-full"></div>
+                                {[...Array(6)].map((_, i) => (
+                                    <div key={i} className="h-16 bg-gray-200 rounded w-full"></div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </MainLayout>

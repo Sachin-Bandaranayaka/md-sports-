@@ -87,6 +87,7 @@ export default function Receipts() {
     const [showAddEditModal, setShowAddEditModal] = useState(false);
     const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
     const [isEditMode, setIsEditMode] = useState(false);
+    const [loading, setLoading] = useState<boolean>(false);
 
     // Filter receipts based on search term
     const filteredReceipts = receipts.filter((receipt) =>
@@ -139,6 +140,46 @@ export default function Receipts() {
         // In a real application, this would trigger a print action
         alert(`Printing receipt ${receipt.receiptNumber}`);
     };
+
+    // For demonstration purposes
+    // In a real application, this would be set to true initially and changed to false after data is loaded
+    if (loading) {
+        return (
+            <MainLayout>
+                <div className="space-y-6">
+                    {/* Loading header placeholder */}
+                    <div className="bg-tertiary p-5 rounded-xl shadow-sm border border-gray-200 animate-pulse">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                            <div className="space-y-2">
+                                <div className="h-8 bg-gray-200 rounded w-64"></div>
+                                <div className="h-4 bg-gray-200 rounded w-48"></div>
+                            </div>
+                            <div className="flex gap-3">
+                                <div className="h-9 bg-gray-200 rounded w-32"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Loading search placeholder */}
+                    <div className="bg-tertiary p-5 rounded-xl shadow-sm border border-gray-200 animate-pulse">
+                        <div className="h-10 bg-gray-200 rounded w-full"></div>
+                    </div>
+
+                    {/* Loading table placeholder */}
+                    <div className="bg-tertiary rounded-xl shadow-sm overflow-hidden border border-gray-200 animate-pulse">
+                        <div className="p-5">
+                            <div className="space-y-4">
+                                <div className="h-8 bg-gray-200 rounded w-full"></div>
+                                {[...Array(4)].map((_, i) => (
+                                    <div key={i} className="h-16 bg-gray-200 rounded w-full"></div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </MainLayout>
+        );
+    }
 
     return (
         <MainLayout>

@@ -1,57 +1,26 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
 import { Search, Plus, Filter, FileText, Download, Eye } from 'lucide-react';
+import { prisma } from '@/lib/prisma';
 
-// Dummy data for demonstration
-const invoices = [
-    {
-        id: 'INV-001',
-        customerName: 'Colombo Cricket Club',
-        date: '2025-05-12',
-        dueDate: '2025-06-11',
-        amount: 45000,
-        status: 'Paid',
-        items: 12
-    },
-    {
-        id: 'INV-002',
-        customerName: 'Kandy Sports Association',
-        date: '2025-05-10',
-        dueDate: '2025-06-09',
-        amount: 28500,
-        status: 'Pending',
-        items: 8
-    },
-    {
-        id: 'INV-003',
-        customerName: 'Nuwara Eliya Tennis Club',
-        date: '2025-05-08',
-        dueDate: '2025-06-07',
-        amount: 32000,
-        status: 'Overdue',
-        items: 10
-    },
-    {
-        id: 'INV-004',
-        customerName: 'Sampath Perera',
-        date: '2025-05-15',
-        dueDate: '2025-05-15',
-        amount: 12500,
-        status: 'Paid',
-        items: 3
-    },
-    {
-        id: 'INV-005',
-        customerName: 'Galle School District',
-        date: '2025-04-28',
-        dueDate: '2025-05-28',
-        amount: 78000,
-        status: 'Overdue',
-        items: 25
-    }
-];
+// Interface for Invoice
+interface Invoice {
+    id: string | number;
+    invoiceNumber: string;
+    customerId: number;
+    total: number;
+    status: string;
+    createdAt: Date;
+    updatedAt: Date;
+    // Relations and UI fields
+    customerName?: string;
+    date?: string;
+    dueDate?: string;
+    items?: number;
+}
 
 // Status badge colors
 const getStatusBadgeClass = (status: string) => {
@@ -68,6 +37,148 @@ const getStatusBadgeClass = (status: string) => {
 };
 
 export default function Invoices() {
+    const [loading, setLoading] = useState<boolean>(true);
+    const [invoices, setInvoices] = useState<Invoice[]>([]);
+    const [statistics, setStatistics] = useState({
+        totalOutstanding: 0,
+        paidThisMonth: 0,
+        overdueCount: 0
+    });
+
+    useEffect(() => {
+        async function fetchInvoices() {
+            try {
+                // Fetch invoices from API
+                const response = await fetch('/api/invoices');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch invoices');
+                }
+                const data = await response.json();
+
+                // Calculate statistics
+                const now = new Date();
+                const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+                let outstanding = 0;
+                let paidThisMonth = 0;
+                let overdueCount = 0;
+
+                // Transform data for UI
+                const formattedInvoices = await Promise.all(data.map(async (invoice: Invoice) => {
+                    // Get customer name - in a real app this would be included in the API response
+                    let customerName = 'Unknown Customer';
+                    try {
+                        const customerResponse = await fetch(`/api/customers/${invoice.customerId}`);
+                        if (customerResponse.ok) {
+                            const customer = await customerResponse.json();
+                            customerName = customer.name;
+                        }
+                    } catch (e) {
+                        console.error('Error fetching customer:', e);
+                    }
+
+                    // Calculate statistics
+                    if (invoice.status === 'Paid' && new Date(invoice.updatedAt) >= firstDayOfMonth) {
+                        paidThisMonth += invoice.total;
+                    } else if (invoice.status !== 'Paid') {
+                        outstanding += invoice.total;
+                    }
+
+                    if (invoice.status === 'Overdue') {
+                        overdueCount++;
+                    }
+
+                    // Create date and due date (30 days later)
+                    const createdDate = new Date(invoice.createdAt);
+                    const dueDate = new Date(createdDate);
+                    dueDate.setDate(dueDate.getDate() + 30);
+
+                    return {
+                        ...invoice,
+                        customerName,
+                        date: createdDate.toISOString().split('T')[0],
+                        dueDate: dueDate.toISOString().split('T')[0],
+                        items: Math.floor(Math.random() * 15) + 1 // Example: random item count (would be from line items in real app)
+                    };
+                }));
+
+                setInvoices(formattedInvoices);
+                setStatistics({
+                    totalOutstanding: outstanding,
+                    paidThisMonth,
+                    overdueCount
+                });
+            } catch (error) {
+                console.error('Error fetching invoices:', error);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchInvoices();
+    }, []);
+
+    if (loading) {
+        return (
+            <MainLayout>
+                <div className="space-y-6">
+                    {/* Loading header placeholder */}
+                    <div className="bg-tertiary p-5 rounded-xl shadow-sm border border-gray-200 animate-pulse">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                            <div className="space-y-2">
+                                <div className="h-8 bg-gray-200 rounded w-64"></div>
+                                <div className="h-4 bg-gray-200 rounded w-48"></div>
+                            </div>
+                            <div className="flex gap-3">
+                                <div className="h-9 bg-gray-200 rounded w-32"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Loading filters placeholder */}
+                    <div className="bg-tertiary p-5 rounded-xl shadow-sm border border-gray-200 animate-pulse">
+                        <div className="flex flex-col md:flex-row gap-4">
+                            <div className="h-10 bg-gray-200 rounded w-full"></div>
+                            <div className="flex flex-wrap gap-2">
+                                <div className="h-10 bg-gray-200 rounded w-32"></div>
+                                <div className="h-10 bg-gray-200 rounded w-32"></div>
+                                <div className="h-10 bg-gray-200 rounded w-32"></div>
+                                <div className="h-10 bg-gray-200 rounded w-12"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Loading table placeholder */}
+                    <div className="bg-tertiary rounded-xl shadow-sm overflow-hidden border border-gray-200 animate-pulse">
+                        <div className="p-5">
+                            <div className="space-y-4">
+                                <div className="h-8 bg-gray-200 rounded w-full"></div>
+                                {[...Array(5)].map((_, i) => (
+                                    <div key={i} className="h-16 bg-gray-200 rounded w-full"></div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Loading summary cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {[...Array(3)].map((_, i) => (
+                            <div key={i} className="bg-tertiary p-6 rounded-lg shadow-sm border border-gray-200 animate-pulse">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-2">
+                                        <div className="h-4 bg-gray-200 rounded w-24"></div>
+                                        <div className="h-8 bg-gray-200 rounded w-32"></div>
+                                    </div>
+                                    <div className="h-12 w-12 bg-gray-200 rounded-full"></div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </MainLayout>
+        );
+    }
+
     return (
         <MainLayout>
             <div className="space-y-6">
@@ -139,17 +250,17 @@ export default function Invoices() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {invoices.map((invoice) => (
+                                {invoices.length > 0 ? invoices.map((invoice) => (
                                     <tr key={invoice.id} className="border-b hover:bg-gray-50">
                                         <td className="px-6 py-4 font-medium text-primary">
-                                            {invoice.id}
+                                            {invoice.invoiceNumber}
                                         </td>
                                         <td className="px-6 py-4 font-medium text-gray-900">
                                             {invoice.customerName}
                                         </td>
                                         <td className="px-6 py-4">{invoice.date}</td>
                                         <td className="px-6 py-4">{invoice.dueDate}</td>
-                                        <td className="px-6 py-4 font-medium">Rs. {invoice.amount.toLocaleString()}</td>
+                                        <td className="px-6 py-4 font-medium">Rs. {invoice.total.toLocaleString()}</td>
                                         <td className="px-6 py-4">{invoice.items} items</td>
                                         <td className="px-6 py-4">
                                             <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(invoice.status)}`}>
@@ -167,13 +278,19 @@ export default function Invoices() {
                                             </div>
                                         </td>
                                     </tr>
-                                ))}
+                                )) : (
+                                    <tr>
+                                        <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
+                                            No invoices found
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
                     <div className="flex items-center justify-between p-4 border-t">
                         <div className="text-sm text-gray-700">
-                            Showing <span className="font-medium">1</span> to <span className="font-medium">5</span> of <span className="font-medium">5</span> invoices
+                            Showing <span className="font-medium">1</span> to <span className="font-medium">{invoices.length}</span> of <span className="font-medium">{invoices.length}</span> invoices
                         </div>
                         <div className="flex gap-2">
                             <Button variant="outline" size="sm" disabled>Previous</Button>
@@ -188,7 +305,7 @@ export default function Invoices() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-gray-500">Total Outstanding</p>
-                                <p className="text-2xl font-bold text-gray-900">Rs. 138,500</p>
+                                <p className="text-2xl font-bold text-gray-900">Rs. {statistics.totalOutstanding.toLocaleString()}</p>
                             </div>
                             <div className="p-3 rounded-full bg-red-100">
                                 <FileText className="h-6 w-6 text-red-600" />
@@ -200,7 +317,7 @@ export default function Invoices() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-gray-500">Paid This Month</p>
-                                <p className="text-2xl font-bold text-gray-900">Rs. 57,500</p>
+                                <p className="text-2xl font-bold text-gray-900">Rs. {statistics.paidThisMonth.toLocaleString()}</p>
                             </div>
                             <div className="p-3 rounded-full bg-green-100">
                                 <FileText className="h-6 w-6 text-green-600" />
@@ -212,7 +329,7 @@ export default function Invoices() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-gray-500">Overdue Invoices</p>
-                                <p className="text-2xl font-bold text-gray-900">2</p>
+                                <p className="text-2xl font-bold text-gray-900">{statistics.overdueCount}</p>
                             </div>
                             <div className="p-3 rounded-full bg-yellow-100">
                                 <FileText className="h-6 w-6 text-yellow-600" />

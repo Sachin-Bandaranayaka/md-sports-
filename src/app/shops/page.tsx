@@ -221,8 +221,43 @@ export default function Shops() {
                 </div>
 
                 {loading ? (
-                    <div className="text-center py-8">
-                        <p>Loading shops...</p>
+                    <div className="bg-tertiary rounded-lg shadow-sm border border-gray-200 animate-pulse">
+                        {/* Loading grid placeholder */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+                            {[...Array(6)].map((_, i) => (
+                                <div key={i} className="bg-white rounded-lg shadow-sm overflow-hidden">
+                                    <div className="h-1 bg-gray-200 w-full"></div>
+                                    <div className="p-6 space-y-4">
+                                        <div className="flex justify-between">
+                                            <div className="space-y-2">
+                                                <div className="h-5 bg-gray-200 rounded w-32"></div>
+                                                <div className="h-4 bg-gray-200 rounded w-24"></div>
+                                            </div>
+                                            <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            {[...Array(3)].map((_, j) => (
+                                                <div key={j} className="h-4 bg-gray-200 rounded w-full"></div>
+                                            ))}
+                                        </div>
+                                        <div className="pt-4 border-t border-gray-100">
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {[...Array(3)].map((_, j) => (
+                                                    <div key={j} className="space-y-1">
+                                                        <div className="h-3 bg-gray-200 rounded w-16"></div>
+                                                        <div className="h-4 bg-gray-200 rounded w-12"></div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="flex space-x-2 pt-2">
+                                            <div className="h-8 bg-gray-200 rounded w-full"></div>
+                                            <div className="h-8 bg-gray-200 rounded w-full"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 ) : error ? (
                     <div className="text-center py-8 text-red-500">

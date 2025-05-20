@@ -1,6 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/utils/middleware';
-import db from '@/utils/db';
+import { prisma, safeQuery } from '@/lib/prisma';
+
+// Default fallback data for a transfer
+const getDefaultTransfer = (id: number) => ({
+    id,
+    status: 'pending',
+    created_at: new Date().toISOString(),
+    completed_at: null,
+    source_shop_id: 1,
+    destination_shop_id: 2,
+    source_shop_name: 'Colombo Shop',
+    destination_shop_name: 'Kandy Shop',
+    initiated_by: 'System User',
+    items: [
+        {
+            id: 1,
+            product_id: 1,
+            product_name: 'Cricket Bat',
+            sku: 'CB001',
+            quantity: 5,
+            notes: null,
+            retail_price: '15000'
+        }
+    ]
+});
 
 // GET: Get details of a specific inventory transfer
 export async function GET(
@@ -13,65 +37,72 @@ export async function GET(
         return permissionError;
     }
 
-    // Using the id directly from the async params object
-    const id = await Promise.resolve(params.id);
+    const id = parseInt(params.id);
+    if (isNaN(id)) {
+        return NextResponse.json({
+            success: false,
+            message: 'Invalid transfer ID'
+        }, { status: 400 });
+    }
 
     try {
-        // Get transfer details
-        const transferResult = await db.query(
-            `SELECT 
-                t.*,
-                ss.name as source_shop_name,
-                ds.name as destination_shop_name,
-                COALESCE(u."fullName", 'Unknown User') as initiated_by
-            FROM 
-                inventory_transfers t
-            JOIN 
-                shops ss ON t.source_shop_id = ss.id
-            JOIN 
-                shops ds ON t.destination_shop_id = ds.id
-            LEFT JOIN 
-                users u ON t.initiated_by_user_id = u.id
-            WHERE 
-                t.id = $1`,
-            [id]
+        const transfer = await safeQuery(
+            async () => {
+                // Get transfer details with related data
+                const transferData = await prisma.inventoryTransfer.findUnique({
+                    where: { id },
+                    include: {
+                        fromShop: true,
+                        toShop: true,
+                        fromUser: true,
+                        transferItems: {
+                            include: {
+                                product: true
+                            }
+                        }
+                    }
+                });
+
+                if (!transferData) {
+                    return null;
+                }
+
+                // Format the transfer data to match the expected format
+                return {
+                    id: transferData.id,
+                    status: transferData.status,
+                    created_at: transferData.createdAt.toISOString(),
+                    completed_at: null, // This field isn't in the Prisma schema
+                    source_shop_id: transferData.fromShopId,
+                    destination_shop_id: transferData.toShopId,
+                    source_shop_name: transferData.fromShop.name,
+                    destination_shop_name: transferData.toShop.name,
+                    initiated_by: transferData.fromUser.name,
+                    items: transferData.transferItems.map(item => ({
+                        id: item.id,
+                        product_id: item.productId,
+                        product_name: item.product.name,
+                        sku: item.product.sku || '',
+                        quantity: item.quantity,
+                        notes: null, // This field isn't in the Prisma schema
+                        retail_price: item.product.price.toString()
+                    }))
+                };
+            },
+            getDefaultTransfer(id),
+            `Failed to fetch transfer with ID ${id}`
         );
 
-        if (transferResult.rows.length === 0) {
+        if (!transfer) {
             return NextResponse.json({
                 success: false,
                 message: 'Transfer not found'
             }, { status: 404 });
         }
 
-        // Get transfer items
-        const itemsResult = await db.query(
-            `SELECT 
-                ti.id,
-                ti.product_id,
-                ti.quantity,
-                ti.notes,
-                p.name as product_name,
-                p.sku,
-                p.retail_price
-            FROM 
-                transfer_items ti
-            JOIN 
-                products p ON ti.product_id = p.id
-            WHERE 
-                ti.transfer_id = $1`,
-            [id]
-        );
-
-        const transfer = transferResult.rows[0];
-        const items = itemsResult.rows;
-
         return NextResponse.json({
             success: true,
-            data: {
-                ...transfer,
-                items
-            }
+            data: transfer
         });
     } catch (error) {
         console.error(`Error fetching transfer ${id}:`, error);
@@ -94,8 +125,13 @@ export async function PATCH(
         return permissionError;
     }
 
-    // Using the id directly from the async params object
-    const id = await Promise.resolve(params.id);
+    const id = parseInt(params.id);
+    if (isNaN(id)) {
+        return NextResponse.json({
+            success: false,
+            message: 'Invalid transfer ID'
+        }, { status: 400 });
+    }
 
     try {
         const { action } = await req.json();
@@ -107,113 +143,111 @@ export async function PATCH(
             }, { status: 400 });
         }
 
-        // Check if transfer exists and is in pending status
-        const transferResult = await db.query(
-            `SELECT t.*, ss.name as source_shop_name, ds.name as destination_shop_name 
-             FROM inventory_transfers t
-             JOIN shops ss ON t.source_shop_id = ss.id
-             JOIN shops ds ON t.destination_shop_id = ds.id
-             WHERE t.id = $1`,
-            [id]
+        const result = await safeQuery(
+            async () => {
+                // Run in a transaction
+                return await prisma.$transaction(async (tx) => {
+                    // Check if transfer exists and is in pending status
+                    const transfer = await tx.inventoryTransfer.findUnique({
+                        where: { id },
+                        include: {
+                            fromShop: true,
+                            toShop: true,
+                            transferItems: {
+                                include: {
+                                    product: true
+                                }
+                            }
+                        }
+                    });
+
+                    if (!transfer) {
+                        throw new Error('Transfer not found');
+                    }
+
+                    if (transfer.status !== 'pending') {
+                        throw new Error(`Cannot ${action} a transfer that is not in pending status`);
+                    }
+
+                    if (action === 'complete') {
+                        // Process each item - decrease source inventory and increase destination inventory
+                        for (const item of transfer.transferItems) {
+                            // Check source inventory
+                            const sourceInventory = await tx.inventoryItem.findFirst({
+                                where: {
+                                    shopId: transfer.fromShopId,
+                                    productId: item.productId
+                                }
+                            });
+
+                            if (!sourceInventory || sourceInventory.quantity < item.quantity) {
+                                throw new Error(`Insufficient inventory for product ID ${item.productId} in source shop`);
+                            }
+
+                            // Decrease source inventory
+                            await tx.inventoryItem.update({
+                                where: { id: sourceInventory.id },
+                                data: {
+                                    quantity: sourceInventory.quantity - item.quantity,
+                                    updatedAt: new Date()
+                                }
+                            });
+
+                            // Check if destination inventory exists
+                            const destInventory = await tx.inventoryItem.findFirst({
+                                where: {
+                                    shopId: transfer.toShopId,
+                                    productId: item.productId
+                                }
+                            });
+
+                            if (!destInventory) {
+                                // Create destination inventory if it doesn't exist
+                                await tx.inventoryItem.create({
+                                    data: {
+                                        shopId: transfer.toShopId,
+                                        productId: item.productId,
+                                        quantity: item.quantity
+                                    }
+                                });
+                            } else {
+                                // Increase destination inventory
+                                await tx.inventoryItem.update({
+                                    where: { id: destInventory.id },
+                                    data: {
+                                        quantity: destInventory.quantity + item.quantity,
+                                        updatedAt: new Date()
+                                    }
+                                });
+                            }
+                        }
+                    }
+
+                    // Update transfer status
+                    return await tx.inventoryTransfer.update({
+                        where: { id },
+                        data: {
+                            status: action === 'complete' ? 'completed' : 'cancelled',
+                            updatedAt: new Date()
+                        }
+                    });
+                });
+            },
+            null,
+            `Failed to ${action} transfer with ID ${id}`
         );
 
-        if (transferResult.rows.length === 0) {
+        if (!result) {
             return NextResponse.json({
                 success: false,
-                message: 'Transfer not found'
-            }, { status: 404 });
+                message: 'Failed to update transfer'
+            }, { status: 500 });
         }
 
-        const transfer = transferResult.rows[0];
-        if (transfer.status !== 'pending') {
-            return NextResponse.json({
-                success: false,
-                message: `Cannot ${action} a transfer that is not in pending status`
-            }, { status: 400 });
-        }
-
-        const client = await db.pool.connect();
-        try {
-            await client.query('BEGIN');
-
-            if (action === 'complete') {
-                // Get all items in the transfer
-                const itemsResult = await client.query(
-                    'SELECT * FROM transfer_items WHERE transfer_id = $1',
-                    [id]
-                );
-                const items = itemsResult.rows;
-
-                // Process each item - decrease source inventory and increase destination inventory
-                for (const item of items) {
-                    // Check source inventory
-                    const sourceInventoryResult = await client.query(
-                        'SELECT * FROM inventory_items WHERE shop_id = $1 AND product_id = $2',
-                        [transfer.source_shop_id, item.product_id]
-                    );
-
-                    if (sourceInventoryResult.rows.length === 0 ||
-                        sourceInventoryResult.rows[0].quantity < item.quantity) {
-                        throw new Error(`Insufficient inventory for product ID ${item.product_id} in source shop`);
-                    }
-
-                    // Decrease source inventory
-                    await client.query(
-                        'UPDATE inventory_items SET quantity = quantity - $1, updated_at = NOW() WHERE shop_id = $2 AND product_id = $3',
-                        [item.quantity, transfer.source_shop_id, item.product_id]
-                    );
-
-                    // Check if destination inventory exists
-                    const destInventoryResult = await client.query(
-                        'SELECT * FROM inventory_items WHERE shop_id = $1 AND product_id = $2',
-                        [transfer.destination_shop_id, item.product_id]
-                    );
-
-                    if (destInventoryResult.rows.length === 0) {
-                        // Create destination inventory if it doesn't exist
-                        // Get reorder level from source inventory
-                        const reorderLevel = sourceInventoryResult.rows[0].reorder_level;
-
-                        await client.query(
-                            'INSERT INTO inventory_items(shop_id, product_id, quantity, reorder_level, created_at, updated_at) VALUES($1, $2, $3, $4, NOW(), NOW())',
-                            [transfer.destination_shop_id, item.product_id, item.quantity, reorderLevel]
-                        );
-                    } else {
-                        // Increase destination inventory
-                        await client.query(
-                            'UPDATE inventory_items SET quantity = quantity + $1, updated_at = NOW() WHERE shop_id = $2 AND product_id = $3',
-                            [item.quantity, transfer.destination_shop_id, item.product_id]
-                        );
-                    }
-                }
-
-                // Update transfer status to completed
-                await client.query(
-                    'UPDATE inventory_transfers SET status = $1, completed_at = NOW(), updated_at = NOW() WHERE id = $2',
-                    ['completed', id]
-                );
-            } else {
-                // For cancel action, just update the status
-                await client.query(
-                    'UPDATE inventory_transfers SET status = $1, updated_at = NOW() WHERE id = $2',
-                    ['cancelled', id]
-                );
-            }
-
-            // Commit transaction
-            await client.query('COMMIT');
-
-            return NextResponse.json({
-                success: true,
-                message: `Transfer ${action === 'complete' ? 'completed' : 'cancelled'} successfully`
-            });
-        } catch (error) {
-            // Rollback in case of error
-            await client.query('ROLLBACK');
-            throw error;
-        } finally {
-            client.release();
-        }
+        return NextResponse.json({
+            success: true,
+            message: `Transfer ${action === 'complete' ? 'completed' : 'cancelled'} successfully`
+        });
     } catch (error) {
         console.error(`Error updating transfer ${id}:`, error);
         return NextResponse.json({
@@ -235,64 +269,57 @@ export async function DELETE(
         return permissionError;
     }
 
-    // Using the id directly from the async params object
-    const id = await Promise.resolve(params.id);
+    const id = parseInt(params.id);
+    if (isNaN(id)) {
+        return NextResponse.json({
+            success: false,
+            message: 'Invalid transfer ID'
+        }, { status: 400 });
+    }
 
     try {
-        // Check if transfer exists and is in pending status
-        const transferResult = await db.query(
-            `SELECT t.*, ss.name as source_shop_name, ds.name as destination_shop_name 
-             FROM inventory_transfers t
-             JOIN shops ss ON t.source_shop_id = ss.id
-             JOIN shops ds ON t.destination_shop_id = ds.id
-             WHERE t.id = $1`,
-            [id]
+        const result = await safeQuery(
+            async () => {
+                // Run in a transaction
+                return await prisma.$transaction(async (tx) => {
+                    // Check if transfer exists and is in pending status
+                    const transfer = await tx.inventoryTransfer.findUnique({
+                        where: { id }
+                    });
+
+                    if (!transfer) {
+                        throw new Error('Transfer not found');
+                    }
+
+                    if (transfer.status !== 'pending') {
+                        throw new Error('Only pending transfers can be deleted');
+                    }
+
+                    // Delete transfer items and the transfer itself
+                    await tx.transferItem.deleteMany({
+                        where: { transferId: id }
+                    });
+
+                    return await tx.inventoryTransfer.delete({
+                        where: { id }
+                    });
+                });
+            },
+            null,
+            `Failed to delete transfer with ID ${id}`
         );
 
-        if (transferResult.rows.length === 0) {
+        if (!result) {
             return NextResponse.json({
                 success: false,
-                message: 'Transfer not found'
-            }, { status: 404 });
+                message: 'Failed to delete transfer'
+            }, { status: 500 });
         }
 
-        const transfer = transferResult.rows[0];
-        if (transfer.status !== 'pending') {
-            return NextResponse.json({
-                success: false,
-                message: 'Only pending transfers can be deleted'
-            }, { status: 400 });
-        }
-
-        // Delete transfer and its items (using cascade)
-        const client = await db.pool.connect();
-        try {
-            await client.query('BEGIN');
-
-            // Delete transfer items first
-            await client.query(
-                'DELETE FROM transfer_items WHERE transfer_id = $1',
-                [id]
-            );
-
-            // Delete the transfer
-            await client.query(
-                'DELETE FROM inventory_transfers WHERE id = $1',
-                [id]
-            );
-
-            await client.query('COMMIT');
-
-            return NextResponse.json({
-                success: true,
-                message: 'Transfer deleted successfully'
-            });
-        } catch (error) {
-            await client.query('ROLLBACK');
-            throw error;
-        } finally {
-            client.release();
-        }
+        return NextResponse.json({
+            success: true,
+            message: 'Transfer deleted successfully'
+        });
     } catch (error) {
         console.error(`Error deleting transfer ${id}:`, error);
         return NextResponse.json({

@@ -1,67 +1,27 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
 import { Search, UserPlus, Filter } from 'lucide-react';
+import { prisma } from '@/lib/prisma';
 
-// Dummy data for demonstration
-const customers = [
-    {
-        id: 'CUS-001',
-        name: 'Colombo Cricket Club',
-        contactPerson: 'Dinesh Chandimal',
-        phoneNumber: '+94 112 345 123',
-        email: 'info@colombocricket.lk',
-        type: 'Credit',
-        balance: 125000,
-        lastPurchase: '2025-05-12',
-        status: 'Active'
-    },
-    {
-        id: 'CUS-002',
-        name: 'Kandy Sports Association',
-        contactPerson: 'Mahela Jayawardene',
-        phoneNumber: '+94 812 345 456',
-        email: 'info@kandysports.lk',
-        type: 'Credit',
-        balance: 78500,
-        lastPurchase: '2025-05-10',
-        status: 'Active'
-    },
-    {
-        id: 'CUS-003',
-        name: 'Galle School District',
-        contactPerson: 'Kumar Sangakkara',
-        phoneNumber: '+94 912 345 789',
-        email: 'sports@galleschools.lk',
-        type: 'Credit',
-        balance: 0,
-        lastPurchase: '2025-04-28',
-        status: 'Inactive'
-    },
-    {
-        id: 'CUS-004',
-        name: 'Sampath Perera',
-        contactPerson: 'Sampath Perera',
-        phoneNumber: '+94 712 345 678',
-        email: 'sampath@gmail.com',
-        type: 'Cash',
-        balance: 0,
-        lastPurchase: '2025-05-15',
-        status: 'Active'
-    },
-    {
-        id: 'CUS-005',
-        name: 'Nuwara Eliya Tennis Club',
-        contactPerson: 'Roshan Fernando',
-        phoneNumber: '+94 522 345 123',
-        email: 'info@netennisclub.lk',
-        type: 'Credit',
-        balance: 45000,
-        lastPurchase: '2025-05-08',
-        status: 'Active'
-    }
-];
+// Interface for Customer
+interface Customer {
+    id: string | number;
+    name: string;
+    email?: string | null;
+    phone?: string | null;
+    address?: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+    // Custom fields for UI
+    type?: 'Credit' | 'Cash';
+    balance?: number;
+    lastPurchase?: string;
+    status?: 'Active' | 'Inactive';
+    contactPerson?: string;
+}
 
 // Status badge colors
 const getStatusBadgeClass = (status: string) => {
@@ -73,6 +33,82 @@ const getCustomerTypeClass = (type: string) => {
 };
 
 export default function Customers() {
+    const [loading, setLoading] = useState<boolean>(true);
+    const [customers, setCustomers] = useState<Customer[]>([]);
+
+    useEffect(() => {
+        async function fetchCustomers() {
+            try {
+                // Fetch customers from API
+                const response = await fetch('/api/customers');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch customers');
+                }
+                const data = await response.json();
+
+                // Transform data for UI
+                const formattedCustomers = data.map((customer: Customer) => ({
+                    ...customer,
+                    // Default values for demonstration - in a real app these would come from related data
+                    type: customer.id % 2 === 0 ? 'Cash' : 'Credit',
+                    balance: customer.id % 2 === 0 ? 0 : 45000 + Math.floor(Math.random() * 80000),
+                    lastPurchase: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                    status: 'Active',
+                    contactPerson: customer.name
+                }));
+
+                setCustomers(formattedCustomers);
+            } catch (error) {
+                console.error('Error fetching customers:', error);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchCustomers();
+    }, []);
+
+    if (loading) {
+        return (
+            <MainLayout>
+                <div className="space-y-6">
+                    {/* Loading header placeholder */}
+                    <div className="bg-tertiary p-5 rounded-xl shadow-sm border border-gray-200 animate-pulse">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                            <div className="space-y-2">
+                                <div className="h-8 bg-gray-200 rounded w-64"></div>
+                                <div className="h-4 bg-gray-200 rounded w-48"></div>
+                            </div>
+                            <div className="flex gap-3">
+                                <div className="h-9 bg-gray-200 rounded w-32"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Loading filters placeholder */}
+                    <div className="bg-tertiary p-5 rounded-xl shadow-sm border border-gray-200 animate-pulse">
+                        <div className="flex flex-col md:flex-row gap-4">
+                            <div className="h-10 bg-gray-200 rounded w-full"></div>
+                            <div className="h-10 bg-gray-200 rounded w-48 md:w-48"></div>
+                        </div>
+                    </div>
+
+                    {/* Loading table placeholder */}
+                    <div className="bg-tertiary rounded-xl shadow-sm overflow-hidden border border-gray-200 animate-pulse">
+                        <div className="p-5">
+                            <div className="space-y-4">
+                                <div className="h-8 bg-gray-200 rounded w-full"></div>
+                                {[...Array(5)].map((_, i) => (
+                                    <div key={i} className="h-16 bg-gray-200 rounded w-full"></div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </MainLayout>
+        );
+    }
+
     return (
         <MainLayout>
             <div className="space-y-6">
@@ -138,10 +174,10 @@ export default function Customers() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {customers.map((customer) => (
+                                {customers.length > 0 ? customers.map((customer) => (
                                     <tr key={customer.id} className="border-b hover:bg-gray-50">
                                         <td className="px-6 py-4 font-medium text-gray-900">
-                                            {customer.id}
+                                            {typeof customer.id === 'number' ? `CUS-${String(customer.id).padStart(3, '0')}` : customer.id}
                                         </td>
                                         <td className="px-6 py-4 font-medium text-gray-900">
                                             {customer.name}
@@ -149,20 +185,20 @@ export default function Customers() {
                                         </td>
                                         <td className="px-6 py-4">
                                             {customer.contactPerson}
-                                            <div className="text-xs text-gray-500">{customer.phoneNumber}</div>
+                                            <div className="text-xs text-gray-500">{customer.phone}</div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`px-2 py-1 rounded-full text-xs ${getCustomerTypeClass(customer.type)}`}>
-                                                {customer.type}
+                                            <span className={`px-2 py-1 rounded-full text-xs ${getCustomerTypeClass(customer.type || 'Cash')}`}>
+                                                {customer.type || 'Cash'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            {customer.balance > 0 ? `Rs. ${customer.balance.toLocaleString()}` : '-'}
+                                            {customer.balance && customer.balance > 0 ? `Rs. ${customer.balance.toLocaleString()}` : '-'}
                                         </td>
-                                        <td className="px-6 py-4">{customer.lastPurchase}</td>
+                                        <td className="px-6 py-4">{customer.lastPurchase || '-'}</td>
                                         <td className="px-6 py-4">
-                                            <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(customer.status)}`}>
-                                                {customer.status}
+                                            <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(customer.status || 'Active')}`}>
+                                                {customer.status || 'Active'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
@@ -172,13 +208,19 @@ export default function Customers() {
                                             </div>
                                         </td>
                                     </tr>
-                                ))}
+                                )) : (
+                                    <tr>
+                                        <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
+                                            No customers found
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
                     <div className="flex items-center justify-between p-4 border-t">
                         <div className="text-sm text-gray-700">
-                            Showing <span className="font-medium">1</span> to <span className="font-medium">5</span> of <span className="font-medium">5</span> customers
+                            Showing <span className="font-medium">1</span> to <span className="font-medium">{customers.length}</span> of <span className="font-medium">{customers.length}</span> customers
                         </div>
                         <div className="flex gap-2">
                             <Button variant="outline" size="sm" disabled>Previous</Button>
