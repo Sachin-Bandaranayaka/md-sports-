@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
 import { Search, UserPlus, Filter } from 'lucide-react';
@@ -33,6 +34,7 @@ const getCustomerTypeClass = (type: string) => {
 };
 
 export default function Customers() {
+    const router = useRouter();
     const [loading, setLoading] = useState<boolean>(true);
     const [customers, setCustomers] = useState<Customer[]>([]);
 
@@ -119,7 +121,7 @@ export default function Customers() {
                         <p className="text-gray-500">Manage your business clients and individual customers</p>
                     </div>
                     <div className="flex gap-3">
-                        <Button variant="primary" size="sm">
+                        <Button variant="primary" size="sm" onClick={() => router.push('/customers/new')}>
                             <UserPlus className="w-4 h-4 mr-2" />
                             Add Customer
                         </Button>
