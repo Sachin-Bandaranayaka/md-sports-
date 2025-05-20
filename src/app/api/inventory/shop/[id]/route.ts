@@ -13,29 +13,36 @@ export async function GET(
     }
 
     try {
-        // Safely use the shop ID from params
+        // Get the shop ID safely
+        if (!params || !params.id) {
+            return NextResponse.json({
+                success: false,
+                message: 'Shop ID is required',
+            }, { status: 400 });
+        }
+
         const shopId = params.id;
 
         // Get inventory items for the shop
         const result = await db.query(
             `SELECT 
                 i.id,
-                i.product_id,
+                i."productId",
                 i.quantity,
-                i.reorder_level,
-                p.name as product_name,
+                p.id AS product_id,
+                p.name AS product_name,
                 p.sku,
-                p.retail_price,
-                p.cost_price,
-                c.name as category_name
+                p.price AS retail_price,
+                p.cost AS cost_price,
+                c.name AS category_name
             FROM 
-                inventory_items i
+                "InventoryItem" i
             JOIN 
-                products p ON i.product_id = p.id
+                "Product" p ON i."productId" = p.id
             LEFT JOIN 
-                categories c ON p.category_id = c.id
+                "Category" c ON p."categoryId" = c.id
             WHERE 
-                i.shop_id = $1 AND p.is_active = true
+                i."shopId" = $1
             ORDER BY
                 p.name`,
             [shopId]
@@ -46,8 +53,8 @@ export async function GET(
             data: result.rows
         });
     } catch (error) {
-        const shopId = params.id;
-        console.error(`Error fetching shop inventory (shop_id ${shopId}):`, error);
+        // Log the error
+        console.error(`Error fetching shop inventory (shop_id ${params?.id}):`, error);
         return NextResponse.json({
             success: false,
             message: 'Failed to fetch shop inventory',
