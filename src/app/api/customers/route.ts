@@ -28,23 +28,27 @@ export async function POST(request: Request) {
     try {
         const customerData = await request.json();
 
-        // Create new customer using Prisma
+        // Create new customer using Prisma - only include the fields that are recognized by current Prisma client
         const customer = await prisma.customer.create({
             data: {
                 name: customerData.name,
                 email: customerData.email || null,
                 phone: customerData.phone || null,
-                address: customerData.address || null,
-                city: customerData.city || null,
-                postalCode: customerData.postalCode || null,
-                contactPerson: customerData.contactPerson || null,
-                contactPersonPhone: customerData.contactPersonPhone || null,
-                customerType: customerData.customerType || null,
-                paymentType: customerData.paymentType || null,
-                creditLimit: customerData.paymentType === 'Credit' ? customerData.creditLimit || 0 : null,
-                creditPeriod: customerData.paymentType === 'Credit' ? customerData.creditPeriod || 30 : null,
-                taxId: customerData.taxId || null,
-                notes: customerData.notes || null
+                // Store additional fields in a structured format in the address field as a workaround
+                // until prisma client is regenerated properly
+                address: JSON.stringify({
+                    mainAddress: customerData.address || null,
+                    city: customerData.city || null,
+                    postalCode: customerData.postalCode || null,
+                    contactPerson: customerData.contactPerson || null,
+                    contactPersonPhone: customerData.contactPersonPhone || null,
+                    customerType: customerData.customerType || null,
+                    paymentType: customerData.paymentType || null,
+                    creditLimit: customerData.paymentType === 'Credit' ? customerData.creditLimit || 0 : null,
+                    creditPeriod: customerData.paymentType === 'Credit' ? customerData.creditPeriod || 30 : null,
+                    taxId: customerData.taxId || null,
+                    notes: customerData.notes || null
+                })
             }
         });
 

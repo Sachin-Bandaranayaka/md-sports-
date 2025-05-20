@@ -128,7 +128,7 @@ export default function NewCustomer() {
                                         name="name"
                                         value={formData.name}
                                         onChange={handleInputChange}
-                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm"
+                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
                                         required
                                     />
                                 </div>
@@ -141,7 +141,7 @@ export default function NewCustomer() {
                                         name="email"
                                         value={formData.email}
                                         onChange={handleInputChange}
-                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm"
+                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
                                     />
                                 </div>
                                 <div>
@@ -153,7 +153,7 @@ export default function NewCustomer() {
                                         name="phone"
                                         value={formData.phone}
                                         onChange={handleInputChange}
-                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm"
+                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
                                         required
                                     />
                                 </div>
@@ -166,7 +166,7 @@ export default function NewCustomer() {
                                         name="taxId"
                                         value={formData.taxId}
                                         onChange={handleInputChange}
-                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm"
+                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
                                     />
                                 </div>
                             </div>
@@ -185,7 +185,7 @@ export default function NewCustomer() {
                                         name="address"
                                         value={formData.address}
                                         onChange={handleInputChange}
-                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm"
+                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
                                     />
                                 </div>
                                 <div>
@@ -197,7 +197,7 @@ export default function NewCustomer() {
                                         name="city"
                                         value={formData.city}
                                         onChange={handleInputChange}
-                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm"
+                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
                                     />
                                 </div>
                                 <div>
@@ -209,7 +209,7 @@ export default function NewCustomer() {
                                         name="postalCode"
                                         value={formData.postalCode}
                                         onChange={handleInputChange}
-                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm"
+                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
                                     />
                                 </div>
                             </div>
@@ -228,7 +228,7 @@ export default function NewCustomer() {
                                         name="contactPerson"
                                         value={formData.contactPerson}
                                         onChange={handleInputChange}
-                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm"
+                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
                                     />
                                 </div>
                                 <div>
@@ -240,7 +240,7 @@ export default function NewCustomer() {
                                         name="contactPersonPhone"
                                         value={formData.contactPersonPhone}
                                         onChange={handleInputChange}
-                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm"
+                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
                                     />
                                 </div>
                             </div>
@@ -337,7 +337,7 @@ export default function NewCustomer() {
                                             name="creditLimit"
                                             value={formData.creditLimit}
                                             onChange={handleInputChange}
-                                            className="w-full rounded-md border border-gray-300 p-2.5 text-sm"
+                                            className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
                                             required={formData.paymentType === 'Credit'}
                                             min="0"
                                         />
@@ -351,7 +351,7 @@ export default function NewCustomer() {
                                             name="creditPeriod"
                                             value={formData.creditPeriod}
                                             onChange={handleInputChange}
-                                            className="w-full rounded-md border border-gray-300 p-2.5 text-sm"
+                                            className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
                                             required={formData.paymentType === 'Credit'}
                                             min="0"
                                         />
@@ -372,7 +372,7 @@ export default function NewCustomer() {
                                     value={formData.notes}
                                     onChange={handleInputChange}
                                     rows={3}
-                                    className="w-full rounded-md border border-gray-300 p-2.5 text-sm"
+                                    className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
                                 ></textarea>
                             </div>
                         </div>

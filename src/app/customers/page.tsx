@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Search, UserPlus, Filter } from 'lucide-react';
+import { Search, UserPlus, Filter, X } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 
 // Interface for Customer
@@ -37,6 +37,27 @@ export default function Customers() {
     const router = useRouter();
     const [loading, setLoading] = useState<boolean>(true);
     const [customers, setCustomers] = useState<Customer[]>([]);
+    const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
+    const [searchTerm, setSearchTerm] = useState<string>('');
+    const [searchSuggestions, setSearchSuggestions] = useState<Customer[]>([]);
+    const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
+    const [selectedType, setSelectedType] = useState<string>('');
+    const [selectedStatus, setSelectedStatus] = useState<string>('');
+    const suggestionsRef = useRef<HTMLDivElement>(null);
+
+    // Event handler for clicks outside the suggestions box
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node)) {
+                setShowSuggestions(false);
+            }
+        }
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
 
     useEffect(() => {
         async function fetchCustomers() {
@@ -59,6 +80,7 @@ export default function Customers() {
                     contactPerson: customer.name
                 }));
 
+                setAllCustomers(formattedCustomers);
                 setCustomers(formattedCustomers);
             } catch (error) {
                 console.error('Error fetching customers:', error);
@@ -69,6 +91,93 @@ export default function Customers() {
 
         fetchCustomers();
     }, []);
+
+    // Function to search customers and update suggestions
+    const searchCustomers = (value: string) => {
+        setSearchTerm(value);
+
+        if (value.trim() === '') {
+            // Apply just the filters without search term
+            filterCustomers('', selectedType, selectedStatus);
+            setSearchSuggestions([]);
+            setShowSuggestions(false);
+            return;
+        }
+
+        const lowerCaseValue = value.toLowerCase();
+        const matchedCustomers = allCustomers.filter(customer =>
+            (customer.name && customer.name.toLowerCase().includes(lowerCaseValue)) ||
+            (customer.phone && customer.phone.toLowerCase().includes(lowerCaseValue)) ||
+            (typeof customer.id === 'number' && `cus-${String(customer.id).padStart(3, '0')}`.toLowerCase().includes(lowerCaseValue))
+        );
+
+        // Update suggestions (limit to 5)
+        setSearchSuggestions(matchedCustomers.slice(0, 5));
+        setShowSuggestions(true);
+
+        // Filter the list with the current filters
+        filterCustomers(value, selectedType, selectedStatus);
+    };
+
+    // Function to handle suggestion click
+    const handleSuggestionClick = (customer: Customer) => {
+        setSearchTerm(customer.name);
+        setShowSuggestions(false);
+        filterCustomers(customer.name, selectedType, selectedStatus);
+    };
+
+    // Function to filter customers based on search term and filters
+    const filterCustomers = (search: string, type: string, status: string) => {
+        let filteredCustomers = [...allCustomers];
+
+        // Apply search filter
+        if (search) {
+            const lowerCaseSearch = search.toLowerCase();
+            filteredCustomers = filteredCustomers.filter(customer =>
+                (customer.name && customer.name.toLowerCase().includes(lowerCaseSearch)) ||
+                (customer.phone && customer.phone.toLowerCase().includes(lowerCaseSearch)) ||
+                (typeof customer.id === 'number' && `cus-${String(customer.id).padStart(3, '0')}`.toLowerCase().includes(lowerCaseSearch))
+            );
+        }
+
+        // Apply type filter
+        if (type) {
+            const lowerCaseType = type.toLowerCase();
+            filteredCustomers = filteredCustomers.filter(customer =>
+                customer.type && customer.type.toLowerCase() === lowerCaseType
+            );
+        }
+
+        // Apply status filter
+        if (status) {
+            const lowerCaseStatus = status.toLowerCase();
+            filteredCustomers = filteredCustomers.filter(customer =>
+                customer.status && customer.status.toLowerCase() === lowerCaseStatus
+            );
+        }
+
+        setCustomers(filteredCustomers);
+    };
+
+    // Function to handle filter changes
+    const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const value = e.target.value;
+        setSelectedType(value);
+        filterCustomers(searchTerm, value, selectedStatus);
+    };
+
+    const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const value = e.target.value;
+        setSelectedStatus(value);
+        filterCustomers(searchTerm, selectedType, value);
+    };
+
+    // Function to clear search
+    const clearSearch = () => {
+        setSearchTerm('');
+        setShowSuggestions(false);
+        filterCustomers('', selectedType, selectedStatus);
+    };
 
     if (loading) {
         return (
@@ -137,17 +246,62 @@ export default function Customers() {
                             </div>
                             <input
                                 type="text"
-                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full pl-10 p-2.5"
-                                placeholder="Search customers..."
+                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full pl-10 pr-10 p-2.5"
+                                placeholder="Search by name, phone, or ID..."
+                                value={searchTerm}
+                                onChange={(e) => searchCustomers(e.target.value)}
+                                onFocus={() => searchTerm && setShowSuggestions(true)}
                             />
+                            {searchTerm && (
+                                <button
+                                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-500"
+                                    onClick={clearSearch}
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            )}
+
+                            {/* Search suggestions */}
+                            {showSuggestions && searchSuggestions.length > 0 && (
+                                <div
+                                    ref={suggestionsRef}
+                                    className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg"
+                                >
+                                    <ul className="py-1 text-sm text-gray-700">
+                                        {searchSuggestions.map((customer) => (
+                                            <li
+                                                key={customer.id}
+                                                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                                                onClick={() => handleSuggestionClick(customer)}
+                                            >
+                                                <div className="font-medium">{customer.name}</div>
+                                                <div className="text-xs flex justify-between">
+                                                    <span>{customer.phone || 'No phone'}</span>
+                                                    <span className="text-gray-500">
+                                                        {typeof customer.id === 'number' ? `CUS-${String(customer.id).padStart(3, '0')}` : customer.id}
+                                                    </span>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
                         </div>
                         <div className="flex gap-2">
-                            <select className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5">
+                            <select
+                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5"
+                                value={selectedType}
+                                onChange={handleTypeChange}
+                            >
                                 <option value="">All Types</option>
                                 <option value="credit">Credit</option>
                                 <option value="cash">Cash</option>
                             </select>
-                            <select className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5">
+                            <select
+                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5"
+                                value={selectedStatus}
+                                onChange={handleStatusChange}
+                            >
                                 <option value="">All Status</option>
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
