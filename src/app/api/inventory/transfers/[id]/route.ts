@@ -5,7 +5,7 @@ import db from '@/utils/db';
 // GET: Get details of a specific inventory transfer
 export async function GET(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    context: { params: { id: string } }
 ) {
     // Check for inventory:view permission
     const permissionError = await requirePermission('inventory:view')(req);
@@ -13,7 +13,8 @@ export async function GET(
         return permissionError;
     }
 
-    const id = params.id;
+    // Properly await params in new Next.js
+    const { id } = context.params;
 
     try {
         // Get transfer details
@@ -22,14 +23,14 @@ export async function GET(
                 t.*,
                 ss.name as source_shop_name,
                 ds.name as destination_shop_name,
-                u."fullName" as initiated_by
+                COALESCE(u."fullName", 'Unknown User') as initiated_by
             FROM 
                 inventory_transfers t
             JOIN 
                 shops ss ON t.source_shop_id = ss.id
             JOIN 
                 shops ds ON t.destination_shop_id = ds.id
-            JOIN 
+            LEFT JOIN 
                 users u ON t.initiated_by_user_id = u.id
             WHERE 
                 t.id = $1`,
@@ -85,7 +86,7 @@ export async function GET(
 // PATCH: Update transfer status (complete or cancel)
 export async function PATCH(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    context: { params: { id: string } }
 ) {
     // Check for inventory:transfer permission
     const permissionError = await requirePermission('inventory:transfer')(req);
@@ -93,7 +94,8 @@ export async function PATCH(
         return permissionError;
     }
 
-    const id = params.id;
+    // Properly await params in new Next.js
+    const { id } = context.params;
 
     try {
         const { action } = await req.json();
@@ -107,7 +109,11 @@ export async function PATCH(
 
         // Check if transfer exists and is in pending status
         const transferResult = await db.query(
-            'SELECT * FROM inventory_transfers WHERE id = $1',
+            `SELECT t.*, ss.name as source_shop_name, ds.name as destination_shop_name 
+             FROM inventory_transfers t
+             JOIN shops ss ON t.source_shop_id = ss.id
+             JOIN shops ds ON t.destination_shop_id = ds.id
+             WHERE t.id = $1`,
             [id]
         );
 
@@ -221,7 +227,7 @@ export async function PATCH(
 // DELETE: Delete a pending transfer
 export async function DELETE(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    context: { params: { id: string } }
 ) {
     // Check for inventory:transfer permission
     const permissionError = await requirePermission('inventory:transfer')(req);
@@ -229,12 +235,17 @@ export async function DELETE(
         return permissionError;
     }
 
-    const id = params.id;
+    // Properly await params in new Next.js
+    const { id } = context.params;
 
     try {
         // Check if transfer exists and is in pending status
         const transferResult = await db.query(
-            'SELECT * FROM inventory_transfers WHERE id = $1',
+            `SELECT t.*, ss.name as source_shop_name, ds.name as destination_shop_name 
+             FROM inventory_transfers t
+             JOIN shops ss ON t.source_shop_id = ss.id
+             JOIN shops ds ON t.destination_shop_id = ds.id
+             WHERE t.id = $1`,
             [id]
         );
 

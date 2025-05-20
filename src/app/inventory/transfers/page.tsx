@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Loader2, ArrowLeftRight, FileText, Plus, Search } from 'lucide-react';
+import { Loader2, ArrowLeftRight, FileText, Plus, Search, RefreshCw } from 'lucide-react';
 import { formatDate } from '@/utils/formatters';
 import { useAuth } from '@/hooks/useAuth';
 import { authFetch } from '@/utils/api';
@@ -27,48 +27,69 @@ export default function TransfersPage() {
     const [transfers, setTransfers] = useState<TransferItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [refreshKey, setRefreshKey] = useState(0);
 
     // Filter state
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
 
+    // Fetch transfers data function (extracted to be reusable)
+    const fetchTransfers = useCallback(async () => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            console.log('Fetching transfers data...');
+            const response = await authFetch('/api/inventory/transfers');
+            console.log('Response status:', response.status);
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('Authentication failed. Please login again.');
+                }
+                throw new Error(`Failed to fetch transfers: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('Transfers data:', data);
+
+            if (data.success) {
+                console.log('Setting transfers:', data.data);
+                setTransfers(data.data || []);
+            } else {
+                throw new Error(data.message || 'Failed to fetch transfers');
+            }
+        } catch (err) {
+            console.error('Error fetching transfers:', err);
+            setError(err instanceof Error ? err.message : 'An error occurred');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    // Handle manual refresh
+    const handleRefresh = () => {
+        setRefreshKey(prev => prev + 1);
+    };
+
     // Fetch transfers data
     useEffect(() => {
-        const fetchTransfers = async () => {
-            try {
-                setLoading(true);
-                setError(null);
+        fetchTransfers();
 
-                console.log('Fetching transfers data...');
-                const response = await authFetch('/api/inventory/transfers');
-                console.log('Response status:', response.status);
-
-                if (!response.ok) {
-                    if (response.status === 401) {
-                        throw new Error('Authentication failed. Please login again.');
-                    }
-                    throw new Error(`Failed to fetch transfers: ${response.status}`);
-                }
-
-                const data = await response.json();
-                console.log('Transfers data:', data);
-
-                if (data.success) {
-                    console.log('Setting transfers:', data.data);
-                    setTransfers(data.data || []);
-                } else {
-                    throw new Error(data.message || 'Failed to fetch transfers');
-                }
-            } catch (err) {
-                console.error('Error fetching transfers:', err);
-                setError(err instanceof Error ? err.message : 'An error occurred');
-            } finally {
-                setLoading(false);
+        // Add event listener for focus to refresh data when returning to this page
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                console.log('Page became visible, refreshing transfers data');
+                fetchTransfers();
             }
         };
 
-        fetchTransfers();
-    }, []);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [fetchTransfers, refreshKey]);
 
     // Handle creating a new transfer
     const handleNewTransfer = () => {
@@ -163,6 +184,15 @@ export default function TransfersPage() {
                     <div className="flex gap-3">
                         {console.log('User permissions:', user?.permissions)}
                         {console.log('Has transfer permission:', user?.permissions?.includes('inventory:transfer'))}
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleRefresh}
+                            className="shadow-sm"
+                        >
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                            Refresh
+                        </Button>
                         <Button
                             variant="outline"
                             size="sm"

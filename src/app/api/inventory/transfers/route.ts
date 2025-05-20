@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
                 t.completed_at,
                 ss.name as source_shop_name,
                 ds.name as destination_shop_name,
-                u."fullName" as initiated_by,
+                COALESCE(u."fullName", 'Unknown User') as initiated_by,
                 COUNT(ti.id) as item_count,
                 COALESCE(SUM(ti.quantity), 0) as total_items
             FROM 
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
                 shops ss ON t.source_shop_id = ss.id
             JOIN 
                 shops ds ON t.destination_shop_id = ds.id
-            JOIN 
+            LEFT JOIN 
                 users u ON t.initiated_by_user_id = u.id
             LEFT JOIN 
                 transfer_items ti ON t.id = ti.transfer_id

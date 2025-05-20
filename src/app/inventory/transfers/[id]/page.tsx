@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { use } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
 import { Loader2, ArrowLeft, Check, X, AlertCircle } from 'lucide-react';
@@ -33,13 +34,16 @@ interface Transfer {
 }
 
 export default function TransferDetailPage({ params }: { params: { id: string } }) {
+    // Unwrap the params Promise using React.use()
+    const unwrappedParams = use(params);
+    const transferId = unwrappedParams.id;
+
     const router = useRouter();
     const { user } = useAuth();
     const [transfer, setTransfer] = useState<Transfer | null>(null);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const transferId = params.id; // Extract ID to prevent the Next.js warning
 
     // Check if user has transfer permission
     const hasTransferPermission = user?.permissions.includes('inventory:transfer') || false;
@@ -47,12 +51,19 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
     useEffect(() => {
         const fetchTransfer = async () => {
             try {
+                console.log(`Fetching transfer details for ID: ${transferId}`);
                 const response = await authFetch(`/api/inventory/transfers/${transferId}`);
+                console.log(`Response status: ${response.status}`);
+
                 if (!response.ok) {
-                    throw new Error('Failed to load transfer details');
+                    const errorData = await response.json().catch(() => null);
+                    console.error('Error response:', errorData);
+                    throw new Error(errorData?.message || `Failed to load transfer details (${response.status})`);
                 }
 
                 const data = await response.json();
+                console.log('Transfer data received:', data);
+
                 if (data.success) {
                     setTransfer(data.data);
                 } else {
@@ -240,10 +251,11 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
                         {transfer.status === 'pending' && hasTransferPermission && (
                             <>
                                 <Button
-                                    variant="destructive"
+                                    variant="outline"
                                     size="sm"
                                     onClick={handleCancelTransfer}
                                     disabled={actionLoading}
+                                    className="border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700"
                                 >
                                     {actionLoading ? (
                                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -294,32 +306,32 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
                 {/* Transfer summary */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-                        <h2 className="text-lg font-semibold mb-4">Transfer Details</h2>
+                        <h2 className="text-lg font-semibold mb-4 text-gray-900">Transfer Details</h2>
                         <div className="space-y-3">
                             <div className="flex justify-between">
-                                <span className="text-gray-600">Source Shop:</span>
-                                <span className="font-medium">{transfer.source_shop_name}</span>
+                                <span className="text-gray-900">Source Shop:</span>
+                                <span className="font-medium text-gray-900">{transfer.source_shop_name}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-600">Destination Shop:</span>
-                                <span className="font-medium">{transfer.destination_shop_name}</span>
+                                <span className="text-gray-900">Destination Shop:</span>
+                                <span className="font-medium text-gray-900">{transfer.destination_shop_name}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-600">Initiated By:</span>
-                                <span className="font-medium">{transfer.initiated_by}</span>
+                                <span className="text-gray-900">Initiated By:</span>
+                                <span className="font-medium text-gray-900">{transfer.initiated_by || 'Unknown User'}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-600">Created Date:</span>
-                                <span className="font-medium">{formatDate(transfer.created_at)}</span>
+                                <span className="text-gray-900">Created Date:</span>
+                                <span className="font-medium text-gray-900">{formatDate(transfer.created_at)}</span>
                             </div>
                             {transfer.completed_at && (
                                 <div className="flex justify-between">
-                                    <span className="text-gray-600">Completed Date:</span>
-                                    <span className="font-medium">{formatDate(transfer.completed_at)}</span>
+                                    <span className="text-gray-900">Completed Date:</span>
+                                    <span className="font-medium text-gray-900">{formatDate(transfer.completed_at)}</span>
                                 </div>
                             )}
                             <div className="flex justify-between">
-                                <span className="text-gray-600">Status:</span>
+                                <span className="text-gray-900">Status:</span>
                                 <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(transfer.status)}`}>
                                     {transfer.status.charAt(0).toUpperCase() + transfer.status.slice(1)}
                                 </span>
@@ -328,19 +340,19 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
                     </div>
 
                     <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-                        <h2 className="text-lg font-semibold mb-4">Summary</h2>
+                        <h2 className="text-lg font-semibold mb-4 text-gray-900">Summary</h2>
                         <div className="space-y-3">
                             <div className="flex justify-between">
-                                <span className="text-gray-600">Products:</span>
-                                <span className="font-medium">{transfer.items.length}</span>
+                                <span className="text-gray-900">Products:</span>
+                                <span className="font-medium text-gray-900">{transfer.items.length}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-600">Total Units:</span>
-                                <span className="font-medium">{totalItems}</span>
+                                <span className="text-gray-900">Total Units:</span>
+                                <span className="font-medium text-gray-900">{totalItems}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-600">Total Value:</span>
-                                <span className="font-medium">Rs. {totalValue.toFixed(2)}</span>
+                                <span className="text-gray-900">Total Value:</span>
+                                <span className="font-medium text-gray-900">Rs. {totalValue.toFixed(2)}</span>
                             </div>
                         </div>
                     </div>
@@ -348,17 +360,17 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
 
                 {/* Transfer Items Table */}
                 <div>
-                    <h2 className="text-lg font-semibold mb-4">Transfer Items</h2>
+                    <h2 className="text-lg font-semibold mb-4 text-gray-900">Transfer Items</h2>
                     <div className="overflow-x-auto border border-gray-200 rounded-lg">
-                        <table className="w-full text-sm text-left text-gray-500">
-                            <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                        <table className="w-full text-sm text-left text-gray-900">
+                            <thead className="text-xs text-gray-900 uppercase bg-gray-50">
                                 <tr>
-                                    <th className="px-6 py-3">Product</th>
-                                    <th className="px-6 py-3">SKU</th>
-                                    <th className="px-6 py-3 text-right">Unit Price</th>
-                                    <th className="px-6 py-3 text-center">Quantity</th>
-                                    <th className="px-6 py-3 text-right">Total</th>
-                                    <th className="px-6 py-3">Notes</th>
+                                    <th className="px-6 py-3 font-semibold">Product</th>
+                                    <th className="px-6 py-3 font-semibold">SKU</th>
+                                    <th className="px-6 py-3 text-right font-semibold">Unit Price</th>
+                                    <th className="px-6 py-3 text-center font-semibold">Quantity</th>
+                                    <th className="px-6 py-3 text-right font-semibold">Total</th>
+                                    <th className="px-6 py-3 font-semibold">Notes</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -383,14 +395,14 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
                                 })}
 
                                 {/* Footer with totals */}
-                                <tr className="bg-gray-50 font-medium">
-                                    <td className="px-6 py-4" colSpan={3}>
+                                <tr className="bg-gray-50 font-medium text-gray-900">
+                                    <td className="px-6 py-4 font-semibold" colSpan={3}>
                                         Total
                                     </td>
-                                    <td className="px-6 py-4 text-center">
+                                    <td className="px-6 py-4 text-center font-semibold">
                                         {totalItems}
                                     </td>
-                                    <td className="px-6 py-4 text-right">
+                                    <td className="px-6 py-4 text-right font-semibold">
                                         Rs. {totalValue.toFixed(2)}
                                     </td>
                                     <td className="px-6 py-4"></td>
