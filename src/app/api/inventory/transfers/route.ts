@@ -4,9 +4,11 @@ import db from '@/utils/db';
 
 // GET: Fetch all inventory transfers
 export async function GET(req: NextRequest) {
+    console.log('GET /api/inventory/transfers - Checking permission: inventory:view');
     // Check for inventory:view permission
     const permissionError = await requirePermission('inventory:view')(req);
     if (permissionError) {
+        console.error('Permission denied for inventory:view:', permissionError.status);
         return permissionError;
     }
 
@@ -38,6 +40,7 @@ export async function GET(req: NextRequest) {
                 t.created_at DESC
         `);
 
+        console.log(`Retrieved ${result.rows.length} transfers successfully`);
         return NextResponse.json({
             success: true,
             data: result.rows
@@ -54,9 +57,11 @@ export async function GET(req: NextRequest) {
 
 // POST: Create a new inventory transfer
 export async function POST(req: NextRequest) {
+    console.log('POST /api/inventory/transfers - Checking permission: inventory:transfer');
     // Check for inventory:transfer permission
     const permissionError = await requirePermission('inventory:transfer')(req);
     if (permissionError) {
+        console.error('Permission denied for inventory:transfer:', permissionError.status);
         return permissionError;
     }
 
@@ -99,6 +104,7 @@ export async function POST(req: NextRequest) {
             // Commit transaction
             await client.query('COMMIT');
 
+            console.log('Transfer created successfully with ID:', transferId);
             return NextResponse.json({
                 success: true,
                 message: 'Inventory transfer created successfully',

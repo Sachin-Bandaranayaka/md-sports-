@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Supplier } from '@/lib/models';
+import prisma from '@/lib/prisma';
 
 // GET /api/suppliers/[id] - Get a specific supplier
 export async function GET(
@@ -7,7 +7,20 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
-        const supplier = await Supplier.findByPk(params.id);
+        const supplierId = parseInt(params.id);
+
+        if (isNaN(supplierId)) {
+            return NextResponse.json(
+                { error: 'Invalid supplier ID' },
+                { status: 400 }
+            );
+        }
+
+        const supplier = await prisma.supplier.findUnique({
+            where: {
+                id: supplierId
+            }
+        });
 
         if (!supplier) {
             return NextResponse.json(
@@ -32,8 +45,21 @@ export async function PUT(
     { params }: { params: { id: string } }
 ) {
     try {
+        const supplierId = parseInt(params.id);
+
+        if (isNaN(supplierId)) {
+            return NextResponse.json(
+                { error: 'Invalid supplier ID' },
+                { status: 400 }
+            );
+        }
+
         const body = await request.json();
-        const supplier = await Supplier.findByPk(params.id);
+        const supplier = await prisma.supplier.findUnique({
+            where: {
+                id: supplierId
+            }
+        });
 
         if (!supplier) {
             return NextResponse.json(
@@ -42,9 +68,14 @@ export async function PUT(
             );
         }
 
-        await supplier.update(body);
+        const updatedSupplier = await prisma.supplier.update({
+            where: {
+                id: supplierId
+            },
+            data: body
+        });
 
-        return NextResponse.json(supplier);
+        return NextResponse.json(updatedSupplier);
     } catch (error) {
         console.error(`Error updating supplier ${params.id}:`, error);
         return NextResponse.json(
@@ -60,7 +91,20 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
-        const supplier = await Supplier.findByPk(params.id);
+        const supplierId = parseInt(params.id);
+
+        if (isNaN(supplierId)) {
+            return NextResponse.json(
+                { error: 'Invalid supplier ID' },
+                { status: 400 }
+            );
+        }
+
+        const supplier = await prisma.supplier.findUnique({
+            where: {
+                id: supplierId
+            }
+        });
 
         if (!supplier) {
             return NextResponse.json(
@@ -69,7 +113,11 @@ export async function DELETE(
             );
         }
 
-        await supplier.destroy();
+        await prisma.supplier.delete({
+            where: {
+                id: supplierId
+            }
+        });
 
         return NextResponse.json(
             { message: 'Supplier deleted successfully' },

@@ -89,12 +89,11 @@ export async function PUT(
                 sku = $2,
                 barcode = $3,
                 description = $4,
-                base_price = $5,
+                cost_price = $5,
                 retail_price = $6,
                 category_id = $7,
-                image_url = $8,
                 updated_at = CURRENT_TIMESTAMP
-            WHERE id = $9
+            WHERE id = $8
             RETURNING *
         `, [
             productData.name,
@@ -104,7 +103,6 @@ export async function PUT(
             productData.basePrice,
             productData.retailPrice,
             productData.categoryId || null,
-            productData.imageUrl || null,
             id
         ]);
 

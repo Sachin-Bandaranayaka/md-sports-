@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Quotation, Customer, QuotationItem, Product } from '@/lib/models';
+import prisma from '@/lib/prisma';
 
 // GET /api/quotations/[id] - Get a specific quotation
 export async function GET(
@@ -7,23 +7,27 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
-        const quotation = await Quotation.findByPk(params.id, {
-            include: [
-                {
-                    model: Customer,
-                    as: 'customer'
-                },
-                {
-                    model: QuotationItem,
-                    as: 'items',
-                    include: [
-                        {
-                            model: Product,
-                            as: 'product'
-                        }
-                    ]
+        const quotationId = parseInt(params.id);
+
+        if (isNaN(quotationId)) {
+            return NextResponse.json(
+                { error: 'Invalid quotation ID' },
+                { status: 400 }
+            );
+        }
+
+        const quotation = await prisma.quotation.findUnique({
+            where: {
+                id: quotationId
+            },
+            include: {
+                customer: true,
+                items: {
+                    include: {
+                        product: true
+                    }
                 }
-            ]
+            }
         });
 
         if (!quotation) {
@@ -49,8 +53,21 @@ export async function PUT(
     { params }: { params: { id: string } }
 ) {
     try {
+        const quotationId = parseInt(params.id);
+
+        if (isNaN(quotationId)) {
+            return NextResponse.json(
+                { error: 'Invalid quotation ID' },
+                { status: 400 }
+            );
+        }
+
         const body = await request.json();
-        const quotation = await Quotation.findByPk(params.id);
+        const quotation = await prisma.quotation.findUnique({
+            where: {
+                id: quotationId
+            }
+        });
 
         if (!quotation) {
             return NextResponse.json(
@@ -62,43 +79,50 @@ export async function PUT(
         // Extract items from the request
         const { items, ...quotationData } = body;
 
-        // Update the quotation
-        await quotation.update(quotationData);
-
-        // Handle items update if provided
-        if (items && Array.isArray(items)) {
-            // Delete existing items
-            await QuotationItem.destroy({
-                where: { quotationId: params.id }
+        // Update the quotation and items in a transaction
+        const updatedQuotation = await prisma.$transaction(async (tx) => {
+            // Update the quotation
+            await tx.quotation.update({
+                where: {
+                    id: quotationId
+                },
+                data: quotationData
             });
 
-            // Create new items
-            for (const item of items) {
-                await QuotationItem.create({
-                    ...item,
-                    quotationId: params.id
+            // Handle items update if provided
+            if (items && Array.isArray(items)) {
+                // Delete existing items
+                await tx.quotationItem.deleteMany({
+                    where: {
+                        quotationId: quotationId
+                    }
                 });
-            }
-        }
 
-        // Fetch the updated quotation with items
-        const updatedQuotation = await Quotation.findByPk(params.id, {
-            include: [
-                {
-                    model: Customer,
-                    as: 'customer'
-                },
-                {
-                    model: QuotationItem,
-                    as: 'items',
-                    include: [
-                        {
-                            model: Product,
-                            as: 'product'
+                // Create new items
+                for (const item of items) {
+                    await tx.quotationItem.create({
+                        data: {
+                            ...item,
+                            quotationId: quotationId
                         }
-                    ]
+                    });
                 }
-            ]
+            }
+
+            // Return the updated quotation with items
+            return tx.quotation.findUnique({
+                where: {
+                    id: quotationId
+                },
+                include: {
+                    customer: true,
+                    items: {
+                        include: {
+                            product: true
+                        }
+                    }
+                }
+            });
         });
 
         return NextResponse.json(updatedQuotation);
@@ -117,7 +141,20 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
-        const quotation = await Quotation.findByPk(params.id);
+        const quotationId = parseInt(params.id);
+
+        if (isNaN(quotationId)) {
+            return NextResponse.json(
+                { error: 'Invalid quotation ID' },
+                { status: 400 }
+            );
+        }
+
+        const quotation = await prisma.quotation.findUnique({
+            where: {
+                id: quotationId
+            }
+        });
 
         if (!quotation) {
             return NextResponse.json(
@@ -126,13 +163,22 @@ export async function DELETE(
             );
         }
 
-        // Delete associated items
-        await QuotationItem.destroy({
-            where: { quotationId: params.id }
-        });
+        // Delete quotation and items in a transaction
+        await prisma.$transaction(async (tx) => {
+            // Delete associated items
+            await tx.quotationItem.deleteMany({
+                where: {
+                    quotationId: quotationId
+                }
+            });
 
-        // Delete the quotation
-        await quotation.destroy();
+            // Delete the quotation
+            await tx.quotation.delete({
+                where: {
+                    id: quotationId
+                }
+            });
+        });
 
         return NextResponse.json(
             { message: 'Quotation deleted successfully' },

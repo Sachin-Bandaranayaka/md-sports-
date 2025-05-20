@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Product, Category } from '@/lib/models';
+import prisma from '@/lib/prisma';
 import { requirePermission } from '@/lib/utils/middleware';
 
 // GET: Get product by ID
@@ -22,13 +22,18 @@ export async function GET(
             );
         }
 
-        const product = await Product.findByPk(productId, {
-            include: [
-                {
-                    model: Category,
-                    attributes: ['id', 'name']
+        const product = await prisma.product.findUnique({
+            where: {
+                id: productId
+            },
+            include: {
+                category: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
                 }
-            ]
+            }
         });
 
         if (!product) {
@@ -71,8 +76,13 @@ export async function PUT(
             );
         }
 
-        const product = await Product.findByPk(productId);
-        if (!product) {
+        const existingProduct = await prisma.product.findUnique({
+            where: {
+                id: productId
+            }
+        });
+
+        if (!existingProduct) {
             return NextResponse.json(
                 { success: false, message: 'Product not found' },
                 { status: 404 }
@@ -85,30 +95,33 @@ export async function PUT(
             sku,
             barcode,
             description,
-            basePrice,
-            retailPrice,
+            price, // renamed from retailPrice in Prisma
+            cost,  // renamed from basePrice in Prisma
             categoryId
         } = body;
 
         // Update product
-        await product.update({
-            name: name !== undefined ? name : product.name,
-            sku: sku !== undefined ? sku : product.sku,
-            barcode: barcode !== undefined ? barcode : product.barcode,
-            description: description !== undefined ? description : product.description,
-            basePrice: basePrice !== undefined ? basePrice : product.basePrice,
-            retailPrice: retailPrice !== undefined ? retailPrice : product.retailPrice,
-            categoryId: categoryId !== undefined ? categoryId : product.categoryId
-        });
-
-        // Return updated product
-        const updatedProduct = await Product.findByPk(productId, {
-            include: [
-                {
-                    model: Category,
-                    attributes: ['id', 'name']
+        const updatedProduct = await prisma.product.update({
+            where: {
+                id: productId
+            },
+            data: {
+                name: name !== undefined ? name : existingProduct.name,
+                sku: sku !== undefined ? sku : existingProduct.sku,
+                barcode: barcode !== undefined ? barcode : existingProduct.barcode,
+                description: description !== undefined ? description : existingProduct.description,
+                cost: cost !== undefined ? cost : existingProduct.cost,
+                price: price !== undefined ? price : existingProduct.price,
+                categoryId: categoryId !== undefined ? categoryId : existingProduct.categoryId
+            },
+            include: {
+                category: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
                 }
-            ]
+            }
         });
 
         return NextResponse.json({
@@ -144,7 +157,12 @@ export async function DELETE(
             );
         }
 
-        const product = await Product.findByPk(productId);
+        const product = await prisma.product.findUnique({
+            where: {
+                id: productId
+            }
+        });
+
         if (!product) {
             return NextResponse.json(
                 { success: false, message: 'Product not found' },
@@ -153,7 +171,11 @@ export async function DELETE(
         }
 
         // Delete product
-        await product.destroy();
+        await prisma.product.delete({
+            where: {
+                id: productId
+            }
+        });
 
         return NextResponse.json({
             success: true,

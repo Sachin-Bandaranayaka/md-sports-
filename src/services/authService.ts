@@ -119,14 +119,24 @@ export const hasPermission = (tokenPayload: TokenPayload, permission: string) =>
  */
 export const getUserFromToken = async (token: string) => {
     const payload = verifyToken(token);
+    console.log('Token payload:', payload);
+
     if (!payload) {
+        console.error('Invalid token payload');
+        return null;
+    }
+
+    if (!payload.sub) {
+        console.error('Token missing user ID (sub claim)');
         return null;
     }
 
     try {
-        const user = await prisma.user.findUnique({
+        console.log('Looking up user with ID:', payload.sub);
+        const user = await prisma.user.findFirst({
             where: {
-                id: payload.sub
+                id: Number(payload.sub),
+                isActive: true
             },
             include: {
                 role: {
@@ -137,10 +147,12 @@ export const getUserFromToken = async (token: string) => {
             }
         });
 
-        if (!user || !user.isActive) {
+        if (!user) {
+            console.error('User not found for ID:', payload.sub);
             return null;
         }
 
+        console.log('User found:', user.id, user.name);
         return user;
     } catch (error) {
         console.error('Error getting user from token:', error);

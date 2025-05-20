@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PurchaseInvoice, Supplier, PurchaseInvoiceItem, Product } from '@/lib/models';
-import { Op } from 'sequelize';
+import prisma from '@/lib/prisma';
 
 // GET /api/purchases - Get all purchase invoices
 export async function GET(request: NextRequest) {
@@ -12,11 +11,14 @@ export async function GET(request: NextRequest) {
         const startDate = searchParams.get('startDate');
         const endDate = searchParams.get('endDate');
 
-        // Build the where clause
+        // Build the where clause for Prisma
         const whereClause: any = {};
 
         if (search) {
-            whereClause.invoiceNumber = { [Op.iLike]: `%${search}%` };
+            whereClause.invoiceNumber = {
+                contains: search,
+                mode: 'insensitive'
+            };
         }
 
         if (status) {
@@ -24,44 +26,50 @@ export async function GET(request: NextRequest) {
         }
 
         if (supplierId) {
-            whereClause.supplierId = supplierId;
+            whereClause.supplierId = parseInt(supplierId);
         }
 
         if (startDate && endDate) {
-            whereClause.date = {
-                [Op.between]: [startDate, endDate]
+            whereClause.createdAt = {
+                gte: new Date(startDate),
+                lte: new Date(endDate)
             };
         } else if (startDate) {
-            whereClause.date = {
-                [Op.gte]: startDate
+            whereClause.createdAt = {
+                gte: new Date(startDate)
             };
         } else if (endDate) {
-            whereClause.date = {
-                [Op.lte]: endDate
+            whereClause.createdAt = {
+                lte: new Date(endDate)
             };
         }
 
-        const purchases = await PurchaseInvoice.findAll({
+        const purchases = await prisma.purchaseInvoice.findMany({
             where: whereClause,
-            include: [
-                {
-                    model: Supplier,
-                    as: 'supplier',
-                    attributes: ['id', 'name', 'contactPerson', 'email', 'phone']
+            include: {
+                supplier: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        phone: true
+                    }
                 },
-                {
-                    model: PurchaseInvoiceItem,
-                    as: 'items',
-                    include: [
-                        {
-                            model: Product,
-                            as: 'product',
-                            attributes: ['id', 'name', 'sku']
+                items: {
+                    include: {
+                        product: {
+                            select: {
+                                id: true,
+                                name: true,
+                                sku: true
+                            }
                         }
-                    ]
+                    }
                 }
-            ],
-            order: [['createdAt', 'DESC']]
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
         });
 
         return NextResponse.json(purchases);
@@ -79,56 +87,50 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
 
-        // Generate an ID if not provided
-        if (!body.id) {
-            body.id = `PI${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+        // Generate an invoice number if not provided
+        if (!body.invoiceNumber) {
+            body.invoiceNumber = `PI${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
         }
 
         // Extract items from the request
         const { items, ...invoiceData } = body;
 
-        // Create the purchase invoice
-        const purchase = await PurchaseInvoice.create(invoiceData);
+        // Create the purchase invoice with items in a transaction
+        const purchase = await prisma.$transaction(async (tx) => {
+            // Create the purchase invoice
+            const createdInvoice = await tx.purchaseInvoice.create({
+                data: invoiceData
+            });
 
-        // Create the purchase invoice items
-        if (items && Array.isArray(items)) {
-            for (const item of items) {
-                await PurchaseInvoiceItem.create({
-                    ...item,
-                    purchaseInvoiceId: purchase.id
-                });
-            }
-        }
-
-        // Fetch the complete purchase with items
-        const completeInvoice = await PurchaseInvoice.findByPk(purchase.id, {
-            include: [
-                {
-                    model: Supplier,
-                    as: 'supplier'
-                },
-                {
-                    model: PurchaseInvoiceItem,
-                    as: 'items',
-                    include: [
-                        {
-                            model: Product,
-                            as: 'product'
+            // Create the purchase invoice items
+            if (items && Array.isArray(items)) {
+                for (const item of items) {
+                    await tx.purchaseInvoiceItem.create({
+                        data: {
+                            ...item,
+                            purchaseInvoiceId: createdInvoice.id
                         }
-                    ]
+                    });
                 }
-            ]
+            }
+
+            // Return the complete invoice with relations
+            return tx.purchaseInvoice.findUnique({
+                where: {
+                    id: createdInvoice.id
+                },
+                include: {
+                    supplier: true,
+                    items: {
+                        include: {
+                            product: true
+                        }
+                    }
+                }
+            });
         });
 
-        // Update supplier's totalPurchases
-        const supplier = await Supplier.findByPk(purchase.supplierId);
-        if (supplier) {
-            await supplier.update({
-                totalPurchases: supplier.totalPurchases + purchase.total
-            });
-        }
-
-        return NextResponse.json(completeInvoice, { status: 201 });
+        return NextResponse.json(purchase, { status: 201 });
     } catch (error) {
         console.error('Error creating purchase invoice:', error);
         return NextResponse.json(

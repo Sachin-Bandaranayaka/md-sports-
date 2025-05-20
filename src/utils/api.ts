@@ -9,6 +9,12 @@ export const authFetch = async (url: string, options: RequestInit = {}) => {
     // Get token from localStorage
     const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
 
+    if (!token) {
+        console.warn('No auth token found for request to:', url);
+    } else {
+        console.log(`Making authenticated request to ${url} with token: ${token.substring(0, 10)}...`);
+    }
+
     // Prepare headers with authentication
     const headers = {
         ...(options.headers || {}),
@@ -32,7 +38,7 @@ export const authFetch = async (url: string, options: RequestInit = {}) => {
 
     // If unauthorized and not on the login page, redirect to login
     if (response.status === 401 && typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-        console.warn('Authentication error, redirecting to login');
+        console.warn('Authentication error (401) for request to:', url);
         localStorage.removeItem('authToken');
         window.location.href = '/login';
         return response;

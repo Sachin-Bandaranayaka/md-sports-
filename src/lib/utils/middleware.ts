@@ -89,11 +89,13 @@ export const requirePermission = (permission: string) => {
         // First check if user is authenticated
         const authError = await requireAuth()(req);
         if (authError) {
+            console.error(`Authentication failed when checking for permission: ${permission}`);
             return authError;
         }
 
         try {
             const token = req.headers.get('authorization')?.replace('Bearer ', '');
+            console.log(`Checking permission: ${permission} for token: ${token?.substring(0, 10)}...`);
 
             // Special case for development token
             if (token === 'dev-token') {
@@ -105,6 +107,7 @@ export const requirePermission = (permission: string) => {
             const payload = await verifyJWT(token!);
 
             if (!payload || !payload.sub) {
+                console.error(`Invalid token when checking for permission: ${permission}`);
                 return NextResponse.json(
                     { success: false, message: 'Invalid token' },
                     { status: 401 }
@@ -112,6 +115,7 @@ export const requirePermission = (permission: string) => {
             }
 
             const userId = Number(payload.sub);
+            console.log(`Checking permissions for user ID: ${userId}`);
 
             // Get user's role with permissions
             const user = await prisma.user.findUnique({
@@ -126,6 +130,7 @@ export const requirePermission = (permission: string) => {
             });
 
             if (!user || !user.role || !user.role.permissions) {
+                console.error(`User role or permissions not found for user ID: ${userId}`);
                 return NextResponse.json(
                     { success: false, message: 'User role or permissions not found' },
                     { status: 403 }
@@ -133,19 +138,23 @@ export const requirePermission = (permission: string) => {
             }
 
             // Check if user has the required permission
-            const hasPermission = user.role.permissions.some(p => p.name === permission);
+            const permissions = user.role.permissions.map(p => p.name);
+            console.log(`User permissions: ${permissions.join(', ')}`);
+            const hasPermission = permissions.includes(permission);
 
             if (!hasPermission) {
+                console.error(`Permission denied: ${permission} for user ID: ${userId}`);
                 return NextResponse.json(
-                    { success: false, message: 'Permission denied' },
+                    { success: false, message: `Permission denied: ${permission}` },
                     { status: 403 }
                 );
             }
 
+            console.log(`Permission granted: ${permission} for user ID: ${userId}`);
             // User has the required permission
             return null;
         } catch (error) {
-            console.error('Permission check error:', error);
+            console.error(`Permission check error for ${permission}:`, error);
             return NextResponse.json(
                 { success: false, message: 'Permission check failed' },
                 { status: 500 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PurchaseInvoice, Supplier, PurchaseInvoiceItem, Product } from '@/lib/models';
+import prisma from '@/lib/prisma';
 
 // GET /api/purchases/[id] - Get a specific purchase invoice
 export async function GET(
@@ -7,23 +7,27 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
-        const purchase = await PurchaseInvoice.findByPk(params.id, {
-            include: [
-                {
-                    model: Supplier,
-                    as: 'supplier'
-                },
-                {
-                    model: PurchaseInvoiceItem,
-                    as: 'items',
-                    include: [
-                        {
-                            model: Product,
-                            as: 'product'
-                        }
-                    ]
+        const purchaseId = parseInt(params.id);
+
+        if (isNaN(purchaseId)) {
+            return NextResponse.json(
+                { error: 'Invalid purchase ID' },
+                { status: 400 }
+            );
+        }
+
+        const purchase = await prisma.purchaseInvoice.findUnique({
+            where: {
+                id: purchaseId
+            },
+            include: {
+                supplier: true,
+                items: {
+                    include: {
+                        product: true
+                    }
                 }
-            ]
+            }
         });
 
         if (!purchase) {
@@ -49,8 +53,21 @@ export async function PUT(
     { params }: { params: { id: string } }
 ) {
     try {
+        const purchaseId = parseInt(params.id);
+
+        if (isNaN(purchaseId)) {
+            return NextResponse.json(
+                { error: 'Invalid purchase ID' },
+                { status: 400 }
+            );
+        }
+
         const body = await request.json();
-        const purchase = await PurchaseInvoice.findByPk(params.id);
+        const purchase = await prisma.purchaseInvoice.findUnique({
+            where: {
+                id: purchaseId
+            }
+        });
 
         if (!purchase) {
             return NextResponse.json(
@@ -62,43 +79,50 @@ export async function PUT(
         // Extract items from the request
         const { items, ...invoiceData } = body;
 
-        // Update the purchase invoice
-        await purchase.update(invoiceData);
-
-        // Handle items update if provided
-        if (items && Array.isArray(items)) {
-            // Delete existing items
-            await PurchaseInvoiceItem.destroy({
-                where: { purchaseInvoiceId: params.id }
+        // Update the purchase invoice in a transaction
+        const updatedPurchase = await prisma.$transaction(async (tx) => {
+            // Update the purchase invoice
+            const updated = await tx.purchaseInvoice.update({
+                where: {
+                    id: purchaseId
+                },
+                data: invoiceData
             });
 
-            // Create new items
-            for (const item of items) {
-                await PurchaseInvoiceItem.create({
-                    ...item,
-                    purchaseInvoiceId: params.id
+            // Handle items update if provided
+            if (items && Array.isArray(items)) {
+                // Delete existing items
+                await tx.purchaseInvoiceItem.deleteMany({
+                    where: {
+                        purchaseInvoiceId: purchaseId
+                    }
                 });
-            }
-        }
 
-        // Fetch the updated purchase with items
-        const updatedPurchase = await PurchaseInvoice.findByPk(params.id, {
-            include: [
-                {
-                    model: Supplier,
-                    as: 'supplier'
-                },
-                {
-                    model: PurchaseInvoiceItem,
-                    as: 'items',
-                    include: [
-                        {
-                            model: Product,
-                            as: 'product'
+                // Create new items
+                for (const item of items) {
+                    await tx.purchaseInvoiceItem.create({
+                        data: {
+                            ...item,
+                            purchaseInvoiceId: purchaseId
                         }
-                    ]
+                    });
                 }
-            ]
+            }
+
+            // Return the updated purchase with items
+            return tx.purchaseInvoice.findUnique({
+                where: {
+                    id: purchaseId
+                },
+                include: {
+                    supplier: true,
+                    items: {
+                        include: {
+                            product: true
+                        }
+                    }
+                }
+            });
         });
 
         return NextResponse.json(updatedPurchase);
@@ -117,7 +141,20 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
-        const purchase = await PurchaseInvoice.findByPk(params.id);
+        const purchaseId = parseInt(params.id);
+
+        if (isNaN(purchaseId)) {
+            return NextResponse.json(
+                { error: 'Invalid purchase ID' },
+                { status: 400 }
+            );
+        }
+
+        const purchase = await prisma.purchaseInvoice.findUnique({
+            where: {
+                id: purchaseId
+            }
+        });
 
         if (!purchase) {
             return NextResponse.json(
@@ -126,21 +163,22 @@ export async function DELETE(
             );
         }
 
-        // Update supplier's totalPurchases
-        const supplier = await Supplier.findByPk(purchase.supplierId);
-        if (supplier) {
-            await supplier.update({
-                totalPurchases: Math.max(0, supplier.totalPurchases - purchase.total)
+        // Delete in a transaction
+        await prisma.$transaction(async (tx) => {
+            // Delete associated items
+            await tx.purchaseInvoiceItem.deleteMany({
+                where: {
+                    purchaseInvoiceId: purchaseId
+                }
             });
-        }
 
-        // Delete associated items
-        await PurchaseInvoiceItem.destroy({
-            where: { purchaseInvoiceId: params.id }
+            // Delete the purchase invoice
+            await tx.purchaseInvoice.delete({
+                where: {
+                    id: purchaseId
+                }
+            });
         });
-
-        // Delete the purchase invoice
-        await purchase.destroy();
 
         return NextResponse.json(
             { message: 'Purchase invoice deleted successfully' },

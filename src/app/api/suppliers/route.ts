@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Supplier } from '@/lib/models';
+import prisma from '@/lib/prisma';
 
 // GET /api/suppliers - Get all suppliers
 export async function GET(_request: NextRequest) {
     try {
-        const suppliers = await Supplier.findAll({
-            order: [['createdAt', 'DESC']]
+        const suppliers = await prisma.supplier.findMany({
+            orderBy: {
+                createdAt: 'desc'
+            }
         });
 
         return NextResponse.json(suppliers);
@@ -23,12 +25,9 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
 
-        // Generate a supplier ID if not provided
-        if (!body.id) {
-            body.id = `SUP${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
-        }
-
-        const supplier = await Supplier.create(body);
+        const supplier = await prisma.supplier.create({
+            data: body
+        });
 
         return NextResponse.json(supplier, { status: 201 });
     } catch (error) {

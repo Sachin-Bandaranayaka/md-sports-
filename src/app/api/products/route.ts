@@ -7,10 +7,10 @@ export async function GET(request: NextRequest) {
     try {
         // Get shop ID from token if user is restricted to a specific shop
         const shopId = getShopId(request);
-        
+
         let query;
         let params = [];
-        
+
         if (shopId) {
             // User is restricted to a specific shop - only show products in that shop's inventory
             query = `
@@ -55,9 +55,9 @@ export async function POST(request: Request) {
 
         const result = await db.query(`
             INSERT INTO products 
-                (name, sku, barcode, description, base_price, retail_price, category_id, image_url)
+                (name, sku, barcode, description, cost_price, retail_price, category_id)
             VALUES 
-                ($1, $2, $3, $4, $5, $6, $7, $8)
+                ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *
         `, [
             productData.name,
@@ -66,8 +66,7 @@ export async function POST(request: Request) {
             productData.description || null,
             productData.basePrice,
             productData.retailPrice,
-            productData.categoryId || null,
-            productData.imageUrl || null
+            productData.categoryId || null
         ]);
 
         return NextResponse.json({

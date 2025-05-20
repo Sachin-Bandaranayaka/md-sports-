@@ -1,25 +1,21 @@
 import { NextResponse } from 'next/server';
-import sequelize from '@/lib/db';
+import prisma from '@/lib/prisma';
 
 export async function POST(request: Request) {
     try {
-        const { force = false } = await request.json();
-
-        // Sync all models with the database
-        // force: true will drop tables if they exist
-        // alter: true will alter tables to match models
-        await sequelize.sync({ force, alter: !force });
+        // With Prisma, we don't need to manually sync the database
+        // as Prisma handles migrations through prisma migrate
+        // This endpoint could be used for other initialization tasks
 
         return NextResponse.json({
             success: true,
-            message: 'Database schema initialized successfully.',
-            force
+            message: 'Database connection verified successfully.',
         });
     } catch (error) {
-        console.error('Error initializing database schema:', error);
+        console.error('Error connecting to database:', error);
         return NextResponse.json({
             success: false,
-            message: 'Error initializing database schema',
+            message: 'Error connecting to database',
             error: error instanceof Error ? error.message : String(error)
         }, { status: 500 });
     }

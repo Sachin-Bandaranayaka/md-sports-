@@ -6,6 +6,7 @@ export async function GET(req: NextRequest) {
         // Get token from Authorization header
         const authHeader = req.headers.get('authorization');
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            console.error('No valid Authorization header found');
             return NextResponse.json(
                 { success: false, message: 'No token provided' },
                 { status: 401 }
@@ -13,9 +14,12 @@ export async function GET(req: NextRequest) {
         }
 
         const token = authHeader.split(' ')[1];
+        console.log('Token received for validation:', token.substring(0, 10) + '...');
+
         const tokenData = verifyToken(token);
 
         if (!tokenData) {
+            console.error('Token verification failed');
             return NextResponse.json(
                 { success: false, message: 'Invalid or expired token' },
                 { status: 401 }
@@ -26,6 +30,7 @@ export async function GET(req: NextRequest) {
         const user = await getUserFromToken(token);
 
         if (!user) {
+            console.error('User not found from token');
             return NextResponse.json(
                 { success: false, message: 'User not found or inactive' },
                 { status: 401 }
@@ -34,6 +39,7 @@ export async function GET(req: NextRequest) {
 
         // Extract permissions from user with Prisma structure
         const permissions = user.role.permissions.map(p => p.name);
+        console.log('User validated successfully:', user.id, user.name, 'with permissions:', permissions);
 
         // Return user data with field names matching the Prisma model
         return NextResponse.json({
