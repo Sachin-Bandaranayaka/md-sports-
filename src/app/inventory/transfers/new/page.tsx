@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Loader2, Save, XCircle, Plus, ArrowLeftRight, Minus, AlertCircle } from 'lucide-react';
+import { Loader2, Save, XCircle, Plus, ArrowLeftRight, Minus, AlertCircle, FileText, Search } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { authFetch, authPost } from '@/utils/api';
 
@@ -268,8 +268,13 @@ export default function CreateTransferPage() {
             <MainLayout>
                 <div className="h-full flex items-center justify-center p-20">
                     <div className="text-center">
-                        <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
-                        <p className="text-gray-900">Loading data...</p>
+                        <div className="relative w-20 h-20 mx-auto mb-6">
+                            <div className="absolute inset-0 rounded-full border-4 border-blue-100"></div>
+                            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary animate-spin"></div>
+                            <ArrowLeftRight className="absolute inset-0 m-auto h-8 w-8 text-primary" />
+                        </div>
+                        <p className="text-gray-900 text-lg font-medium">Loading transfer data...</p>
+                        <p className="text-gray-500 mt-1">Please wait while we prepare the inventory transfer screen</p>
                     </div>
                 </div>
             </MainLayout>
@@ -280,10 +285,15 @@ export default function CreateTransferPage() {
         <MainLayout>
             <div className="space-y-6">
                 {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Create Inventory Transfer</h1>
-                        <p className="text-gray-900">Move products between shops</p>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 rounded-lg shadow-sm">
+                    <div className="flex items-center">
+                        <div className="mr-4 p-3 bg-blue-50 rounded-full">
+                            <ArrowLeftRight className="h-7 w-7 text-primary" />
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-900">Create Inventory Transfer</h1>
+                            <p className="text-gray-900">Move products between shops</p>
+                        </div>
                     </div>
                     <div className="flex gap-3">
                         <Button
@@ -291,8 +301,9 @@ export default function CreateTransferPage() {
                             size="sm"
                             onClick={() => router.push('/inventory/transfers')}
                             disabled={submitting}
+                            className="px-4 py-2 bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 shadow-sm transition-all flex items-center gap-2"
                         >
-                            <XCircle className="w-4 h-4 mr-2" />
+                            <XCircle className="w-4 h-4" />
                             Cancel
                         </Button>
                         <Button
@@ -300,11 +311,12 @@ export default function CreateTransferPage() {
                             size="sm"
                             onClick={handleSubmit}
                             disabled={submitting || transferItems.length === 0}
+                            className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 shadow-sm hover:shadow-md transition-all flex items-center gap-2"
                         >
                             {submitting ? (
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                <Loader2 className="w-4 h-4 animate-spin" />
                             ) : (
-                                <Save className="w-4 h-4 mr-2" />
+                                <Save className="w-4 h-4" />
                             )}
                             Create Transfer
                         </Button>
@@ -321,59 +333,80 @@ export default function CreateTransferPage() {
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Shop selection */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-900 mb-1">
-                                Source Shop
-                            </label>
-                            <select
-                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
-                                value={sourceShopId}
-                                onChange={(e) => setSourceShopId(Number(e.target.value) || '')}
-                                disabled={submitting}
-                                required
-                            >
-                                <option value="">Select source shop</option>
-                                {shops.map((shop) => (
-                                    <option key={shop.id} value={shop.id}>
-                                        {shop.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-900 mb-1">
-                                Destination Shop
-                            </label>
-                            <select
-                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
-                                value={destinationShopId}
-                                onChange={(e) => setDestinationShopId(Number(e.target.value) || '')}
-                                disabled={submitting}
-                                required
-                            >
-                                <option value="">Select destination shop</option>
-                                {shops.map((shop) => (
-                                    <option
-                                        key={shop.id}
-                                        value={shop.id}
-                                        disabled={sourceShopId === shop.id}
-                                    >
-                                        {shop.name}
-                                    </option>
-                                ))}
-                            </select>
+                    <div className="bg-white p-6 rounded-lg shadow-sm">
+                        <div className="flex flex-col md:flex-row items-center gap-6">
+                            <div className="flex-1">
+                                <label className="block text-sm font-medium text-gray-900 mb-1">
+                                    Source Shop
+                                </label>
+                                <select
+                                    className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                                    value={sourceShopId}
+                                    onChange={(e) => setSourceShopId(Number(e.target.value) || '')}
+                                    disabled={submitting}
+                                    required
+                                >
+                                    <option value="">Select source shop</option>
+                                    {shops.map((shop) => (
+                                        <option key={shop.id} value={shop.id}>
+                                            {shop.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="flex flex-col items-center justify-center">
+                                <div className="w-16 h-16 flex items-center justify-center rounded-full bg-blue-50 p-3 relative overflow-hidden">
+                                    <ArrowLeftRight className="h-6 w-6 text-primary" />
+                                    {(sourceShopId && destinationShopId) && (
+                                        <div className="absolute inset-0 bg-blue-100 opacity-50 animate-pulse"></div>
+                                    )}
+                                </div>
+                                <div className="text-xs text-gray-500 mt-1">Transfer</div>
+                            </div>
+
+                            <div className="flex-1">
+                                <label className="block text-sm font-medium text-gray-900 mb-1">
+                                    Destination Shop
+                                </label>
+                                <select
+                                    className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                                    value={destinationShopId}
+                                    onChange={(e) => setDestinationShopId(Number(e.target.value) || '')}
+                                    disabled={submitting}
+                                    required
+                                >
+                                    <option value="">Select destination shop</option>
+                                    {shops.map((shop) => (
+                                        <option
+                                            key={shop.id}
+                                            value={shop.id}
+                                            disabled={sourceShopId === shop.id}
+                                        >
+                                            {shop.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
                     </div>
 
                     {/* Available products (only shown when source shop is selected) */}
                     {sourceShopId && (
-                        <div>
-                            <h2 className="text-lg font-semibold text-gray-900 mb-2">Available Products</h2>
+                        <div className="bg-white p-6 rounded-lg shadow-sm">
+                            <div className="flex items-center mb-4">
+                                <div className="p-2 bg-blue-50 rounded-md mr-3">
+                                    <FileText className="h-5 w-5 text-primary" />
+                                </div>
+                                <h2 className="text-lg font-semibold text-gray-900">Available Products</h2>
+                            </div>
                             <div className="relative mb-4">
+                                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                    <Search className="w-4 h-4 text-gray-400" />
+                                </div>
                                 <input
                                     type="text"
-                                    className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                                    className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full pl-10 p-2.5"
                                     placeholder="Search products..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -386,19 +419,19 @@ export default function CreateTransferPage() {
                                     selectedProducts.map((product) => (
                                         <div
                                             key={product.id}
-                                            className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                                            className="border border-gray-200 rounded-lg p-5 bg-white hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1"
                                         >
                                             <div className="flex justify-between items-start">
                                                 <div>
-                                                    <h3 className="font-medium text-gray-900">{product.name}</h3>
-                                                    <p className="text-xs text-gray-900">SKU: {product.sku}</p>
+                                                    <h3 className="font-medium text-gray-900 text-lg">{product.name}</h3>
+                                                    <p className="text-xs text-gray-900 mt-1">SKU: {product.sku}</p>
                                                 </div>
-                                                <span className="text-sm font-semibold text-gray-900">
+                                                <span className="text-sm font-semibold text-gray-900 bg-gray-100 px-2 py-1 rounded-md">
                                                     Rs. {parseFloat(product.retail_price).toFixed(2)}
                                                 </span>
                                             </div>
-                                            <div className="flex justify-between items-center mt-4">
-                                                <span className="text-xs text-gray-900">
+                                            <div className="flex justify-between items-center mt-5 pt-3 border-t border-gray-100">
+                                                <span className="text-sm text-gray-900 bg-blue-50 px-2 py-1 rounded-md">
                                                     Available: {product.available_quantity}
                                                 </span>
                                                 <Button
@@ -407,8 +440,9 @@ export default function CreateTransferPage() {
                                                     size="xs"
                                                     onClick={() => addItemToTransfer(product)}
                                                     disabled={submitting}
+                                                    className="px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary/90 shadow-sm hover:shadow transition-all flex items-center gap-1"
                                                 >
-                                                    <Plus className="w-4 h-4 mr-1" />
+                                                    <Plus className="w-4 h-4" strokeWidth={2.5} />
                                                     Add
                                                 </Button>
                                             </div>
@@ -428,16 +462,19 @@ export default function CreateTransferPage() {
                     )}
 
                     {/* Transfer items */}
-                    <div>
-                        <div className="flex justify-between items-center mb-2">
+                    <div className="bg-white p-6 rounded-lg shadow-sm">
+                        <div className="flex items-center mb-4">
+                            <div className="p-2 bg-blue-50 rounded-md mr-3">
+                                <ArrowLeftRight className="h-5 w-5 text-primary" />
+                            </div>
                             <h2 className="text-lg font-semibold text-gray-900">Transfer Items</h2>
-                            <span className="text-sm text-gray-900">
+                            <span className="text-sm text-gray-900 bg-blue-50 px-2 py-1 rounded-md ml-auto">
                                 {transferItems.length} products ({totalItems} items total)
                             </span>
                         </div>
 
                         {transferItems.length > 0 ? (
-                            <div className="border border-gray-200 rounded-lg overflow-hidden">
+                            <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
                                 <table className="w-full text-sm text-left text-gray-900">
                                     <thead className="text-xs text-gray-900 uppercase bg-gray-50">
                                         <tr>
@@ -450,7 +487,7 @@ export default function CreateTransferPage() {
                                     </thead>
                                     <tbody>
                                         {transferItems.map((item, index) => (
-                                            <tr key={index} className="border-b">
+                                            <tr key={index} className="border-b hover:bg-gray-50 transition-colors duration-150">
                                                 <td className="px-6 py-4 font-medium text-gray-900">
                                                     {item.product.name}
                                                 </td>
@@ -461,7 +498,7 @@ export default function CreateTransferPage() {
                                                     <div className="flex items-center">
                                                         <button
                                                             type="button"
-                                                            className="text-gray-900 hover:text-red-500"
+                                                            className="flex items-center justify-center w-7 h-7 text-gray-900 hover:text-white bg-gray-100 hover:bg-red-500 rounded-md transition-colors"
                                                             onClick={() => updateItemQuantity(index, item.quantity - 1)}
                                                             disabled={item.quantity <= 1 || submitting}
                                                         >
@@ -469,7 +506,7 @@ export default function CreateTransferPage() {
                                                         </button>
                                                         <input
                                                             type="number"
-                                                            className="w-16 mx-2 border border-gray-300 rounded-md text-center p-1"
+                                                            className="w-16 mx-2 border border-gray-300 rounded-md text-center p-1 focus:ring-primary focus:border-primary"
                                                             value={item.quantity}
                                                             min={1}
                                                             max={item.product.available_quantity}
@@ -478,7 +515,7 @@ export default function CreateTransferPage() {
                                                         />
                                                         <button
                                                             type="button"
-                                                            className="text-gray-900 hover:text-green-500"
+                                                            className="flex items-center justify-center w-7 h-7 text-gray-900 hover:text-white bg-gray-100 hover:bg-green-500 rounded-md transition-colors"
                                                             onClick={() => updateItemQuantity(index, item.quantity + 1)}
                                                             disabled={item.quantity >= (item.product.available_quantity || 0) || submitting}
                                                         >
@@ -489,7 +526,7 @@ export default function CreateTransferPage() {
                                                 <td className="px-6 py-4">
                                                     <input
                                                         type="text"
-                                                        className="border border-gray-300 rounded-md p-1 w-full"
+                                                        className="border border-gray-300 rounded-md p-1 w-full focus:ring-primary focus:border-primary"
                                                         value={item.notes}
                                                         onChange={(e) => updateItemNotes(index, e.target.value)}
                                                         placeholder="Optional notes"
@@ -499,7 +536,7 @@ export default function CreateTransferPage() {
                                                 <td className="px-6 py-4">
                                                     <button
                                                         type="button"
-                                                        className="text-red-500 hover:text-red-700"
+                                                        className="flex items-center justify-center w-8 h-8 text-white bg-red-500 hover:bg-red-600 rounded-md shadow-sm transition-colors"
                                                         onClick={() => removeItem(index)}
                                                         disabled={submitting}
                                                     >
@@ -512,9 +549,11 @@ export default function CreateTransferPage() {
                                 </table>
                             </div>
                         ) : (
-                            <div className="border border-gray-200 border-dashed rounded-lg p-8 text-center">
-                                <ArrowLeftRight className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                                <p className="text-gray-900 mb-1">No items added to transfer yet</p>
+                            <div className="border border-gray-200 border-dashed rounded-lg p-8 text-center bg-gray-50">
+                                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-50 flex items-center justify-center">
+                                    <ArrowLeftRight className="h-8 w-8 text-blue-400" />
+                                </div>
+                                <p className="text-gray-900 font-medium mb-1">No items added to transfer yet</p>
                                 <p className="text-sm text-gray-900">
                                     Select a source shop and add products to begin
                                 </p>
