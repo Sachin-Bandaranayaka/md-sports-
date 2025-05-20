@@ -181,6 +181,7 @@ export function getUserId(req: NextRequest): number | null {
 
     try {
         const decodedToken = jwt.verify(token, JWT_SECRET);
+        // Get user ID from sub claim (standard JWT format)
         return typeof decodedToken === 'object' && decodedToken.sub ?
             Number(decodedToken.sub) : null;
     } catch (error) {
@@ -208,6 +209,7 @@ export function getShopId(req: NextRequest): number | null {
 
     try {
         const decodedToken = jwt.verify(token, JWT_SECRET);
+        // Extract shop ID from token 
         return typeof decodedToken === 'object' && decodedToken.shopId ?
             Number(decodedToken.shopId) : null;
     } catch (error) {
