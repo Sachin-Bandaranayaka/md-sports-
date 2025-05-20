@@ -1,9 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function SettingsPage() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
     const [activeTab, setActiveTab] = useState('general');
+
+    // Set the active tab from URL query parameter if present
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        if (tab && ['general', 'users', 'shops', 'system'].includes(tab)) {
+            setActiveTab(tab);
+        }
+    }, [searchParams]);
 
     const tabs = [
         { id: 'general', label: 'General Settings' },
@@ -24,8 +35,8 @@ export default function SettingsPage() {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`py-3 px-1 border-b-2 font-medium text-sm ${activeTab === tab.id
-                                        ? 'border-primary text-primary'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    ? 'border-primary text-primary'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                     }`}
                             >
                                 {tab.label}
@@ -100,7 +111,9 @@ export default function SettingsPage() {
                             <div className="bg-tertiary rounded-lg shadow-sm border border-gray-200">
                                 <div className="flex justify-between items-center p-4 border-b border-gray-200">
                                     <h4 className="text-md font-medium text-gray-900">System Users</h4>
-                                    <button className="px-3 py-1 text-sm bg-primary text-white rounded-md">
+                                    <button
+                                        onClick={() => router.push('/settings/users/add')}
+                                        className="px-3 py-1 text-sm bg-primary text-white rounded-md hover:bg-primary-dark">
                                         Add User
                                     </button>
                                 </div>

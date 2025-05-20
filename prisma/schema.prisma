@@ -17,6 +17,8 @@ model User {
   email            String             @unique
   password         String
   roleId           Int
+  roleName         String?
+  permissions      String[]           @default([])
   phone            String?
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
