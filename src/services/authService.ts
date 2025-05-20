@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
-import { User, Role, Permission } from '../lib/models';
+import bcrypt from 'bcryptjs';
+import prisma from '@/lib/prisma';
 
 // Secret key for JWT - should be moved to environment variables in production
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -18,17 +19,32 @@ interface TokenPayload {
  */
 export const authenticateUser = async (username: string, password: string) => {
     try {
-        // Find user by username
-        const user = await User.findOne({
-            where: { username, isActive: true },
-            include: [{
-                model: Role,
-                include: ['permissions']
-            }]
+        // Find user by username with role and permissions
+        const user = await prisma.user.findFirst({
+            where: {
+                username: username,
+                isActive: true
+            },
+            include: {
+                role: {
+                    include: {
+                        permissions: true
+                    }
+                }
+            }
         });
 
-        // If user not found or password doesn't match
-        if (!user || !(await user.authenticate(password))) {
+        // If user not found
+        if (!user) {
+            return {
+                success: false,
+                message: 'Invalid username or password'
+            };
+        }
+
+        // Verify password
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
             return {
                 success: false,
                 message: 'Invalid username or password'
@@ -36,13 +52,12 @@ export const authenticateUser = async (username: string, password: string) => {
         }
 
         // Get permissions from role
-        const role = user.get('role') as any;
-        const permissions = role?.permissions?.map((p: any) => p.name) || [];
+        const permissions = user.role.permissions.map(p => p.name);
 
         // Generate JWT token
         const token = generateToken({
             sub: user.id,
-            username: user.username,
+            username: user.name,
             roleId: user.roleId,
             shopId: user.shopId,
             permissions
@@ -53,11 +68,11 @@ export const authenticateUser = async (username: string, password: string) => {
             token,
             user: {
                 id: user.id,
-                username: user.username,
-                fullName: user.fullName,
+                username: user.name,
+                fullName: user.name,
                 email: user.email,
                 roleId: user.roleId,
-                roleName: role?.name,
+                roleName: user.role.name,
                 shopId: user.shopId,
                 permissions
             }
@@ -107,11 +122,17 @@ export const getUserFromToken = async (token: string) => {
     }
 
     try {
-        const user = await User.findByPk(payload.sub, {
-            include: [{
-                model: Role,
-                include: ['permissions']
-            }]
+        const user = await prisma.user.findUnique({
+            where: {
+                id: payload.sub
+            },
+            include: {
+                role: {
+                    include: {
+                        permissions: true
+                    }
+                }
+            }
         });
 
         if (!user || !user.isActive) {

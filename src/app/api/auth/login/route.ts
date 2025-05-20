@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/dbConnection';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import prisma from '@/lib/prisma';
 
 // JWT configuration - should be in environment variables in production
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -20,26 +20,31 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Find user by username
-        const userResult = await query(
-            'SELECT u.id, u.username, u."passwordHash", u."fullName", u.email, u."isActive", u."roleId", u."shopId", r.name as "roleName" ' +
-            'FROM users u ' +
-            'JOIN roles r ON u."roleId" = r.id ' +
-            'WHERE u.username = $1 AND u."isActive" = true',
-            [username]
-        );
+        // Find user by username with related role and permissions
+        const user = await prisma.user.findFirst({
+            where: {
+                username: username,
+                isActive: true
+            },
+            include: {
+                role: {
+                    include: {
+                        permissions: true
+                    }
+                },
+                shop: true
+            }
+        });
 
-        if (userResult.rows.length === 0) {
+        if (!user) {
             return NextResponse.json(
                 { success: false, message: 'Invalid username or password' },
                 { status: 401 }
             );
         }
 
-        const user = userResult.rows[0];
-
         // Check password
-        const passwordMatch = await bcrypt.compare(password, user.passwordHash);
+        const passwordMatch = await bcrypt.compare(password, user.password);
         if (!passwordMatch) {
             return NextResponse.json(
                 { success: false, message: 'Invalid username or password' },
@@ -47,21 +52,13 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Get permissions from role
-        const permissionsResult = await query(
-            'SELECT p.name ' +
-            'FROM permissions p ' +
-            'JOIN role_permissions rp ON p.id = rp."permissionId" ' +
-            'WHERE rp."roleId" = $1',
-            [user.roleId]
-        );
-
-        const permissions = permissionsResult.rows.map(p => p.name);
+        // Extract permissions
+        const permissions = user.role.permissions.map(p => p.name);
 
         // Generate JWT token
         const token = jwt.sign({
             userId: user.id,
-            username: user.username,
+            username: user.name,
             roleId: user.roleId,
             permissions
         }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
@@ -72,11 +69,11 @@ export async function POST(req: NextRequest) {
             token,
             user: {
                 id: user.id,
-                username: user.username,
-                fullName: user.fullName,
+                username: user.name,
+                fullName: user.name,
                 email: user.email,
                 roleId: user.roleId,
-                roleName: user.roleName,
+                roleName: user.role.name,
                 shopId: user.shopId,
                 permissions
             }

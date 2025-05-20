@@ -17,12 +17,23 @@ import {
     EyeOff,
     Loader2
 } from 'lucide-react';
+import { authFetch, authPost } from '@/utils/api';
 
 export default function Settings() {
     const [activeTab, setActiveTab] = useState('general');
 
     // Add modal state
     const [showAddUserModal, setShowAddUserModal] = useState(false);
+    const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+    const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+    const [selectedUserName, setSelectedUserName] = useState('');
+
+    // Password reset state
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmNewPassword, setConfirmNewPassword] = useState('');
+    const [passwordResetError, setPasswordResetError] = useState('');
+    const [passwordResetSuccess, setPasswordResetSuccess] = useState('');
+    const [passwordResetLoading, setPasswordResetLoading] = useState(false);
 
     // Form states
     const [isLoading, setIsLoading] = useState(false);
@@ -32,6 +43,7 @@ export default function Settings() {
     // List states
     const [shops, setShops] = useState<any[]>([]);
     const [roles, setRoles] = useState<any[]>([]);
+    const [users, setUsers] = useState<any[]>([]);
 
     // User form state
     const [userForm, setUserForm] = useState({
@@ -57,7 +69,7 @@ export default function Settings() {
         const fetchData = async () => {
             try {
                 // Fetch shops
-                const shopsResponse = await fetch('/api/shops');
+                const shopsResponse = await authFetch('/api/shops');
                 if (shopsResponse.ok) {
                     const shopsData = await shopsResponse.json();
                     if (shopsData.success) {
@@ -66,7 +78,7 @@ export default function Settings() {
                 }
 
                 // Fetch roles
-                const rolesResponse = await fetch('/api/users/roles');
+                const rolesResponse = await authFetch('/api/users/roles');
                 if (rolesResponse.ok) {
                     const rolesData = await rolesResponse.json();
                     if (rolesData.success) {
@@ -74,8 +86,17 @@ export default function Settings() {
                     }
                 }
 
+                // Fetch users
+                const usersResponse = await authFetch('/api/users');
+                if (usersResponse.ok) {
+                    const usersData = await usersResponse.json();
+                    if (usersData.success) {
+                        setUsers(usersData.data || []);
+                    }
+                }
+
                 // Fetch permissions
-                const permissionsResponse = await fetch('/api/permissions');
+                const permissionsResponse = await authFetch('/api/permissions');
                 if (permissionsResponse.ok) {
                     const permissionsData = await permissionsResponse.json();
                     if (permissionsData.success) {
@@ -259,6 +280,60 @@ export default function Settings() {
         }
     };
 
+    const handleOpenResetPassword = (userId: number, userName: string) => {
+        setSelectedUserId(userId);
+        setSelectedUserName(userName);
+        setNewPassword('');
+        setConfirmNewPassword('');
+        setPasswordResetError('');
+        setPasswordResetSuccess('');
+        setShowResetPasswordModal(true);
+    };
+
+    const handleResetPassword = async () => {
+        if (!selectedUserId) return;
+
+        setPasswordResetLoading(true);
+        setPasswordResetError('');
+        setPasswordResetSuccess('');
+
+        // Validate passwords
+        if (newPassword !== confirmNewPassword) {
+            setPasswordResetError("Passwords don't match");
+            setPasswordResetLoading(false);
+            return;
+        }
+
+        if (newPassword.length < 6) {
+            setPasswordResetError("Password must be at least 6 characters");
+            setPasswordResetLoading(false);
+            return;
+        }
+
+        try {
+            const response = await authPost(`/api/users/${selectedUserId}/reset-password`, {
+                newPassword
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                setPasswordResetSuccess('Password reset successfully');
+                // Close modal after a delay
+                setTimeout(() => {
+                    setShowResetPasswordModal(false);
+                }, 1500);
+            } else {
+                setPasswordResetError(data.message || 'Failed to reset password');
+            }
+        } catch (error) {
+            console.error('Error resetting password:', error);
+            setPasswordResetError('An error occurred. Please try again.');
+        } finally {
+            setPasswordResetLoading(false);
+        }
+    };
+
     return (
         <MainLayout>
             <div className="space-y-6">
@@ -411,51 +486,105 @@ export default function Settings() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr className="border-b hover:bg-gray-50">
-                                                <td className="px-6 py-4 font-medium text-gray-900">Admin User</td>
-                                                <td className="px-6 py-4">admin@mssport.lk</td>
-                                                <td className="px-6 py-4">Administrator</td>
-                                                <td className="px-6 py-4">All Shops</td>
-                                                <td className="px-6 py-4">
-                                                    <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">Active</span>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex gap-2">
-                                                        <Button variant="ghost" size="sm">Edit</Button>
-                                                        <Button variant="ghost" size="sm">Reset Password</Button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            <tr className="border-b hover:bg-gray-50">
-                                                <td className="px-6 py-4 font-medium text-gray-900">Manager User</td>
-                                                <td className="px-6 py-4">manager@mssport.lk</td>
-                                                <td className="px-6 py-4">Manager</td>
-                                                <td className="px-6 py-4">All Shops</td>
-                                                <td className="px-6 py-4">
-                                                    <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">Active</span>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex gap-2">
-                                                        <Button variant="ghost" size="sm">Edit</Button>
-                                                        <Button variant="ghost" size="sm">Reset Password</Button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            <tr className="border-b hover:bg-gray-50">
-                                                <td className="px-6 py-4 font-medium text-gray-900">Staff User</td>
-                                                <td className="px-6 py-4">staff@mssport.lk</td>
-                                                <td className="px-6 py-4">Staff</td>
-                                                <td className="px-6 py-4">Shop A</td>
-                                                <td className="px-6 py-4">
-                                                    <span className="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">Inactive</span>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex gap-2">
-                                                        <Button variant="ghost" size="sm">Edit</Button>
-                                                        <Button variant="ghost" size="sm">Reset Password</Button>
-                                                    </div>
-                                                </td>
-                                            </tr>
+                                            {users.length > 0 ? (
+                                                users.map((user) => (
+                                                    <tr key={user.id} className="border-b hover:bg-gray-50">
+                                                        <td className="px-6 py-4 font-medium text-gray-900">{user.fullName}</td>
+                                                        <td className="px-6 py-4">{user.email}</td>
+                                                        <td className="px-6 py-4">{user.role?.name || 'N/A'}</td>
+                                                        <td className="px-6 py-4">
+                                                            {user.shopId ? shops.find(shop => shop.id === user.shopId)?.name : 'All Shops'}
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <span className={`px-2 py-1 rounded-full text-xs ${user.isActive
+                                                                ? 'bg-green-100 text-green-800'
+                                                                : 'bg-yellow-100 text-yellow-800'
+                                                                }`}>
+                                                                {user.isActive ? 'Active' : 'Inactive'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="flex gap-2">
+                                                                <Button variant="ghost" size="sm">Edit</Button>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() => handleOpenResetPassword(user.id, user.fullName)}
+                                                                >
+                                                                    Reset Password
+                                                                </Button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            ) : (
+                                                // Fallback to static data if no users are fetched
+                                                <>
+                                                    <tr className="border-b hover:bg-gray-50">
+                                                        <td className="px-6 py-4 font-medium text-gray-900">Admin User</td>
+                                                        <td className="px-6 py-4">admin@mssport.lk</td>
+                                                        <td className="px-6 py-4">Administrator</td>
+                                                        <td className="px-6 py-4">All Shops</td>
+                                                        <td className="px-6 py-4">
+                                                            <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">Active</span>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="flex gap-2">
+                                                                <Button variant="ghost" size="sm">Edit</Button>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() => handleOpenResetPassword(1, 'Admin User')}
+                                                                >
+                                                                    Reset Password
+                                                                </Button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr className="border-b hover:bg-gray-50">
+                                                        <td className="px-6 py-4 font-medium text-gray-900">Manager User</td>
+                                                        <td className="px-6 py-4">manager@mssport.lk</td>
+                                                        <td className="px-6 py-4">Manager</td>
+                                                        <td className="px-6 py-4">All Shops</td>
+                                                        <td className="px-6 py-4">
+                                                            <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">Active</span>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="flex gap-2">
+                                                                <Button variant="ghost" size="sm">Edit</Button>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() => handleOpenResetPassword(2, 'Manager User')}
+                                                                >
+                                                                    Reset Password
+                                                                </Button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr className="border-b hover:bg-gray-50">
+                                                        <td className="px-6 py-4 font-medium text-gray-900">Staff User</td>
+                                                        <td className="px-6 py-4">staff@mssport.lk</td>
+                                                        <td className="px-6 py-4">Staff</td>
+                                                        <td className="px-6 py-4">Shop A</td>
+                                                        <td className="px-6 py-4">
+                                                            <span className="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">Inactive</span>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="flex gap-2">
+                                                                <Button variant="ghost" size="sm">Edit</Button>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() => handleOpenResetPassword(3, 'Staff User')}
+                                                                >
+                                                                    Reset Password
+                                                                </Button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                </>
+                                            )}
                                         </tbody>
                                     </table>
                                 </div>
@@ -862,6 +991,92 @@ export default function Settings() {
                                         </Button>
                                     </div>
                                 </form>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Reset Password Modal */}
+                {showResetPasswordModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+                        <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+                            <div className="flex items-center justify-between p-4 border-b">
+                                <h3 className="text-lg font-medium">Reset Password for {selectedUserName}</h3>
+                                <button
+                                    onClick={() => setShowResetPasswordModal(false)}
+                                    className="text-gray-400 hover:text-gray-500"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="p-6">
+                                {passwordResetError && (
+                                    <div className="mb-4 bg-red-50 text-red-700 p-3 rounded-md text-sm">
+                                        {passwordResetError}
+                                    </div>
+                                )}
+
+                                {passwordResetSuccess && (
+                                    <div className="mb-4 bg-green-50 text-green-700 p-3 rounded-md text-sm">
+                                        {passwordResetSuccess}
+                                    </div>
+                                )}
+
+                                <form className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            New Password
+                                        </label>
+                                        <div className="relative">
+                                            <input
+                                                type={showPassword ? 'text' : 'password'}
+                                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5 pr-10"
+                                                value={newPassword}
+                                                onChange={(e) => setNewPassword(e.target.value)}
+                                                required
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                                className="absolute inset-y-0 right-0 flex items-center pr-3"
+                                            >
+                                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Confirm New Password
+                                        </label>
+                                        <input
+                                            type={showPassword ? 'text' : 'password'}
+                                            className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                                            value={confirmNewPassword}
+                                            onChange={(e) => setConfirmNewPassword(e.target.value)}
+                                            required
+                                        />
+                                    </div>
+                                </form>
+                            </div>
+
+                            <div className="flex justify-end gap-3 p-4 border-t">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setShowResetPasswordModal(false)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    variant="primary"
+                                    size="sm"
+                                    isLoading={passwordResetLoading}
+                                    onClick={handleResetPassword}
+                                >
+                                    Reset Password
+                                </Button>
                             </div>
                         </div>
                     </div>

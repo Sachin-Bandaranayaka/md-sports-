@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
-import db from '@/utils/db';
 import jwt from 'jsonwebtoken';
+import prisma from '@/lib/prisma';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-key-for-development';
 
@@ -55,12 +55,14 @@ export const requireAuth = () => {
             }
 
             // Check if user exists and is active
-            const userResult = await db.query(
-                'SELECT * FROM users WHERE id = $1 AND is_active = true',
-                [payload.sub]
-            );
+            const user = await prisma.user.findFirst({
+                where: {
+                    id: Number(payload.sub),
+                    isActive: true
+                }
+            });
 
-            if (userResult.rows.length === 0) {
+            if (!user) {
                 return NextResponse.json(
                     { success: false, message: 'User not found or inactive' },
                     { status: 401 }
@@ -109,19 +111,31 @@ export const requirePermission = (permission: string) => {
                 );
             }
 
-            // Get user's permissions based on their role
-            const permissionsResult = await db.query(`
-                SELECT p.name
-                FROM permissions p
-                JOIN role_permissions rp ON p.id = rp."permissionId"
-                JOIN users u ON u."roleId" = rp."roleId"
-                WHERE u.id = $1
-            `, [payload.sub]);
+            const userId = Number(payload.sub);
 
-            const userPermissions = permissionsResult.rows.map(row => row.name);
+            // Get user's role with permissions
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                include: {
+                    role: {
+                        include: {
+                            permissions: true
+                        }
+                    }
+                }
+            });
+
+            if (!user || !user.role || !user.role.permissions) {
+                return NextResponse.json(
+                    { success: false, message: 'User role or permissions not found' },
+                    { status: 403 }
+                );
+            }
 
             // Check if user has the required permission
-            if (!userPermissions.includes(permission)) {
+            const hasPermission = user.role.permissions.some(p => p.name === permission);
+
+            if (!hasPermission) {
                 return NextResponse.json(
                     { success: false, message: 'Permission denied' },
                     { status: 403 }
@@ -158,7 +172,7 @@ export function getUserId(req: NextRequest): number | null {
 
     try {
         const decodedToken = jwt.verify(token, JWT_SECRET);
-        return typeof decodedToken === 'object' && decodedToken.sub ? 
+        return typeof decodedToken === 'object' && decodedToken.sub ?
             Number(decodedToken.sub) : null;
     } catch (error) {
         console.error('Token verification error:', error);
@@ -185,7 +199,7 @@ export function getShopId(req: NextRequest): number | null {
 
     try {
         const decodedToken = jwt.verify(token, JWT_SECRET);
-        return typeof decodedToken === 'object' && decodedToken.shopId ? 
+        return typeof decodedToken === 'object' && decodedToken.shopId ?
             Number(decodedToken.shopId) : null;
     } catch (error) {
         console.error('Token verification error:', error);

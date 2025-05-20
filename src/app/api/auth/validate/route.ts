@@ -32,19 +32,19 @@ export async function GET(req: NextRequest) {
             );
         }
 
-        // Return user data
-        const role = user.get('role') as { name: string; permissions?: Array<{ name: string }> };
-        const permissions = role?.permissions?.map((p: { name: string }) => p.name) || [];
+        // Extract permissions from user with Prisma structure
+        const permissions = user.role.permissions.map(p => p.name);
 
+        // Return user data with field names matching the Prisma model
         return NextResponse.json({
             success: true,
             user: {
                 id: user.id,
-                username: user.username,
-                fullName: user.fullName,
+                username: user.name,
+                fullName: user.name,
                 email: user.email,
                 roleId: user.roleId,
-                roleName: role?.name,
+                roleName: user.role.name,
                 shopId: user.shopId,
                 permissions
             }

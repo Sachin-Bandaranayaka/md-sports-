@@ -1,0 +1,288 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model
+model User {
+  id               Int                @id @default(autoincrement())
+  name             String
+  email            String             @unique
+  password         String
+  roleId           Int
+  phone            String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  isActive         Boolean            @default(true)
+  role             Role               @relation(fields: [roleId], references: [id])
+  inventoryTransferFrom InventoryTransfer[] @relation("FromUser")
+  inventoryTransferTo InventoryTransfer[]   @relation("ToUser")
+  notifications    Notification[]
+  shopId           Int?
+  shop             Shop?              @relation(fields: [shopId], references: [id])
+}
+
+// Role model
+model Role {
+  id               Int                @id @default(autoincrement())
+  name             String             @unique
+  description      String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  users            User[]
+  permissions      Permission[]
+}
+
+// Permission model
+model Permission {
+  id               Int                @id @default(autoincrement())
+  name             String             @unique
+  description      String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  roles            Role[]
+}
+
+// Shop/Store model
+model Shop {
+  id               Int                @id @default(autoincrement())
+  name             String
+  location         String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  users            User[]
+  products         Product[]
+  inventoryItems   InventoryItem[]
+  transfersFrom    InventoryTransfer[] @relation("FromShop")
+  transfersTo      InventoryTransfer[] @relation("ToShop")
+}
+
+// Product model
+model Product {
+  id               Int                @id @default(autoincrement())
+  name             String
+  description      String?
+  price            Float
+  cost             Float?
+  sku              String?            @unique
+  barcode          String?
+  categoryId       Int?
+  shopId           Int?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  category         Category?          @relation(fields: [categoryId], references: [id])
+  shop             Shop?              @relation(fields: [shopId], references: [id])
+  inventoryItems   InventoryItem[]
+  invoiceItems     InvoiceItem[]
+  quotationItems   QuotationItem[]
+  purchaseItems    PurchaseInvoiceItem[]
+  transferItems    TransferItem[]
+}
+
+// Category model
+model Category {
+  id               Int                @id @default(autoincrement())
+  name             String
+  description      String?
+  parentId         Int?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  parent           Category?          @relation("SubCategories", fields: [parentId], references: [id])
+  subCategories    Category[]         @relation("SubCategories")
+  products         Product[]
+}
+
+// InventoryItem model
+model InventoryItem {
+  id               Int                @id @default(autoincrement())
+  productId        Int
+  quantity         Int
+  shopId           Int
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  product          Product            @relation(fields: [productId], references: [id])
+  shop             Shop               @relation(fields: [shopId], references: [id])
+}
+
+// InventoryTransfer model
+model InventoryTransfer {
+  id               Int                @id @default(autoincrement())
+  fromShopId       Int
+  toShopId         Int
+  fromUserId       Int
+  toUserId         Int
+  status           String
+  notes            String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  fromShop         Shop               @relation("FromShop", fields: [fromShopId], references: [id])
+  toShop           Shop               @relation("ToShop", fields: [toShopId], references: [id])
+  fromUser         User               @relation("FromUser", fields: [fromUserId], references: [id])
+  toUser           User               @relation("ToUser", fields: [toUserId], references: [id])
+  transferItems    TransferItem[]
+}
+
+// TransferItem model
+model TransferItem {
+  id               Int                @id @default(autoincrement())
+  transferId       Int
+  productId        Int
+  quantity         Int
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  transfer         InventoryTransfer  @relation(fields: [transferId], references: [id])
+  product          Product            @relation(fields: [productId], references: [id])
+}
+
+// Customer model
+model Customer {
+  id               Int                @id @default(autoincrement())
+  name             String
+  email            String?
+  phone            String?
+  address          String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  invoices         Invoice[]
+  quotations       Quotation[]
+  payments         Payment[]
+}
+
+// Supplier model
+model Supplier {
+  id               Int                @id @default(autoincrement())
+  name             String
+  email            String?
+  phone            String?
+  address          String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  purchaseInvoices PurchaseInvoice[]
+}
+
+// Invoice model
+model Invoice {
+  id               Int                @id @default(autoincrement())
+  invoiceNumber    String             @unique
+  customerId       Int
+  total            Float
+  status           String
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  customer         Customer           @relation(fields: [customerId], references: [id])
+  items            InvoiceItem[]
+  payments         Payment[]
+}
+
+// InvoiceItem model
+model InvoiceItem {
+  id               Int                @id @default(autoincrement())
+  invoiceId        Int
+  productId        Int
+  quantity         Int
+  price            Float
+  total            Float
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  invoice          Invoice            @relation(fields: [invoiceId], references: [id])
+  product          Product            @relation(fields: [productId], references: [id])
+}
+
+// Payment model
+model Payment {
+  id               Int                @id @default(autoincrement())
+  invoiceId        Int
+  customerId       Int
+  amount           Float
+  paymentMethod    String
+  referenceNumber  String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  invoice          Invoice            @relation(fields: [invoiceId], references: [id])
+  customer         Customer           @relation(fields: [customerId], references: [id])
+}
+
+// Quotation model
+model Quotation {
+  id               Int                @id @default(autoincrement())
+  quotationNumber  String             @unique
+  customerId       Int
+  total            Float
+  status           String
+  validUntil       DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  customer         Customer           @relation(fields: [customerId], references: [id])
+  items            QuotationItem[]
+}
+
+// QuotationItem model
+model QuotationItem {
+  id               Int                @id @default(autoincrement())
+  quotationId      Int
+  productId        Int
+  quantity         Int
+  price            Float
+  total            Float
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  quotation        Quotation          @relation(fields: [quotationId], references: [id])
+  product          Product            @relation(fields: [productId], references: [id])
+}
+
+// PurchaseInvoice model
+model PurchaseInvoice {
+  id               Int                @id @default(autoincrement())
+  invoiceNumber    String             @unique
+  supplierId       Int
+  total            Float
+  status           String
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  supplier         Supplier           @relation(fields: [supplierId], references: [id])
+  items            PurchaseInvoiceItem[]
+}
+
+// PurchaseInvoiceItem model
+model PurchaseInvoiceItem {
+  id               Int                @id @default(autoincrement())
+  purchaseInvoiceId Int
+  productId        Int
+  quantity         Int
+  price            Float
+  total            Float
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  purchaseInvoice  PurchaseInvoice    @relation(fields: [purchaseInvoiceId], references: [id])
+  product          Product            @relation(fields: [productId], references: [id])
+}
+
+// Notification model
+model Notification {
+  id               Int                @id @default(autoincrement())
+  userId           Int
+  title            String
+  message          String
+  isRead           Boolean            @default(false)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  user             User               @relation(fields: [userId], references: [id])
+}
+
+// AuditLog model
+model AuditLog {
+  id               Int                @id @default(autoincrement())
+  userId           Int?
+  action           String
+  entity           String
+  entityId         Int?
+  details          Json?
+  createdAt        DateTime           @default(now())
+} 
