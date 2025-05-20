@@ -1,7 +1,7 @@
 import { Pool } from 'pg';
 
 // Get database URL from environment variable or use default
-const connectionString = process.env.DATABASE_URL || 'postgres://localhost:5432/mdsports';
+const connectionString = process.env.DATABASE_URL || 'postgres://localhost:5432/mssport';
 
 // Create a pool of connections
 const pool = new Pool({

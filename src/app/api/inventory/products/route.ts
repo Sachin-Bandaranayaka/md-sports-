@@ -17,7 +17,10 @@ export async function GET(req: NextRequest) {
         const searchTerm = url.searchParams.get('search');
 
         // Build query conditions
-        const where: any = {};
+        const where: {
+            categoryId?: number;
+            name?: { [key: symbol]: string };
+        } = {};
 
         if (categoryId) {
             where.categoryId = parseInt(categoryId);

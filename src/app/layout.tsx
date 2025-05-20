@@ -6,8 +6,7 @@ import { AuthProvider } from '@/hooks/useAuth';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'MD Sports - Inventory Management',
-  description: 'Inventory management system for MD Sports',
+  title: 'MS Sport - Inventory Management', description: 'Inventory management system for MS Sport',
 };
 
 export default function RootLayout({

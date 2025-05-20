@@ -4,7 +4,7 @@ import { testConnection, query } from '@/lib/dbConnection';
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { username, password } = body;
+        const { username, _password } = body;
 
         // Test database connection
         const connected = await testConnection();

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Loader2, ArrowLeft, Check, X, AlertCircle } from 'lucide-react';
 import { formatDate } from '@/utils/formatters';
 import { useAuth } from '@/hooks/useAuth';
+import { authFetch } from '@/utils/api';
 
 interface TransferItem {
     id: number;
@@ -45,12 +46,7 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
     useEffect(() => {
         const fetchTransfer = async () => {
             try {
-                const token = localStorage.getItem('authToken');
-                const response = await fetch(`/api/inventory/transfers/${params.id}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                const response = await authFetch(`/api/inventory/transfers/${params.id}`);
                 if (!response.ok) {
                     throw new Error('Failed to load transfer details');
                 }
@@ -85,11 +81,8 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
             setActionLoading(true);
             setError(null);
             try {
-                const response = await fetch(`/api/inventory/transfers/${params.id}`, {
+                const response = await authFetch(`/api/inventory/transfers/${params.id}`, {
                     method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
                     body: JSON.stringify({ action: 'complete' })
                 });
 
@@ -116,11 +109,8 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
             setActionLoading(true);
             setError(null);
             try {
-                const response = await fetch(`/api/inventory/transfers/${params.id}`, {
+                const response = await authFetch(`/api/inventory/transfers/${params.id}`, {
                     method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
                     body: JSON.stringify({ action: 'cancel' })
                 });
 
@@ -147,7 +137,7 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
             setActionLoading(true);
             setError(null);
             try {
-                const response = await fetch(`/api/inventory/transfers/${params.id}`, {
+                const response = await authFetch(`/api/inventory/transfers/${params.id}`, {
                     method: 'DELETE'
                 });
 

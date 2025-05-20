@@ -5,8 +5,11 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { useAuth } from '@/hooks/useAuth';
+import { authPost } from '@/utils/api';
 
 export default function LoginPage() {
+    const { login } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [debugInfo, setDebugInfo] = useState<any>(null);
@@ -36,13 +39,7 @@ export default function LoginPage() {
 
         // First try the debug endpoint
         try {
-            const debugResponse = await fetch('/api/auth/debug', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ username, password }),
-            });
+            const debugResponse = await authPost('/api/auth/debug', { username, password });
 
             // Check if the response is actually JSON
             const contentType = debugResponse.headers.get('content-type');
@@ -71,38 +68,9 @@ export default function LoginPage() {
             return;
         }
 
-        // Try the API login
+        // Try the auth login using the useAuth hook
         try {
-            const response = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ username, password }),
-            });
-
-            // Check if the response is actually JSON
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                const data = await response.json();
-
-                if (data.success) {
-                    // Store token and user data
-                    localStorage.setItem('authToken', data.token);
-                    localStorage.setItem('userData', JSON.stringify(data.user));
-
-                    // Redirect to dashboard
-                    router.push('/dashboard');
-                } else {
-                    setError(data.message || 'Invalid username or password');
-                    setIsLoading(false);
-                }
-            } else {
-                const textResponse = await response.text();
-                console.error('Non-JSON response:', textResponse);
-                setError('Server returned an error response');
-                setIsLoading(false);
-            }
+            await login(username, password);
         } catch (error) {
             console.error('Login error:', error);
             setError(`Login API error: ${(error as Error).message}`);
@@ -127,7 +95,7 @@ export default function LoginPage() {
         <div className="min-h-screen bg-gray-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-md w-full space-y-8">
                 <div className="text-center">
-                    <h1 className="text-3xl font-extrabold text-gray-900">MD Sports</h1>
+                    <h1 className="text-3xl font-extrabold text-gray-900">MS Sport</h1>
                     <h2 className="mt-2 text-xl text-primary">Inventory Management System</h2>
                 </div>
 

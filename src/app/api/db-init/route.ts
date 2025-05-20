@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import sequelize from '@/lib/db';
-import { Product, Category, Shop, InventoryItem } from '@/lib/models';
 
 export async function POST(request: Request) {
     try {

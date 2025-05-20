@@ -1,6 +1,6 @@
-const sequelize = require('./db').default;
-const testConnection = require('./db').testConnection;
-const {
+import sequelizeModule from './db';
+import { testConnection } from './db';
+import {
     Product,
     Category,
     Shop,
@@ -9,8 +9,10 @@ const {
     Role,
     Permission,
     Customer
-} = require('./models');
-const bcrypt = require('bcryptjs');
+} from './models';
+import bcrypt from 'bcryptjs';
+
+const sequelize = sequelizeModule;
 
 // Function to sync database schema
 const syncDatabase = async (force = false) => {
@@ -86,19 +88,19 @@ const seedTestData = async () => {
 
         // Create shops
         const mainStore = await Shop.create({
-            name: 'MD Sports Main Store',
+            name: 'MS Sport Main Store',
             location: 'Colombo',
             contactPerson: 'John Doe',
             phone: '+94123456789',
-            email: 'main@mdsports.lk'
+            email: 'main@mssport.lk'
         });
 
         const branchStore = await Shop.create({
-            name: 'MD Sports Kandy Branch',
+            name: 'MS Sport Kandy Branch',
             location: 'Kandy',
             contactPerson: 'Jane Smith',
             phone: '+94123456790',
-            email: 'kandy@mdsports.lk'
+            email: 'kandy@mssport.lk'
         });
 
         // Create inventory items
@@ -205,7 +207,7 @@ const seedTestData = async () => {
             username: 'admin',
             passwordHash: adminPassword,
             fullName: 'System Administrator',
-            email: 'admin@mdsports.lk',
+            email: 'admin@mssport.lk',
             phone: '+94123456789',
             roleId: adminRole.id
         });
@@ -215,7 +217,7 @@ const seedTestData = async () => {
             username: 'manager',
             passwordHash: managerPassword,
             fullName: 'Main Store Manager',
-            email: 'manager@mdsports.lk',
+            email: 'manager@mssport.lk',
             phone: '+94123456790',
             roleId: managerRole.id,
             shopId: mainStore.id
@@ -226,7 +228,7 @@ const seedTestData = async () => {
             username: 'cashier',
             passwordHash: cashierPassword,
             fullName: 'Main Store Cashier',
-            email: 'cashier@mdsports.lk',
+            email: 'cashier@mssport.lk',
             phone: '+94123456791',
             roleId: cashierRole.id,
             shopId: mainStore.id

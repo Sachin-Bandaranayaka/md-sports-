@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Search, Plus, Edit, Trash, FileText, ExternalLink, Calendar, DollarSign, X, Copy } from 'lucide-react';
+import { Search, Plus, Edit, Trash, FileText, ExternalLink, Calendar, X, Copy } from 'lucide-react';
 import { SalesQuotation } from '@/types';
 
 // Status badge colors
@@ -103,7 +103,7 @@ export default function Quotations() {
     const handleDuplicateQuotation = async (quotation: SalesQuotation) => {
         try {
             // Create a copy of the quotation without the id and with a new date
-            const { id, quotationNumber, createdAt, updatedAt, ...quotationData } = quotation;
+            const { id: _id, quotationNumber: _quotationNumber, createdAt: _createdAt, updatedAt: _updatedAt, ...quotationData } = quotation;
 
             const duplicatedQuotation = {
                 ...quotationData,

@@ -336,7 +336,7 @@ export default function Settings() {
                                         <input
                                             type="text"
                                             className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
-                                            defaultValue="MD Sports"
+                                            defaultValue="MS Sport"
                                         />
                                     </div>
 
@@ -345,7 +345,7 @@ export default function Settings() {
                                         <input
                                             type="email"
                                             className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
-                                            defaultValue="info@mdsports.com"
+                                            defaultValue="info@mssport.lk"
                                         />
                                     </div>
 
@@ -413,7 +413,7 @@ export default function Settings() {
                                         <tbody>
                                             <tr className="border-b hover:bg-gray-50">
                                                 <td className="px-6 py-4 font-medium text-gray-900">Admin User</td>
-                                                <td className="px-6 py-4">admin@mdsports.com</td>
+                                                <td className="px-6 py-4">admin@mssport.lk</td>
                                                 <td className="px-6 py-4">Administrator</td>
                                                 <td className="px-6 py-4">All Shops</td>
                                                 <td className="px-6 py-4">
@@ -428,7 +428,7 @@ export default function Settings() {
                                             </tr>
                                             <tr className="border-b hover:bg-gray-50">
                                                 <td className="px-6 py-4 font-medium text-gray-900">Manager User</td>
-                                                <td className="px-6 py-4">manager@mdsports.com</td>
+                                                <td className="px-6 py-4">manager@mssport.lk</td>
                                                 <td className="px-6 py-4">Manager</td>
                                                 <td className="px-6 py-4">All Shops</td>
                                                 <td className="px-6 py-4">
@@ -443,7 +443,7 @@ export default function Settings() {
                                             </tr>
                                             <tr className="border-b hover:bg-gray-50">
                                                 <td className="px-6 py-4 font-medium text-gray-900">Staff User</td>
-                                                <td className="px-6 py-4">staff@mdsports.com</td>
+                                                <td className="px-6 py-4">staff@mssport.lk</td>
                                                 <td className="px-6 py-4">Staff</td>
                                                 <td className="px-6 py-4">Shop A</td>
                                                 <td className="px-6 py-4">

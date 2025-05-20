@@ -3,10 +3,11 @@ import db from '@/utils/db';
 
 export async function GET(
     request: Request,
-    { params }: { params: { id: string } }
+    context: { params: { id: string } }
 ) {
     try {
-        const id = parseInt(params.id);
+        const { id: idParam } = context.params;
+        const id = parseInt(idParam);
 
         if (isNaN(id)) {
             return NextResponse.json({
@@ -47,7 +48,7 @@ export async function GET(
             data: product
         });
     } catch (error) {
-        console.error(`Error fetching product with ID ${params.id}:`, error);
+        console.error(`Error fetching product:`, error);
         return NextResponse.json({
             success: false,
             message: 'Error fetching product',
@@ -58,10 +59,11 @@ export async function GET(
 
 export async function PUT(
     request: Request,
-    { params }: { params: { id: string } }
+    context: { params: { id: string } }
 ) {
     try {
-        const id = parseInt(params.id);
+        const { id: idParam } = context.params;
+        const id = parseInt(idParam);
 
         if (isNaN(id)) {
             return NextResponse.json({
@@ -114,7 +116,7 @@ export async function PUT(
             data: result.rows[0]
         });
     } catch (error) {
-        console.error(`Error updating product with ID ${params.id}:`, error);
+        console.error(`Error updating product:`, error);
         return NextResponse.json({
             success: false,
             message: 'Error updating product',
@@ -125,10 +127,11 @@ export async function PUT(
 
 export async function DELETE(
     request: Request,
-    { params }: { params: { id: string } }
+    context: { params: { id: string } }
 ) {
     try {
-        const id = parseInt(params.id);
+        const { id: idParam } = context.params;
+        const id = parseInt(idParam);
 
         if (isNaN(id)) {
             return NextResponse.json({
@@ -157,7 +160,7 @@ export async function DELETE(
             message: 'Product deleted successfully'
         });
     } catch (error) {
-        console.error(`Error deleting product with ID ${params.id}:`, error);
+        console.error(`Error deleting product:`, error);
         return NextResponse.json({
             success: false,
             message: 'Error deleting product',

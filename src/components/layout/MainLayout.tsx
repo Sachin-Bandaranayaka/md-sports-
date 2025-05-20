@@ -95,7 +95,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                 {/* Header */}
                 <div className="flex items-center justify-between h-16 px-4 border-b border-gray-800 flex-shrink-0">
                     <div className="flex items-center">
-                        <span className="text-xl font-bold text-primary">MD Sports</span>
+                        <span className="text-xl font-bold text-primary">MS Sport</span>
                     </div>
                     <button
                         className="md:hidden text-tertiary hover:text-primary"

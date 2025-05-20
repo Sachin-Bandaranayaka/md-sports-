@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Search, Plus, Edit, Trash, Calendar, DollarSign, X, ArrowUp, ArrowDown, Filter } from 'lucide-react';
+import { Search, Plus, Edit, Trash, X, ArrowUp, ArrowDown, Filter } from 'lucide-react';
 import { Transaction, Account } from '@/types';
 
 // Dummy data for demonstration
@@ -258,8 +258,8 @@ export default function Accounting() {
                         <button
                             onClick={() => setActiveTab('transactions')}
                             className={`py-2 px-1 text-sm font-medium ${activeTab === 'transactions'
-                                    ? 'text-blue-600 border-b-2 border-blue-600'
-                                    : 'text-gray-500 hover:text-gray-700'
+                                ? 'text-blue-600 border-b-2 border-blue-600'
+                                : 'text-gray-500 hover:text-gray-700'
                                 }`}
                         >
                             Transactions
@@ -267,8 +267,8 @@ export default function Accounting() {
                         <button
                             onClick={() => setActiveTab('accounts')}
                             className={`py-2 px-1 text-sm font-medium ${activeTab === 'accounts'
-                                    ? 'text-blue-600 border-b-2 border-blue-600'
-                                    : 'text-gray-500 hover:text-gray-700'
+                                ? 'text-blue-600 border-b-2 border-blue-600'
+                                : 'text-gray-500 hover:text-gray-700'
                                 }`}
                         >
                             Accounts
@@ -335,8 +335,8 @@ export default function Accounting() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className={`flex items-center space-x-1 ${transaction.type === 'income'
-                                                        ? 'text-green-600'
-                                                        : 'text-red-600'
+                                                    ? 'text-green-600'
+                                                    : 'text-red-600'
                                                     }`}>
                                                     {transaction.type === 'income' ? (
                                                         <ArrowUp className="w-4 h-4" />
@@ -347,8 +347,8 @@ export default function Accounting() {
                                                 </span>
                                             </td>
                                             <td className={`px-6 py-4 font-medium ${transaction.type === 'income'
-                                                    ? 'text-green-600'
-                                                    : 'text-red-600'
+                                                ? 'text-green-600'
+                                                : 'text-red-600'
                                                 }`}>
                                                 {transaction.type === 'income' ? '+' : '-'} Rs. {transaction.amount.toLocaleString()}
                                             </td>
@@ -413,8 +413,8 @@ export default function Accounting() {
                                                 {account.type}
                                             </td>
                                             <td className={`px-6 py-4 font-medium ${['income', 'asset'].includes(account.type)
-                                                    ? 'text-green-600'
-                                                    : 'text-red-600'
+                                                ? 'text-green-600'
+                                                : 'text-red-600'
                                                 }`}>
                                                 Rs. {account.balance.toLocaleString()}
                                             </td>
@@ -423,8 +423,8 @@ export default function Accounting() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className={`px-2 py-1 rounded-full text-xs ${account.isActive
-                                                        ? 'bg-green-100 text-green-800'
-                                                        : 'bg-red-100 text-red-800'
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : 'bg-red-100 text-red-800'
                                                     }`}>
                                                     {account.isActive ? 'Active' : 'Inactive'}
                                                 </span>

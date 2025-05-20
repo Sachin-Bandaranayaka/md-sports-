@@ -9,7 +9,7 @@ try {
     const client = new pg.Client({
         host: 'localhost',
         port: 5432,
-        database: 'mdsports',
+        database: 'mssport',
         user: 'postgres',  // Replace with your actual database user
         password: 'postgres',  // Replace with your actual database password
         ssl: false

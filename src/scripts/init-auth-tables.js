@@ -242,7 +242,7 @@ async function initAuthTables() {
       username: 'admin',
       passwordHash: adminPassword,
       fullName: 'System Administrator',
-      email: 'admin@mdsports.lk',
+      email: 'admin@mssport.lk',
       phone: '+94123456789',
       roleId: adminRole.id
     });

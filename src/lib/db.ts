@@ -2,7 +2,7 @@ import { Sequelize } from 'sequelize';
 import pg from 'pg'; // Import pg
 
 // Get database connection string from environment variable
-const databaseUrl = process.env.DATABASE_URL || 'postgres://localhost:5432/mdsports';
+const databaseUrl = process.env.DATABASE_URL || 'postgres://localhost:5432/mssport';
 
 // Create a function to initialize the database connection
 const initializeSequelize = () => {

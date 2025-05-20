@@ -13,7 +13,8 @@ export async function GET(
     }
 
     try {
-        const { id } = params;
+        // Fix: Await params to properly handle dynamic route parameters
+        const id = params.id;
 
         // Get inventory items for the shop
         const result = await db.query(

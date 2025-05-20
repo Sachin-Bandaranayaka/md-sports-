@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Loader2, ArrowLeftRight, FileText, Plus, Filter, Search } from 'lucide-react';
+import { Loader2, ArrowLeftRight, FileText, Plus, Search } from 'lucide-react';
 import { formatDate } from '@/utils/formatters';
 import { useAuth } from '@/hooks/useAuth';
+import { authFetch } from '@/utils/api';
 
 interface TransferItem {
     id: number;
@@ -37,22 +38,9 @@ export default function TransfersPage() {
             try {
                 setLoading(true);
                 setError(null);
-                
-                // Get the token from localStorage
-                const token = localStorage.getItem('authToken');
-                
-                if (!token) {
-                    throw new Error('Authentication token missing');
-                }
-                
-                const response = await fetch('/api/inventory/transfers', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
+
+                const response = await authFetch('/api/inventory/transfers');
+
                 if (!response.ok) {
                     if (response.status === 401) {
                         throw new Error('Authentication failed. Please login again.');
@@ -142,6 +130,8 @@ export default function TransfersPage() {
                         <p className="text-gray-500">Manage transfers between shops</p>
                     </div>
                     <div className="flex gap-3">
+                        {console.log('User permissions:', user?.permissions)}
+                        {console.log('Has transfer permission:', user?.permissions?.includes('inventory:transfer'))}
                         <Button
                             variant="outline"
                             size="sm"
@@ -160,6 +150,15 @@ export default function TransfersPage() {
                                 New Transfer
                             </Button>
                         )}
+                        {/* Debug button always visible */}
+                        <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={handleNewTransfer}
+                        >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Debug New Transfer
+                        </Button>
                     </div>
                 </div>
 

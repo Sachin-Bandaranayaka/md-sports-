@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Supplier } from '@/lib/models';
 
 // GET /api/suppliers - Get all suppliers
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
     try {
         const suppliers = await Supplier.findAll({
             order: [['createdAt', 'DESC']]

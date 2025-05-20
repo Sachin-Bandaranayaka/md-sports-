@@ -33,8 +33,8 @@ export async function GET(req: NextRequest) {
         }
 
         // Return user data
-        const role = user.get('role') as any;
-        const permissions = role?.permissions?.map((p: any) => p.name) || [];
+        const role = user.get('role') as { name: string; permissions?: Array<{ name: string }> };
+        const permissions = role?.permissions?.map((p: { name: string }) => p.name) || [];
 
         return NextResponse.json({
             success: true,

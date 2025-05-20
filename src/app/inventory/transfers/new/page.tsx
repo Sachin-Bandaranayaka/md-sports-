@@ -6,6 +6,7 @@ import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
 import { Loader2, Save, XCircle, Plus, ArrowLeftRight, Minus, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { authFetch, authPost } from '@/utils/api';
 
 interface Shop {
     id: number;
@@ -49,7 +50,7 @@ export default function CreateTransferPage() {
         const fetchShopsAndProducts = async () => {
             try {
                 // Fetch shops
-                const shopsResponse = await fetch('/api/shops');
+                const shopsResponse = await authFetch('/api/shops');
                 if (!shopsResponse.ok) {
                     throw new Error('Failed to fetch shops');
                 }
@@ -60,7 +61,7 @@ export default function CreateTransferPage() {
                 setShops(shopsData.data || []);
 
                 // Fetch all products (we'll filter them based on selected shop later)
-                const productsResponse = await fetch('/api/products');
+                const productsResponse = await authFetch('/api/products');
                 if (!productsResponse.ok) {
                     throw new Error('Failed to fetch products');
                 }
@@ -91,7 +92,7 @@ export default function CreateTransferPage() {
 
         const fetchShopInventory = async () => {
             try {
-                const response = await fetch(`/api/inventory/shop/${sourceShopId}`);
+                const response = await authFetch(`/api/inventory/shop/${sourceShopId}`);
                 if (!response.ok) {
                     throw new Error('Failed to fetch shop inventory');
                 }
@@ -218,25 +219,29 @@ export default function CreateTransferPage() {
             return;
         }
 
+        if (!user || !user.id) {
+            setError('Your user session has expired. Please login again.');
+            // Redirect to login after a short delay
+            setTimeout(() => {
+                localStorage.removeItem('authToken');
+                router.push('/login');
+            }, 2000);
+            return;
+        }
+
         setSubmitting(true);
         setError(null);
 
         try {
-            const response = await fetch('/api/inventory/transfers', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    sourceShopId,
-                    destinationShopId,
-                    userId: user?.id,
-                    items: transferItems.map(item => ({
-                        productId: item.productId,
-                        quantity: item.quantity,
-                        notes: item.notes
-                    }))
-                })
+            const response = await authPost('/api/inventory/transfers', {
+                sourceShopId,
+                destinationShopId,
+                userId: user.id, // Now guaranteed to exist
+                items: transferItems.map(item => ({
+                    productId: item.productId,
+                    quantity: item.quantity,
+                    notes: item.notes
+                }))
             });
 
             const data = await response.json();

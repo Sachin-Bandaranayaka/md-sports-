@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Search, Plus, Edit, Trash, FileText, ExternalLink, Calendar, DollarSign, X, Printer } from 'lucide-react';
+import { Search, Plus, Edit, Trash, ExternalLink, Calendar, DollarSign, X, Printer } from 'lucide-react';
 import { Receipt } from '@/types';
 
 // Dummy data for demonstration
@@ -541,13 +541,13 @@ function ReceiptFormModal({ receipt, isEdit, onClose, onSave }: ReceiptFormModal
                             </button>
                         </div>
 
-                        {items.map((item, index) => (
-                            <div key={item.id} className="grid grid-cols-12 gap-2 mb-2">
+                        {items.map(_item => (
+                            <div key={_item.id} className="grid grid-cols-12 gap-2 mb-2">
                                 <div className="col-span-8">
                                     <input
                                         type="text"
-                                        value={item.description}
-                                        onChange={(e) => handleItemChange(item.id, 'description', e.target.value)}
+                                        value={_item.description}
+                                        onChange={(e) => handleItemChange(_item.id, 'description', e.target.value)}
                                         placeholder="Item description"
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md"
                                         required
@@ -556,8 +556,8 @@ function ReceiptFormModal({ receipt, isEdit, onClose, onSave }: ReceiptFormModal
                                 <div className="col-span-3">
                                     <input
                                         type="number"
-                                        value={item.amount}
-                                        onChange={(e) => handleItemChange(item.id, 'amount', Number(e.target.value))}
+                                        value={_item.amount}
+                                        onChange={(e) => handleItemChange(_item.id, 'amount', Number(e.target.value))}
                                         placeholder="Amount"
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md"
                                         min="0"
@@ -567,7 +567,7 @@ function ReceiptFormModal({ receipt, isEdit, onClose, onSave }: ReceiptFormModal
                                 <div className="col-span-1 flex items-center justify-center">
                                     <button
                                         type="button"
-                                        onClick={() => handleRemoveItem(item.id)}
+                                        onClick={() => handleRemoveItem(_item.id)}
                                         className="text-red-500 hover:text-red-700"
                                     >
                                         <Trash className="w-4 h-4" />

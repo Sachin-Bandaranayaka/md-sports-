@@ -3,6 +3,7 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { useRouter } from 'next/navigation';
 import React from 'react';
+import { authFetch, authPost, setupFetchInterceptor } from '@/utils/api';
 
 interface User {
     id: number;
@@ -33,6 +34,11 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Set up fetch interceptor once when the provider mounts
+    useEffect(() => {
+        setupFetchInterceptor();
+    }, []);
+
     // Check for existing authentication
     useEffect(() => {
         const checkAuth = async () => {
@@ -46,11 +52,7 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
                 }
 
                 // Validate token on the server
-                const response = await fetch('/api/auth/validate', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                const response = await authFetch('/api/auth/validate');
 
                 const data = await response.json();
                 if (data.success && data.user) {
@@ -75,13 +77,7 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
         setLoading(true);
         setError(null);
         try {
-            const response = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ username, password })
-            });
+            const response = await authPost('/api/auth/login', { username, password });
 
             const data = await response.json();
             if (data.success && data.token) {
