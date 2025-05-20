@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/utils/middleware';
 import db from '@/utils/db';
+import jwt from 'jsonwebtoken';
 
 // GET: Fetch all inventory transfers
 export async function GET(req: NextRequest) {
@@ -13,6 +14,7 @@ export async function GET(req: NextRequest) {
     }
 
     try {
+        console.log('Executing query to fetch transfers...');
         const result = await db.query(`
             SELECT 
                 t.id,
@@ -23,7 +25,7 @@ export async function GET(req: NextRequest) {
                 ds.name as destination_shop_name,
                 u."fullName" as initiated_by,
                 COUNT(ti.id) as item_count,
-                SUM(ti.quantity) as total_items
+                COALESCE(SUM(ti.quantity), 0) as total_items
             FROM 
                 inventory_transfers t
             JOIN 
@@ -40,6 +42,7 @@ export async function GET(req: NextRequest) {
                 t.created_at DESC
         `);
 
+        console.log('Query executed successfully. Results:', result.rows);
         console.log(`Retrieved ${result.rows.length} transfers successfully`);
         return NextResponse.json({
             success: true,
@@ -67,10 +70,32 @@ export async function POST(req: NextRequest) {
 
     try {
         const body = await req.json();
-        const { sourceShopId, destinationShopId, items, userId } = body;
+        const { sourceShopId, destinationShopId, items } = body;
+
+        // Get user ID from authorization token
+        const authHeader = req.headers.get('authorization');
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return NextResponse.json({
+                success: false,
+                message: 'Authentication required'
+            }, { status: 401 });
+        }
+
+        const token = authHeader.split(' ')[1];
+        const decodedToken = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+
+        if (typeof decodedToken !== 'object' || !decodedToken.sub) {
+            return NextResponse.json({
+                success: false,
+                message: 'Invalid token'
+            }, { status: 401 });
+        }
+
+        const userId = Number(decodedToken.sub);
+        console.log('Creating transfer for user ID:', userId);
 
         // Validate request data
-        if (!sourceShopId || !destinationShopId || !items || !items.length || !userId) {
+        if (!sourceShopId || !destinationShopId || !items || !items.length) {
             return NextResponse.json({
                 success: false,
                 message: 'Missing required fields'

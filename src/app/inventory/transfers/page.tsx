@@ -39,7 +39,9 @@ export default function TransfersPage() {
                 setLoading(true);
                 setError(null);
 
+                console.log('Fetching transfers data...');
                 const response = await authFetch('/api/inventory/transfers');
+                console.log('Response status:', response.status);
 
                 if (!response.ok) {
                     if (response.status === 401) {
@@ -49,7 +51,10 @@ export default function TransfersPage() {
                 }
 
                 const data = await response.json();
+                console.log('Transfers data:', data);
+
                 if (data.success) {
+                    console.log('Setting transfers:', data.data);
                     setTransfers(data.data || []);
                 } else {
                     throw new Error(data.message || 'Failed to fetch transfers');

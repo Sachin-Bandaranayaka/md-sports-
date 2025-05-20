@@ -14,7 +14,7 @@ export async function GET(
     }
 
     try {
-        const { id } = params;
+        const id = params.id;
 
         // Get transfer details
         const transferResult = await db.query(
@@ -22,7 +22,7 @@ export async function GET(
                 t.*,
                 ss.name as source_shop_name,
                 ds.name as destination_shop_name,
-                u.full_name as initiated_by
+                u."fullName" as initiated_by
             FROM 
                 inventory_transfers t
             JOIN 
@@ -94,7 +94,7 @@ export async function PATCH(
     }
 
     try {
-        const { id } = params;
+        const id = params.id;
         const { action } = await req.json();
 
         if (!['complete', 'cancel'].includes(action)) {
@@ -229,7 +229,7 @@ export async function DELETE(
     }
 
     try {
-        const { id } = params;
+        const id = params.id;
 
         // Check if transfer exists and is in pending status
         const transferResult = await db.query(
