@@ -150,15 +150,6 @@ export default function TransfersPage() {
                                 New Transfer
                             </Button>
                         )}
-                        {/* Debug button always visible */}
-                        <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={handleNewTransfer}
-                        >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Debug New Transfer
-                        </Button>
                     </div>
                 </div>
 
