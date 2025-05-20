@@ -13,8 +13,8 @@ export async function GET(
     }
 
     try {
-        // Fix: Await params to properly handle dynamic route parameters
-        const id = params.id;
+        // Safely use the shop ID from params
+        const shopId = params.id;
 
         // Get inventory items for the shop
         const result = await db.query(
@@ -26,7 +26,7 @@ export async function GET(
                 p.name as product_name,
                 p.sku,
                 p.retail_price,
-                p.base_price,
+                p.cost_price,
                 c.name as category_name
             FROM 
                 inventory_items i
@@ -38,7 +38,7 @@ export async function GET(
                 i.shop_id = $1 AND p.is_active = true
             ORDER BY
                 p.name`,
-            [id]
+            [shopId]
         );
 
         return NextResponse.json({
@@ -46,7 +46,8 @@ export async function GET(
             data: result.rows
         });
     } catch (error) {
-        console.error(`Error fetching shop inventory (shop_id ${params.id}):`, error);
+        const shopId = params.id;
+        console.error(`Error fetching shop inventory (shop_id ${shopId}):`, error);
         return NextResponse.json({
             success: false,
             message: 'Failed to fetch shop inventory',

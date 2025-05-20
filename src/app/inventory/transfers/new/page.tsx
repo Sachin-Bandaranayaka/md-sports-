@@ -269,7 +269,7 @@ export default function CreateTransferPage() {
                 <div className="h-full flex items-center justify-center p-20">
                     <div className="text-center">
                         <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
-                        <p className="text-gray-500">Loading data...</p>
+                        <p className="text-gray-900">Loading data...</p>
                     </div>
                 </div>
             </MainLayout>
@@ -283,7 +283,7 @@ export default function CreateTransferPage() {
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900">Create Inventory Transfer</h1>
-                        <p className="text-gray-500">Move products between shops</p>
+                        <p className="text-gray-900">Move products between shops</p>
                     </div>
                     <div className="flex gap-3">
                         <Button
@@ -323,7 +323,7 @@ export default function CreateTransferPage() {
                     {/* Shop selection */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-gray-900 mb-1">
                                 Source Shop
                             </label>
                             <select
@@ -342,7 +342,7 @@ export default function CreateTransferPage() {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-gray-900 mb-1">
                                 Destination Shop
                             </label>
                             <select
@@ -369,7 +369,7 @@ export default function CreateTransferPage() {
                     {/* Available products (only shown when source shop is selected) */}
                     {sourceShopId && (
                         <div>
-                            <h2 className="text-lg font-semibold mb-2">Available Products</h2>
+                            <h2 className="text-lg font-semibold text-gray-900 mb-2">Available Products</h2>
                             <div className="relative mb-4">
                                 <input
                                     type="text"
@@ -390,15 +390,15 @@ export default function CreateTransferPage() {
                                         >
                                             <div className="flex justify-between items-start">
                                                 <div>
-                                                    <h3 className="font-medium">{product.name}</h3>
-                                                    <p className="text-xs text-gray-500">SKU: {product.sku}</p>
+                                                    <h3 className="font-medium text-gray-900">{product.name}</h3>
+                                                    <p className="text-xs text-gray-900">SKU: {product.sku}</p>
                                                 </div>
-                                                <span className="text-sm font-semibold">
+                                                <span className="text-sm font-semibold text-gray-900">
                                                     Rs. {parseFloat(product.retail_price).toFixed(2)}
                                                 </span>
                                             </div>
                                             <div className="flex justify-between items-center mt-4">
-                                                <span className="text-xs text-gray-600">
+                                                <span className="text-xs text-gray-900">
                                                     Available: {product.available_quantity}
                                                 </span>
                                                 <Button
@@ -416,7 +416,7 @@ export default function CreateTransferPage() {
                                     ))
                                 ) : (
                                     <div className="col-span-full text-center py-8">
-                                        <p className="text-gray-500">
+                                        <p className="text-gray-900">
                                             {filteredProducts.length === 0
                                                 ? 'No products available in this shop'
                                                 : 'No products match your search'}
@@ -430,16 +430,16 @@ export default function CreateTransferPage() {
                     {/* Transfer items */}
                     <div>
                         <div className="flex justify-between items-center mb-2">
-                            <h2 className="text-lg font-semibold">Transfer Items</h2>
-                            <span className="text-sm text-gray-600">
+                            <h2 className="text-lg font-semibold text-gray-900">Transfer Items</h2>
+                            <span className="text-sm text-gray-900">
                                 {transferItems.length} products ({totalItems} items total)
                             </span>
                         </div>
 
                         {transferItems.length > 0 ? (
                             <div className="border border-gray-200 rounded-lg overflow-hidden">
-                                <table className="w-full text-sm text-left text-gray-500">
-                                    <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                                <table className="w-full text-sm text-left text-gray-900">
+                                    <thead className="text-xs text-gray-900 uppercase bg-gray-50">
                                         <tr>
                                             <th className="px-6 py-3">Product</th>
                                             <th className="px-6 py-3">SKU</th>
@@ -451,17 +451,17 @@ export default function CreateTransferPage() {
                                     <tbody>
                                         {transferItems.map((item, index) => (
                                             <tr key={index} className="border-b">
-                                                <td className="px-6 py-4 font-medium">
+                                                <td className="px-6 py-4 font-medium text-gray-900">
                                                     {item.product.name}
                                                 </td>
-                                                <td className="px-6 py-4 text-gray-500">
+                                                <td className="px-6 py-4 text-gray-900">
                                                     {item.product.sku}
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center">
                                                         <button
                                                             type="button"
-                                                            className="text-gray-500 hover:text-red-500"
+                                                            className="text-gray-900 hover:text-red-500"
                                                             onClick={() => updateItemQuantity(index, item.quantity - 1)}
                                                             disabled={item.quantity <= 1 || submitting}
                                                         >
@@ -478,7 +478,7 @@ export default function CreateTransferPage() {
                                                         />
                                                         <button
                                                             type="button"
-                                                            className="text-gray-500 hover:text-green-500"
+                                                            className="text-gray-900 hover:text-green-500"
                                                             onClick={() => updateItemQuantity(index, item.quantity + 1)}
                                                             disabled={item.quantity >= (item.product.available_quantity || 0) || submitting}
                                                         >
@@ -514,8 +514,8 @@ export default function CreateTransferPage() {
                         ) : (
                             <div className="border border-gray-200 border-dashed rounded-lg p-8 text-center">
                                 <ArrowLeftRight className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                                <p className="text-gray-500 mb-1">No items added to transfer yet</p>
-                                <p className="text-sm text-gray-400">
+                                <p className="text-gray-900 mb-1">No items added to transfer yet</p>
+                                <p className="text-sm text-gray-900">
                                     Select a source shop and add products to begin
                                 </p>
                             </div>
