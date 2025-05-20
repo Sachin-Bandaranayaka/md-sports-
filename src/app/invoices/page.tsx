@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Search, Plus, Filter, FileText, Download, Eye } from 'lucide-react';
+import { Search, Plus, Filter, FileText, Download, Eye, CheckCircle, Trash2 } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 
 // Interface for Invoice
@@ -46,77 +46,121 @@ export default function Invoices() {
     });
 
     useEffect(() => {
-        async function fetchInvoices() {
-            try {
-                // Fetch invoices from API
-                const response = await fetch('/api/invoices');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch invoices');
-                }
-                const data = await response.json();
-
-                // Calculate statistics
-                const now = new Date();
-                const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-                let outstanding = 0;
-                let paidThisMonth = 0;
-                let overdueCount = 0;
-
-                // Transform data for UI
-                const formattedInvoices = await Promise.all(data.map(async (invoice: Invoice) => {
-                    // Get customer name - in a real app this would be included in the API response
-                    let customerName = 'Unknown Customer';
-                    try {
-                        const customerResponse = await fetch(`/api/customers/${invoice.customerId}`);
-                        if (customerResponse.ok) {
-                            const customer = await customerResponse.json();
-                            customerName = customer.name;
-                        }
-                    } catch (e) {
-                        console.error('Error fetching customer:', e);
-                    }
-
-                    // Calculate statistics
-                    if (invoice.status === 'Paid' && new Date(invoice.updatedAt) >= firstDayOfMonth) {
-                        paidThisMonth += invoice.total;
-                    } else if (invoice.status !== 'Paid') {
-                        outstanding += invoice.total;
-                    }
-
-                    if (invoice.status === 'Overdue') {
-                        overdueCount++;
-                    }
-
-                    // Create date and due date (30 days later)
-                    const createdDate = new Date(invoice.createdAt);
-                    const dueDate = new Date(createdDate);
-                    dueDate.setDate(dueDate.getDate() + 30);
-
-                    return {
-                        ...invoice,
-                        customerName,
-                        date: createdDate.toISOString().split('T')[0],
-                        dueDate: dueDate.toISOString().split('T')[0],
-                        items: Math.floor(Math.random() * 15) + 1 // Example: random item count (would be from line items in real app)
-                    };
-                }));
-
-                setInvoices(formattedInvoices);
-                setStatistics({
-                    totalOutstanding: outstanding,
-                    paidThisMonth,
-                    overdueCount
-                });
-            } catch (error) {
-                console.error('Error fetching invoices:', error);
-            } finally {
-                setLoading(false);
-            }
-        }
-
         fetchInvoices();
     }, []);
+
+    async function fetchInvoices() {
+        try {
+            // Fetch invoices from API
+            const response = await fetch('/api/invoices');
+            if (!response.ok) {
+                throw new Error('Failed to fetch invoices');
+            }
+            const data = await response.json();
+
+            // Calculate statistics
+            const now = new Date();
+            const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+            let outstanding = 0;
+            let paidThisMonth = 0;
+            let overdueCount = 0;
+
+            // Transform data for UI
+            const formattedInvoices = await Promise.all(data.map(async (invoice: Invoice) => {
+                // Get customer name - in a real app this would be included in the API response
+                let customerName = 'Unknown Customer';
+                try {
+                    const customerResponse = await fetch(`/api/customers/${invoice.customerId}`);
+                    if (customerResponse.ok) {
+                        const customer = await customerResponse.json();
+                        customerName = customer.name;
+                    }
+                } catch (e) {
+                    console.error('Error fetching customer:', e);
+                }
+
+                // Calculate statistics
+                if (invoice.status === 'Paid' && new Date(invoice.updatedAt) >= firstDayOfMonth) {
+                    paidThisMonth += invoice.total;
+                } else if (invoice.status !== 'Paid') {
+                    outstanding += invoice.total;
+                }
+
+                if (invoice.status === 'Overdue') {
+                    overdueCount++;
+                }
+
+                // Create date and due date (30 days later)
+                const createdDate = new Date(invoice.createdAt);
+                const dueDate = new Date(createdDate);
+                dueDate.setDate(dueDate.getDate() + 30);
+
+                return {
+                    ...invoice,
+                    customerName,
+                    date: createdDate.toISOString().split('T')[0],
+                    dueDate: dueDate.toISOString().split('T')[0],
+                    items: Math.floor(Math.random() * 15) + 1 // Example: random item count (would be from line items in real app)
+                };
+            }));
+
+            setInvoices(formattedInvoices);
+            setStatistics({
+                totalOutstanding: outstanding,
+                paidThisMonth,
+                overdueCount
+            });
+        } catch (error) {
+            console.error('Error fetching invoices:', error);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    // Handle recording payment for an invoice
+    const handleRecordPayment = async (invoiceId: string | number) => {
+        try {
+            const response = await fetch(`/api/invoices/${invoiceId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ status: 'Paid' }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update invoice status');
+            }
+
+            // Refresh invoices list after successful update
+            fetchInvoices();
+        } catch (error) {
+            console.error('Error recording payment:', error);
+            alert('Failed to record payment. Please try again.');
+        }
+    };
+
+    // Handle deleting an invoice
+    const handleDeleteInvoice = async (invoiceId: string | number) => {
+        if (confirm('Are you sure you want to delete this invoice? This action cannot be undone.')) {
+            try {
+                const response = await fetch(`/api/invoices/${invoiceId}`, {
+                    method: 'DELETE',
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to delete invoice');
+                }
+
+                // Refresh invoices list after successful deletion
+                fetchInvoices();
+            } catch (error) {
+                console.error('Error deleting invoice:', error);
+                alert('Failed to delete invoice. Please try again.');
+            }
+        }
+    };
 
     if (loading) {
         return (
@@ -188,7 +232,14 @@ export default function Invoices() {
                         <h1 className="text-2xl font-bold text-gray-900">Invoice Management</h1>
                         <p className="text-gray-500">Create and manage customer invoices</p>
                     </div>
-                                        <div className="flex gap-3">                        <a href="/invoices/new">                            <Button variant="primary" size="sm">                                <Plus className="w-4 h-4 mr-2" />                                Create Invoice                            </Button>                        </a>                    </div>
+                    <div className="flex gap-3">
+                        <a href="/invoices/new">
+                            <Button variant="primary" size="sm">
+                                <Plus className="w-4 h-4 mr-2" />
+                                Create Invoice
+                            </Button>
+                        </a>
+                    </div>
                 </div>
 
                 {/* Search and filter bar */}
@@ -247,7 +298,11 @@ export default function Invoices() {
                             <tbody>
                                 {invoices.length > 0 ? invoices.map((invoice) => (
                                     <tr key={invoice.id} className="border-b hover:bg-gray-50">
-                                        <td className="px-6 py-4 font-medium text-primary">                                            <a href={`/invoices/${invoice.id}`} className="hover:underline">                                                {invoice.invoiceNumber}                                            </a>                                        </td>
+                                        <td className="px-6 py-4 font-medium text-primary">
+                                            <a href={`/invoices/${invoice.id}`} className="hover:underline">
+                                                {invoice.invoiceNumber}
+                                            </a>
+                                        </td>
                                         <td className="px-6 py-4 font-medium text-gray-900">
                                             {invoice.customerName}
                                         </td>
@@ -260,7 +315,38 @@ export default function Invoices() {
                                                 {invoice.status}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4">                                            <div className="flex gap-2">                                                <a href={`/invoices/${invoice.id}`}>                                                    <Button variant="ghost" size="sm" title="View Invoice">                                                        <Eye className="w-4 h-4" />                                                    </Button>                                                </a>                                                <a href={`/invoices/${invoice.id}`}>                                                    <Button variant="ghost" size="sm" title="Print/Download Invoice">                                                        <Download className="w-4 h-4" />                                                    </Button>                                                </a>                                            </div>                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex gap-2">
+                                                <a href={`/invoices/${invoice.id}`}>
+                                                    <Button variant="ghost" size="sm" title="View Invoice">
+                                                        <Eye className="w-4 h-4" />
+                                                    </Button>
+                                                </a>
+                                                <a href={`/invoices/${invoice.id}`}>
+                                                    <Button variant="ghost" size="sm" title="Print/Download Invoice">
+                                                        <Download className="w-4 h-4" />
+                                                    </Button>
+                                                </a>
+                                                {invoice.status !== 'Paid' && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        title="Record Payment"
+                                                        onClick={() => handleRecordPayment(invoice.id)}
+                                                    >
+                                                        <CheckCircle className="w-4 h-4 text-green-600" />
+                                                    </Button>
+                                                )}
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    title="Delete Invoice"
+                                                    onClick={() => handleDeleteInvoice(invoice.id)}
+                                                >
+                                                    <Trash2 className="w-4 h-4 text-red-600" />
+                                                </Button>
+                                            </div>
+                                        </td>
                                     </tr>
                                 )) : (
                                     <tr>

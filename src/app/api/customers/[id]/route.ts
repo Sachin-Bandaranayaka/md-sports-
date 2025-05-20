@@ -3,11 +3,12 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(
     request: Request,
-    { params }: { params: { id: string } }
+    context: { params: { id: string } }
 ) {
     try {
-        // Ensure params is fully resolved
-        const id = parseInt(params.id);
+        // Get params from context and ensure it's resolved
+        const { id: paramId } = context.params;
+        const id = parseInt(paramId);
 
         if (isNaN(id)) {
             return NextResponse.json(
@@ -51,11 +52,12 @@ export async function GET(
 
 export async function PUT(
     request: Request,
-    { params }: { params: { id: string } }
+    context: { params: { id: string } }
 ) {
     try {
-        // Ensure params is fully resolved
-        const id = parseInt(params.id);
+        // Get params from context and ensure it's resolved
+        const { id: paramId } = context.params;
+        const id = parseInt(paramId);
 
         if (isNaN(id)) {
             return NextResponse.json(
@@ -101,11 +103,12 @@ export async function PUT(
 
 export async function DELETE(
     request: Request,
-    { params }: { params: { id: string } }
+    context: { params: { id: string } }
 ) {
     try {
-        // Ensure params is fully resolved
-        const id = parseInt(params.id);
+        // Get params from context and ensure it's resolved
+        const { id: paramId } = context.params;
+        const id = parseInt(paramId);
 
         if (isNaN(id)) {
             return NextResponse.json(

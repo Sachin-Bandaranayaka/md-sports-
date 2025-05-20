@@ -344,32 +344,32 @@ export default function InvoiceDetail() {
                 <div className="bg-tertiary p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div className="flex flex-col gap-1">
-                            <span className="text-sm text-gray-500">Status</span>
+                            <span className="text-sm text-gray-900">Status</span>
                             <StatusBadge status={invoice.status} />
                         </div>
 
                         <div className="flex flex-col gap-1">
-                            <span className="text-sm text-gray-500">Date</span>
+                            <span className="text-sm text-gray-900">Date</span>
                             <span className="font-medium">{formatDate(invoice.createdAt)}</span>
                         </div>
 
                         <div className="flex flex-col gap-1">
-                            <span className="text-sm text-gray-500">Due Date</span>
+                            <span className="text-sm text-gray-900">Due Date</span>
                             <span className="font-medium">{formatDate(dueDate.toISOString())}</span>
                         </div>
 
                         <div className="flex flex-col gap-1">
-                            <span className="text-sm text-gray-500">Amount</span>
+                            <span className="text-sm text-gray-900">Amount</span>
                             <span className="font-medium">{formatCurrency(invoice.total)}</span>
                         </div>
 
                         <div className="flex flex-col gap-1">
-                            <span className="text-sm text-gray-500">Paid</span>
+                            <span className="text-sm text-gray-900">Paid</span>
                             <span className="font-medium">{formatCurrency(paidAmount)}</span>
                         </div>
 
                         <div className="flex flex-col gap-1">
-                            <span className="text-sm text-gray-500">Balance</span>
+                            <span className="text-sm text-gray-900">Balance</span>
                             <span className={`font-medium ${remainingBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
                                 {formatCurrency(remainingBalance)}
                             </span>
