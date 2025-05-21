@@ -275,3 +275,37 @@ model AuditLog {
   details   Json?
   createdAt DateTime @default(now())
 }
+
+model Account {
+  id             Int           @id @default(autoincrement())
+  name           String
+  type           String
+  balance        Decimal       @default(0) @db.Decimal(15, 2)
+  description    String?
+  isActive       Boolean       @default(true)
+  createdAt      DateTime      @default(now()) @db.Timestamp(6)
+  updatedAt      DateTime      @default(now()) @updatedAt @db.Timestamp(6)
+  transactions   Transaction[] @relation("AccountTransactions")
+  toTransactions Transaction[] @relation("ToAccountTransactions")
+}
+
+model Transaction {
+  id          Int      @id @default(autoincrement())
+  date        DateTime @db.Date
+  description String
+  accountId   Int
+  toAccountId Int?
+  type        String
+  amount      Decimal  @db.Decimal(15, 2)
+  reference   String?
+  category    String
+  createdAt   DateTime @default(now()) @db.Timestamp(6)
+  updatedAt   DateTime @default(now()) @updatedAt @db.Timestamp(6)
+  account     Account  @relation("AccountTransactions", fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  toAccount   Account? @relation("ToAccountTransactions", fields: [toAccountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([accountId], map: "transaction_accountId_idx")
+  @@index([date], map: "transaction_date_idx")
+  @@index([toAccountId], map: "transaction_toAccountId_idx")
+  @@index([type], map: "transaction_type_idx")
+}

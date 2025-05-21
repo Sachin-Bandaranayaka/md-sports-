@@ -108,24 +108,28 @@ export interface Receipt {
 
 // Accounting types
 export interface Transaction {
-    id: string;
-    date: string;
+    id: string | number;
+    date: string | Date;
     description: string;
-    accountId: string;
+    accountId: string | number;
     accountName: string;
-    type: 'income' | 'expense';
-    amount: number;
+    toAccountId?: string | number;
+    toAccountName?: string;
+    type: 'income' | 'expense' | 'withdrawal' | 'transfer';
+    amount: number | string;
     reference: string;
     category: string;
-    createdAt: string;
+    createdAt: string | Date;
+    updatedAt?: string | Date;
 }
 
 export interface Account {
-    id: string;
+    id: string | number;
     name: string;
     type: 'asset' | 'liability' | 'equity' | 'income' | 'expense';
-    balance: number;
-    description: string;
+    balance: number | string;
+    description?: string;
     isActive: boolean;
-    createdAt: string;
+    createdAt: string | Date;
+    updatedAt?: string | Date;
 } 

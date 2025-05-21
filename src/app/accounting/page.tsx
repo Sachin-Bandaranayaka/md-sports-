@@ -1,199 +1,97 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
 import { Search, Plus, Edit, Trash, X, ArrowUp, ArrowDown, Filter } from 'lucide-react';
 import { Transaction, Account } from '@/types';
-
-// Dummy data for demonstration
-const transactionsData: Transaction[] = [
-    {
-        id: 'TRX001',
-        date: '2024-03-15',
-        description: 'Supplier payment - Sports World Ltd.',
-        accountId: 'ACC002',
-        accountName: 'Bank Account',
-        type: 'expense',
-        amount: 117850,
-        reference: 'INV-001-2023',
-        category: 'Inventory Purchase',
-        createdAt: '2024-03-15'
-    },
-    {
-        id: 'TRX002',
-        date: '2024-03-16',
-        description: 'Sales - Green Valley School',
-        accountId: 'ACC001',
-        accountName: 'Cash Account',
-        type: 'income',
-        amount: 114020,
-        reference: 'RCPT-001-2023',
-        category: 'Sales Revenue',
-        createdAt: '2024-03-16'
-    },
-    {
-        id: 'TRX003',
-        date: '2024-03-18',
-        description: 'Rent payment',
-        accountId: 'ACC002',
-        accountName: 'Bank Account',
-        type: 'expense',
-        amount: 45000,
-        reference: 'RENT-MAR-2024',
-        category: 'Rent Expense',
-        createdAt: '2024-03-18'
-    },
-    {
-        id: 'TRX004',
-        date: '2024-03-20',
-        description: 'Utility Bills',
-        accountId: 'ACC002',
-        accountName: 'Bank Account',
-        type: 'expense',
-        amount: 12500,
-        reference: 'UTIL-MAR-2024',
-        category: 'Utilities Expense',
-        createdAt: '2024-03-20'
-    },
-    {
-        id: 'TRX005',
-        date: '2024-03-22',
-        description: 'Sales - Walk-in Customer',
-        accountId: 'ACC001',
-        accountName: 'Cash Account',
-        type: 'income',
-        amount: 28500,
-        reference: 'POS-SALE-324',
-        category: 'Sales Revenue',
-        createdAt: '2024-03-22'
-    },
-    {
-        id: 'TRX006',
-        date: '2024-03-25',
-        description: 'Owner Withdrawal - Personal Expenses',
-        accountId: 'ACC002',
-        accountName: 'Bank Account',
-        type: 'withdrawal',
-        amount: 25000,
-        reference: 'WITHDRAW-001',
-        category: 'Owner Drawings',
-        createdAt: '2024-03-25'
-    }
-];
-
-const accountsData: Account[] = [
-    {
-        id: 'ACC001',
-        name: 'Cash Account',
-        type: 'asset',
-        balance: 142520,
-        description: 'Main cash account',
-        isActive: true,
-        createdAt: '2023-01-01'
-    },
-    {
-        id: 'ACC002',
-        name: 'Bank Account',
-        type: 'asset',
-        balance: 425650,
-        description: 'Main bank account',
-        isActive: true,
-        createdAt: '2023-01-01'
-    },
-    {
-        id: 'ACC003',
-        name: 'Accounts Receivable',
-        type: 'asset',
-        balance: 75000,
-        description: 'Money owed by customers',
-        isActive: true,
-        createdAt: '2023-01-01'
-    },
-    {
-        id: 'ACC004',
-        name: 'Accounts Payable',
-        type: 'liability',
-        balance: 132500,
-        description: 'Money owed to suppliers',
-        isActive: true,
-        createdAt: '2023-01-01'
-    },
-    {
-        id: 'ACC005',
-        name: 'Sales Revenue',
-        type: 'income',
-        balance: 850000,
-        description: 'Income from sales',
-        isActive: true,
-        createdAt: '2023-01-01'
-    },
-    {
-        id: 'ACC006',
-        name: 'Inventory Expense',
-        type: 'expense',
-        balance: 425000,
-        description: 'Cost of goods sold',
-        isActive: true,
-        createdAt: '2023-01-01'
-    },
-    {
-        id: 'ACC007',
-        name: 'Operating Expenses',
-        type: 'expense',
-        balance: 215000,
-        description: 'Office and admin expenses',
-        isActive: true,
-        createdAt: '2023-01-01'
-    }
-];
+import { authGet, authPost } from '@/utils/api';
 
 export default function Accounting() {
     const [activeTab, setActiveTab] = useState<'transactions' | 'accounts'>('transactions');
-    const [transactions, setTransactions] = useState<Transaction[]>(transactionsData);
-    const [accounts, setAccounts] = useState<Account[]>(accountsData);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [accounts, setAccounts] = useState<Account[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
     const [showAddAccountModal, setShowAddAccountModal] = useState(false);
     const [typeFilter, setTypeFilter] = useState<Transaction['type'] | ''>('');
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    // Filter transactions based on search term
-    const filteredTransactions = transactions.filter((transaction) =>
-        transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        transaction.accountName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        transaction.category.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Fetch accounts and transactions data
+    useEffect(() => {
+        const fetchData = async () => {
+            setIsLoading(true);
+            setError(null);
+            try {
+                // Fetch accounts
+                const accountsResponse = await authGet('/api/accounting/accounts');
+                if (!accountsResponse.ok) {
+                    throw new Error('Failed to fetch accounts');
+                }
+                const accountsData = await accountsResponse.json();
+                setAccounts(accountsData.data);
+
+                // Fetch transactions
+                const transactionsResponse = await authGet('/api/accounting/transactions');
+                if (!transactionsResponse.ok) {
+                    throw new Error('Failed to fetch transactions');
+                }
+                const transactionsData = await transactionsResponse.json();
+                setTransactions(transactionsData.data);
+            } catch (err) {
+                console.error('Error fetching data:', err);
+                setError(err instanceof Error ? err.message : 'An error occurred');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+    // Filter transactions based on search term and type filter
+    const filteredTransactions = transactions.filter((transaction) => {
+        const matchesSearch =
+            transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            transaction.accountName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            transaction.category.toLowerCase().includes(searchTerm.toLowerCase());
+
+        const matchesType = typeFilter ? transaction.type === typeFilter : true;
+
+        return matchesSearch && matchesType;
+    });
 
     // Filter accounts based on search term
     const filteredAccounts = accounts.filter((account) =>
         account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         account.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        account.description.toLowerCase().includes(searchTerm.toLowerCase())
+        (account.description && account.description.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     // Calculate financial summary
     const totalAssets = accounts
         .filter(account => account.type === 'asset')
-        .reduce((sum, account) => sum + account.balance, 0);
+        .reduce((sum, account) => sum + Number(account.balance), 0);
 
     const totalLiabilities = accounts
         .filter(account => account.type === 'liability')
-        .reduce((sum, account) => sum + account.balance, 0);
+        .reduce((sum, account) => sum + Number(account.balance), 0);
 
     const totalEquity = totalAssets - totalLiabilities;
 
     const totalIncome = accounts
         .filter(account => account.type === 'income')
-        .reduce((sum, account) => sum + account.balance, 0);
+        .reduce((sum, account) => sum + Number(account.balance), 0);
 
     const totalExpenses = accounts
         .filter(account => account.type === 'expense')
-        .reduce((sum, account) => sum + account.balance, 0);
+        .reduce((sum, account) => sum + Number(account.balance), 0);
 
     // Calculate total withdrawals
     const totalWithdrawals = transactions
         .filter(transaction => transaction.type === 'withdrawal')
-        .reduce((sum, transaction) => sum + transaction.amount, 0);
+        .reduce((sum, transaction) => sum + Number(transaction.amount), 0);
 
     const netProfit = totalIncome - totalExpenses;
 
@@ -204,6 +102,81 @@ export default function Accounting() {
     const handleAddAccount = () => {
         setShowAddAccountModal(true);
     };
+
+    // Handle saving a new transaction
+    const handleSaveTransaction = async (transaction: Omit<Transaction, 'id' | 'createdAt'>) => {
+        try {
+            const response = await authPost('/api/accounting/transactions', transaction);
+            if (!response.ok) {
+                throw new Error('Failed to create transaction');
+            }
+            const data = await response.json();
+
+            // Add the new transaction to the state
+            setTransactions([...transactions, data.data]);
+
+            // Close the modal
+            setShowAddTransactionModal(false);
+
+            // Refresh accounts to get updated balances
+            const accountsResponse = await authGet('/api/accounting/accounts');
+            if (accountsResponse.ok) {
+                const accountsData = await accountsResponse.json();
+                setAccounts(accountsData.data);
+            }
+        } catch (err) {
+            console.error('Error creating transaction:', err);
+            alert('Failed to create transaction. Please try again.');
+        }
+    };
+
+    // Handle saving a new account
+    const handleSaveAccount = async (account: Omit<Account, 'id' | 'createdAt'>) => {
+        try {
+            const response = await authPost('/api/accounting/accounts', account);
+            if (!response.ok) {
+                throw new Error('Failed to create account');
+            }
+            const data = await response.json();
+
+            // Add the new account to the state
+            setAccounts([...accounts, data.data]);
+
+            // Close the modal
+            setShowAddAccountModal(false);
+        } catch (err) {
+            console.error('Error creating account:', err);
+            alert('Failed to create account. Please try again.');
+        }
+    };
+
+    // Loading state
+    if (isLoading) {
+        return (
+            <MainLayout>
+                <div className="flex justify-center items-center h-64">
+                    <div className="text-lg text-gray-600">Loading accounting data...</div>
+                </div>
+            </MainLayout>
+        );
+    }
+
+    // Error state
+    if (error) {
+        return (
+            <MainLayout>
+                <div className="flex flex-col justify-center items-center h-64">
+                    <div className="text-lg text-red-600 mb-4">Error: {error}</div>
+                    <Button
+                        variant="primary"
+                        onClick={() => window.location.reload()}
+                    >
+                        Retry
+                    </Button>
+                </div>
+            </MainLayout>
+        );
+    }
 
     return (
         <MainLayout>
@@ -323,38 +296,47 @@ export default function Accounting() {
                 </div>
 
                 {/* Filter by transaction type */}
-                <div className="mt-6">
-                    <div className="text-sm font-medium mb-2">Filter by Type</div>
-                    <div className="flex flex-wrap gap-2">
-                        <button
-                            className={`px-3 py-1 text-sm rounded-full ${activeTab === 'transactions' && !typeFilter ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}
-                            onClick={() => setTypeFilter('')}
-                        >
-                            All
-                        </button>
-                        <button
-                            className={`px-3 py-1 text-sm rounded-full ${typeFilter === 'income' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}
-                            onClick={() => setTypeFilter('income')}
-                        >
-                            <ArrowDown className="w-3 h-3 inline mr-1" />
-                            Income
-                        </button>
-                        <button
-                            className={`px-3 py-1 text-sm rounded-full ${typeFilter === 'expense' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}
-                            onClick={() => setTypeFilter('expense')}
-                        >
-                            <ArrowUp className="w-3 h-3 inline mr-1" />
-                            Expense
-                        </button>
-                        <button
-                            className={`px-3 py-1 text-sm rounded-full ${typeFilter === 'withdrawal' ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-800'}`}
-                            onClick={() => setTypeFilter('withdrawal')}
-                        >
-                            <ArrowUp className="w-3 h-3 inline mr-1" />
-                            Withdrawal
-                        </button>
+                {activeTab === 'transactions' && (
+                    <div className="mt-6">
+                        <div className="text-sm font-medium mb-2">Filter by Type</div>
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                className={`px-3 py-1 text-sm rounded-full ${activeTab === 'transactions' && !typeFilter ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}
+                                onClick={() => setTypeFilter('')}
+                            >
+                                All
+                            </button>
+                            <button
+                                className={`px-3 py-1 text-sm rounded-full ${typeFilter === 'income' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}
+                                onClick={() => setTypeFilter('income')}
+                            >
+                                <ArrowDown className="w-3 h-3 inline mr-1" />
+                                Income
+                            </button>
+                            <button
+                                className={`px-3 py-1 text-sm rounded-full ${typeFilter === 'expense' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}
+                                onClick={() => setTypeFilter('expense')}
+                            >
+                                <ArrowUp className="w-3 h-3 inline mr-1" />
+                                Expense
+                            </button>
+                            <button
+                                className={`px-3 py-1 text-sm rounded-full ${typeFilter === 'withdrawal' ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-800'}`}
+                                onClick={() => setTypeFilter('withdrawal')}
+                            >
+                                <ArrowUp className="w-3 h-3 inline mr-1" />
+                                Withdrawal
+                            </button>
+                            <button
+                                className={`px-3 py-1 text-sm rounded-full ${typeFilter === 'transfer' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'}`}
+                                onClick={() => setTypeFilter('transfer')}
+                            >
+                                <ArrowUp className="w-3 h-3 inline mr-1" />
+                                Transfer
+                            </button>
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {/* Transactions Table */}
                 {activeTab === 'transactions' && (
@@ -374,70 +356,92 @@ export default function Accounting() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filteredTransactions.map((transaction) => (
-                                        <tr key={transaction.id} className="border-b hover:bg-gray-50">
-                                            <td className="px-6 py-4">
-                                                {transaction.date}
-                                            </td>
-                                            <td className="px-6 py-4 font-medium text-gray-900">
-                                                {transaction.description}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                {transaction.accountName}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                {transaction.category}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                {transaction.reference}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className={`flex items-center space-x-1 ${transaction.type === 'income'
+                                    {filteredTransactions.length > 0 ? (
+                                        filteredTransactions.map((transaction) => (
+                                            <tr key={transaction.id} className="border-b hover:bg-gray-50">
+                                                <td className="px-6 py-4">
+                                                    {new Date(transaction.date).toLocaleDateString()}
+                                                </td>
+                                                <td className="px-6 py-4 font-medium text-gray-900">
+                                                    {transaction.description}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    {transaction.accountName}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    {transaction.category}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    {transaction.reference}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className={`flex items-center space-x-1 ${transaction.type === 'income'
+                                                        ? 'text-green-600'
+                                                        : transaction.type === 'expense'
+                                                            ? 'text-red-600'
+                                                            : transaction.type === 'withdrawal'
+                                                                ? 'text-orange-600'
+                                                                : 'text-purple-600'
+                                                        }`}>
+                                                        {transaction.type === 'income' ? (
+                                                            <ArrowUp className="w-4 h-4" />
+                                                        ) : transaction.type === 'expense' ? (
+                                                            <ArrowDown className="w-4 h-4" />
+                                                        ) : transaction.type === 'withdrawal' ? (
+                                                            <ArrowUp className="w-4 h-4" />
+                                                        ) : (
+                                                            <ArrowUp className="w-4 h-4" />
+                                                        )}
+                                                        <span>
+                                                            {transaction.type === 'income'
+                                                                ? 'Income'
+                                                                : transaction.type === 'expense'
+                                                                    ? 'Expense'
+                                                                    : transaction.type === 'withdrawal'
+                                                                        ? 'Withdrawal'
+                                                                        : 'Transfer'}
+                                                        </span>
+                                                    </span>
+                                                </td>
+                                                <td className={`px-6 py-4 font-medium ${transaction.type === 'income'
                                                     ? 'text-green-600'
                                                     : transaction.type === 'expense'
                                                         ? 'text-red-600'
-                                                        : 'text-orange-600'
+                                                        : transaction.type === 'withdrawal'
+                                                            ? 'text-orange-600'
+                                                            : 'text-purple-600'
                                                     }`}>
-                                                    {transaction.type === 'income' ? (
-                                                        <ArrowUp className="w-4 h-4" />
-                                                    ) : transaction.type === 'expense' ? (
-                                                        <ArrowDown className="w-4 h-4" />
-                                                    ) : (
-                                                        <ArrowUp className="w-4 h-4" />
+                                                    {transaction.type === 'income' ? '+' : '-'} Rs. {Number(transaction.amount).toLocaleString()}
+                                                    {transaction.type === 'transfer' && transaction.toAccountName && (
+                                                        <div className="text-xs text-gray-500 mt-1">
+                                                            To: {transaction.toAccountName}
+                                                        </div>
                                                     )}
-                                                    <span>{transaction.type === 'income' ? 'Income' : transaction.type === 'expense' ? 'Expense' : 'Withdrawal'}</span>
-                                                </span>
-                                            </td>
-                                            <td className={`px-6 py-4 font-medium ${transaction.type === 'income'
-                                                ? 'text-green-600'
-                                                : transaction.type === 'expense'
-                                                    ? 'text-red-600'
-                                                    : 'text-orange-600'
-                                                }`}>
-                                                {transaction.type === 'income' ? '+' : '-'} Rs. {transaction.amount.toLocaleString()}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center space-x-2">
-                                                    <button
-                                                        className="text-yellow-500 hover:text-yellow-700"
-                                                        title="Edit"
-                                                    >
-                                                        <Edit className="w-4 h-4" />
-                                                    </button>
-                                                    <button
-                                                        className="text-red-500 hover:text-red-700"
-                                                        title="Delete"
-                                                    >
-                                                        <Trash className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {filteredTransactions.length === 0 && (
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center space-x-2">
+                                                        <button
+                                                            className="text-yellow-500 hover:text-yellow-700"
+                                                            title="Edit"
+                                                        >
+                                                            <Edit className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            className="text-red-500 hover:text-red-700"
+                                                            title="Delete"
+                                                        >
+                                                            <Trash className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
                                         <tr>
                                             <td colSpan={8} className="px-6 py-4 text-center">
-                                                No transactions found matching your search.
+                                                {searchTerm || typeFilter
+                                                    ? 'No transactions found matching your search criteria.'
+                                                    : 'No transactions found. Create your first transaction!'}
                                             </td>
                                         </tr>
                                     )}
@@ -468,57 +472,60 @@ export default function Accounting() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filteredAccounts.map((account) => (
-                                        <tr key={account.id} className="border-b hover:bg-gray-50">
-                                            <td className="px-6 py-4 font-medium text-gray-900">
-                                                {account.name}
-                                            </td>
-                                            <td className="px-6 py-4 capitalize">
-                                                {account.type}
-                                            </td>
-                                            <td className={`px-6 py-4 font-medium ${['income', 'asset'].includes(account.type)
-                                                ? 'text-green-600'
-                                                : 'text-red-600'
-                                                }`}>
-                                                Rs. {account.balance.toLocaleString()}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                {account.description}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className={`px-2 py-1 rounded-full text-xs ${account.isActive
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : 'bg-red-100 text-red-800'
+                                    {filteredAccounts.length > 0 ? (
+                                        filteredAccounts.map((account) => (
+                                            <tr key={account.id} className="border-b hover:bg-gray-50">
+                                                <td className="px-6 py-4 font-medium text-gray-900">
+                                                    {account.name}
+                                                </td>
+                                                <td className="px-6 py-4 capitalize">
+                                                    {account.type}
+                                                </td>
+                                                <td className={`px-6 py-4 font-medium ${['income', 'asset'].includes(account.type)
+                                                    ? 'text-green-600'
+                                                    : 'text-red-600'
                                                     }`}>
-                                                    {account.isActive ? 'Active' : 'Inactive'}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center space-x-2">
-                                                    <button
-                                                        className="text-yellow-500 hover:text-yellow-700"
-                                                        title="Edit"
-                                                    >
-                                                        <Edit className="w-4 h-4" />
-                                                    </button>
-                                                    <button
-                                                        className={`${account.isActive ? 'text-red-500 hover:text-red-700' : 'text-green-500 hover:text-green-700'}`}
-                                                        title={account.isActive ? 'Deactivate' : 'Activate'}
-                                                    >
-                                                        {account.isActive ? (
-                                                            <Trash className="w-4 h-4" />
-                                                        ) : (
-                                                            <Plus className="w-4 h-4" />
-                                                        )}
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {filteredAccounts.length === 0 && (
+                                                    Rs. {Number(account.balance).toLocaleString()}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    {account.description}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className={`px-2 py-1 rounded-full text-xs ${account.isActive
+                                                        ? 'bg-green-100 text-green-800'
+                                                        : 'bg-red-100 text-red-800'
+                                                        }`}>
+                                                        {account.isActive ? 'Active' : 'Inactive'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center space-x-2">
+                                                        <button
+                                                            className="text-yellow-500 hover:text-yellow-700"
+                                                            title="Edit"
+                                                        >
+                                                            <Edit className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            className={`${account.isActive ? 'text-red-500 hover:text-red-700' : 'text-green-500 hover:text-green-700'}`}
+                                                            title={account.isActive ? 'Deactivate' : 'Activate'}
+                                                        >
+                                                            {account.isActive ? (
+                                                                <Trash className="w-4 h-4" />
+                                                            ) : (
+                                                                <Plus className="w-4 h-4" />
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
                                         <tr>
                                             <td colSpan={6} className="px-6 py-4 text-center">
-                                                No accounts found matching your search.
+                                                {searchTerm
+                                                    ? 'No accounts found matching your search criteria.'
+                                                    : 'No accounts found. Create your first account!'}
                                             </td>
                                         </tr>
                                     )}
@@ -538,16 +545,7 @@ export default function Accounting() {
             {showAddTransactionModal && (
                 <TransactionFormModal
                     onClose={() => setShowAddTransactionModal(false)}
-                    onSave={(transaction) => {
-                        const newId = `TRX${(transactions.length + 1).toString().padStart(3, '0')}`;
-                        const newTransaction = {
-                            ...transaction,
-                            id: newId,
-                            createdAt: new Date().toISOString().split('T')[0]
-                        };
-                        setTransactions([...transactions, newTransaction]);
-                        setShowAddTransactionModal(false);
-                    }}
+                    onSave={handleSaveTransaction}
                     accounts={accounts}
                 />
             )}
@@ -556,22 +554,14 @@ export default function Accounting() {
             {showAddAccountModal && (
                 <AccountFormModal
                     onClose={() => setShowAddAccountModal(false)}
-                    onSave={(account) => {
-                        const newId = `ACC${(accounts.length + 1).toString().padStart(3, '0')}`;
-                        const newAccount = {
-                            ...account,
-                            id: newId,
-                            createdAt: new Date().toISOString().split('T')[0]
-                        };
-                        setAccounts([...accounts, newAccount]);
-                        setShowAddAccountModal(false);
-                    }}
+                    onSave={handleSaveAccount}
                 />
             )}
         </MainLayout>
     );
 }
 
+// TransactionFormModal Component
 interface TransactionFormModalProps {
     onClose: () => void;
     onSave: (transaction: Omit<Transaction, 'id' | 'createdAt'>) => void;
@@ -579,184 +569,229 @@ interface TransactionFormModalProps {
 }
 
 function TransactionFormModal({ onClose, onSave, accounts }: TransactionFormModalProps) {
-    const [formData, setFormData] = useState({
-        date: new Date().toISOString().split('T')[0],
-        description: '',
-        accountId: '',
-        type: 'expense',
-        amount: '',
-        reference: '',
-        category: '',
-    });
+    const [type, setType] = useState<Transaction['type']>('income');
+    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [description, setDescription] = useState('');
+    const [accountId, setAccountId] = useState('');
+    const [toAccountId, setToAccountId] = useState('');
+    const [amount, setAmount] = useState('');
+    const [reference, setReference] = useState('');
+    const [category, setCategory] = useState('');
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
-    };
+    // Filter accounts for the "To Account" dropdown (exclude the selected "From Account")
+    const toAccountOptions = accounts.filter(account => account.id !== accountId && account.isActive);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        const selectedAccount = accounts.find(account => account.id === formData.accountId);
-        const accountName = selectedAccount ? selectedAccount.name : '';
+        // Validate form
+        if (!date || !description || !accountId || !amount || !category) {
+            alert('Please fill in all required fields');
+            return;
+        }
 
-        onSave({
-            date: formData.date,
-            description: formData.description,
-            accountId: formData.accountId,
-            accountName,
-            type: formData.type as 'income' | 'expense' | 'withdrawal',
-            amount: parseFloat(formData.amount),
-            reference: formData.reference,
-            category: formData.category,
-        });
-        onClose();
+        // For transfers, validate toAccountId
+        if (type === 'transfer' && !toAccountId) {
+            alert('Please select a destination account for the transfer');
+            return;
+        }
+
+        // Get account name for display
+        const selectedAccount = accounts.find(acc => acc.id.toString() === accountId.toString());
+        const selectedToAccount = toAccountId ? accounts.find(acc => acc.id.toString() === toAccountId.toString()) : undefined;
+
+        // Create transaction object
+        const transaction: Omit<Transaction, 'id' | 'createdAt'> = {
+            date,
+            description,
+            accountId,
+            accountName: selectedAccount?.name || '',
+            type,
+            amount: parseFloat(amount),
+            reference,
+            category,
+            ...(type === 'transfer' && toAccountId && selectedToAccount ? {
+                toAccountId,
+                toAccountName: selectedToAccount.name
+            } : {})
+        };
+
+        onSave(transaction);
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-25 flex items-center justify-center z-50">
-            <div className="bg-tertiary p-6 rounded-lg shadow-lg w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg w-full max-w-md p-6">
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold">Add Transaction</h2>
+                    <h2 className="text-xl font-bold">New Transaction</h2>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
                 <form onSubmit={handleSubmit}>
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                            <input
-                                type="date"
-                                name="date"
-                                value={formData.date}
-                                onChange={handleChange}
-                                required
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                            <input
-                                type="text"
-                                name="description"
-                                value={formData.description}
-                                onChange={handleChange}
-                                required
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
-                                placeholder="Transaction description"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Account</label>
-                            <select
-                                name="accountId"
-                                value={formData.accountId}
-                                onChange={handleChange}
-                                required
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
+                    {/* Transaction Type */}
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Transaction Type
+                        </label>
+                        <div className="flex space-x-2">
+                            <button
+                                type="button"
+                                className={`px-3 py-2 text-sm rounded-md flex-1 ${type === 'income' ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-gray-100 text-gray-800 border border-gray-200'}`}
+                                onClick={() => setType('income')}
                             >
-                                <option value="">Select an account</option>
-                                {accounts.map(account => (
-                                    <option key={account.id} value={account.id}>{account.name}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                            <select
-                                name="type"
-                                value={formData.type}
-                                onChange={handleChange}
-                                required
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
+                                Income
+                            </button>
+                            <button
+                                type="button"
+                                className={`px-3 py-2 text-sm rounded-md flex-1 ${type === 'expense' ? 'bg-red-100 text-red-800 border border-red-300' : 'bg-gray-100 text-gray-800 border border-gray-200'}`}
+                                onClick={() => setType('expense')}
                             >
-                                <option value="income">Income</option>
-                                <option value="expense">Expense</option>
-                                <option value="withdrawal">Owner Withdrawal</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Amount (Rs.)</label>
-                            <input
-                                type="number"
-                                name="amount"
-                                value={formData.amount}
-                                onChange={handleChange}
-                                required
-                                min="0"
-                                step="0.01"
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
-                                placeholder="0.00"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Reference</label>
-                            <input
-                                type="text"
-                                name="reference"
-                                value={formData.reference}
-                                onChange={handleChange}
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
-                                placeholder="Invoice or receipt number"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                            <select
-                                name="category"
-                                value={formData.category}
-                                onChange={handleChange}
-                                required
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
+                                Expense
+                            </button>
+                            <button
+                                type="button"
+                                className={`px-3 py-2 text-sm rounded-md flex-1 ${type === 'withdrawal' ? 'bg-orange-100 text-orange-800 border border-orange-300' : 'bg-gray-100 text-gray-800 border border-gray-200'}`}
+                                onClick={() => setType('withdrawal')}
                             >
-                                <option value="">Select a category</option>
-                                {formData.type === 'income' && (
-                                    <>
-                                        <option value="Sales Revenue">Sales Revenue</option>
-                                        <option value="Service Revenue">Service Revenue</option>
-                                        <option value="Interest Income">Interest Income</option>
-                                        <option value="Other Income">Other Income</option>
-                                    </>
-                                )}
-                                {formData.type === 'expense' && (
-                                    <>
-                                        <option value="Inventory Purchase">Inventory Purchase</option>
-                                        <option value="Rent Expense">Rent Expense</option>
-                                        <option value="Utilities Expense">Utilities Expense</option>
-                                        <option value="Salaries Expense">Salaries Expense</option>
-                                        <option value="Office Supplies">Office Supplies</option>
-                                        <option value="Travel Expense">Travel Expense</option>
-                                        <option value="Marketing Expense">Marketing Expense</option>
-                                        <option value="Other Expense">Other Expense</option>
-                                    </>
-                                )}
-                                {formData.type === 'withdrawal' && (
-                                    <>
-                                        <option value="Owner Drawings">Owner Drawings</option>
-                                        <option value="Personal Expenses">Personal Expenses</option>
-                                        <option value="Personal Investment">Personal Investment</option>
-                                    </>
-                                )}
-                            </select>
+                                Withdrawal
+                            </button>
+                            <button
+                                type="button"
+                                className={`px-3 py-2 text-sm rounded-md flex-1 ${type === 'transfer' ? 'bg-purple-100 text-purple-800 border border-purple-300' : 'bg-gray-100 text-gray-800 border border-gray-200'}`}
+                                onClick={() => setType('transfer')}
+                            >
+                                Transfer
+                            </button>
                         </div>
                     </div>
 
-                    <div className="mt-6 flex justify-end space-x-3">
-                        <Button variant="outline" size="sm" onClick={onClose}>
+                    {/* Date */}
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Date
+                        </label>
+                        <input
+                            type="date"
+                            className="w-full border border-gray-300 rounded-md px-3 py-2"
+                            value={date}
+                            onChange={(e) => setDate(e.target.value)}
+                            required
+                        />
+                    </div>
+
+                    {/* Description */}
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Description
+                        </label>
+                        <input
+                            type="text"
+                            className="w-full border border-gray-300 rounded-md px-3 py-2"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            placeholder="Enter description"
+                            required
+                        />
+                    </div>
+
+                    {/* From Account */}
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {type === 'transfer' ? 'From Account' : 'Account'}
+                        </label>
+                        <select
+                            className="w-full border border-gray-300 rounded-md px-3 py-2"
+                            value={accountId}
+                            onChange={(e) => setAccountId(e.target.value)}
+                            required
+                        >
+                            <option value="">Select an account</option>
+                            {accounts
+                                .filter(account => account.isActive)
+                                .map((account) => (
+                                    <option key={account.id} value={account.id}>
+                                        {account.name} (Rs. {Number(account.balance).toLocaleString()})
+                                    </option>
+                                ))}
+                        </select>
+                    </div>
+
+                    {/* To Account (for transfers only) */}
+                    {type === 'transfer' && (
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                To Account
+                            </label>
+                            <select
+                                className="w-full border border-gray-300 rounded-md px-3 py-2"
+                                value={toAccountId}
+                                onChange={(e) => setToAccountId(e.target.value)}
+                                required
+                            >
+                                <option value="">Select destination account</option>
+                                {toAccountOptions.map((account) => (
+                                    <option key={account.id} value={account.id}>
+                                        {account.name} (Rs. {Number(account.balance).toLocaleString()})
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
+                    {/* Amount */}
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Amount (Rs.)
+                        </label>
+                        <input
+                            type="number"
+                            className="w-full border border-gray-300 rounded-md px-3 py-2"
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            placeholder="Enter amount"
+                            min="0"
+                            step="0.01"
+                            required
+                        />
+                    </div>
+
+                    {/* Reference */}
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Reference (Optional)
+                        </label>
+                        <input
+                            type="text"
+                            className="w-full border border-gray-300 rounded-md px-3 py-2"
+                            value={reference}
+                            onChange={(e) => setReference(e.target.value)}
+                            placeholder="Invoice #, Receipt #, etc."
+                        />
+                    </div>
+
+                    {/* Category */}
+                    <div className="mb-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Category
+                        </label>
+                        <input
+                            type="text"
+                            className="w-full border border-gray-300 rounded-md px-3 py-2"
+                            value={category}
+                            onChange={(e) => setCategory(e.target.value)}
+                            placeholder="Enter category"
+                            required
+                        />
+                    </div>
+
+                    {/* Buttons */}
+                    <div className="flex justify-end space-x-2">
+                        <Button variant="outline" type="button" onClick={onClose}>
                             Cancel
                         </Button>
-                        <Button variant="primary" size="sm" type="submit">
+                        <Button variant="primary" type="submit">
                             Save Transaction
                         </Button>
                     </div>
@@ -766,126 +801,138 @@ function TransactionFormModal({ onClose, onSave, accounts }: TransactionFormModa
     );
 }
 
+// AccountFormModal Component
 interface AccountFormModalProps {
     onClose: () => void;
     onSave: (account: Omit<Account, 'id' | 'createdAt'>) => void;
 }
 
 function AccountFormModal({ onClose, onSave }: AccountFormModalProps) {
-    const [formData, setFormData] = useState<Partial<Account>>({
-        name: '',
-        type: 'asset',
-        balance: 0,
-        description: '',
-        isActive: true
-    });
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value, type } = e.target;
-
-        if (type === 'checkbox') {
-            const target = e.target as HTMLInputElement;
-            setFormData({ ...formData, [name]: target.checked });
-        } else {
-            setFormData({ ...formData, [name]: value });
-        }
-    };
+    const [name, setName] = useState('');
+    const [type, setType] = useState<Account['type']>('asset');
+    const [balance, setBalance] = useState('');
+    const [description, setDescription] = useState('');
+    const [isActive, setIsActive] = useState(true);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(formData as Omit<Account, 'id' | 'createdAt'>);
+
+        // Validate form
+        if (!name || !type) {
+            alert('Please fill in all required fields');
+            return;
+        }
+
+        // Create account object
+        const account: Omit<Account, 'id' | 'createdAt'> = {
+            name,
+            type,
+            balance: balance ? parseFloat(balance) : 0,
+            description,
+            isActive
+        };
+
+        onSave(account);
     };
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4">
-                <div className="flex justify-between items-center border-b p-4">
-                    <h2 className="text-xl font-bold">Add New Account</h2>
+            <div className="bg-white rounded-lg w-full max-w-md p-6">
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-bold">New Account</h2>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-4">
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Account Name*
-                            </label>
-                            <input
-                                type="text"
-                                name="name"
-                                value={formData.name || ''}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                                required
-                            />
-                        </div>
+                <form onSubmit={handleSubmit}>
+                    {/* Account Name */}
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Account Name
+                        </label>
+                        <input
+                            type="text"
+                            className="w-full border border-gray-300 rounded-md px-3 py-2"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder="Enter account name"
+                            required
+                        />
+                    </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Account Type*
-                            </label>
-                            <select
-                                name="type"
-                                value={formData.type || 'asset'}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                                required
-                            >
-                                <option value="asset">Asset</option>
-                                <option value="liability">Liability</option>
-                                <option value="equity">Equity</option>
-                                <option value="income">Income</option>
-                                <option value="expense">Expense</option>
-                            </select>
-                        </div>
+                    {/* Account Type */}
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Account Type
+                        </label>
+                        <select
+                            className="w-full border border-gray-300 rounded-md px-3 py-2"
+                            value={type}
+                            onChange={(e) => setType(e.target.value as Account['type'])}
+                            required
+                        >
+                            <option value="asset">Asset</option>
+                            <option value="liability">Liability</option>
+                            <option value="equity">Equity</option>
+                            <option value="income">Income</option>
+                            <option value="expense">Expense</option>
+                        </select>
+                    </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Opening Balance (Rs.)
-                            </label>
-                            <input
-                                type="number"
-                                name="balance"
-                                value={formData.balance || ''}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                                min="0"
-                            />
-                        </div>
+                    {/* Initial Balance */}
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Initial Balance (Rs.)
+                        </label>
+                        <input
+                            type="number"
+                            className="w-full border border-gray-300 rounded-md px-3 py-2"
+                            value={balance}
+                            onChange={(e) => setBalance(e.target.value)}
+                            placeholder="Enter initial balance"
+                            min="0"
+                            step="0.01"
+                        />
+                    </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Description
-                            </label>
-                            <textarea
-                                name="description"
-                                value={formData.description || ''}
-                                onChange={handleChange}
-                                rows={3}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                            ></textarea>
-                        </div>
+                    {/* Description */}
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Description (Optional)
+                        </label>
+                        <textarea
+                            className="w-full border border-gray-300 rounded-md px-3 py-2"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            placeholder="Enter description"
+                            rows={3}
+                        />
+                    </div>
 
+                    {/* Status */}
+                    <div className="mb-6">
                         <div className="flex items-center">
                             <input
                                 type="checkbox"
-                                name="isActive"
-                                checked={formData.isActive}
-                                onChange={handleChange}
-                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                id="isActive"
+                                className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                                checked={isActive}
+                                onChange={(e) => setIsActive(e.target.checked)}
                             />
-                            <label className="ml-2 text-sm font-medium text-gray-700">
-                                Account is active
+                            <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900">
+                                Active
                             </label>
                         </div>
                     </div>
 
-                    <div className="flex justify-end space-x-2 mt-6 pt-3 border-t">
-                        <Button variant="outline" type="button" onClick={onClose}>Cancel</Button>
+                    {/* Buttons */}
+                    <div className="flex justify-end space-x-2">
+                        <Button variant="outline" type="button" onClick={onClose}>
+                            Cancel
+                        </Button>
                         <Button variant="primary" type="submit">
-                            Create Account
+                            Save Account
                         </Button>
                     </div>
                 </form>
