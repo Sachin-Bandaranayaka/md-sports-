@@ -223,7 +223,7 @@ export default function NewPurchaseInvoice() {
             if (name === 'productId' && value) {
                 // Check if products is an array before using find
                 const selectedProduct = Array.isArray(products) ?
-                    products.find(p => p.id === value) : null;
+                    products.find(p => p.id.toString() === value) : null;
 
                 if (selectedProduct) {
                     newItems[index] = {
@@ -376,7 +376,15 @@ export default function NewPurchaseInvoice() {
         try {
             // Transform the data to include shop distribution
             const transformedData = {
-                ...formData,
+                invoiceNumber: formData.invoiceNumber,
+                supplierId: formData.supplierId,
+                status: formData.status || 'unpaid',
+                totalAmount: formData.totalAmount || 0,
+                paidAmount: parseFloat(formData.paidAmount as unknown as string) || 0,
+                date: formData.date,
+                dueDate: formData.dueDate,
+                notes: formData.notes,
+                items: formData.items || [],
                 distributions: distribution
             };
 
@@ -986,8 +994,8 @@ export default function NewPurchaseInvoice() {
                                     Total Distributed:
                                 </span>
                                 <span className={`font-semibold ${getTotalDistributed(selectedItemIndex) === formData.items[selectedItemIndex].quantity
-                                        ? 'text-green-600'
-                                        : 'text-red-600'
+                                    ? 'text-green-600'
+                                    : 'text-red-600'
                                     }`}>
                                     {getTotalDistributed(selectedItemIndex)} / {formData.items[selectedItemIndex].quantity}
                                 </span>

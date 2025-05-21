@@ -236,13 +236,13 @@ export default function Purchases() {
                                                 {invoice.supplier?.name || 'Unknown Supplier'}
                                             </td>
                                             <td className="px-6 py-4">
-                                                {new Date(invoice.date).toLocaleDateString()}
+                                                {invoice.date ? new Date(invoice.date).toLocaleDateString() : 'N/A'}
                                             </td>
                                             <td className="px-6 py-4">
-                                                {new Date(invoice.dueDate).toLocaleDateString()}
+                                                {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A'}
                                             </td>
                                             <td className="px-6 py-4 font-medium">
-                                                Rs. {invoice.total?.toLocaleString()}
+                                                Rs. {invoice.total ? invoice.total.toLocaleString() : '0.00'}
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(invoice.status)}`}>
@@ -347,11 +347,11 @@ function InvoiceDetailModal({ invoice, onClose, onEdit }: InvoiceDetailModalProp
                             <p className="text-gray-600">{invoice.supplier?.name || 'Unknown Supplier'}</p>
                             <div className="flex items-center mt-1 text-gray-600">
                                 <Calendar className="w-4 h-4 mr-1" />
-                                <span>Date: {new Date(invoice.date).toLocaleDateString()}</span>
+                                <span>Date: {invoice.date ? new Date(invoice.date).toLocaleDateString() : 'N/A'}</span>
                             </div>
                             <div className="flex items-center mt-1 text-gray-600">
                                 <Calendar className="w-4 h-4 mr-1" />
-                                <span>Due: {new Date(invoice.dueDate).toLocaleDateString()}</span>
+                                <span>Due: {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A'}</span>
                             </div>
                         </div>
                         <div className="mt-4 md:mt-0">
@@ -392,8 +392,8 @@ function InvoiceDetailModal({ invoice, onClose, onEdit }: InvoiceDetailModalProp
                                                 </div>
                                             </td>
                                             <td className="px-4 py-2">{item.quantity}</td>
-                                            <td className="px-4 py-2">Rs. {item.unitPrice.toLocaleString()}</td>
-                                            <td className="px-4 py-2 font-medium">Rs. {item.total.toLocaleString()}</td>
+                                            <td className="px-4 py-2">Rs. {item.unitPrice ? item.unitPrice.toLocaleString() : '0.00'}</td>
+                                            <td className="px-4 py-2 font-medium">Rs. {item.total ? item.total.toLocaleString() : '0.00'}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -406,19 +406,19 @@ function InvoiceDetailModal({ invoice, onClose, onEdit }: InvoiceDetailModalProp
                         <div className="w-full max-w-xs">
                             <div className="flex justify-between py-2 border-b">
                                 <span>Subtotal:</span>
-                                <span>Rs. {invoice.subtotal?.toLocaleString()}</span>
+                                <span>Rs. {invoice.subtotal ? invoice.subtotal.toLocaleString() : '0.00'}</span>
                             </div>
                             <div className="flex justify-between py-2 border-b">
                                 <span>Tax:</span>
-                                <span>Rs. {invoice.tax?.toLocaleString()}</span>
+                                <span>Rs. {invoice.tax ? invoice.tax.toLocaleString() : '0.00'}</span>
                             </div>
                             <div className="flex justify-between py-2 border-b">
                                 <span>Discount:</span>
-                                <span>Rs. {invoice.discount?.toLocaleString()}</span>
+                                <span>Rs. {invoice.discount ? invoice.discount.toLocaleString() : '0.00'}</span>
                             </div>
                             <div className="flex justify-between py-2 font-bold">
                                 <span>Total:</span>
-                                <span>Rs. {invoice.total?.toLocaleString()}</span>
+                                <span>Rs. {invoice.total ? invoice.total.toLocaleString() : '0.00'}</span>
                             </div>
                         </div>
                     </div>
@@ -826,10 +826,10 @@ function InvoiceFormModal({ invoice, isEdit, onClose, onSave, suppliers }: Invoi
                                                     {item.quantity}
                                                 </td>
                                                 <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                                                    Rs. {item.unitPrice.toFixed(2)}
+                                                    Rs. {item.unitPrice ? item.unitPrice.toLocaleString() : '0.00'}
                                                 </td>
                                                 <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                                                    Rs. {item.total.toFixed(2)}
+                                                    Rs. {item.total ? item.total.toLocaleString() : '0.00'}
                                                 </td>
                                                 <td className="px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
                                                     <button

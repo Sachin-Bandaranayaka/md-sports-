@@ -55,10 +55,8 @@ export default function CreateTransferPage() {
                     throw new Error('Failed to fetch shops');
                 }
                 const shopsData = await shopsResponse.json();
-                if (!shopsData.success) {
-                    throw new Error(shopsData.message || 'Failed to fetch shops');
-                }
-                setShops(shopsData.data || []);
+                // Assuming shopsData is an array directly if shopsResponse.ok is true
+                setShops(shopsData || []);
 
                 // Fetch all products (we'll filter them based on selected shop later)
                 const productsResponse = await authFetch('/api/products');
