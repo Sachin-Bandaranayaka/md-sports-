@@ -92,8 +92,8 @@ export async function POST(request: NextRequest) {
             body.invoiceNumber = `PI${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
         }
 
-        // Extract items from the request
-        const { items, ...invoiceData } = body;
+        // Extract items and distributions from the request
+        const { items, distributions, ...invoiceData } = body;
 
         // Create the purchase invoice with items in a transaction
         const purchase = await prisma.$transaction(async (tx) => {
@@ -104,30 +104,36 @@ export async function POST(request: NextRequest) {
 
             // Create the purchase invoice items and update inventory
             if (items && Array.isArray(items)) {
-                for (const item of items) {
+                for (let i = 0; i < items.length; i++) {
+                    const item = items[i];
+                    const itemDistribution = distributions && distributions[i] ? distributions[i] : null;
+
                     // Create purchase invoice item
                     await tx.purchaseInvoiceItem.create({
                         data: {
-                            ...item,
-                            purchaseInvoiceId: createdInvoice.id
+                            purchaseInvoiceId: createdInvoice.id,
+                            productId: parseInt(item.productId),
+                            quantity: item.quantity,
+                            price: item.unitPrice || 0,
+                            total: (item.quantity * item.unitPrice) || 0
                         }
                     });
 
                     // Get current product data
                     const product = await tx.product.findUnique({
-                        where: { id: item.productId },
+                        where: { id: parseInt(item.productId) },
                         select: { id: true, weightedAverageCost: true }
                     });
 
                     // Get current inventory quantity for this product across all shops
                     const inventoryItems = await tx.inventoryItem.findMany({
-                        where: { productId: item.productId }
+                        where: { productId: parseInt(item.productId) }
                     });
 
                     const currentTotalQuantity = inventoryItems.reduce((sum, inv) => sum + inv.quantity, 0);
                     const newQuantity = item.quantity;
                     const currentCost = product?.weightedAverageCost || 0;
-                    const newCost = item.price;
+                    const newCost = item.unitPrice;
 
                     // Calculate new weighted average cost
                     // (Current Quantity * Current WAC + New Quantity * New Cost) / (Current Quantity + New Quantity)
@@ -141,33 +147,68 @@ export async function POST(request: NextRequest) {
 
                     // Update product with new weighted average cost
                     await tx.product.update({
-                        where: { id: item.productId },
+                        where: { id: parseInt(item.productId) },
                         data: { weightedAverageCost: newWeightedAverageCost }
                     });
 
-                    // Check if inventory exists for this product/shop combination
-                    const shopId = invoiceData.shopId || 1; // Default to shop ID 1 if not specified
-                    const existingInventory = await tx.inventoryItem.findFirst({
-                        where: {
-                            productId: item.productId,
-                            shopId: shopId
-                        }
-                    });
+                    // Handle distribution across shops
+                    if (itemDistribution && Object.keys(itemDistribution).length > 0) {
+                        // Distribute to specific shops as specified
+                        for (const [shopIdStr, quantity] of Object.entries(itemDistribution)) {
+                            const shopId = parseInt(shopIdStr);
+                            const qty = Number(quantity);
 
-                    // Update or create inventory
-                    if (existingInventory) {
-                        await tx.inventoryItem.update({
-                            where: { id: existingInventory.id },
-                            data: { quantity: existingInventory.quantity + item.quantity }
-                        });
+                            if (qty <= 0) continue;
+
+                            // Check if inventory exists for this product/shop combination
+                            const existingInventory = await tx.inventoryItem.findFirst({
+                                where: {
+                                    productId: parseInt(item.productId),
+                                    shopId: shopId
+                                }
+                            });
+
+                            // Update or create inventory
+                            if (existingInventory) {
+                                await tx.inventoryItem.update({
+                                    where: { id: existingInventory.id },
+                                    data: { quantity: existingInventory.quantity + qty }
+                                });
+                            } else {
+                                await tx.inventoryItem.create({
+                                    data: {
+                                        productId: parseInt(item.productId),
+                                        shopId: shopId,
+                                        quantity: qty
+                                    }
+                                });
+                            }
+                        }
                     } else {
-                        await tx.inventoryItem.create({
-                            data: {
-                                productId: item.productId,
-                                shopId: shopId,
-                                quantity: item.quantity
+                        // Default behavior - add everything to shop 1 if no distribution specified
+                        const shopId = 1;
+                        const existingInventory = await tx.inventoryItem.findFirst({
+                            where: {
+                                productId: parseInt(item.productId),
+                                shopId: shopId
                             }
                         });
+
+                        // Update or create inventory
+                        if (existingInventory) {
+                            await tx.inventoryItem.update({
+                                where: { id: existingInventory.id },
+                                data: { quantity: existingInventory.quantity + item.quantity }
+                            });
+                        } else {
+                            await tx.inventoryItem.create({
+                                data: {
+                                    productId: parseInt(item.productId),
+                                    shopId: shopId,
+                                    quantity: item.quantity
+                                }
+                            });
+                        }
                     }
                 }
             }
@@ -192,7 +233,7 @@ export async function POST(request: NextRequest) {
     } catch (error) {
         console.error('Error creating purchase invoice:', error);
         return NextResponse.json(
-            { error: 'Failed to create purchase invoice' },
+            { error: 'Failed to create purchase invoice', details: error instanceof Error ? error.message : String(error) },
             { status: 500 }
         );
     }
