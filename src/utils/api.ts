@@ -84,6 +84,17 @@ export const authDelete = async (url: string, options: RequestInit = {}) => {
 };
 
 /**
+ * PATCH request with authentication
+ */
+export const authPatch = async (url: string, data: any, options: RequestInit = {}) => {
+    return authFetch(url, {
+        ...options,
+        method: 'PATCH',
+        body: JSON.stringify(data),
+    });
+};
+
+/**
  * Setup global fetch interceptor to add authentication token to all API calls
  * Call this once at the app initialization
  */

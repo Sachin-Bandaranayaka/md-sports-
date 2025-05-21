@@ -1,20 +1,28 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Search, Plus, Edit, Trash, X, ArrowUp, ArrowDown, Filter } from 'lucide-react';
+import { Search, Plus, Edit, Trash, X, ArrowUp, ArrowDown, Filter, Calendar } from 'lucide-react';
 import { Transaction, Account } from '@/types';
-import { authGet, authPost } from '@/utils/api';
+import { authGet, authPost, authDelete, authPatch } from '@/utils/api';
 
 export default function Accounting() {
-    const [activeTab, setActiveTab] = useState<'transactions' | 'accounts'>('transactions');
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const tabParam = searchParams.get('tab');
+
+    const [activeTab, setActiveTab] = useState<'transactions' | 'accounts'>(
+        tabParam === 'accounts' ? 'accounts' : 'transactions'
+    );
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
-    const [showAddAccountModal, setShowAddAccountModal] = useState(false);
     const [typeFilter, setTypeFilter] = useState<Transaction['type'] | ''>('');
+    const [startDate, setStartDate] = useState<string>('');
+    const [endDate, setEndDate] = useState<string>('');
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -50,7 +58,18 @@ export default function Accounting() {
         fetchData();
     }, []);
 
-    // Filter transactions based on search term and type filter
+    // Update URL when tab changes
+    useEffect(() => {
+        const newParams = new URLSearchParams(searchParams);
+        if (activeTab === 'accounts') {
+            newParams.set('tab', 'accounts');
+        } else {
+            newParams.delete('tab');
+        }
+        router.replace(`/accounting?${newParams.toString()}`, { scroll: false });
+    }, [activeTab, router, searchParams]);
+
+    // Filter transactions based on search term, type filter, and date range
     const filteredTransactions = transactions.filter((transaction) => {
         const matchesSearch =
             transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -59,7 +78,12 @@ export default function Accounting() {
 
         const matchesType = typeFilter ? transaction.type === typeFilter : true;
 
-        return matchesSearch && matchesType;
+        // Date range filtering
+        const transactionDate = new Date(transaction.date);
+        const matchesStartDate = startDate ? transactionDate >= new Date(startDate) : true;
+        const matchesEndDate = endDate ? transactionDate <= new Date(endDate) : true;
+
+        return matchesSearch && matchesType && matchesStartDate && matchesEndDate;
     });
 
     // Filter accounts based on search term
@@ -96,58 +120,69 @@ export default function Accounting() {
     const netProfit = totalIncome - totalExpenses;
 
     const handleAddTransaction = () => {
-        setShowAddTransactionModal(true);
+        router.push('/accounting/add-transaction');
     };
 
     const handleAddAccount = () => {
-        setShowAddAccountModal(true);
+        router.push('/accounting/add-account');
     };
 
-    // Handle saving a new transaction
-    const handleSaveTransaction = async (transaction: Omit<Transaction, 'id' | 'createdAt'>) => {
-        try {
-            const response = await authPost('/api/accounting/transactions', transaction);
-            if (!response.ok) {
-                throw new Error('Failed to create transaction');
+    const handleDeleteTransaction = async (id: string | number) => {
+        if (confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) {
+            try {
+                const response = await authDelete(`/api/accounting/transactions?id=${id}`);
+
+                if (!response.ok) {
+                    throw new Error('Failed to delete transaction');
+                }
+
+                // Remove the transaction from state
+                setTransactions(transactions.filter(t => t.id !== id));
+
+                // Refresh data to update account balances
+                fetchData();
+            } catch (err) {
+                console.error('Error deleting transaction:', err);
+                alert('Failed to delete transaction. Please try again.');
             }
-            const data = await response.json();
-
-            // Add the new transaction to the state
-            setTransactions([...transactions, data.data]);
-
-            // Close the modal
-            setShowAddTransactionModal(false);
-
-            // Refresh accounts to get updated balances
-            const accountsResponse = await authGet('/api/accounting/accounts');
-            if (accountsResponse.ok) {
-                const accountsData = await accountsResponse.json();
-                setAccounts(accountsData.data);
-            }
-        } catch (err) {
-            console.error('Error creating transaction:', err);
-            alert('Failed to create transaction. Please try again.');
         }
     };
 
-    // Handle saving a new account
-    const handleSaveAccount = async (account: Omit<Account, 'id' | 'createdAt'>) => {
-        try {
-            const response = await authPost('/api/accounting/accounts', account);
-            if (!response.ok) {
-                throw new Error('Failed to create account');
+    const handleToggleAccountStatus = async (account: Account) => {
+        const newStatus = !account.isActive;
+        const action = newStatus ? 'activate' : 'deactivate';
+
+        if (confirm(`Are you sure you want to ${action} this account?`)) {
+            try {
+                const response = await authPatch('/api/accounting/accounts', {
+                    id: account.id,
+                    name: account.name,
+                    type: account.type,
+                    balance: account.balance,
+                    description: account.description,
+                    isActive: newStatus
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to ${action} account`);
+                }
+
+                // Update account in state
+                setAccounts(accounts.map(a =>
+                    a.id === account.id ? { ...a, isActive: newStatus } : a
+                ));
+            } catch (err) {
+                console.error(`Error ${action}ing account:`, err);
+                alert(`Failed to ${action} account. Please try again.`);
             }
-            const data = await response.json();
-
-            // Add the new account to the state
-            setAccounts([...accounts, data.data]);
-
-            // Close the modal
-            setShowAddAccountModal(false);
-        } catch (err) {
-            console.error('Error creating account:', err);
-            alert('Failed to create account. Please try again.');
         }
+    };
+
+    const clearFilters = () => {
+        setSearchTerm('');
+        setTypeFilter('');
+        setStartDate('');
+        setEndDate('');
     };
 
     // Loading state
@@ -288,11 +323,67 @@ export default function Accounting() {
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-                        <Button variant="outline" size="sm">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setIsFilterOpen(!isFilterOpen)}
+                        >
                             <Filter className="w-4 h-4 mr-2" />
-                            Filter
+                            {isFilterOpen ? 'Hide Filters' : 'Show Filters'}
                         </Button>
                     </div>
+
+                    {/* Advanced filters */}
+                    {isFilterOpen && activeTab === 'transactions' && (
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {/* Date range filter */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Start Date
+                                    </label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                            <Calendar className="w-4 h-4 text-gray-400" />
+                                        </div>
+                                        <input
+                                            type="date"
+                                            className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg block w-full pl-10 p-2.5"
+                                            value={startDate}
+                                            onChange={(e) => setStartDate(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        End Date
+                                    </label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                            <Calendar className="w-4 h-4 text-gray-400" />
+                                        </div>
+                                        <input
+                                            type="date"
+                                            className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg block w-full pl-10 p-2.5"
+                                            value={endDate}
+                                            onChange={(e) => setEndDate(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex items-end">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={clearFilters}
+                                        className="w-full"
+                                    >
+                                        <X className="w-4 h-4 mr-2" />
+                                        Clear Filters
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Filter by transaction type */}
@@ -363,7 +454,12 @@ export default function Accounting() {
                                                     {new Date(transaction.date).toLocaleDateString()}
                                                 </td>
                                                 <td className="px-6 py-4 font-medium text-gray-900">
-                                                    {transaction.description}
+                                                    <a
+                                                        href={`/accounting/transaction/${transaction.id}`}
+                                                        className="hover:underline hover:text-blue-600"
+                                                    >
+                                                        {transaction.description}
+                                                    </a>
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     {transaction.accountName}
@@ -423,12 +519,14 @@ export default function Accounting() {
                                                         <button
                                                             className="text-yellow-500 hover:text-yellow-700"
                                                             title="Edit"
+                                                            onClick={() => router.push(`/accounting/edit-transaction/${transaction.id}`)}
                                                         >
                                                             <Edit className="w-4 h-4" />
                                                         </button>
                                                         <button
                                                             className="text-red-500 hover:text-red-700"
                                                             title="Delete"
+                                                            onClick={() => handleDeleteTransaction(transaction.id)}
                                                         >
                                                             <Trash className="w-4 h-4" />
                                                         </button>
@@ -476,7 +574,12 @@ export default function Accounting() {
                                         filteredAccounts.map((account) => (
                                             <tr key={account.id} className="border-b hover:bg-gray-50">
                                                 <td className="px-6 py-4 font-medium text-gray-900">
-                                                    {account.name}
+                                                    <a
+                                                        href={`/accounting/account/${account.id}`}
+                                                        className="hover:underline hover:text-blue-600"
+                                                    >
+                                                        {account.name}
+                                                    </a>
                                                 </td>
                                                 <td className="px-6 py-4 capitalize">
                                                     {account.type}
@@ -503,12 +606,14 @@ export default function Accounting() {
                                                         <button
                                                             className="text-yellow-500 hover:text-yellow-700"
                                                             title="Edit"
+                                                            onClick={() => router.push(`/accounting/edit-account/${account.id}`)}
                                                         >
                                                             <Edit className="w-4 h-4" />
                                                         </button>
                                                         <button
                                                             className={`${account.isActive ? 'text-red-500 hover:text-red-700' : 'text-green-500 hover:text-green-700'}`}
                                                             title={account.isActive ? 'Deactivate' : 'Activate'}
+                                                            onClick={() => handleToggleAccountStatus(account)}
                                                         >
                                                             {account.isActive ? (
                                                                 <Trash className="w-4 h-4" />
@@ -540,403 +645,6 @@ export default function Accounting() {
                     </div>
                 )}
             </div>
-
-            {/* Add Transaction Modal */}
-            {showAddTransactionModal && (
-                <TransactionFormModal
-                    onClose={() => setShowAddTransactionModal(false)}
-                    onSave={handleSaveTransaction}
-                    accounts={accounts}
-                />
-            )}
-
-            {/* Add Account Modal */}
-            {showAddAccountModal && (
-                <AccountFormModal
-                    onClose={() => setShowAddAccountModal(false)}
-                    onSave={handleSaveAccount}
-                />
-            )}
         </MainLayout>
-    );
-}
-
-// TransactionFormModal Component
-interface TransactionFormModalProps {
-    onClose: () => void;
-    onSave: (transaction: Omit<Transaction, 'id' | 'createdAt'>) => void;
-    accounts: Account[];
-}
-
-function TransactionFormModal({ onClose, onSave, accounts }: TransactionFormModalProps) {
-    const [type, setType] = useState<Transaction['type']>('income');
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-    const [description, setDescription] = useState('');
-    const [accountId, setAccountId] = useState('');
-    const [toAccountId, setToAccountId] = useState('');
-    const [amount, setAmount] = useState('');
-    const [reference, setReference] = useState('');
-    const [category, setCategory] = useState('');
-
-    // Filter accounts for the "To Account" dropdown (exclude the selected "From Account")
-    const toAccountOptions = accounts.filter(account => account.id !== accountId && account.isActive);
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-
-        // Validate form
-        if (!date || !description || !accountId || !amount || !category) {
-            alert('Please fill in all required fields');
-            return;
-        }
-
-        // For transfers, validate toAccountId
-        if (type === 'transfer' && !toAccountId) {
-            alert('Please select a destination account for the transfer');
-            return;
-        }
-
-        // Get account name for display
-        const selectedAccount = accounts.find(acc => acc.id.toString() === accountId.toString());
-        const selectedToAccount = toAccountId ? accounts.find(acc => acc.id.toString() === toAccountId.toString()) : undefined;
-
-        // Create transaction object
-        const transaction: Omit<Transaction, 'id' | 'createdAt'> = {
-            date,
-            description,
-            accountId,
-            accountName: selectedAccount?.name || '',
-            type,
-            amount: parseFloat(amount),
-            reference,
-            category,
-            ...(type === 'transfer' && toAccountId && selectedToAccount ? {
-                toAccountId,
-                toAccountName: selectedToAccount.name
-            } : {})
-        };
-
-        onSave(transaction);
-    };
-
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg w-full max-w-md p-6">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold">New Transaction</h2>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
-
-                <form onSubmit={handleSubmit}>
-                    {/* Transaction Type */}
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Transaction Type
-                        </label>
-                        <div className="flex space-x-2">
-                            <button
-                                type="button"
-                                className={`px-3 py-2 text-sm rounded-md flex-1 ${type === 'income' ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-gray-100 text-gray-800 border border-gray-200'}`}
-                                onClick={() => setType('income')}
-                            >
-                                Income
-                            </button>
-                            <button
-                                type="button"
-                                className={`px-3 py-2 text-sm rounded-md flex-1 ${type === 'expense' ? 'bg-red-100 text-red-800 border border-red-300' : 'bg-gray-100 text-gray-800 border border-gray-200'}`}
-                                onClick={() => setType('expense')}
-                            >
-                                Expense
-                            </button>
-                            <button
-                                type="button"
-                                className={`px-3 py-2 text-sm rounded-md flex-1 ${type === 'withdrawal' ? 'bg-orange-100 text-orange-800 border border-orange-300' : 'bg-gray-100 text-gray-800 border border-gray-200'}`}
-                                onClick={() => setType('withdrawal')}
-                            >
-                                Withdrawal
-                            </button>
-                            <button
-                                type="button"
-                                className={`px-3 py-2 text-sm rounded-md flex-1 ${type === 'transfer' ? 'bg-purple-100 text-purple-800 border border-purple-300' : 'bg-gray-100 text-gray-800 border border-gray-200'}`}
-                                onClick={() => setType('transfer')}
-                            >
-                                Transfer
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Date */}
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Date
-                        </label>
-                        <input
-                            type="date"
-                            className="w-full border border-gray-300 rounded-md px-3 py-2"
-                            value={date}
-                            onChange={(e) => setDate(e.target.value)}
-                            required
-                        />
-                    </div>
-
-                    {/* Description */}
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Description
-                        </label>
-                        <input
-                            type="text"
-                            className="w-full border border-gray-300 rounded-md px-3 py-2"
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            placeholder="Enter description"
-                            required
-                        />
-                    </div>
-
-                    {/* From Account */}
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {type === 'transfer' ? 'From Account' : 'Account'}
-                        </label>
-                        <select
-                            className="w-full border border-gray-300 rounded-md px-3 py-2"
-                            value={accountId}
-                            onChange={(e) => setAccountId(e.target.value)}
-                            required
-                        >
-                            <option value="">Select an account</option>
-                            {accounts
-                                .filter(account => account.isActive)
-                                .map((account) => (
-                                    <option key={account.id} value={account.id}>
-                                        {account.name} (Rs. {Number(account.balance).toLocaleString()})
-                                    </option>
-                                ))}
-                        </select>
-                    </div>
-
-                    {/* To Account (for transfers only) */}
-                    {type === 'transfer' && (
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                To Account
-                            </label>
-                            <select
-                                className="w-full border border-gray-300 rounded-md px-3 py-2"
-                                value={toAccountId}
-                                onChange={(e) => setToAccountId(e.target.value)}
-                                required
-                            >
-                                <option value="">Select destination account</option>
-                                {toAccountOptions.map((account) => (
-                                    <option key={account.id} value={account.id}>
-                                        {account.name} (Rs. {Number(account.balance).toLocaleString()})
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
-
-                    {/* Amount */}
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Amount (Rs.)
-                        </label>
-                        <input
-                            type="number"
-                            className="w-full border border-gray-300 rounded-md px-3 py-2"
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                            placeholder="Enter amount"
-                            min="0"
-                            step="0.01"
-                            required
-                        />
-                    </div>
-
-                    {/* Reference */}
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Reference (Optional)
-                        </label>
-                        <input
-                            type="text"
-                            className="w-full border border-gray-300 rounded-md px-3 py-2"
-                            value={reference}
-                            onChange={(e) => setReference(e.target.value)}
-                            placeholder="Invoice #, Receipt #, etc."
-                        />
-                    </div>
-
-                    {/* Category */}
-                    <div className="mb-6">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Category
-                        </label>
-                        <input
-                            type="text"
-                            className="w-full border border-gray-300 rounded-md px-3 py-2"
-                            value={category}
-                            onChange={(e) => setCategory(e.target.value)}
-                            placeholder="Enter category"
-                            required
-                        />
-                    </div>
-
-                    {/* Buttons */}
-                    <div className="flex justify-end space-x-2">
-                        <Button variant="outline" type="button" onClick={onClose}>
-                            Cancel
-                        </Button>
-                        <Button variant="primary" type="submit">
-                            Save Transaction
-                        </Button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
-}
-
-// AccountFormModal Component
-interface AccountFormModalProps {
-    onClose: () => void;
-    onSave: (account: Omit<Account, 'id' | 'createdAt'>) => void;
-}
-
-function AccountFormModal({ onClose, onSave }: AccountFormModalProps) {
-    const [name, setName] = useState('');
-    const [type, setType] = useState<Account['type']>('asset');
-    const [balance, setBalance] = useState('');
-    const [description, setDescription] = useState('');
-    const [isActive, setIsActive] = useState(true);
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-
-        // Validate form
-        if (!name || !type) {
-            alert('Please fill in all required fields');
-            return;
-        }
-
-        // Create account object
-        const account: Omit<Account, 'id' | 'createdAt'> = {
-            name,
-            type,
-            balance: balance ? parseFloat(balance) : 0,
-            description,
-            isActive
-        };
-
-        onSave(account);
-    };
-
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg w-full max-w-md p-6">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold">New Account</h2>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
-
-                <form onSubmit={handleSubmit}>
-                    {/* Account Name */}
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Account Name
-                        </label>
-                        <input
-                            type="text"
-                            className="w-full border border-gray-300 rounded-md px-3 py-2"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="Enter account name"
-                            required
-                        />
-                    </div>
-
-                    {/* Account Type */}
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Account Type
-                        </label>
-                        <select
-                            className="w-full border border-gray-300 rounded-md px-3 py-2"
-                            value={type}
-                            onChange={(e) => setType(e.target.value as Account['type'])}
-                            required
-                        >
-                            <option value="asset">Asset</option>
-                            <option value="liability">Liability</option>
-                            <option value="equity">Equity</option>
-                            <option value="income">Income</option>
-                            <option value="expense">Expense</option>
-                        </select>
-                    </div>
-
-                    {/* Initial Balance */}
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Initial Balance (Rs.)
-                        </label>
-                        <input
-                            type="number"
-                            className="w-full border border-gray-300 rounded-md px-3 py-2"
-                            value={balance}
-                            onChange={(e) => setBalance(e.target.value)}
-                            placeholder="Enter initial balance"
-                            min="0"
-                            step="0.01"
-                        />
-                    </div>
-
-                    {/* Description */}
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Description (Optional)
-                        </label>
-                        <textarea
-                            className="w-full border border-gray-300 rounded-md px-3 py-2"
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            placeholder="Enter description"
-                            rows={3}
-                        />
-                    </div>
-
-                    {/* Status */}
-                    <div className="mb-6">
-                        <div className="flex items-center">
-                            <input
-                                type="checkbox"
-                                id="isActive"
-                                className="h-4 w-4 text-blue-600 border-gray-300 rounded"
-                                checked={isActive}
-                                onChange={(e) => setIsActive(e.target.checked)}
-                            />
-                            <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900">
-                                Active
-                            </label>
-                        </div>
-                    </div>
-
-                    {/* Buttons */}
-                    <div className="flex justify-end space-x-2">
-                        <Button variant="outline" type="button" onClick={onClose}>
-                            Cancel
-                        </Button>
-                        <Button variant="primary" type="submit">
-                            Save Account
-                        </Button>
-                    </div>
-                </form>
-            </div>
-        </div>
     );
 } 
