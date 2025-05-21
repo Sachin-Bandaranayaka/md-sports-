@@ -95,8 +95,8 @@ export async function PUT(
             sku,
             barcode,
             description,
-            price, // renamed from retailPrice in Prisma
-            cost,  // renamed from basePrice in Prisma
+            price,
+            weightedAverageCost,  // renamed from basePrice in Prisma
             categoryId
         } = body;
 
@@ -110,8 +110,8 @@ export async function PUT(
                 sku: sku !== undefined ? sku : existingProduct.sku,
                 barcode: barcode !== undefined ? barcode : existingProduct.barcode,
                 description: description !== undefined ? description : existingProduct.description,
-                cost: cost !== undefined ? cost : existingProduct.cost,
                 price: price !== undefined ? price : existingProduct.price,
+                weightedAverageCost: weightedAverageCost !== undefined ? weightedAverageCost : existingProduct.weightedAverageCost,
                 categoryId: categoryId !== undefined ? categoryId : existingProduct.categoryId
             },
             include: {

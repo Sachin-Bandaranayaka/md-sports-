@@ -61,6 +61,28 @@ export async function POST() {
             }
         });
 
+        // Creating some default products
+        await prisma.product.createMany({
+            data: [
+                {
+                    name: 'Cricket Bat',
+                    sku: 'CB-001',
+                    description: 'Professional grade cricket bat',
+                    price: 120.00,
+                    weightedAverageCost: 25.00,
+                    categoryId: equipment.id
+                },
+                {
+                    name: 'Tennis Racket',
+                    sku: 'TR-001',
+                    description: 'Professional tennis racket',
+                    price: 150.00,
+                    weightedAverageCost: 35.00,
+                    categoryId: equipment.id
+                }
+            ]
+        });
+
         // Create shops
         const mainStore = await prisma.shop.create({
             data: {

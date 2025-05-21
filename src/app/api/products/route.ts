@@ -5,11 +5,11 @@ import { NextRequest } from 'next/server';
 
 // Default fallback data for products
 const defaultProductsData = [
-    { id: 1, name: 'Cricket Bat', sku: 'CB001', description: 'Professional cricket bat', price: 15000, category_name: 'Cricket' },
-    { id: 2, name: 'Cricket Ball', sku: 'CB002', description: 'Match quality cricket ball', price: 2500, category_name: 'Cricket' },
-    { id: 3, name: 'Football', sku: 'FB001', description: 'Size 5 football', price: 5000, category_name: 'Football' },
-    { id: 4, name: 'Basketball', sku: 'BB001', description: 'Indoor basketball', price: 6000, category_name: 'Basketball' },
-    { id: 5, name: 'Tennis Racket', sku: 'TR001', description: 'Professional tennis racket', price: 12000, category_name: 'Tennis' }
+    { id: 1, name: 'Cricket Bat', sku: 'CB001', description: 'Professional cricket bat', price: 15000, weightedAverageCost: 12000, category_name: 'Cricket' },
+    { id: 2, name: 'Cricket Ball', sku: 'CB002', description: 'Match quality cricket ball', price: 2500, weightedAverageCost: 1800, category_name: 'Cricket' },
+    { id: 3, name: 'Football', sku: 'FB001', description: 'Size 5 football', price: 5000, weightedAverageCost: 3500, category_name: 'Football' },
+    { id: 4, name: 'Basketball', sku: 'BB001', description: 'Indoor basketball', price: 6000, weightedAverageCost: 4200, category_name: 'Basketball' },
+    { id: 5, name: 'Tennis Racket', sku: 'TR001', description: 'Professional tennis racket', price: 12000, weightedAverageCost: 8400, category_name: 'Tennis' }
 ];
 
 export async function GET(request: NextRequest) {
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
                         sku: productData.sku,
                         barcode: productData.barcode || null,
                         description: productData.description || null,
-                        cost: productData.basePrice || 0,
+                        weightedAverageCost: productData.basePrice || 0,
                         price: productData.retailPrice || 0,
                         categoryId: productData.categoryId ? parseInt(productData.categoryId) : null,
                     }

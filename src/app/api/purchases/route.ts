@@ -102,15 +102,73 @@ export async function POST(request: NextRequest) {
                 data: invoiceData
             });
 
-            // Create the purchase invoice items
+            // Create the purchase invoice items and update inventory
             if (items && Array.isArray(items)) {
                 for (const item of items) {
+                    // Create purchase invoice item
                     await tx.purchaseInvoiceItem.create({
                         data: {
                             ...item,
                             purchaseInvoiceId: createdInvoice.id
                         }
                     });
+
+                    // Get current product data
+                    const product = await tx.product.findUnique({
+                        where: { id: item.productId },
+                        select: { id: true, weightedAverageCost: true }
+                    });
+
+                    // Get current inventory quantity for this product across all shops
+                    const inventoryItems = await tx.inventoryItem.findMany({
+                        where: { productId: item.productId }
+                    });
+
+                    const currentTotalQuantity = inventoryItems.reduce((sum, inv) => sum + inv.quantity, 0);
+                    const newQuantity = item.quantity;
+                    const currentCost = product?.weightedAverageCost || 0;
+                    const newCost = item.price;
+
+                    // Calculate new weighted average cost
+                    // (Current Quantity * Current WAC + New Quantity * New Cost) / (Current Quantity + New Quantity)
+                    let newWeightedAverageCost = newCost; // Default to new cost if there's no existing inventory
+
+                    if (currentTotalQuantity > 0) {
+                        newWeightedAverageCost =
+                            ((currentTotalQuantity * currentCost) + (newQuantity * newCost)) /
+                            (currentTotalQuantity + newQuantity);
+                    }
+
+                    // Update product with new weighted average cost
+                    await tx.product.update({
+                        where: { id: item.productId },
+                        data: { weightedAverageCost: newWeightedAverageCost }
+                    });
+
+                    // Check if inventory exists for this product/shop combination
+                    const shopId = invoiceData.shopId || 1; // Default to shop ID 1 if not specified
+                    const existingInventory = await tx.inventoryItem.findFirst({
+                        where: {
+                            productId: item.productId,
+                            shopId: shopId
+                        }
+                    });
+
+                    // Update or create inventory
+                    if (existingInventory) {
+                        await tx.inventoryItem.update({
+                            where: { id: existingInventory.id },
+                            data: { quantity: existingInventory.quantity + item.quantity }
+                        });
+                    } else {
+                        await tx.inventoryItem.create({
+                            data: {
+                                productId: item.productId,
+                                shopId: shopId,
+                                quantity: item.quantity
+                            }
+                        });
+                    }
                 }
             }
 

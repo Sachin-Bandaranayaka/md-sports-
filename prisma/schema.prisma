@@ -64,7 +64,7 @@ model Product {
   name           String
   description    String?
   price          Float
-  cost           Float?
+  weightedAverageCost Float?           @map("weightedaveragecost")
   sku            String?               @unique
   barcode        String?
   categoryId     Int?

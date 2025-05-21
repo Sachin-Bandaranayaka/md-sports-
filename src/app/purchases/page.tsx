@@ -472,6 +472,38 @@ function InvoiceFormModal({ invoice, isEdit, onClose, onSave, suppliers }: Invoi
         }
     );
 
+    const [products, setProducts] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [newItem, setNewItem] = useState({
+        productId: '',
+        productName: '',
+        quantity: 1,
+        unitPrice: 0,
+        total: 0
+    });
+
+    // Fetch products for the dropdown
+    useEffect(() => {
+        const fetchProducts = async () => {
+            try {
+                setLoading(true);
+                const response = await fetch('/api/products');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        setProducts(data.data);
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching products:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProducts();
+    }, []);
+
     // Handle form field changes
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -488,36 +520,102 @@ function InvoiceFormModal({ invoice, isEdit, onClose, onSave, suppliers }: Invoi
         }
     };
 
-    // For simplicity, we're not implementing the full item management here
-    // In a real application, you would have functionality to add/edit/remove items
-    // and calculate totals dynamically
+    // Handle new item field changes
+    const handleItemChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+
+        if (name === 'productId') {
+            const selectedProduct = products.find(p => p.id === value);
+            setNewItem({
+                ...newItem,
+                productId: value,
+                productName: selectedProduct ? selectedProduct.name : '',
+                unitPrice: selectedProduct ? selectedProduct.weightedAverageCost || 0 : 0,
+                total: newItem.quantity * (selectedProduct ? selectedProduct.weightedAverageCost || 0 : 0)
+            });
+        } else if (name === 'quantity' || name === 'unitPrice') {
+            const newValue = parseFloat(value) || 0;
+            const updatedItem = { ...newItem, [name]: newValue };
+
+            // Recalculate total
+            if (name === 'quantity') {
+                updatedItem.total = newValue * newItem.unitPrice;
+            } else if (name === 'unitPrice') {
+                updatedItem.total = newItem.quantity * newValue;
+            }
+
+            setNewItem(updatedItem);
+        } else {
+            setNewItem({ ...newItem, [name]: value });
+        }
+    };
+
+    // Add a new item to the invoice
+    const handleAddItem = () => {
+        if (!newItem.productId || newItem.quantity <= 0 || newItem.unitPrice <= 0) {
+            alert('Please select a product, and enter a valid quantity and unit price');
+            return;
+        }
+
+        const updatedItems = [...(formData.items || []), {
+            ...newItem,
+            id: Date.now().toString() // temporary ID for new items
+        }];
+
+        setFormData({
+            ...formData,
+            items: updatedItems,
+            subtotal: updatedItems.reduce((sum, item) => sum + item.total, 0)
+        });
+
+        // Reset the new item form
+        setNewItem({
+            productId: '',
+            productName: '',
+            quantity: 1,
+            unitPrice: 0,
+            total: 0
+        });
+    };
+
+    // Remove an item from the invoice
+    const handleRemoveItem = (index: number) => {
+        const updatedItems = [...(formData.items || [])];
+        updatedItems.splice(index, 1);
+
+        setFormData({
+            ...formData,
+            items: updatedItems,
+            subtotal: updatedItems.reduce((sum, item) => sum + item.total, 0)
+        });
+    };
+
+    // Calculate totals whenever items or discount changes
+    useEffect(() => {
+        if (formData.items) {
+            const subtotal = formData.items.reduce((sum, item) => sum + item.total, 0);
+            const tax = Math.round(subtotal * 0.17); // 17% tax
+            const discount = formData.discount || 0;
+            const total = subtotal + tax - discount;
+
+            setFormData(prev => ({
+                ...prev,
+                subtotal,
+                tax,
+                total
+            }));
+        }
+    }, [formData.items, formData.discount]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        // For demo purposes, if there are no items, add a dummy item
-        const items = formData.items?.length ? formData.items : [
-            {
-                id: 'TEMP001',
-                productId: 'MD-001',
-                productName: 'Sample Product',
-                quantity: 1,
-                unitPrice: 1000,
-                total: 1000
-            }
-        ];
 
-        const subtotal = items.reduce((sum, item) => sum + item.total, 0);
-        const tax = Math.round(subtotal * 0.17); // 17% tax
-        const discount = formData.discount || 0;
-        const total = subtotal + tax - discount;
+        if (!formData.items || formData.items.length === 0) {
+            alert('Please add at least one item to the invoice');
+            return;
+        }
 
-        onSave({
-            ...(formData as PurchaseInvoice),
-            items,
-            subtotal,
-            tax,
-            total
-        });
+        onSave(formData as PurchaseInvoice);
     };
 
     return (
@@ -638,29 +736,149 @@ function InvoiceFormModal({ invoice, isEdit, onClose, onSave, suppliers }: Invoi
                         </div>
                     </div>
 
-                    {/* Item Management - Simplified for this demo */}
+                    {/* Item Management */}
                     <div className="mb-6">
                         <h3 className="text-lg font-medium mb-2">Items</h3>
-                        <p className="text-sm text-gray-500 mb-4">
-                            For this demo, we've simplified the item management. In a full implementation,
-                            you would be able to add, edit, and remove items with dynamic total calculations.
-                        </p>
 
-                        {/* We would normally have a dynamic item list here */}
-                        <div className="bg-gray-50 p-4 rounded">
-                            <p className="text-center text-gray-600">
-                                {isEdit && formData.items?.length ?
-                                    `This invoice contains ${formData.items.length} items.` :
-                                    'For demo purposes, a sample item will be added automatically.'}
-                            </p>
+                        {/* Add New Item Form */}
+                        <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                            <h4 className="font-medium mb-2">Add New Item</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+                                <div className="md:col-span-2">
+                                    <label className="block text-xs text-gray-700 mb-1">Product</label>
+                                    <select
+                                        name="productId"
+                                        value={newItem.productId}
+                                        onChange={handleItemChange}
+                                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md"
+                                    >
+                                        <option value="">Select Product</option>
+                                        {products.map(product => (
+                                            <option key={product.id} value={product.id}>
+                                                {product.name} ({product.sku})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs text-gray-700 mb-1">Quantity</label>
+                                    <input
+                                        type="number"
+                                        name="quantity"
+                                        value={newItem.quantity}
+                                        onChange={handleItemChange}
+                                        min="1"
+                                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs text-gray-700 mb-1">Unit Price</label>
+                                    <input
+                                        type="number"
+                                        name="unitPrice"
+                                        value={newItem.unitPrice}
+                                        onChange={handleItemChange}
+                                        min="0"
+                                        step="0.01"
+                                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md"
+                                    />
+                                </div>
+                                <div className="flex items-end">
+                                    <button
+                                        type="button"
+                                        onClick={handleAddItem}
+                                        className="w-full bg-blue-600 text-white py-1 px-3 rounded-md text-sm hover:bg-blue-700"
+                                    >
+                                        Add Item
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Items Table */}
+                        {formData.items && formData.items.length > 0 ? (
+                            <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Product
+                                            </th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Quantity
+                                            </th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Unit Price
+                                            </th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Total
+                                            </th>
+                                            <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Actions
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {formData.items.map((item, index) => (
+                                            <tr key={item.id || index}>
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                                                    {item.productName}
+                                                </td>
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                                                    {item.quantity}
+                                                </td>
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                                                    Rs. {item.unitPrice.toFixed(2)}
+                                                </td>
+                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                                                    Rs. {item.total.toFixed(2)}
+                                                </td>
+                                                <td className="px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveItem(index)}
+                                                        className="text-red-600 hover:text-red-900"
+                                                    >
+                                                        <Trash className="w-4 h-4" />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="text-center py-4 bg-gray-50 rounded-lg">
+                                <p className="text-gray-500">No items added yet. Add items using the form above.</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Totals */}
+                    <div className="flex justify-end mb-4">
+                        <div className="w-full max-w-xs">
+                            <div className="flex justify-between py-2 border-b">
+                                <span>Subtotal:</span>
+                                <span>Rs. {(formData.subtotal || 0).toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between py-2 border-b">
+                                <span>Tax (17%):</span>
+                                <span>Rs. {(formData.tax || 0).toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between py-2 border-b">
+                                <span>Discount:</span>
+                                <span>Rs. {(formData.discount || 0).toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between py-2 font-bold">
+                                <span>Total:</span>
+                                <span>Rs. {(formData.total || 0).toFixed(2)}</span>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="flex justify-end space-x-2 pt-3 border-t">
+                    <div className="flex justify-end space-x-2 pt-4 border-t">
                         <Button variant="outline" type="button" onClick={onClose}>Cancel</Button>
-                        <Button variant="primary" type="submit">
-                            {isEdit ? 'Update Invoice' : 'Create Invoice'}
-                        </Button>
+                        <Button variant="primary" type="submit">Save Invoice</Button>
                     </div>
                 </form>
             </div>

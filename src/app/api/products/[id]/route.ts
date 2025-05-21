@@ -8,7 +8,7 @@ const getDefaultProduct = (id: number) => ({
     sku: `SKU-${id}`,
     description: 'Product description not available',
     price: 1000,
-    cost: 800,
+    weightedAverageCost: 800,
     category_name: 'General',
     inventory: []
 });
@@ -118,7 +118,7 @@ export async function PUT(
                         sku: productData.sku,
                         barcode: productData.barcode || null,
                         description: productData.description || null,
-                        cost: productData.basePrice || existingProduct.cost,
+                        weightedAverageCost: productData.basePrice || existingProduct.weightedAverageCost,
                         price: productData.retailPrice || existingProduct.price,
                         categoryId: productData.categoryId ? parseInt(productData.categoryId) : existingProduct.categoryId,
                     }

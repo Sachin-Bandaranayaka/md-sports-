@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Search, UserPlus, Filter, X } from 'lucide-react';
+import { Search, UserPlus, Filter, X, Trash2, Loader2 } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 
 // Interface for Customer
@@ -43,6 +43,8 @@ export default function Customers() {
     const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
     const [selectedType, setSelectedType] = useState<string>('');
     const [selectedStatus, setSelectedStatus] = useState<string>('');
+    const [deleteLoading, setDeleteLoading] = useState<string | number | null>(null);
+    const [error, setError] = useState<string | null>(null);
     const suggestionsRef = useRef<HTMLDivElement>(null);
 
     // Event handler for clicks outside the suggestions box
@@ -179,6 +181,37 @@ export default function Customers() {
         filterCustomers('', selectedType, selectedStatus);
     };
 
+    // Add delete customer handler
+    const handleDeleteCustomer = async (customerId: string | number) => {
+        if (!confirm('Are you sure you want to delete this customer? This action cannot be undone.')) {
+            return;
+        }
+
+        setDeleteLoading(customerId);
+        setError(null);
+
+        try {
+            const response = await fetch(`/api/customers/${customerId}`, {
+                method: 'DELETE',
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Remove the deleted customer from the state
+                setCustomers(prevCustomers => prevCustomers.filter(customer => customer.id !== customerId));
+                setAllCustomers(prevCustomers => prevCustomers.filter(customer => customer.id !== customerId));
+            } else {
+                setError(data.message || 'Failed to delete customer');
+            }
+        } catch (err) {
+            console.error('Error deleting customer:', err);
+            setError('Failed to delete customer. Please try again later.');
+        } finally {
+            setDeleteLoading(null);
+        }
+    };
+
     if (loading) {
         return (
             <MainLayout>
@@ -223,6 +256,12 @@ export default function Customers() {
     return (
         <MainLayout>
             <div className="space-y-6">
+                {error && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+                        {error}
+                    </div>
+                )}
+
                 {/* Header with actions */}
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
@@ -361,6 +400,18 @@ export default function Customers() {
                                             <div className="flex gap-2">
                                                 <Button variant="ghost" size="sm">View</Button>
                                                 <Button variant="ghost" size="sm">Edit</Button>
+                                                <Button
+                                                    variant="destructive"
+                                                    size="sm"
+                                                    onClick={() => handleDeleteCustomer(customer.id)}
+                                                    disabled={deleteLoading === customer.id}
+                                                >
+                                                    {deleteLoading === customer.id ? (
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                    ) : (
+                                                        <Trash2 className="h-4 w-4" />
+                                                    )}
+                                                </Button>
                                             </div>
                                         </td>
                                     </tr>

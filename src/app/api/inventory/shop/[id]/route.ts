@@ -31,9 +31,11 @@ export async function GET(
                 i.quantity,
                 p.id AS product_id,
                 p.name AS product_name,
+                p.description,
                 p.sku,
+                p.barcode,
                 p.price AS retail_price,
-                p.cost AS cost_price,
+                p.weightedAverageCost AS cost_price,
                 c.name AS category_name
             FROM 
                 "InventoryItem" i

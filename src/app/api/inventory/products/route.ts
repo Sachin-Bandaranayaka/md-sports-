@@ -72,17 +72,17 @@ export async function POST(req: NextRequest) {
             sku,
             barcode,
             description,
-            cost, // renamed from basePrice in Prisma
-            price, // renamed from retailPrice in Prisma
+            price, // retailPrice in request
+            weightedAverageCost, // renamed from basePrice in Prisma
             categoryId
         } = body;
 
         // Validate required fields
-        if (!name || !sku || !cost || !price || !categoryId) {
-            return NextResponse.json(
-                { success: false, message: 'Missing required fields' },
-                { status: 400 }
-            );
+        if (!name || !sku || !weightedAverageCost || !price || !categoryId) {
+            return NextResponse.json({
+                success: false,
+                message: 'Required fields are missing.'
+            }, { status: 400 });
         }
 
         // Check if SKU or barcode already exists
@@ -107,10 +107,10 @@ export async function POST(req: NextRequest) {
             data: {
                 name,
                 sku,
-                barcode,
-                description,
-                cost,
+                barcode: barcode || null,
+                description: description || null,
                 price,
+                weightedAverageCost,
                 categoryId
             }
         });

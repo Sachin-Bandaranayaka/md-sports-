@@ -11,7 +11,7 @@ export interface InventoryItem {
     stock: number;
     retailPrice: number;
     wholesalePrice: number;
-    averageCost: number;
+    weightedAverageCost: number;
     status: string;
     branchStock: BranchStock[];
 }

@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Package, Filter, Search, Loader2, X } from 'lucide-react';
+import { Package, Filter, Search, Loader2, X, Trash2 } from 'lucide-react';
 
 // Define proper types for our data
 interface BranchStock {
@@ -20,7 +20,7 @@ interface InventoryItem {
     category: string;
     stock: number;
     retailPrice: number;
-    basePrice: number;
+    weightedAverageCost: number;
     status: string;
     branchStock: BranchStock[];
 }
@@ -53,6 +53,7 @@ export default function Inventory() {
     const [categoryFilter, setCategoryFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [error, setError] = useState<string | null>(null);
+    const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
 
     // Add these new state variables
     const [showAddProductModal, setShowAddProductModal] = useState(false);
@@ -120,7 +121,7 @@ export default function Inventory() {
                             category: product.category_name || 'Uncategorized',
                             stock: totalStock,
                             retailPrice: parseFloat(product.retail_price),
-                            basePrice: parseFloat(product.base_price),
+                            weightedAverageCost: parseFloat(product.weighted_average_cost),
                             status,
                             branchStock
                         };
@@ -160,13 +161,44 @@ export default function Inventory() {
 
     // Add Product handler
     const handleAddProduct = () => {
-        // Navigate to product form page
-        router.push('/inventory/new');
+        // Navigate to purchase invoices page
+        router.push('/purchases');
     };
 
     // Toggle filter panel
     const toggleFilterPanel = () => {
         setShowFilterPanel(!showFilterPanel);
+    };
+
+    // Add delete product handler
+    const handleDeleteProduct = async (e: React.MouseEvent, productId: number) => {
+        e.stopPropagation();
+
+        if (!confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
+            return;
+        }
+
+        setDeleteLoading(productId);
+
+        try {
+            const response = await fetch(`/api/products/${productId}`, {
+                method: 'DELETE',
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Remove the deleted product from the state
+                setInventoryItems(prevItems => prevItems.filter(item => item.id !== productId));
+            } else {
+                setError(data.message || 'Failed to delete product');
+            }
+        } catch (err) {
+            console.error('Error deleting product:', err);
+            setError('Failed to delete product. Please try again later.');
+        } finally {
+            setDeleteLoading(null);
+        }
     };
 
     if (loading) {
@@ -242,7 +274,7 @@ export default function Inventory() {
                             onClick={handleAddProduct}
                         >
                             <Package className="w-4 h-4 mr-2" />
-                            Add Product
+                            Add Stock via Purchase
                         </Button>
                     </div>
                 </div>
@@ -362,7 +394,7 @@ export default function Inventory() {
                                     <th className="px-6 py-3">Category</th>
                                     <th className="px-6 py-3">Stock</th>
                                     <th className="px-6 py-3">Retail Price</th>
-                                    <th className="px-6 py-3">Base Cost</th>
+                                    <th className="px-6 py-3">Weighted Average Cost</th>
                                     <th className="px-6 py-3">Status</th>
                                     <th className="px-6 py-3">Actions</th>
                                 </tr>
@@ -382,23 +414,37 @@ export default function Inventory() {
                                             <td className="px-6 py-4">{item.category}</td>
                                             <td className="px-6 py-4">{item.stock}</td>
                                             <td className="px-6 py-4">Rs. {item.retailPrice.toFixed(2)}</td>
-                                            <td className="px-6 py-4">Rs. {item.basePrice.toFixed(2)}</td>
+                                            <td className="px-6 py-4">Rs. {item.weightedAverageCost.toFixed(2)}</td>
                                             <td className="px-6 py-4">
                                                 <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(item.status)}`}>
                                                     {item.status}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        navigateToProductDetails(item.id);
-                                                    }}
-                                                >
-                                                    View
-                                                </Button>
+                                                <div className="flex space-x-2">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            navigateToProductDetails(item.id);
+                                                        }}
+                                                    >
+                                                        View
+                                                    </Button>
+                                                    <Button
+                                                        variant="destructive"
+                                                        size="sm"
+                                                        onClick={(e) => handleDeleteProduct(e, item.id)}
+                                                        disabled={deleteLoading === item.id}
+                                                    >
+                                                        {deleteLoading === item.id ? (
+                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                        ) : (
+                                                            <Trash2 className="h-4 w-4" />
+                                                        )}
+                                                    </Button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))

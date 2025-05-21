@@ -60,7 +60,7 @@ interface ProductDetail {
     stock: number;
     retailPrice: number;
     wholesalePrice: number;
-    averageCost: number;
+    weightedAverageCost: number;
     status: string;
     branchStock: BranchStock[];
     invoices: Invoice[];
@@ -79,7 +79,7 @@ const fetchProductDetails = (id: string): Promise<ProductDetail> => {
                 stock: 45,
                 retailPrice: 8500,
                 wholesalePrice: 7200,
-                averageCost: 6500,
+                weightedAverageCost: 6500,
                 status: 'In Stock',
                 branchStock: [
                     { branchId: 'SH001', branchName: 'Main Shop', quantity: 20 },
@@ -421,20 +421,17 @@ export default function ProductDetail() {
                 {activeTab === 'details' && (
                     <>
                         {/* Stats cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="bg-white rounded-lg border shadow-sm p-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                                 <h3 className="text-sm font-medium text-gray-500">Retail Price</h3>
                                 <p className="text-2xl font-bold mt-1">Rs. {product.retailPrice.toLocaleString()}</p>
-                                <div className="mt-2 text-sm text-gray-500">Wholesale: Rs. {product.wholesalePrice.toLocaleString()}</div>
                             </div>
-
-                            <div className="bg-white rounded-lg border shadow-sm p-4">
-                                <h3 className="text-sm font-medium text-gray-500">Average Cost</h3>
-                                <p className="text-2xl font-bold mt-1">Rs. {product.averageCost.toLocaleString()}</p>
-                                <div className="mt-2 text-sm text-gray-500">Margin: {Math.round((product.retailPrice - product.averageCost) / product.averageCost * 100)}%</div>
+                            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                                <h3 className="text-sm font-medium text-gray-500">Weighted Average Cost</h3>
+                                <p className="text-2xl font-bold mt-1">Rs. {product.weightedAverageCost.toLocaleString()}</p>
+                                <div className="mt-2 text-sm text-gray-500">Margin: {Math.round((product.retailPrice - product.weightedAverageCost) / product.weightedAverageCost * 100)}%</div>
                             </div>
-
-                            <div className="bg-white rounded-lg border shadow-sm p-4">
+                            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                                 <h3 className="text-sm font-medium text-gray-500">Total Stock</h3>
                                 <p className="text-2xl font-bold mt-1">{product.stock} units</p>
                                 <div className="mt-2 text-sm text-gray-500">Across {product.branchStock.length} locations</div>
