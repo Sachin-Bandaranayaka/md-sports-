@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
 import { Search, Plus, Edit, Trash, FileText, ExternalLink, Calendar, DollarSign, X } from 'lucide-react';
@@ -21,6 +22,7 @@ const getStatusBadgeClass = (status: string) => {
 };
 
 export default function Purchases() {
+    const router = useRouter();
     const [purchaseInvoices, setPurchaseInvoices] = useState<PurchaseInvoice[]>([]);
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -72,11 +74,7 @@ export default function Purchases() {
         invoice.status?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const handleAddInvoice = () => {
-        setSelectedInvoice(null);
-        setIsEditMode(false);
-        setShowAddEditModal(true);
-    };
+    const handleAddInvoice = () => { router.push('/purchases/new'); };
 
     const handleEditInvoice = (invoice: PurchaseInvoice) => {
         setSelectedInvoice(invoice);
