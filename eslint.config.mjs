@@ -24,7 +24,6 @@ const eslintConfig = [
       'src/app/accounting/page.tsx',
       'src/app/purchases/page.tsx',
       'src/app/quotations/page.tsx',
-      'src/app/receipts/page.tsx',
       'src/components/layout/MainLayout.tsx',
       'src/app/suppliers/page.tsx',
     ]

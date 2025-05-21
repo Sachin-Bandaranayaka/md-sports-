@@ -15,7 +15,6 @@ const routePermissions: Record<string, string> = {
     '/shops': 'inventory:view',
     '/customers': 'sales:view',
     '/invoices': 'sales:view',
-    '/receipts': 'sales:view',
     '/accounting': 'sales:manage',
     '/reports': 'reports:view',
     '/settings': 'settings:manage',

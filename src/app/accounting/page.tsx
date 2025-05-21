@@ -67,6 +67,18 @@ const transactionsData: Transaction[] = [
         reference: 'POS-SALE-324',
         category: 'Sales Revenue',
         createdAt: '2024-03-22'
+    },
+    {
+        id: 'TRX006',
+        date: '2024-03-25',
+        description: 'Owner Withdrawal - Personal Expenses',
+        accountId: 'ACC002',
+        accountName: 'Bank Account',
+        type: 'withdrawal',
+        amount: 25000,
+        reference: 'WITHDRAW-001',
+        category: 'Owner Drawings',
+        createdAt: '2024-03-25'
     }
 ];
 
@@ -143,6 +155,7 @@ export default function Accounting() {
     const [searchTerm, setSearchTerm] = useState('');
     const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
     const [showAddAccountModal, setShowAddAccountModal] = useState(false);
+    const [typeFilter, setTypeFilter] = useState<Transaction['type'] | ''>('');
 
     // Filter transactions based on search term
     const filteredTransactions = transactions.filter((transaction) =>
@@ -176,6 +189,11 @@ export default function Accounting() {
     const totalExpenses = accounts
         .filter(account => account.type === 'expense')
         .reduce((sum, account) => sum + account.balance, 0);
+
+    // Calculate total withdrawals
+    const totalWithdrawals = transactions
+        .filter(transaction => transaction.type === 'withdrawal')
+        .reduce((sum, transaction) => sum + transaction.amount, 0);
 
     const netProfit = totalIncome - totalExpenses;
 
@@ -248,7 +266,13 @@ export default function Accounting() {
                         <p className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             Rs. {netProfit.toLocaleString()}
                         </p>
-                        <div className="mt-1 text-sm text-gray-600">Total profit or loss</div>
+                        <div className="mt-1 text-sm text-gray-600">Total profit after expenses</div>
+                    </div>
+
+                    <div className="bg-tertiary p-4 rounded-lg shadow-sm border border-gray-200">
+                        <h3 className="text-sm font-medium text-gray-500 mb-1">Owner Withdrawals</h3>
+                        <p className="text-2xl font-bold text-orange-600">Rs. {totalWithdrawals.toLocaleString()}</p>
+                        <div className="mt-1 text-sm text-gray-600">Total owner drawings this period</div>
                     </div>
                 </div>
 
@@ -298,6 +322,40 @@ export default function Accounting() {
                     </div>
                 </div>
 
+                {/* Filter by transaction type */}
+                <div className="mt-6">
+                    <div className="text-sm font-medium mb-2">Filter by Type</div>
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            className={`px-3 py-1 text-sm rounded-full ${activeTab === 'transactions' && !typeFilter ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}
+                            onClick={() => setTypeFilter('')}
+                        >
+                            All
+                        </button>
+                        <button
+                            className={`px-3 py-1 text-sm rounded-full ${typeFilter === 'income' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}
+                            onClick={() => setTypeFilter('income')}
+                        >
+                            <ArrowDown className="w-3 h-3 inline mr-1" />
+                            Income
+                        </button>
+                        <button
+                            className={`px-3 py-1 text-sm rounded-full ${typeFilter === 'expense' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}
+                            onClick={() => setTypeFilter('expense')}
+                        >
+                            <ArrowUp className="w-3 h-3 inline mr-1" />
+                            Expense
+                        </button>
+                        <button
+                            className={`px-3 py-1 text-sm rounded-full ${typeFilter === 'withdrawal' ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-800'}`}
+                            onClick={() => setTypeFilter('withdrawal')}
+                        >
+                            <ArrowUp className="w-3 h-3 inline mr-1" />
+                            Withdrawal
+                        </button>
+                    </div>
+                </div>
+
                 {/* Transactions Table */}
                 {activeTab === 'transactions' && (
                     <div className="bg-tertiary rounded-lg shadow-sm border border-gray-200">
@@ -336,19 +394,25 @@ export default function Accounting() {
                                             <td className="px-6 py-4">
                                                 <span className={`flex items-center space-x-1 ${transaction.type === 'income'
                                                     ? 'text-green-600'
-                                                    : 'text-red-600'
+                                                    : transaction.type === 'expense'
+                                                        ? 'text-red-600'
+                                                        : 'text-orange-600'
                                                     }`}>
                                                     {transaction.type === 'income' ? (
                                                         <ArrowUp className="w-4 h-4" />
-                                                    ) : (
+                                                    ) : transaction.type === 'expense' ? (
                                                         <ArrowDown className="w-4 h-4" />
+                                                    ) : (
+                                                        <ArrowUp className="w-4 h-4" />
                                                     )}
-                                                    <span>{transaction.type === 'income' ? 'Income' : 'Expense'}</span>
+                                                    <span>{transaction.type === 'income' ? 'Income' : transaction.type === 'expense' ? 'Expense' : 'Withdrawal'}</span>
                                                 </span>
                                             </td>
                                             <td className={`px-6 py-4 font-medium ${transaction.type === 'income'
                                                 ? 'text-green-600'
-                                                : 'text-red-600'
+                                                : transaction.type === 'expense'
+                                                    ? 'text-red-600'
+                                                    : 'text-orange-600'
                                                 }`}>
                                                 {transaction.type === 'income' ? '+' : '-'} Rs. {transaction.amount.toLocaleString()}
                                             </td>
@@ -515,160 +579,185 @@ interface TransactionFormModalProps {
 }
 
 function TransactionFormModal({ onClose, onSave, accounts }: TransactionFormModalProps) {
-    const [formData, setFormData] = useState<Partial<Transaction>>({
+    const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
         description: '',
         accountId: '',
-        accountName: '',
         type: 'expense',
-        amount: 0,
+        amount: '',
         reference: '',
-        category: ''
+        category: '',
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-
-        if (name === 'accountId') {
-            const selectedAccount = accounts.find(account => account.id === value);
-            setFormData({
-                ...formData,
-                accountId: value,
-                accountName: selectedAccount ? selectedAccount.name : ''
-            });
-        } else {
-            setFormData({ ...formData, [name]: value });
-        }
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(formData as Omit<Transaction, 'id' | 'createdAt'>);
+
+        const selectedAccount = accounts.find(account => account.id === formData.accountId);
+        const accountName = selectedAccount ? selectedAccount.name : '';
+
+        onSave({
+            date: formData.date,
+            description: formData.description,
+            accountId: formData.accountId,
+            accountName,
+            type: formData.type as 'income' | 'expense' | 'withdrawal',
+            amount: parseFloat(formData.amount),
+            reference: formData.reference,
+            category: formData.category,
+        });
+        onClose();
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4">
-                <div className="flex justify-between items-center border-b p-4">
-                    <h2 className="text-xl font-bold">Add New Transaction</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-25 flex items-center justify-center z-50">
+            <div className="bg-tertiary p-6 rounded-lg shadow-lg w-full max-w-md">
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-bold">Add Transaction</h2>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-4">
+                <form onSubmit={handleSubmit}>
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Date*
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
                             <input
                                 type="date"
                                 name="date"
-                                value={formData.date || ''}
+                                value={formData.date}
                                 onChange={handleChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
                                 required
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Description*
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                             <input
                                 type="text"
                                 name="description"
-                                value={formData.description || ''}
+                                value={formData.description}
                                 onChange={handleChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
                                 required
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
+                                placeholder="Transaction description"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Account*
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Account</label>
                             <select
                                 name="accountId"
-                                value={formData.accountId || ''}
+                                value={formData.accountId}
                                 onChange={handleChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
                                 required
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
                             >
-                                <option value="">Select Account</option>
+                                <option value="">Select an account</option>
                                 {accounts.map(account => (
-                                    <option key={account.id} value={account.id}>
-                                        {account.name} ({account.type})
-                                    </option>
+                                    <option key={account.id} value={account.id}>{account.name}</option>
                                 ))}
                             </select>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Type*
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
                             <select
                                 name="type"
-                                value={formData.type || 'expense'}
+                                value={formData.type}
                                 onChange={handleChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
                                 required
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
                             >
                                 <option value="income">Income</option>
                                 <option value="expense">Expense</option>
+                                <option value="withdrawal">Owner Withdrawal</option>
                             </select>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Amount (Rs.)*
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Amount (Rs.)</label>
                             <input
                                 type="number"
                                 name="amount"
-                                value={formData.amount || ''}
+                                value={formData.amount}
                                 onChange={handleChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                required
                                 min="0"
-                                required
+                                step="0.01"
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
+                                placeholder="0.00"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Category*
-                            </label>
-                            <input
-                                type="text"
-                                name="category"
-                                value={formData.category || ''}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Reference
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Reference</label>
                             <input
                                 type="text"
                                 name="reference"
-                                value={formData.reference || ''}
+                                value={formData.reference}
                                 onChange={handleChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
+                                placeholder="Invoice or receipt number"
                             />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                            <select
+                                name="category"
+                                value={formData.category}
+                                onChange={handleChange}
+                                required
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
+                            >
+                                <option value="">Select a category</option>
+                                {formData.type === 'income' && (
+                                    <>
+                                        <option value="Sales Revenue">Sales Revenue</option>
+                                        <option value="Service Revenue">Service Revenue</option>
+                                        <option value="Interest Income">Interest Income</option>
+                                        <option value="Other Income">Other Income</option>
+                                    </>
+                                )}
+                                {formData.type === 'expense' && (
+                                    <>
+                                        <option value="Inventory Purchase">Inventory Purchase</option>
+                                        <option value="Rent Expense">Rent Expense</option>
+                                        <option value="Utilities Expense">Utilities Expense</option>
+                                        <option value="Salaries Expense">Salaries Expense</option>
+                                        <option value="Office Supplies">Office Supplies</option>
+                                        <option value="Travel Expense">Travel Expense</option>
+                                        <option value="Marketing Expense">Marketing Expense</option>
+                                        <option value="Other Expense">Other Expense</option>
+                                    </>
+                                )}
+                                {formData.type === 'withdrawal' && (
+                                    <>
+                                        <option value="Owner Drawings">Owner Drawings</option>
+                                        <option value="Personal Expenses">Personal Expenses</option>
+                                        <option value="Personal Investment">Personal Investment</option>
+                                    </>
+                                )}
+                            </select>
                         </div>
                     </div>
 
-                    <div className="flex justify-end space-x-2 mt-6 pt-3 border-t">
-                        <Button variant="outline" type="button" onClick={onClose}>Cancel</Button>
-                        <Button variant="primary" type="submit">
-                            Create Transaction
+                    <div className="mt-6 flex justify-end space-x-3">
+                        <Button variant="outline" size="sm" onClick={onClose}>
+                            Cancel
+                        </Button>
+                        <Button variant="primary" size="sm" type="submit">
+                            Save Transaction
                         </Button>
                     </div>
                 </form>
