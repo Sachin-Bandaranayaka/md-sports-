@@ -11,9 +11,15 @@ const prismaOptions = {
         },
     },
     // Add reasonable timeout and connection error handling
-    log: ['error'],
+    log: ['error', 'query'],
     errorFormat: 'minimal',
 };
+
+console.log('Initializing Prisma client with DATABASE_URL:',
+    process.env.DATABASE_URL ?
+        `${process.env.DATABASE_URL.substring(0, 20)}...` :
+        'Not set (using default)'
+);
 
 // Create the Prisma client instance or reuse the existing one
 export const prisma = globalForPrisma.prisma || new PrismaClient(prismaOptions);
