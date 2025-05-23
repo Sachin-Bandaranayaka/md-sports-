@@ -73,15 +73,36 @@ export default function Customers() {
                 const data = await response.json();
 
                 // Transform data for UI
-                const formattedCustomers = data.map((customer: Customer) => ({
-                    ...customer,
-                    // Default values for demonstration - in a real app these would come from related data
-                    type: customer.id % 2 === 0 ? 'Cash' : 'Credit',
-                    balance: customer.id % 2 === 0 ? 0 : 45000 + Math.floor(Math.random() * 80000),
-                    lastPurchase: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                    status: 'Active',
-                    contactPerson: customer.name
-                }));
+                const formattedCustomers = data.map((customer: Customer) => {
+                    // Parse the JSON stored in address field to get additional properties
+                    let addressData = {};
+                    try {
+                        if (customer.address) {
+                            addressData = JSON.parse(customer.address);
+                        }
+                    } catch (e) {
+                        console.error('Error parsing customer address data:', e);
+                    }
+
+                    // Extract relevant data from the parsed address
+                    const { 
+                        paymentType = 'Cash', 
+                        creditLimit = 0, 
+                        contactPerson = null,
+                        customerType = 'Retail'
+                    } = addressData as any;
+
+                    return {
+                        ...customer,
+                        // Use actual data from the customer record
+                        type: paymentType,
+                        // Only show balance for Credit customers
+                        balance: paymentType === 'Credit' ? creditLimit : 0,
+                        lastPurchase: new Date(customer.updatedAt).toISOString().split('T')[0],
+                        status: 'Active',
+                        contactPerson: contactPerson || customer.name
+                    };
+                });
 
                 setAllCustomers(formattedCustomers);
                 setCustomers(formattedCustomers);
@@ -387,7 +408,11 @@ export default function Customers() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            {customer.balance && customer.balance > 0 ? `Rs. ${customer.balance.toLocaleString()}` : '-'}
+                                            {customer.type === 'Credit' ? (
+                                                customer.balance ? `Rs. ${customer.balance.toLocaleString()}` : 'Rs. 0'
+                                            ) : (
+                                                '-'
+                                            )}
                                         </td>
                                         <td className="px-6 py-4">{customer.lastPurchase || '-'}</td>
                                         <td className="px-6 py-4">

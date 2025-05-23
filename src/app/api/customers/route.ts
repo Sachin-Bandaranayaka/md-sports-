@@ -43,12 +43,14 @@ export async function POST(request: Request) {
                     contactPerson: customerData.contactPerson || null,
                     contactPersonPhone: customerData.contactPersonPhone || null,
                     customerType: customerData.customerType || null,
-                    paymentType: customerData.paymentType || null,
+                    paymentType: customerData.paymentType || 'Cash',
                     creditLimit: customerData.paymentType === 'Credit' ? customerData.creditLimit || 0 : null,
                     creditPeriod: customerData.paymentType === 'Credit' ? customerData.creditPeriod || 30 : null,
                     taxId: customerData.taxId || null,
                     notes: customerData.notes || null
-                })
+                }),
+                // Also store the payment type in the dedicated field for future use
+                paymentType: customerData.paymentType || 'Cash'
             }
         });
 
