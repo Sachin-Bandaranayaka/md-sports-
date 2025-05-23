@@ -14,19 +14,54 @@ type Shop = {
     phone: string | null;
     email: string | null;
     is_active: boolean;
-    created_at: string;
-    updated_at: string;
+    opening_time: string | null;
+    closing_time: string | null;
+    manager_id: number | null;
+    manager?: {
+        id: number;
+        name: string;
+        email: string;
+        phone: string | null;
+    } | null;
+    opening_date: string | null;
+    status: string;
+    address_line1: string | null;
+    address_line2: string | null;
+    city: string | null;
+    state: string | null;
+    postal_code: string | null;
+    country: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    tax_rate: number | null;
+    createdAt: string;
+    updatedAt: string;
     total_inventory?: number;
+    inventory?: any[];
 };
 
 // Initial empty shop for the form
-const emptyShop: Omit<Shop, 'id' | 'created_at' | 'updated_at'> = {
+const emptyShop: Omit<Shop, 'id' | 'createdAt' | 'updatedAt' | 'manager'> = {
     name: '',
     location: '',
     contact_person: '',
     phone: '',
     email: '',
-    is_active: true
+    is_active: true,
+    opening_time: null,
+    closing_time: null,
+    manager_id: null,
+    opening_date: null,
+    status: 'open',
+    address_line1: '',
+    address_line2: '',
+    city: '',
+    state: '',
+    postal_code: '',
+    country: 'Malaysia',
+    latitude: null,
+    longitude: null,
+    tax_rate: 0
 };
 
 export default function Shops() {
@@ -40,7 +75,7 @@ export default function Shops() {
     const [showAddEditModal, setShowAddEditModal] = useState(false);
     const [showViewModal, setShowViewModal] = useState(false);
     const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
-    const [formData, setFormData] = useState<Omit<Shop, 'id' | 'created_at' | 'updated_at'>>(emptyShop);
+    const [formData, setFormData] = useState<Omit<Shop, 'id' | 'createdAt' | 'updatedAt' | 'manager'>>(emptyShop);
     const [isEditMode, setIsEditMode] = useState(false);
 
     // Fetch shops from API
@@ -103,7 +138,21 @@ export default function Shops() {
             contact_person: shop.contact_person || '',
             phone: shop.phone || '',
             email: shop.email || '',
-            is_active: shop.is_active
+            is_active: shop.is_active,
+            opening_time: shop.opening_time || null,
+            closing_time: shop.closing_time || null,
+            manager_id: shop.manager_id || null,
+            opening_date: shop.opening_date || null,
+            status: shop.status,
+            address_line1: shop.address_line1 || '',
+            address_line2: shop.address_line2 || '',
+            city: shop.city || '',
+            state: shop.state || '',
+            postal_code: shop.postal_code || '',
+            country: shop.country || 'Malaysia',
+            latitude: shop.latitude || null,
+            longitude: shop.longitude || null,
+            tax_rate: shop.tax_rate || 0
         });
         setIsEditMode(true);
         setShowAddEditModal(true);
@@ -184,6 +233,48 @@ export default function Shops() {
                         <p className="text-gray-500">View and manage all your retail locations</p>
                     </div>
                     <div className="flex gap-3">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open('/shops/analytics', '_self')}
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4 mr-2"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                                />
+                            </svg>
+                            Analytics
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open('/shops/compare', '_self')}
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4 mr-2"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+                                />
+                            </svg>
+                            Compare
+                        </Button>
                         <Button variant="primary" size="sm" onClick={handleAddShop}>
                             <Plus className="w-4 h-4 mr-2" />
                             Add New Shop
@@ -273,7 +364,7 @@ export default function Shops() {
                         {filteredShops.map((shop) => (
                             <div key={shop.id} className="bg-tertiary rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                                 <div className={`p-1 text-center ${shop.is_active ? 'bg-green-500' : 'bg-red-500'} text-white text-xs`}>
-                                    {shop.is_active ? 'ACTIVE' : 'INACTIVE'}
+                                    {shop.is_active ? 'ACTIVE' : 'INACTIVE'}{shop.status !== 'open' && shop.is_active ? ` - ${shop.status.toUpperCase()}` : ''}
                                 </div>
                                 <div className="p-6">
                                     <div className="flex justify-between items-start">
@@ -287,7 +378,16 @@ export default function Shops() {
                                     <div className="mt-4 space-y-2">
                                         <div className="flex items-start">
                                             <MapPin className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
-                                            <span className="text-sm text-gray-900">{shop.location || 'No address available'}</span>
+                                            <span className="text-sm text-gray-900">
+                                                {shop.address_line1 ? (
+                                                    <>
+                                                        {shop.address_line1}
+                                                        {shop.city && shop.state ? <>, {shop.city}, {shop.state}</> : null}
+                                                    </>
+                                                ) : (
+                                                    shop.location || 'No address available'
+                                                )}
+                                            </span>
                                         </div>
                                         <div className="flex items-center">
                                             <Phone className="h-4 w-4 text-gray-400 mr-2" />
@@ -297,13 +397,23 @@ export default function Shops() {
                                             <Mail className="h-4 w-4 text-gray-400 mr-2" />
                                             <span className="text-sm text-gray-900">{shop.email || 'No email available'}</span>
                                         </div>
+
+                                        {/* Business hours */}
+                                        {(shop.opening_time || shop.closing_time) && (
+                                            <div className="flex items-center text-sm text-gray-600 mt-1">
+                                                <span className="font-medium">Hours:</span>
+                                                <span className="ml-1">{shop.opening_time || '?'} - {shop.closing_time || '?'}</span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="mt-4 pt-4 border-t border-gray-200">
                                         <div className="grid grid-cols-3 gap-2 text-center">
                                             <div>
                                                 <p className="text-sm text-gray-500">Manager</p>
-                                                <p className="font-medium text-gray-900">{shop.contact_person || 'No manager'}</p>
+                                                <p className="font-medium text-gray-900">
+                                                    {shop.manager ? shop.manager.name : (shop.contact_person || 'No manager')}
+                                                </p>
                                             </div>
                                             <div>
                                                 <p className="text-sm text-gray-500">Inventory</p>
@@ -312,7 +422,7 @@ export default function Shops() {
                                             <div>
                                                 <p className="text-sm text-gray-500">Created</p>
                                                 <p className="font-medium text-gray-900">
-                                                    {shop.created_at ? new Date(shop.created_at).toLocaleString() : 'Invalid Date'}
+                                                    {shop.createdAt ? new Date(shop.createdAt).toLocaleDateString() : 'Invalid Date'}
                                                 </p>
                                             </div>
                                         </div>
@@ -321,6 +431,14 @@ export default function Shops() {
                                     <div className="mt-4 flex space-x-2">
                                         <Button variant="outline" className="flex-1" size="sm" onClick={() => handleViewShop(shop)}>View</Button>
                                         <Button variant="outline" className="flex-1" size="sm" onClick={() => handleEditShop(shop)}>Edit</Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex-1"
+                                            onClick={() => window.open(`/inventory?shop=${shop.id}`, '_blank')}
+                                        >
+                                            Inventory
+                                        </Button>
                                     </div>
                                 </div>
                             </div>
@@ -331,7 +449,7 @@ export default function Shops() {
                 {/* View Shop Modal */}
                 {showViewModal && selectedShop && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
                             <div className="flex justify-between items-center p-6 border-b">
                                 <h3 className="text-xl font-semibold text-gray-900">Shop Details</h3>
                                 <button
@@ -342,7 +460,7 @@ export default function Shops() {
                                 </button>
                             </div>
                             <div className="p-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div>
                                         <h4 className="font-semibold text-gray-900 mb-4">General Information</h4>
                                         <div className="space-y-3">
@@ -357,19 +475,39 @@ export default function Shops() {
                                             <div>
                                                 <p className="text-sm text-gray-500">Status</p>
                                                 <p className={`font-medium ${selectedShop.is_active ? 'text-green-600' : 'text-red-600'}`}>
-                                                    {selectedShop.is_active ? 'Active' : 'Inactive'}
+                                                    {selectedShop.is_active ? 'Active' : 'Inactive'} - {selectedShop.status}
                                                 </p>
                                             </div>
                                             <div>
                                                 <p className="text-sm text-gray-500">Created At</p>
                                                 <p className="font-medium">
-                                                    {selectedShop.created_at ? new Date(selectedShop.created_at).toLocaleString() : 'Invalid Date'}
+                                                    {selectedShop.createdAt ? new Date(selectedShop.createdAt).toLocaleString() : 'Invalid Date'}
                                                 </p>
                                             </div>
                                             <div>
                                                 <p className="text-sm text-gray-500">Last Updated</p>
                                                 <p className="font-medium">
-                                                    {selectedShop.updated_at ? new Date(selectedShop.updated_at).toLocaleString() : 'Invalid Date'}
+                                                    {selectedShop.updatedAt ? new Date(selectedShop.updatedAt).toLocaleString() : 'Invalid Date'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-500">Opening Date</p>
+                                                <p className="font-medium">
+                                                    {selectedShop.opening_date ? new Date(selectedShop.opening_date).toLocaleDateString() : 'Not set'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-500">Business Hours</p>
+                                                <p className="font-medium">
+                                                    {selectedShop.opening_time && selectedShop.closing_time
+                                                        ? `${selectedShop.opening_time} - ${selectedShop.closing_time}`
+                                                        : 'Not set'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-500">Tax Rate</p>
+                                                <p className="font-medium">
+                                                    {selectedShop.tax_rate !== null ? `${selectedShop.tax_rate}%` : '0%'}
                                                 </p>
                                             </div>
                                         </div>
@@ -382,8 +520,37 @@ export default function Shops() {
                                                 <p className="font-medium">{selectedShop.location || 'No location provided'}</p>
                                             </div>
                                             <div>
+                                                <p className="text-sm text-gray-500">Address</p>
+                                                <p className="font-medium">
+                                                    {selectedShop.address_line1 || 'No address provided'}
+                                                    {selectedShop.address_line2 ? <><br />{selectedShop.address_line2}</> : ''}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-500">City / State / Postal</p>
+                                                <p className="font-medium">
+                                                    {[
+                                                        selectedShop.city,
+                                                        selectedShop.state,
+                                                        selectedShop.postal_code
+                                                    ].filter(Boolean).join(', ') || 'Not provided'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-500">Country</p>
+                                                <p className="font-medium">{selectedShop.country || 'Malaysia'}</p>
+                                            </div>
+                                            <div>
                                                 <p className="text-sm text-gray-500">Manager</p>
                                                 <p className="font-medium">{selectedShop.contact_person || 'No manager assigned'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-500">System Manager</p>
+                                                <p className="font-medium">
+                                                    {selectedShop.manager
+                                                        ? `${selectedShop.manager.name} (ID: ${selectedShop.manager.id})`
+                                                        : 'No system manager assigned'}
+                                                </p>
                                             </div>
                                             <div>
                                                 <p className="text-sm text-gray-500">Phone</p>
@@ -395,6 +562,78 @@ export default function Shops() {
                                             </div>
                                         </div>
                                     </div>
+                                    <div>
+                                        <h4 className="font-semibold text-gray-900 mb-4">Inventory & Performance</h4>
+                                        <div className="space-y-3">
+                                            <div>
+                                                <p className="text-sm text-gray-500">Total Inventory</p>
+                                                <p className="font-medium text-xl">{selectedShop.total_inventory || 0} items</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-500">Coordinates</p>
+                                                <p className="font-medium">
+                                                    {selectedShop.latitude && selectedShop.longitude
+                                                        ? `${selectedShop.latitude}, ${selectedShop.longitude}`
+                                                        : 'Not set'}
+                                                </p>
+                                            </div>
+
+                                            {selectedShop.inventory && selectedShop.inventory.length > 0 && (
+                                                <div className="mt-4">
+                                                    <p className="text-sm font-medium text-gray-700 mb-2">Top Products</p>
+                                                    <div className="max-h-40 overflow-y-auto">
+                                                        <table className="min-w-full text-sm">
+                                                            <thead className="bg-gray-50">
+                                                                <tr>
+                                                                    <th className="px-2 py-1 text-left">Product</th>
+                                                                    <th className="px-2 py-1 text-right">Qty</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody className="divide-y divide-gray-200">
+                                                                {selectedShop.inventory.slice(0, 5).map(item => (
+                                                                    <tr key={item.id}>
+                                                                        <td className="px-2 py-1">{item.product_name}</td>
+                                                                        <td className="px-2 py-1 text-right">{item.quantity}</td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="mt-6 flex flex-wrap gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => window.open(`/inventory?shop=${selectedShop.id}`, '_blank')}
+                                    >
+                                        View Inventory
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => window.open(`/invoices?shop=${selectedShop.id}`, '_blank')}
+                                    >
+                                        View Sales
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                            // Could open a map view in the future
+                                            if (selectedShop.latitude && selectedShop.longitude) {
+                                                window.open(`https://www.google.com/maps/search/?api=1&query=${selectedShop.latitude},${selectedShop.longitude}`, '_blank');
+                                            } else {
+                                                alert('No coordinates available for this shop');
+                                            }
+                                        }}
+                                    >
+                                        View on Map
+                                    </Button>
                                 </div>
 
                                 <div className="mt-8 flex justify-end space-x-2">
@@ -462,12 +701,58 @@ export default function Shops() {
                                             />
                                         </div>
                                         <div>
+                                            <label htmlFor="status" className="block text-sm font-medium text-gray-700">Status</label>
+                                            <select
+                                                id="status"
+                                                name="status"
+                                                value={formData.status}
+                                                onChange={handleInputChange}
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                            >
+                                                <option value="open">Open</option>
+                                                <option value="closed">Closed</option>
+                                                <option value="renovating">Renovating</option>
+                                                <option value="coming_soon">Coming Soon</option>
+                                            </select>
+                                        </div>
+                                        <div className="flex items-center h-full pt-5">
+                                            <input
+                                                type="checkbox"
+                                                id="is_active"
+                                                name="is_active"
+                                                checked={formData.is_active}
+                                                onChange={handleInputChange}
+                                                className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                                            />
+                                            <label htmlFor="is_active" className="ml-2 block text-sm text-gray-900">
+                                                Active
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div className="border-t border-gray-200 pt-4">
+                                        <h3 className="text-md font-medium text-gray-900">Contact Information</h3>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
                                             <label htmlFor="contact_person" className="block text-sm font-medium text-gray-700">Manager</label>
                                             <input
                                                 type="text"
                                                 id="contact_person"
                                                 name="contact_person"
                                                 value={formData.contact_person || ''}
+                                                onChange={handleInputChange}
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="manager_id" className="block text-sm font-medium text-gray-700">Manager ID</label>
+                                            <input
+                                                type="number"
+                                                id="manager_id"
+                                                name="manager_id"
+                                                value={formData.manager_id || ''}
                                                 onChange={handleInputChange}
                                                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                                             />
@@ -494,35 +779,174 @@ export default function Shops() {
                                                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                                             />
                                         </div>
-                                        <div className="flex items-center h-full pt-5">
+                                    </div>
+
+                                    <div className="border-t border-gray-200 pt-4">
+                                        <h3 className="text-md font-medium text-gray-900">Business Hours</h3>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label htmlFor="opening_time" className="block text-sm font-medium text-gray-700">Opening Time</label>
                                             <input
-                                                type="checkbox"
-                                                id="is_active"
-                                                name="is_active"
-                                                checked={formData.is_active}
-                                                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                                                className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                                                type="time"
+                                                id="opening_time"
+                                                name="opening_time"
+                                                value={formData.opening_time || ''}
+                                                onChange={handleInputChange}
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                                             />
-                                            <label htmlFor="is_active" className="ml-2 block text-sm text-gray-900">
-                                                Active
-                                            </label>
+                                        </div>
+                                        <div>
+                                            <label htmlFor="closing_time" className="block text-sm font-medium text-gray-700">Closing Time</label>
+                                            <input
+                                                type="time"
+                                                id="closing_time"
+                                                name="closing_time"
+                                                value={formData.closing_time || ''}
+                                                onChange={handleInputChange}
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="opening_date" className="block text-sm font-medium text-gray-700">Opening Date</label>
+                                            <input
+                                                type="date"
+                                                id="opening_date"
+                                                name="opening_date"
+                                                value={formData.opening_date || ''}
+                                                onChange={handleInputChange}
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="tax_rate" className="block text-sm font-medium text-gray-700">Tax Rate (%)</label>
+                                            <input
+                                                type="number"
+                                                id="tax_rate"
+                                                name="tax_rate"
+                                                value={formData.tax_rate || 0}
+                                                onChange={handleInputChange}
+                                                step="0.01"
+                                                min="0"
+                                                max="100"
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                            />
                                         </div>
                                     </div>
-                                </div>
-                                <div className="px-6 py-4 border-t flex justify-end space-x-2">
-                                    <Button
-                                        variant="outline"
-                                        type="button"
-                                        onClick={() => setShowAddEditModal(false)}
-                                    >
-                                        Cancel
-                                    </Button>
-                                    <Button
-                                        variant="primary"
-                                        type="submit"
-                                    >
-                                        {isEditMode ? 'Update Shop' : 'Create Shop'}
-                                    </Button>
+
+                                    <div className="border-t border-gray-200 pt-4">
+                                        <h3 className="text-md font-medium text-gray-900">Address Details</h3>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label htmlFor="address_line1" className="block text-sm font-medium text-gray-700">Address Line 1</label>
+                                            <input
+                                                type="text"
+                                                id="address_line1"
+                                                name="address_line1"
+                                                value={formData.address_line1 || ''}
+                                                onChange={handleInputChange}
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="address_line2" className="block text-sm font-medium text-gray-700">Address Line 2</label>
+                                            <input
+                                                type="text"
+                                                id="address_line2"
+                                                name="address_line2"
+                                                value={formData.address_line2 || ''}
+                                                onChange={handleInputChange}
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="city" className="block text-sm font-medium text-gray-700">City</label>
+                                            <input
+                                                type="text"
+                                                id="city"
+                                                name="city"
+                                                value={formData.city || ''}
+                                                onChange={handleInputChange}
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="state" className="block text-sm font-medium text-gray-700">State</label>
+                                            <input
+                                                type="text"
+                                                id="state"
+                                                name="state"
+                                                value={formData.state || ''}
+                                                onChange={handleInputChange}
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="postal_code" className="block text-sm font-medium text-gray-700">Postal Code</label>
+                                            <input
+                                                type="text"
+                                                id="postal_code"
+                                                name="postal_code"
+                                                value={formData.postal_code || ''}
+                                                onChange={handleInputChange}
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="country" className="block text-sm font-medium text-gray-700">Country</label>
+                                            <input
+                                                type="text"
+                                                id="country"
+                                                name="country"
+                                                value={formData.country || 'Malaysia'}
+                                                onChange={handleInputChange}
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="latitude" className="block text-sm font-medium text-gray-700">Latitude</label>
+                                            <input
+                                                type="number"
+                                                id="latitude"
+                                                name="latitude"
+                                                value={formData.latitude || ''}
+                                                onChange={handleInputChange}
+                                                step="0.000001"
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="longitude" className="block text-sm font-medium text-gray-700">Longitude</label>
+                                            <input
+                                                type="number"
+                                                id="longitude"
+                                                name="longitude"
+                                                value={formData.longitude || ''}
+                                                onChange={handleInputChange}
+                                                step="0.000001"
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                                        <Button
+                                            variant="outline"
+                                            type="button"
+                                            onClick={() => setShowAddEditModal(false)}
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button
+                                            variant="primary"
+                                            type="submit"
+                                        >
+                                            {isEditMode ? 'Update Shop' : 'Create Shop'}
+                                        </Button>
+                                    </div>
                                 </div>
                             </form>
                         </div>

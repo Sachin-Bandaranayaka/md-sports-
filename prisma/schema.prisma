@@ -25,6 +25,7 @@ model User {
   notifications         Notification[]
   role                  Role                @relation(fields: [roleId], references: [id])
   shop                  Shop?               @relation(fields: [shopId], references: [id])
+  managedShops          Shop[]              @relation("ShopManager")
 }
 
 model Role {
@@ -50,6 +51,24 @@ model Shop {
   id             Int                 @id @default(autoincrement())
   name           String
   location       String?
+  contact_person String?
+  phone          String?
+  email          String?
+  is_active      Boolean             @default(true)
+  opening_time   DateTime?           @db.Time()
+  closing_time   DateTime?           @db.Time()
+  manager_id     Int?
+  opening_date   DateTime?           @db.Date
+  status         String              @default("open")
+  address_line1  String?
+  address_line2  String?
+  city           String?
+  state          String?
+  postal_code    String?
+  country        String?             @default("Malaysia")
+  latitude       Float?
+  longitude      Float?
+  tax_rate       Float?              @default(0)
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
   inventoryItems InventoryItem[]
@@ -57,6 +76,7 @@ model Shop {
   transfersTo    InventoryTransfer[] @relation("ToShop")
   products       Product[]
   users          User[]
+  manager        User?               @relation("ShopManager", fields: [manager_id], references: [id], onDelete: SetNull)
 }
 
 model Product {

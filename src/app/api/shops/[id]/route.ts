@@ -16,13 +16,21 @@ export async function GET(
             }, { status: 400 });
         }
 
-        // Get the shop with its inventory
+        // Get the shop with its inventory and manager
         const shop = await prisma.shop.findUnique({
             where: { id },
             include: {
                 inventoryItems: {
                     include: {
                         product: true
+                    }
+                },
+                manager: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        phone: true
                     }
                 }
             }
@@ -74,7 +82,7 @@ export async function PUT(
 ) {
     try {
         const id = parseInt(params.id);
-        const { name, location } = await request.json();
+        const body = await request.json();
 
         if (isNaN(id)) {
             return NextResponse.json({
@@ -84,10 +92,10 @@ export async function PUT(
         }
 
         // Validate required fields
-        if (!name || !location) {
+        if (!body.name) {
             return NextResponse.json({
                 success: false,
-                message: 'Shop name and location are required'
+                message: 'Shop name is required'
             }, { status: 400 });
         }
 
@@ -107,8 +115,26 @@ export async function PUT(
         const updatedShop = await prisma.shop.update({
             where: { id },
             data: {
-                name,
-                location
+                name: body.name,
+                location: body.location,
+                contact_person: body.contact_person !== undefined ? body.contact_person : existingShop.contact_person,
+                phone: body.phone !== undefined ? body.phone : existingShop.phone,
+                email: body.email !== undefined ? body.email : existingShop.email,
+                is_active: body.is_active !== undefined ? body.is_active : existingShop.is_active,
+                opening_time: body.opening_time ? new Date(body.opening_time) : existingShop.opening_time,
+                closing_time: body.closing_time ? new Date(body.closing_time) : existingShop.closing_time,
+                manager_id: body.manager_id !== undefined ? body.manager_id : existingShop.manager_id,
+                opening_date: body.opening_date ? new Date(body.opening_date) : existingShop.opening_date,
+                status: body.status || existingShop.status,
+                address_line1: body.address_line1 !== undefined ? body.address_line1 : existingShop.address_line1,
+                address_line2: body.address_line2 !== undefined ? body.address_line2 : existingShop.address_line2,
+                city: body.city !== undefined ? body.city : existingShop.city,
+                state: body.state !== undefined ? body.state : existingShop.state,
+                postal_code: body.postal_code !== undefined ? body.postal_code : existingShop.postal_code,
+                country: body.country !== undefined ? body.country : existingShop.country,
+                latitude: body.latitude !== undefined ? body.latitude : existingShop.latitude,
+                longitude: body.longitude !== undefined ? body.longitude : existingShop.longitude,
+                tax_rate: body.tax_rate !== undefined ? body.tax_rate : existingShop.tax_rate
             }
         });
 
