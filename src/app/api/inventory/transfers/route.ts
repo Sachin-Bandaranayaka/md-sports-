@@ -141,27 +141,30 @@ export async function POST(req: NextRequest) {
 
         const result = await safeQuery(
             async () => {
-                // Create the transfer with items in a transaction
-                const transfer = await prisma.$transaction(async (tx) => {
-                    // Create the transfer record
-                    const newTransfer = await tx.inventoryTransfer.create({
-                        data: {
-                            fromShopId: parseInt(sourceShopId),
-                            toShopId: parseInt(destinationShopId),
-                            fromUserId: userId,
-                            toUserId: userId, // Using the same user for both as we don't have separate users in the UI yet
-                            status: 'pending',
-                            transferItems: {
-                                create: items.map(item => ({
-                                    productId: parseInt(item.productId),
-                                    quantity: parseInt(item.quantity)
-                                }))
+                // Create transfer and items in a transaction
+                const transfer = await prisma.$transaction(
+                    async (tx) => {
+                        // Create the transfer record
+                        const newTransfer = await tx.inventoryTransfer.create({
+                            data: {
+                                fromShopId: parseInt(sourceShopId),
+                                toShopId: parseInt(destinationShopId),
+                                fromUserId: userId,
+                                toUserId: userId, // Using the same user for both as we don't have separate users in the UI yet
+                                status: 'pending',
+                                transferItems: {
+                                    create: items.map(item => ({
+                                        productId: parseInt(item.productId),
+                                        quantity: parseInt(item.quantity)
+                                    }))
+                                }
                             }
-                        }
-                    });
+                        });
 
-                    return newTransfer;
-                });
+                        return newTransfer;
+                    },
+                    { timeout: 30000 } // 30-second timeout
+                );
 
                 return transfer;
             },

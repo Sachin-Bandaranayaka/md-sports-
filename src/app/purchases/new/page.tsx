@@ -70,9 +70,19 @@ export default function NewPurchaseInvoice() {
     const [showDistributionModal, setShowDistributionModal] = useState(false);
     const [distribution, setDistribution] = useState<{ [key: number]: number }[]>([]);
 
+    // Generate a unique invoice number
+    const generateInvoiceNumber = () => {
+        const now = new Date();
+        const year = now.getFullYear().toString().slice(2); // Get last 2 digits of year
+        const month = (now.getMonth() + 1).toString().padStart(2, '0');
+        const day = now.getDate().toString().padStart(2, '0');
+        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        return `PI${year}${month}${day}-${random}`;
+    };
+
     // Form data
     const [formData, setFormData] = useState<Partial<PurchaseInvoice>>({
-        invoiceNumber: '',
+        invoiceNumber: generateInvoiceNumber(),
         date: new Date().toISOString().split('T')[0],
         dueDate: '',
         supplierId: '',
@@ -183,8 +193,8 @@ export default function NewPurchaseInvoice() {
                 {
                     productId: '',
                     productName: '',
-                    quantity: 1,
-                    unitPrice: 0,
+                    quantity: '',
+                    unitPrice: '',
                     subtotal: 0
                 }
             ];
@@ -217,21 +227,25 @@ export default function NewPurchaseInvoice() {
                         ...newItems[index],
                         productId: value,
                         productName: selectedProduct.name,
-                        unitPrice: selectedProduct.weightedAverageCost || 0
+                        unitPrice: selectedProduct.weightedAverageCost || ''
                     };
 
                     // Recalculate subtotal
-                    newItems[index].subtotal = newItems[index].quantity * newItems[index].unitPrice;
+                    const qty = newItems[index].quantity === '' ? 0 : Number(newItems[index].quantity);
+                    const price = newItems[index].unitPrice === '' ? 0 : Number(newItems[index].unitPrice);
+                    newItems[index].subtotal = qty * price;
                 }
             } else {
                 newItems[index] = {
                     ...newItems[index],
-                    [name]: name === 'quantity' || name === 'unitPrice' ? Number(value) : value
+                    [name]: value
                 };
 
                 // Recalculate subtotal if quantity or unitPrice changed
                 if (name === 'quantity' || name === 'unitPrice') {
-                    newItems[index].subtotal = newItems[index].quantity * newItems[index].unitPrice;
+                    const qty = newItems[index].quantity === '' ? 0 : Number(newItems[index].quantity);
+                    const price = newItems[index].unitPrice === '' ? 0 : Number(newItems[index].unitPrice);
+                    newItems[index].subtotal = qty * price;
                 }
             }
 
@@ -333,7 +347,7 @@ export default function NewPurchaseInvoice() {
         e.preventDefault();
 
         // Validate form
-        if (!formData.invoiceNumber || !formData.date || !formData.supplierId) {
+        if (!formData.date || !formData.supplierId) {
             setError('Please fill in all required fields');
             return;
         }
@@ -343,16 +357,18 @@ export default function NewPurchaseInvoice() {
             return;
         }
 
-        if (formData.items.some(item => !item.productId || item.quantity <= 0)) {
-            setError('All items must have a product and quantity greater than zero');
+        // Check if any items have invalid data
+        if (formData.items.some(item => !item.productId || item.quantity === '' || Number(item.quantity) <= 0 || item.unitPrice === '')) {
+            setError('All items must have a product, quantity greater than zero, and a unit price');
             return;
         }
 
         // Validate distributions
         for (let i = 0; i < formData.items.length; i++) {
             const totalDistributed = getTotalDistributed(i);
-            if (totalDistributed !== formData.items[i].quantity) {
-                setError(`Item ${i + 1} (${formData.items[i].productName}): Distribution (${totalDistributed}) does not match total quantity (${formData.items[i].quantity})`);
+            const itemQuantity = Number(formData.items[i].quantity);
+            if (totalDistributed !== itemQuantity) {
+                setError(`Item ${i + 1} (${formData.items[i].productName}): Distribution (${totalDistributed}) does not match total quantity (${itemQuantity})`);
                 return;
             }
         }
@@ -371,7 +387,11 @@ export default function NewPurchaseInvoice() {
                 date: formData.date,
                 dueDate: formData.dueDate,
                 notes: formData.notes,
-                items: formData.items || [],
+                items: formData.items.map(item => ({
+                    ...item,
+                    quantity: Number(item.quantity),
+                    unitPrice: Number(item.unitPrice)
+                })) || [],
                 distributions: distribution
             };
 
@@ -483,15 +503,14 @@ export default function NewPurchaseInvoice() {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-black mb-1">
-                                    Invoice Number*
+                                    Invoice Number (Auto-generated)
                                 </label>
                                 <input
                                     type="text"
                                     name="invoiceNumber"
                                     value={formData.invoiceNumber}
-                                    onChange={handleChange}
-                                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary text-black"
-                                    required
+                                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary text-black bg-gray-50"
+                                    readOnly
                                 />
                             </div>
 
@@ -703,6 +722,7 @@ export default function NewPurchaseInvoice() {
                                                                 value={item.quantity}
                                                                 onChange={(e) => handleItemChange(e, index)}
                                                                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary text-black"
+                                                                placeholder="Quantity"
                                                                 min="1"
                                                                 required
                                                             />
@@ -714,6 +734,7 @@ export default function NewPurchaseInvoice() {
                                                                 value={item.unitPrice}
                                                                 onChange={(e) => handleItemChange(e, index)}
                                                                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary text-black"
+                                                                placeholder="Price"
                                                                 min="0"
                                                                 step="0.01"
                                                                 required
@@ -971,7 +992,7 @@ export default function NewPurchaseInvoice() {
                                 <span className="text-black font-medium">
                                     Total Distributed:
                                 </span>
-                                <span className={`font-semibold ${getTotalDistributed(selectedItemIndex) === formData.items[selectedItemIndex].quantity
+                                <span className={`font-semibold ${getTotalDistributed(selectedItemIndex) === Number(formData.items[selectedItemIndex].quantity)
                                     ? 'text-green-600'
                                     : 'text-red-600'
                                     }`}>
@@ -997,7 +1018,7 @@ export default function NewPurchaseInvoice() {
                                         return;
                                     }
 
-                                    const itemQty = formData.items[selectedItemIndex].quantity;
+                                    const itemQty = Number(formData.items[selectedItemIndex].quantity);
                                     const shopCount = shops.length;
                                     const baseQty = Math.floor(itemQty / shopCount);
                                     const remainder = itemQty % shopCount;
@@ -1021,7 +1042,7 @@ export default function NewPurchaseInvoice() {
                                 type="button"
                                 variant="primary"
                                 onClick={() => setShowDistributionModal(false)}
-                                disabled={getTotalDistributed(selectedItemIndex) !== formData.items[selectedItemIndex].quantity}
+                                disabled={getTotalDistributed(selectedItemIndex) !== Number(formData.items[selectedItemIndex].quantity)}
                             >
                                 Done
                             </Button>

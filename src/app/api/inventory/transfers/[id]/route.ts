@@ -146,92 +146,95 @@ export async function PATCH(
         const result = await safeQuery(
             async () => {
                 // Run in a transaction
-                return await prisma.$transaction(async (tx) => {
-                    // Check if transfer exists and is in pending status
-                    const transfer = await tx.inventoryTransfer.findUnique({
-                        where: { id },
-                        include: {
-                            fromShop: true,
-                            toShop: true,
-                            transferItems: {
-                                include: {
-                                    product: true
+                return await prisma.$transaction(
+                    async (tx) => {
+                        // Check if transfer exists and is in pending status
+                        const transfer = await tx.inventoryTransfer.findUnique({
+                            where: { id },
+                            include: {
+                                fromShop: true,
+                                toShop: true,
+                                transferItems: {
+                                    include: {
+                                        product: true
+                                    }
                                 }
                             }
+                        });
+
+                        if (!transfer) {
+                            throw new Error('Transfer not found');
                         }
-                    });
 
-                    if (!transfer) {
-                        throw new Error('Transfer not found');
-                    }
+                        if (transfer.status !== 'pending') {
+                            throw new Error(`Cannot ${action} a transfer that is not in pending status`);
+                        }
 
-                    if (transfer.status !== 'pending') {
-                        throw new Error(`Cannot ${action} a transfer that is not in pending status`);
-                    }
-
-                    if (action === 'complete') {
-                        // Process each item - decrease source inventory and increase destination inventory
-                        for (const item of transfer.transferItems) {
-                            // Check source inventory
-                            const sourceInventory = await tx.inventoryItem.findFirst({
-                                where: {
-                                    shopId: transfer.fromShopId,
-                                    productId: item.productId
-                                }
-                            });
-
-                            if (!sourceInventory || sourceInventory.quantity < item.quantity) {
-                                throw new Error(`Insufficient inventory for product ID ${item.productId} in source shop`);
-                            }
-
-                            // Decrease source inventory
-                            await tx.inventoryItem.update({
-                                where: { id: sourceInventory.id },
-                                data: {
-                                    quantity: sourceInventory.quantity - item.quantity,
-                                    updatedAt: new Date()
-                                }
-                            });
-
-                            // Check if destination inventory exists
-                            const destInventory = await tx.inventoryItem.findFirst({
-                                where: {
-                                    shopId: transfer.toShopId,
-                                    productId: item.productId
-                                }
-                            });
-
-                            if (!destInventory) {
-                                // Create destination inventory if it doesn't exist
-                                await tx.inventoryItem.create({
-                                    data: {
-                                        shopId: transfer.toShopId,
-                                        productId: item.productId,
-                                        quantity: item.quantity
+                        if (action === 'complete') {
+                            // Process each item - decrease source inventory and increase destination inventory
+                            for (const item of transfer.transferItems) {
+                                // Check source inventory
+                                const sourceInventory = await tx.inventoryItem.findFirst({
+                                    where: {
+                                        shopId: transfer.fromShopId,
+                                        productId: item.productId
                                     }
                                 });
-                            } else {
-                                // Increase destination inventory
+
+                                if (!sourceInventory || sourceInventory.quantity < item.quantity) {
+                                    throw new Error(`Insufficient inventory for product ID ${item.productId} in source shop`);
+                                }
+
+                                // Decrease source inventory
                                 await tx.inventoryItem.update({
-                                    where: { id: destInventory.id },
+                                    where: { id: sourceInventory.id },
                                     data: {
-                                        quantity: destInventory.quantity + item.quantity,
+                                        quantity: sourceInventory.quantity - item.quantity,
                                         updatedAt: new Date()
                                     }
                                 });
+
+                                // Check if destination inventory exists
+                                const destInventory = await tx.inventoryItem.findFirst({
+                                    where: {
+                                        shopId: transfer.toShopId,
+                                        productId: item.productId
+                                    }
+                                });
+
+                                if (!destInventory) {
+                                    // Create destination inventory if it doesn't exist
+                                    await tx.inventoryItem.create({
+                                        data: {
+                                            shopId: transfer.toShopId,
+                                            productId: item.productId,
+                                            quantity: item.quantity
+                                        }
+                                    });
+                                } else {
+                                    // Increase destination inventory
+                                    await tx.inventoryItem.update({
+                                        where: { id: destInventory.id },
+                                        data: {
+                                            quantity: destInventory.quantity + item.quantity,
+                                            updatedAt: new Date()
+                                        }
+                                    });
+                                }
                             }
                         }
-                    }
 
-                    // Update transfer status
-                    return await tx.inventoryTransfer.update({
-                        where: { id },
-                        data: {
-                            status: action === 'complete' ? 'completed' : 'cancelled',
-                            updatedAt: new Date()
-                        }
-                    });
-                });
+                        // Update transfer status
+                        return await tx.inventoryTransfer.update({
+                            where: { id },
+                            data: {
+                                status: action === 'complete' ? 'completed' : 'cancelled',
+                                updatedAt: new Date()
+                            }
+                        });
+                    },
+                    { timeout: 30000 }
+                );
             },
             null,
             `Failed to ${action} transfer with ID ${id}`
@@ -281,29 +284,32 @@ export async function DELETE(
         const result = await safeQuery(
             async () => {
                 // Run in a transaction
-                return await prisma.$transaction(async (tx) => {
-                    // Check if transfer exists and is in pending status
-                    const transfer = await tx.inventoryTransfer.findUnique({
-                        where: { id }
-                    });
+                return await prisma.$transaction(
+                    async (tx) => {
+                        // Check if transfer exists and is in pending status
+                        const transfer = await tx.inventoryTransfer.findUnique({
+                            where: { id }
+                        });
 
-                    if (!transfer) {
-                        throw new Error('Transfer not found');
-                    }
+                        if (!transfer) {
+                            throw new Error('Transfer not found');
+                        }
 
-                    if (transfer.status !== 'pending') {
-                        throw new Error('Only pending transfers can be deleted');
-                    }
+                        if (transfer.status !== 'pending') {
+                            throw new Error('Only pending transfers can be deleted');
+                        }
 
-                    // Delete transfer items and the transfer itself
-                    await tx.transferItem.deleteMany({
-                        where: { transferId: id }
-                    });
+                        // Delete transfer items and the transfer itself
+                        await tx.transferItem.deleteMany({
+                            where: { transferId: id }
+                        });
 
-                    return await tx.inventoryTransfer.delete({
-                        where: { id }
-                    });
-                });
+                        return await tx.inventoryTransfer.delete({
+                            where: { id }
+                        });
+                    },
+                    { timeout: 30000 } // 30-second timeout
+                );
             },
             null,
             `Failed to delete transfer with ID ${id}`
