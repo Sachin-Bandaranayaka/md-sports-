@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Store, MapPin, Phone, Mail, Plus, Search, X } from 'lucide-react';
+import { Store, MapPin, Phone, Mail, Plus, Search, X, AlertTriangle, Trash2 } from 'lucide-react';
 
 // Define the Shop type
 type Shop = {
@@ -38,6 +38,13 @@ type Shop = {
     updatedAt: string;
     total_inventory?: number;
     inventory?: any[];
+    relatedRecords?: {
+        inventoryItems?: number;
+        users?: number;
+        transfers?: number;
+        products?: number;
+    };
+    hasRelatedRecords?: boolean;
 };
 
 // Initial empty shop for the form
@@ -77,6 +84,8 @@ export default function Shops() {
     const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
     const [formData, setFormData] = useState<Omit<Shop, 'id' | 'createdAt' | 'updatedAt' | 'manager'>>(emptyShop);
     const [isEditMode, setIsEditMode] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Fetch shops from API
     useEffect(() => {
@@ -221,6 +230,57 @@ export default function Shops() {
             console.error(`Error ${isEditMode ? 'updating' : 'creating'} shop:`, err);
             alert(`Failed to ${isEditMode ? 'update' : 'create'} shop. Please try again.`);
         }
+    };
+
+    // Handle confirm delete
+    const confirmDeleteShop = async () => {
+        if (!selectedShop) return;
+
+        try {
+            setIsDeleting(true);
+            const response = await fetch(`/api/shops/${selectedShop.id}`, {
+                method: 'DELETE'
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                if (response.status === 409) {
+                    // Handle conflict - shop has related records
+                    const relatedRecords = result.relatedRecords || {};
+
+                    // Update the shop object with detected related records
+                    setSelectedShop(prev => {
+                        if (!prev) return null;
+                        return {
+                            ...prev,
+                            relatedRecords: relatedRecords,
+                            hasRelatedRecords: true
+                        };
+                    });
+
+                    return;
+                }
+
+                throw new Error(`Failed to delete shop: ${result.message || response.statusText}`);
+            }
+
+            // Refresh shops list
+            fetchShops();
+            setShowDeleteModal(false);
+            setSelectedShop(null);
+        } catch (err) {
+            console.error('Error deleting shop:', err);
+            alert('Failed to delete shop. Please try again later.');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    // Handle delete button click
+    const handleDeleteShop = (shop: Shop) => {
+        setSelectedShop(shop);
+        setShowDeleteModal(true);
     };
 
     return (
@@ -438,6 +498,15 @@ export default function Shops() {
                                             onClick={() => window.open(`/inventory?shop=${shop.id}`, '_blank')}
                                         >
                                             Inventory
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-10 text-red-600 hover:text-white hover:bg-red-600 border-red-200 hover:border-red-600"
+                                            onClick={() => handleDeleteShop(shop)}
+                                            title="Delete Shop"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </div>
                                 </div>
@@ -949,6 +1018,174 @@ export default function Shops() {
                                     </div>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Delete Shop Confirmation Modal */}
+                {showDeleteModal && selectedShop && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-lg max-w-md w-full p-6">
+                            <div className="flex flex-col items-center text-center mb-4">
+                                <div className="bg-red-100 p-3 rounded-full mb-2">
+                                    <AlertTriangle className="h-8 w-8 text-red-600" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900">Delete Shop</h3>
+                                <p className="text-gray-500 mt-2">
+                                    Are you sure you want to delete "{selectedShop.name}"? This action cannot be undone.
+                                </p>
+
+                                {/* Related records warning */}
+                                {(selectedShop.hasRelatedRecords || selectedShop.total_inventory > 0) && (
+                                    <div className="mt-3 p-3 bg-yellow-50 text-yellow-700 rounded-md text-sm">
+                                        <p className="font-semibold mb-1">This shop has related records that prevent deletion:</p>
+                                        <ul className="list-disc list-inside text-left mb-3">
+                                            {/* Inventory items */}
+                                            {(selectedShop.relatedRecords?.inventoryItems > 0 || selectedShop.total_inventory > 0) && (
+                                                <li>
+                                                    {selectedShop.relatedRecords?.inventoryItems || selectedShop.total_inventory} inventory items
+                                                    <div className="mt-2 flex space-x-2">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="text-sm py-1"
+                                                            onClick={() => {
+                                                                window.open(`/inventory?shop=${selectedShop.id}`, '_blank');
+                                                            }}
+                                                        >
+                                                            View Items
+                                                        </Button>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="text-sm py-1 text-red-600 hover:text-red-800"
+                                                            onClick={async () => {
+                                                                if (!selectedShop) return;
+
+                                                                if (confirm(`Are you sure you want to delete ALL inventory items for "${selectedShop.name}"? This action cannot be undone.`)) {
+                                                                    try {
+                                                                        setIsDeleting(true);
+                                                                        const response = await fetch(`/api/inventory/shop/${selectedShop.id}/delete`, {
+                                                                            method: 'DELETE'
+                                                                        });
+
+                                                                        const result = await response.json();
+
+                                                                        if (response.ok) {
+                                                                            // Update the selected shop
+                                                                            setSelectedShop(prev => {
+                                                                                if (!prev) return null;
+                                                                                return {
+                                                                                    ...prev,
+                                                                                    total_inventory: 0,
+                                                                                    relatedRecords: {
+                                                                                        ...(prev.relatedRecords || {}),
+                                                                                        inventoryItems: 0
+                                                                                    }
+                                                                                };
+                                                                            });
+
+                                                                            // Try to delete the shop again
+                                                                            confirmDeleteShop();
+                                                                        } else {
+                                                                            alert(`Failed to clear inventory: ${result.message}`);
+                                                                        }
+                                                                    } catch (err) {
+                                                                        console.error('Error clearing inventory:', err);
+                                                                        alert('Failed to clear inventory items. Please try again.');
+                                                                    } finally {
+                                                                        setIsDeleting(false);
+                                                                    }
+                                                                }
+                                                            }}
+                                                        >
+                                                            Clear All Items
+                                                        </Button>
+                                                    </div>
+                                                </li>
+                                            )}
+
+                                            {/* Users */}
+                                            {selectedShop.relatedRecords?.users > 0 && (
+                                                <li>
+                                                    {selectedShop.relatedRecords.users} users assigned to this shop
+                                                    <div className="mt-2">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="text-sm py-1"
+                                                            onClick={() => {
+                                                                window.open(`/users`, '_blank');
+                                                            }}
+                                                        >
+                                                            Manage Users
+                                                        </Button>
+                                                    </div>
+                                                </li>
+                                            )}
+
+                                            {/* Transfers */}
+                                            {selectedShop.relatedRecords?.transfers > 0 && (
+                                                <li>
+                                                    {selectedShop.relatedRecords.transfers} inventory transfers
+                                                    <div className="mt-2">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="text-sm py-1"
+                                                            onClick={() => {
+                                                                window.open(`/transfers`, '_blank');
+                                                            }}
+                                                        >
+                                                            View Transfers
+                                                        </Button>
+                                                    </div>
+                                                </li>
+                                            )}
+
+                                            {/* Products */}
+                                            {selectedShop.relatedRecords?.products > 0 && (
+                                                <li>
+                                                    {selectedShop.relatedRecords.products} products
+                                                    <div className="mt-2">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="text-sm py-1"
+                                                            onClick={() => {
+                                                                window.open(`/products`, '_blank');
+                                                            }}
+                                                        >
+                                                            Manage Products
+                                                        </Button>
+                                                    </div>
+                                                </li>
+                                            )}
+                                        </ul>
+                                        <p className="text-sm">Please remove or reassign these items before deleting this shop.</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="border-t border-gray-200 pt-4">
+                                <div className="flex justify-end space-x-3">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setShowDeleteModal(false)}
+                                        disabled={isDeleting}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        variant="primary"
+                                        onClick={confirmDeleteShop}
+                                        disabled={isDeleting || selectedShop.hasRelatedRecords || selectedShop.total_inventory > 0}
+                                        className="bg-red-600 hover:bg-red-700"
+                                    >
+                                        {isDeleting ? 'Deleting...' : 'Delete Shop'}
+                                    </Button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}

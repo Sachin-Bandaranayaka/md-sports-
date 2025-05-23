@@ -180,6 +180,52 @@ export async function DELETE(
             }, { status: 404 });
         }
 
+        // Check for related inventory items
+        const inventoryItemCount = await prisma.inventoryItem.count({
+            where: { shopId: id }
+        });
+
+        // Check for related users
+        const userCount = await prisma.user.count({
+            where: { shopId: id }
+        });
+
+        // Check for related inventory transfers
+        const transfersCount = await prisma.inventoryTransfer.count({
+            where: {
+                OR: [
+                    { fromShopId: id },
+                    { toShopId: id }
+                ]
+            }
+        });
+
+        // Check for related products
+        const productsCount = await prisma.product.count({
+            where: { shopId: id }
+        });
+
+        // If there are related records, return an error
+        if (inventoryItemCount > 0 || userCount > 0 || transfersCount > 0 || productsCount > 0) {
+            const relatedRecords = [];
+
+            if (inventoryItemCount > 0) relatedRecords.push(`${inventoryItemCount} inventory items`);
+            if (userCount > 0) relatedRecords.push(`${userCount} users`);
+            if (transfersCount > 0) relatedRecords.push(`${transfersCount} inventory transfers`);
+            if (productsCount > 0) relatedRecords.push(`${productsCount} products`);
+
+            return NextResponse.json({
+                success: false,
+                message: `Cannot delete shop. It has related records: ${relatedRecords.join(', ')}. Please remove or reassign these records first.`,
+                relatedRecords: {
+                    inventoryItems: inventoryItemCount,
+                    users: userCount,
+                    transfers: transfersCount,
+                    products: productsCount
+                }
+            }, { status: 409 }); // 409 Conflict
+        }
+
         // Delete the shop
         await prisma.shop.delete({
             where: { id }
