@@ -14,7 +14,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
             );
         }
 
-        const categoryId = parseInt(await params.id);
+        const categoryId = parseInt(params.id);
         if (isNaN(categoryId)) {
             return NextResponse.json(
                 { success: false, message: 'Invalid category ID' },
@@ -120,7 +120,7 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
-        const categoryId = parseInt(await params.id);
+        const categoryId = parseInt(params.id);
 
         if (isNaN(categoryId)) {
             return NextResponse.json(
@@ -219,7 +219,7 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
-        const categoryId = parseInt(await params.id);
+        const categoryId = parseInt(params.id);
 
         if (isNaN(categoryId)) {
             return NextResponse.json(
@@ -274,7 +274,7 @@ export async function PATCH(
     { params }: { params: { id: string } }
 ) {
     try {
-        const categoryId = parseInt(await params.id);
+        const categoryId = parseInt(params.id);
 
         if (isNaN(categoryId)) {
             return NextResponse.json(

@@ -362,7 +362,7 @@ function SupplierFormModal({ supplier, isEdit, onClose, onSave }: SupplierFormMo
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Contact Person*
+                                Contact Person
                             </label>
                             <input
                                 type="text"
@@ -370,12 +370,11 @@ function SupplierFormModal({ supplier, isEdit, onClose, onSave }: SupplierFormMo
                                 value={formData.contactPerson}
                                 onChange={handleChange}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                                required
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Email*
+                                Email
                             </label>
                             <input
                                 type="email"
@@ -383,12 +382,11 @@ function SupplierFormModal({ supplier, isEdit, onClose, onSave }: SupplierFormMo
                                 value={formData.email}
                                 onChange={handleChange}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                                required
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Phone*
+                                Phone
                             </label>
                             <input
                                 type="text"
@@ -396,7 +394,6 @@ function SupplierFormModal({ supplier, isEdit, onClose, onSave }: SupplierFormMo
                                 value={formData.phone}
                                 onChange={handleChange}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                                required
                             />
                         </div>
                         <div className="md:col-span-2">

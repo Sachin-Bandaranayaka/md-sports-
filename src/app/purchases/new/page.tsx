@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
+import { Combobox } from '@/components/ui/Combobox';
 import { Loader2, Save, XCircle, Plus, Minus, Search, FileText, DollarSign, Calendar, ArrowLeft, Trash, Store } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PurchaseInvoice, Supplier, Product } from '@/types';
@@ -54,7 +55,6 @@ export default function NewPurchaseInvoice() {
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-    const [searchTerm, setSearchTerm] = useState('');
     const [showNewProductModal, setShowNewProductModal] = useState(false);
     const [newProductData, setNewProductData] = useState({
         name: '',
@@ -121,27 +121,6 @@ export default function NewPurchaseInvoice() {
         fetchData();
     }, []);
 
-    // Filter products based on search
-    useEffect(() => {
-        if (!products || !Array.isArray(products)) {
-            setFilteredProducts([]);
-            return;
-        }
-
-        if (!searchTerm.trim()) {
-            setFilteredProducts(products);
-            return;
-        }
-
-        const lowercasedSearch = searchTerm.toLowerCase();
-        const filtered = products.filter(product =>
-            product.name.toLowerCase().includes(lowercasedSearch) ||
-            product.sku?.toLowerCase().includes(lowercasedSearch)
-        );
-
-        setFilteredProducts(filtered);
-    }, [searchTerm, products]);
-
     // Calculate total amount
     useEffect(() => {
         if (formData.items && formData.items.length > 0) {
@@ -171,10 +150,18 @@ export default function NewPurchaseInvoice() {
                 const shopsResponse = await fetch('/api/shops');
                 if (shopsResponse.ok) {
                     const shopsData = await shopsResponse.json();
-                    setShops(shopsData || []);
+                    // Ensure shops is always an array
+                    const shopsArray = Array.isArray(shopsData) ? shopsData :
+                        (shopsData?.data && Array.isArray(shopsData.data)) ? shopsData.data : [];
+                    setShops(shopsArray);
+                } else {
+                    console.error('Failed to fetch shops:', shopsResponse.statusText);
+                    setShops([]);
                 }
             } catch (err) {
                 console.error('Error fetching additional data:', err);
+                // Initialize with empty arrays on error
+                setShops([]);
             }
         };
 
@@ -638,22 +625,6 @@ export default function NewPurchaseInvoice() {
                             </Button>
                         </div>
 
-                        {/* Product search */}
-                        <div className="mb-4">
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                                    <Search className="w-4 h-4 text-black" />
-                                </div>
-                                <input
-                                    type="text"
-                                    className="bg-white border border-gray-300 text-black text-sm rounded-lg focus:ring-primary focus:border-primary block w-full pl-10 p-2.5"
-                                    placeholder="Search products by name or SKU..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
-                            </div>
-                        </div>
-
                         {/* Items list */}
                         <AnimatePresence>
                             {(!formData.items || formData.items.length === 0) ? (
@@ -667,7 +638,7 @@ export default function NewPurchaseInvoice() {
                                 </motion.div>
                             ) : (
                                 <motion.div
-                                    className="overflow-x-auto"
+                                    className="overflow-visible"
                                     variants={itemVariants}
                                 >
                                     <table className="w-full border-collapse">
@@ -694,20 +665,23 @@ export default function NewPurchaseInvoice() {
                                                     >
                                                         <td className="px-4 py-3">
                                                             <div className="flex items-center">
-                                                                <select
-                                                                    name="productId"
-                                                                    value={item.productId}
-                                                                    onChange={(e) => handleItemChange(e, index)}
-                                                                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary text-black"
-                                                                    required
-                                                                >
-                                                                    <option value="">Select Product</option>
-                                                                    {filteredProducts.map(product => (
-                                                                        <option key={product.id} value={product.id}>
-                                                                            {product.name} {product.sku ? `(${product.sku})` : ''}
-                                                                        </option>
-                                                                    ))}
-                                                                </select>
+                                                                <div className="w-full" style={{ position: 'relative', zIndex: 50 }}>
+                                                                    <Combobox
+                                                                        value={item.productId}
+                                                                        onChange={(value) => handleItemChange({
+                                                                            target: {
+                                                                                name: 'productId',
+                                                                                value: value
+                                                                            }
+                                                                        } as React.ChangeEvent<HTMLSelectElement>, index)}
+                                                                        options={filteredProducts.map(product => ({
+                                                                            value: product.id.toString(),
+                                                                            label: `${product.name} ${product.sku ? `(${product.sku})` : ''}`
+                                                                        }))}
+                                                                        placeholder="Select Product"
+                                                                        required
+                                                                    />
+                                                                </div>
                                                                 <Button
                                                                     type="button"
                                                                     variant="ghost"
@@ -716,7 +690,7 @@ export default function NewPurchaseInvoice() {
                                                                         setSelectedItemIndex(index);
                                                                         setShowNewProductModal(true);
                                                                     }}
-                                                                    className="ml-2 px-2"
+                                                                    className="ml-2 px-2 flex-shrink-0"
                                                                 >
                                                                     <Plus className="w-4 h-4" />
                                                                 </Button>
@@ -971,21 +945,25 @@ export default function NewPurchaseInvoice() {
                         </p>
 
                         <div className="space-y-4 max-h-60 overflow-y-auto">
-                            {shops.map(shop => (
-                                <div key={shop.id} className="flex items-center justify-between">
-                                    <label className="block text-sm font-medium text-black">
-                                        {shop.name} ({shop.location || 'No location'})
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={distribution[selectedItemIndex]?.[shop.id] || 0}
-                                        onChange={(e) => handleDistributionChange(shop.id, parseInt(e.target.value) || 0)}
-                                        className="w-24 p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary text-black"
-                                        min="0"
-                                        max={formData.items[selectedItemIndex].quantity}
-                                    />
-                                </div>
-                            ))}
+                            {Array.isArray(shops) && shops.length > 0 ? (
+                                shops.map(shop => (
+                                    <div key={shop.id} className="flex items-center justify-between">
+                                        <label className="block text-sm font-medium text-black">
+                                            {shop.name} ({shop.location || 'No location'})
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={distribution[selectedItemIndex]?.[shop.id] || 0}
+                                            onChange={(e) => handleDistributionChange(shop.id, parseInt(e.target.value) || 0)}
+                                            className="w-24 p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary text-black"
+                                            min="0"
+                                            max={formData.items[selectedItemIndex].quantity}
+                                        />
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-4 text-gray-500">No shops available</div>
+                            )}
                         </div>
 
                         <div className="mt-4 py-2 border-t border-gray-200">
@@ -1015,6 +993,10 @@ export default function NewPurchaseInvoice() {
                                 variant="primary"
                                 onClick={() => {
                                     // Quick distribution - evenly distribute across all shops
+                                    if (!Array.isArray(shops) || shops.length === 0) {
+                                        return;
+                                    }
+
                                     const itemQty = formData.items[selectedItemIndex].quantity;
                                     const shopCount = shops.length;
                                     const baseQty = Math.floor(itemQty / shopCount);
@@ -1031,6 +1013,7 @@ export default function NewPurchaseInvoice() {
                                         return updated;
                                     });
                                 }}
+                                disabled={!Array.isArray(shops) || shops.length === 0}
                             >
                                 Auto Distribute
                             </Button>
