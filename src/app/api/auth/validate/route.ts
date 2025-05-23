@@ -20,9 +20,10 @@ export async function GET(req: NextRequest) {
 
         if (!tokenData) {
             console.error('Token verification failed');
+            // Return a 403 status code for token expiration to trigger the refresh flow
             return NextResponse.json(
-                { success: false, message: 'Invalid or expired token' },
-                { status: 401 }
+                { success: false, message: 'Invalid or expired token', expired: true },
+                { status: 403 }
             );
         }
 

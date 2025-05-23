@@ -16,7 +16,11 @@ export async function GET() {
         const shops = await safeQuery(
             () => prisma.shop.findMany({
                 include: {
-                    inventoryItems: true
+                    inventoryItems: {
+                        include: {
+                            product: true
+                        }
+                    }
                 }
             }),
             [], // Empty array as fallback
@@ -31,36 +35,45 @@ export async function GET() {
                 0
             );
 
-            // Generate a random sales figure between 50,000 and 150,000
-            // In a real application, this would come from actual sales data
-            const randomSales = Math.floor(Math.random() * 100000) + 50000;
+            // Calculate total inventory value (price * quantity) for this shop
+            // This gives us a real metric based on actual data
+            const totalValue = shop.inventoryItems.reduce(
+                (sum, item) => {
+                    const price = item.product?.price || 0;
+                    return sum + (price * item.quantity);
+                },
+                0
+            );
 
             return {
                 name: shop.name,
-                sales: randomSales,
+                sales: totalValue, // Use inventory value as a proxy for sales
                 stock: totalStock
             };
         });
 
-        // If we don't have any shops data, provide defaults
-        if (data.length === 0) {
+        // Filter out shops with no inventory
+        const shopsWithInventory = data.filter(shop => shop.stock > 0);
+
+        // If we don't have any shops with inventory data, return empty array
+        if (shopsWithInventory.length === 0) {
             return NextResponse.json({
                 success: true,
-                data: defaultShopsData
+                data: []
             });
         }
 
         return NextResponse.json({
             success: true,
-            data
+            data: shopsWithInventory
         });
     } catch (error) {
         console.error('Error fetching shop performance data:', error);
 
-        // Always return fallback data instead of an error
+        // Return empty array instead of an error
         return NextResponse.json({
             success: true,
-            data: defaultShopsData
+            data: []
         });
     }
 } 

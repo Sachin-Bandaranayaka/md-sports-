@@ -6,6 +6,7 @@ import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
 import { Search, UserPlus, Filter, X, Trash2, Loader2 } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { authDelete } from '@/utils/api';
 
 // Interface for Customer
 interface Customer {
@@ -191,9 +192,7 @@ export default function Customers() {
         setError(null);
 
         try {
-            const response = await fetch(`/api/customers/${customerId}`, {
-                method: 'DELETE',
-            });
+            const response = await authDelete(`/api/customers/${customerId}`);
 
             const data = await response.json();
 

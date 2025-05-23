@@ -3,6 +3,18 @@
  */
 
 /**
+ * Get CSRF token from cookies
+ */
+export const getCsrfToken = (): string | undefined => {
+    if (typeof document === 'undefined') return undefined;
+
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; csrfToken=`);
+    if (parts.length === 2) return parts.pop()?.split(';').shift();
+    return undefined;
+};
+
+/**
  * Enhanced fetch function that automatically adds authentication token
  */
 export const authFetch = async (url: string, options: RequestInit = {}) => {
@@ -28,6 +40,14 @@ export const authFetch = async (url: string, options: RequestInit = {}) => {
         !(options.body instanceof FormData)
     ) {
         headers['Content-Type'] = 'application/json';
+    }
+
+    // Add CSRF token for non-GET requests
+    if (options.method && options.method !== 'GET' && options.method !== 'HEAD') {
+        const csrfToken = getCsrfToken();
+        if (csrfToken) {
+            headers['X-CSRF-Token'] = csrfToken;
+        }
     }
 
     // Make the request with authentication header
@@ -106,24 +126,31 @@ export const setupFetchInterceptor = () => {
             // Only intercept API calls to our own API (starting with /api)
             const urlString = url.toString();
             if (urlString.startsWith('/api') || urlString.startsWith(window.location.origin + '/api')) {
-                const token = localStorage.getItem('authToken');
+                options = options || {};
+                options.headers = options.headers || {};
+
+                // Cast headers to any to allow string indexing
+                const headers = options.headers as any;
 
                 // Add authentication header if token exists
-                if (token) {
-                    options = options || {};
-                    options.headers = options.headers || {};
+                const token = localStorage.getItem('authToken');
+                if (token && !headers['Authorization']) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
 
-                    // Cast headers to any to allow string indexing
-                    const headers = options.headers as any;
-
-                    // Only add if Authorization header doesn't already exist
-                    if (!headers['Authorization']) {
-                        headers['Authorization'] = `Bearer ${token}`;
+                // Add CSRF token for non-GET requests
+                if (options.method && options.method !== 'GET' && options.method !== 'HEAD') {
+                    const csrfToken = getCsrfToken();
+                    if (csrfToken && !headers['X-CSRF-Token']) {
+                        headers['X-CSRF-Token'] = csrfToken;
+                        console.log(`Adding CSRF token for ${options.method} request to ${urlString}`);
                     }
                 }
             }
 
             return originalFetch(url, options);
         };
+
+        console.log('Fetch interceptor set up successfully');
     }
 }; 

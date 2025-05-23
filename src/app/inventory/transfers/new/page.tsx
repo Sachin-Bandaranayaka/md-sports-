@@ -17,7 +17,7 @@ interface Product {
     id: number;
     name: string;
     sku: string;
-    retail_price: string;
+    price: string;
     available_quantity?: number; // Only for selected source shop
 }
 
@@ -425,7 +425,7 @@ export default function CreateTransferPage() {
                                                     <p className="text-xs text-gray-900 mt-1">SKU: {product.sku}</p>
                                                 </div>
                                                 <span className="text-sm font-semibold text-gray-900 bg-gray-100 px-2 py-1 rounded-md">
-                                                    Rs. {parseFloat(product.retail_price).toFixed(2)}
+                                                    Rs. {parseFloat(product.price).toFixed(2)}
                                                 </span>
                                             </div>
                                             <div className="flex justify-between items-center mt-5 pt-3 border-t border-gray-100">

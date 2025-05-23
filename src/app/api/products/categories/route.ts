@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma, safeQuery } from '@/lib/prisma';
+import { validateTokenPermission } from '@/lib/auth';
 
 // Default fallback data for categories
 const defaultCategoriesData = [
@@ -53,5 +54,63 @@ export async function GET() {
             success: true,
             data: defaultCategoriesData
         });
+    }
+}
+
+// POST: Create a new category
+export async function POST(request: NextRequest) {
+    try {
+        // Verify permission
+        const hasPermission = await validateTokenPermission(request, 'category:create');
+        if (!hasPermission) {
+            return NextResponse.json(
+                { success: false, message: 'Unauthorized: Insufficient permissions' },
+                { status: 403 }
+            );
+        }
+
+        // Parse request body
+        const data = await request.json();
+        const { name, description, parentId } = data;
+
+        if (!name) {
+            return NextResponse.json(
+                { success: false, message: 'Category name is required' },
+                { status: 400 }
+            );
+        }
+
+        // Check if category with this name already exists
+        const existingCategory = await prisma.category.findFirst({
+            where: { name: { equals: name, mode: 'insensitive' } }
+        });
+
+        if (existingCategory) {
+            return NextResponse.json(
+                { success: false, message: 'A category with this name already exists' },
+                { status: 400 }
+            );
+        }
+
+        // Create the new category
+        const newCategory = await prisma.category.create({
+            data: {
+                name,
+                description: description || null,
+                parentId: parentId || null
+            }
+        });
+
+        return NextResponse.json({
+            success: true,
+            message: 'Category created successfully',
+            data: newCategory
+        });
+    } catch (error) {
+        console.error('Error creating category:', error);
+        return NextResponse.json(
+            { success: false, message: 'Failed to create category' },
+            { status: 500 }
+        );
     }
 } 

@@ -22,7 +22,7 @@ export async function GET(request: Request) {
                 p.name as product_name,
                 p.sku as product_sku,
                 p.barcode as product_barcode,
-                p.retail_price,
+                p.price,
                 p.weightedAverageCost,
                 c.id as category_id,
                 c.name as category_name,

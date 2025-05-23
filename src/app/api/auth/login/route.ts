@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '@/lib/prisma';
+import { generateRefreshToken } from '@/services/refreshTokenService';
 
-// JWT configuration - should be in environment variables in production
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-const JWT_EXPIRES_IN = '24h';
+// JWT configuration - use environment variables
+const JWT_SECRET = process.env.JWT_SECRET || 'CHANGE_THIS_IN_PRODUCTION';
+const JWT_ACCESS_TOKEN_EXPIRES_IN = process.env.JWT_ACCESS_TOKEN_EXPIRES_IN || '15m';
+const COOKIE_SECURE = process.env.NODE_ENV === 'production';
 
 export async function POST(req: NextRequest) {
     try {
@@ -65,22 +67,31 @@ export async function POST(req: NextRequest) {
         const permissions = user.role.permissions.map(p => p.name);
         console.log('User permissions:', permissions);
 
-        // Generate JWT token
-        const token = jwt.sign({
+        // Generate JWT access token with shorter expiration
+        const accessToken = jwt.sign({
             sub: user.id, // Standard JWT claim for subject (user ID)
             username: user.name,
             email: user.email,
             roleId: user.roleId,
             permissions,
             shopId: user.shopId
-        }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+        }, JWT_SECRET, { expiresIn: JWT_ACCESS_TOKEN_EXPIRES_IN });
 
-        console.log('Login successful for user:', user.name);
+        // Generate refresh token - with fallback if it fails
+        let refreshToken = null;
+        try {
+            refreshToken = await generateRefreshToken(user.id);
+            console.log('Successfully generated refresh token');
+        } catch (error) {
+            console.error('Failed to generate refresh token, continuing with login without refresh token:', error);
+            // We'll continue with login even if refresh token generation fails
+        }
 
-        // Return token and user data
-        return NextResponse.json({
+        // Create response object with cookies
+        const response = NextResponse.json({
             success: true,
-            token,
+            accessToken,
+            refreshToken,
             user: {
                 id: user.id,
                 username: user.name,
@@ -92,6 +103,33 @@ export async function POST(req: NextRequest) {
                 permissions
             }
         });
+
+        // Set HTTP-only cookies for tokens (more secure approach)
+        response.cookies.set({
+            name: 'accessToken',
+            value: accessToken,
+            httpOnly: true,
+            secure: COOKIE_SECURE,
+            sameSite: 'strict',
+            maxAge: 60 * 15, // 15 minutes in seconds
+            path: '/'
+        });
+
+        // Only set refresh token cookie if we have one
+        if (refreshToken) {
+            response.cookies.set({
+                name: 'refreshToken',
+                value: refreshToken,
+                httpOnly: true,
+                secure: COOKIE_SECURE,
+                sameSite: 'strict',
+                maxAge: 60 * 60 * 24 * 30, // 30 days in seconds
+                path: '/'
+            });
+        }
+
+        console.log('Login successful for user:', user.name);
+        return response;
     } catch (error) {
         console.error('Login error:', error);
         return NextResponse.json(

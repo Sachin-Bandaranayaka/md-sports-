@@ -4,7 +4,9 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Package, Filter, Search, Loader2, X, Trash2 } from 'lucide-react';
+import { Package, Filter, Search, Loader2, X, Trash2, PlusCircle, ShoppingBag, UploadCloud, DownloadCloud, ArrowUpDown } from 'lucide-react';
+import AddInventoryModal from '@/components/inventory/AddInventoryModal';
+import { authDelete } from '@/utils/api';
 
 // Define proper types for our data
 interface BranchStock {
@@ -58,87 +60,89 @@ export default function Inventory() {
     // Add these new state variables
     const [showAddProductModal, setShowAddProductModal] = useState(false);
     const [showFilterPanel, setShowFilterPanel] = useState(false);
+    const [showAddInventoryModal, setShowAddInventoryModal] = useState(false);
+    const [selectedProduct, setSelectedProduct] = useState<{ id: number, name: string } | null>(null);
 
     useEffect(() => {
-        const fetchInventoryData = async () => {
-            setLoading(true);
-            setError(null);
-
-            try {
-                // Fetch categories
-                const categoriesResponse = await fetch('/api/products/categories');
-                if (!categoriesResponse.ok) {
-                    throw new Error('Failed to fetch categories');
-                }
-                const categoriesData = await categoriesResponse.json();
-                if (categoriesData.success) {
-                    setCategories(categoriesData.data || []);
-                }
-
-                // Fetch products with inventory
-                const productsResponse = await fetch('/api/products');
-                if (!productsResponse.ok) {
-                    throw new Error('Failed to fetch products');
-                }
-                const productsData = await productsResponse.json();
-
-                if (productsData.success) {
-                    // Transform the data to match our component's expected format
-                    const transformedItems: InventoryItem[] = await Promise.all(productsData.data.map(async (product: any) => {
-                        // Fetch inventory levels for this product
-                        const inventoryResponse = await fetch(`/api/products/${product.id}`);
-                        const inventoryData = await inventoryResponse.json();
-
-                        // Calculate total stock across all shops
-                        let totalStock = 0;
-                        const branchStock: BranchStock[] = [];
-
-                        if (inventoryData.success && inventoryData.data.inventory) {
-                            inventoryData.data.inventory.forEach((inv: any) => {
-                                totalStock += inv.quantity;
-                                branchStock.push({
-                                    shopId: inv.shop_id,
-                                    shopName: inv.shop_name,
-                                    quantity: inv.quantity
-                                });
-                            });
-                        }
-
-                        // Determine status based on stock levels
-                        let status = 'Out of Stock';
-                        if (totalStock > 0) {
-                            // Consider low stock if any shop has inventory below reorder level
-                            const hasLowStock = inventoryData.data.inventory?.some(
-                                (inv: any) => inv.quantity > 0 && inv.quantity <= inv.reorder_level
-                            );
-                            status = hasLowStock ? 'Low Stock' : 'In Stock';
-                        }
-
-                        return {
-                            id: product.id,
-                            sku: product.sku,
-                            name: product.name,
-                            category: product.category_name || 'Uncategorized',
-                            stock: totalStock,
-                            retailPrice: parseFloat(product.retail_price),
-                            weightedAverageCost: parseFloat(product.weighted_average_cost),
-                            status,
-                            branchStock
-                        };
-                    }));
-
-                    setInventoryItems(transformedItems);
-                }
-            } catch (err) {
-                console.error('Error fetching inventory data:', err);
-                setError('Failed to load inventory data. Please try again later.');
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchInventoryData();
     }, []);
+
+    const fetchInventoryData = async () => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            // Fetch categories
+            const categoriesResponse = await fetch('/api/products/categories');
+            if (!categoriesResponse.ok) {
+                throw new Error('Failed to fetch categories');
+            }
+            const categoriesData = await categoriesResponse.json();
+            if (categoriesData.success) {
+                setCategories(categoriesData.data || []);
+            }
+
+            // Fetch products with inventory
+            const productsResponse = await fetch('/api/products');
+            if (!productsResponse.ok) {
+                throw new Error('Failed to fetch products');
+            }
+            const productsData = await productsResponse.json();
+
+            if (productsData.success) {
+                // Transform the data to match our component's expected format
+                const transformedItems: InventoryItem[] = await Promise.all(productsData.data.map(async (product: any) => {
+                    // Fetch inventory levels for this product
+                    const inventoryResponse = await fetch(`/api/products/${product.id}`);
+                    const inventoryData = await inventoryResponse.json();
+
+                    // Calculate total stock across all shops
+                    let totalStock = 0;
+                    const branchStock: BranchStock[] = [];
+
+                    if (inventoryData.success && inventoryData.data.inventory) {
+                        inventoryData.data.inventory.forEach((inv: any) => {
+                            totalStock += inv.quantity;
+                            branchStock.push({
+                                shopId: inv.shop_id,
+                                shopName: inv.shop_name,
+                                quantity: inv.quantity
+                            });
+                        });
+                    }
+
+                    // Determine status based on stock levels
+                    let status = 'Out of Stock';
+                    if (totalStock > 0) {
+                        // Consider low stock if any shop has inventory below reorder level
+                        const hasLowStock = inventoryData.data.inventory?.some(
+                            (inv: any) => inv.quantity > 0 && inv.quantity <= inv.reorder_level
+                        );
+                        status = hasLowStock ? 'Low Stock' : 'In Stock';
+                    }
+
+                    return {
+                        id: product.id,
+                        sku: product.sku,
+                        name: product.name,
+                        category: product.category_name || 'Uncategorized',
+                        stock: totalStock,
+                        retailPrice: parseFloat(product.price),
+                        weightedAverageCost: parseFloat(product.weightedAverageCost),
+                        status,
+                        branchStock
+                    };
+                }));
+
+                setInventoryItems(transformedItems);
+            }
+        } catch (err) {
+            console.error('Error fetching inventory data:', err);
+            setError('Failed to load inventory data. Please try again later.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // Filter the inventory items based on search term, category, and status
     const filteredItems = inventoryItems.filter(item => {
@@ -165,6 +169,30 @@ export default function Inventory() {
         router.push('/purchases');
     };
 
+    // Add Direct Inventory handler
+    const handleAddInventory = () => {
+        setSelectedProduct(null);
+        setShowAddInventoryModal(true);
+    };
+
+    // Handle inventory modal after product creation
+    const handleAddInventoryAfterCreate = (productId: number, productName: string) => {
+        setSelectedProduct({ id: productId, name: productName });
+        setShowAddInventoryModal(true);
+    };
+
+    // Handle successful inventory addition
+    const handleInventoryAdded = () => {
+        // Refresh the inventory list
+        fetchInventoryData();
+    };
+
+    // Handle successful product creation
+    const handleProductCreated = () => {
+        // Refresh the inventory list
+        fetchInventoryData();
+    };
+
     // Toggle filter panel
     const toggleFilterPanel = () => {
         setShowFilterPanel(!showFilterPanel);
@@ -181,9 +209,7 @@ export default function Inventory() {
         setDeleteLoading(productId);
 
         try {
-            const response = await fetch(`/api/products/${productId}`, {
-                method: 'DELETE',
-            });
+            const response = await authDelete(`/api/products/${productId}`);
 
             const data = await response.json();
 
@@ -259,7 +285,7 @@ export default function Inventory() {
                         <h1 className="text-2xl font-bold text-gray-900">Inventory Management</h1>
                         <p className="text-gray-500">Manage your product inventory across all shops</p>
                     </div>
-                    <div className="flex gap-3">
+                    <div className="flex flex-wrap gap-3">
                         <Button
                             variant="outline"
                             size="sm"
@@ -267,6 +293,30 @@ export default function Inventory() {
                         >
                             <Filter className="w-4 h-4 mr-2" />
                             Filter
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => router.push('/inventory/categories')}
+                        >
+                            <ArrowUpDown className="w-4 h-4 mr-2" />
+                            Manage Categories
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => router.push('/inventory/new')}
+                        >
+                            <ShoppingBag className="w-4 h-4 mr-2" />
+                            New Product
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={handleAddInventory}
+                        >
+                            <PlusCircle className="w-4 h-4 mr-2" />
+                            Add to Inventory
                         </Button>
                         <Button
                             variant="primary"
@@ -460,6 +510,14 @@ export default function Inventory() {
                     </div>
                 </div>
             </div>
+
+            {/* Add Inventory Modal */}
+            <AddInventoryModal
+                isOpen={showAddInventoryModal}
+                onClose={() => setShowAddInventoryModal(false)}
+                onSuccess={handleInventoryAdded}
+                preselectedProduct={selectedProduct}
+            />
         </MainLayout>
     );
 } 

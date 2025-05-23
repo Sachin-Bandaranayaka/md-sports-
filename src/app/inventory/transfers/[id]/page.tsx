@@ -17,7 +17,7 @@ interface TransferItem {
     sku: string;
     quantity: number;
     notes: string | null;
-    retail_price: string;
+    price: string;
 }
 
 interface Transfer {
@@ -84,7 +84,7 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
     // Calculate totals
     const totalItems = transfer?.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
     const totalValue = transfer?.items?.reduce(
-        (sum, item) => sum + parseFloat(item.retail_price) * item.quantity,
+        (sum, item) => sum + parseFloat(item.price) * item.quantity,
         0
     ) || 0;
 
@@ -445,13 +445,13 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
                             </thead>
                             <tbody>
                                 {transfer.items.map((item) => {
-                                    const itemTotal = parseFloat(item.retail_price) * item.quantity;
+                                    const itemTotal = parseFloat(item.price) * item.quantity;
                                     return (
                                         <tr key={item.id} className="border-b">
                                             <td className="px-6 py-4 font-medium">{item.product_name}</td>
                                             <td className="px-6 py-4">{item.sku}</td>
                                             <td className="px-6 py-4 text-right">
-                                                Rs. {parseFloat(item.retail_price).toFixed(2)}
+                                                Rs. {parseFloat(item.price).toFixed(2)}
                                             </td>
                                             <td className="px-6 py-4 text-center">{item.quantity}</td>
                                             <td className="px-6 py-4 text-right">

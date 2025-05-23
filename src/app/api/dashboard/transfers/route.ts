@@ -1,13 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma, safeQuery } from '@/lib/prisma';
 
-// Default fallback data for transfers
-const defaultTransfersData = [
-    { id: 'TR-001', source: 'Colombo Shop', destination: 'Kandy Shop', status: 'Completed', date: '2025-05-20', items: 12 },
-    { id: 'TR-002', source: 'Galle Shop', destination: 'Colombo Shop', status: 'Pending', date: '2025-05-19', items: 8 },
-    { id: 'TR-003', source: 'Kandy Shop', destination: 'Jaffna Shop', status: 'In Transit', date: '2025-05-18', items: 15 }
-];
-
 // GET: Fetch recent inventory transfers
 export async function GET() {
     try {
@@ -47,14 +40,6 @@ export async function GET() {
             items: transfer.transferItems.length
         }));
 
-        // If no data, return dummy data
-        if (data.length === 0) {
-            return NextResponse.json({
-                success: true,
-                data: defaultTransfersData
-            });
-        }
-
         return NextResponse.json({
             success: true,
             data
@@ -62,10 +47,11 @@ export async function GET() {
     } catch (error) {
         console.error('Error fetching transfer data:', error);
 
-        // Return fallback data in case of error
+        // Return empty array instead of fallback data
         return NextResponse.json({
-            success: true,
-            data: defaultTransfersData
-        });
+            success: false,
+            message: 'Error fetching transfer data',
+            error: error instanceof Error ? error.message : String(error)
+        }, { status: 500 });
     }
 } 

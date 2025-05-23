@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Input } from '@/components/ui/Input';
@@ -8,14 +8,21 @@ import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function LoginPage() {
-    const { login } = useAuth();
-    const [isLoading, setIsLoading] = useState(false);
+    const { login, isAuthenticated, isLoading } = useAuth();
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
     const router = useRouter();
 
+    // Add effect to redirect when authenticated
+    useEffect(() => {
+        if (!isLoading && isAuthenticated) {
+            router.push('/dashboard');
+        }
+    }, [isLoading, isAuthenticated, router]);
+
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        setIsLoading(true);
+        setIsSubmitting(true);
         setError('');
 
         const formData = new FormData(e.currentTarget);
@@ -24,11 +31,17 @@ export default function LoginPage() {
 
         // Try the auth login using the useAuth hook
         try {
-            await login(email, password);
+            const success = await login(email, password);
+            if (success) {
+                router.push('/dashboard');
+            } else {
+                setError('Invalid email or password');
+            }
         } catch (error) {
             console.error('Login error:', error);
             setError(`Login failed: ${(error as Error).message}`);
-            setIsLoading(false);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -94,7 +107,7 @@ export default function LoginPage() {
                             <Button
                                 type="submit"
                                 className="w-full"
-                                isLoading={isLoading}
+                                isLoading={isSubmitting}
                             >
                                 Sign in
                             </Button>

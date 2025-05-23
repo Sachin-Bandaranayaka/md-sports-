@@ -4,7 +4,8 @@ import prisma from '@/lib/prisma';
 
 // Secret key for JWT - should be moved to environment variables in production
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-const JWT_EXPIRES_IN = '24h';
+// Changed token expiration to 12h (from 24h) for better security
+const JWT_EXPIRES_IN = process.env.JWT_ACCESS_TOKEN_EXPIRES_IN || '12h';
 
 interface TokenPayload {
     sub: number; // User ID as 'sub' claim
@@ -102,7 +103,13 @@ export const verifyToken = (token: string) => {
     try {
         return jwt.verify(token, JWT_SECRET) as TokenPayload;
     } catch (error) {
-        console.error('Token verification error:', error);
+        if (error instanceof jwt.TokenExpiredError) {
+            console.error('Token expired:', error.expiredAt);
+        } else if (error instanceof jwt.JsonWebTokenError) {
+            console.error('Invalid token:', error.message);
+        } else {
+            console.error('Token verification error:', error);
+        }
         return null;
     }
 };

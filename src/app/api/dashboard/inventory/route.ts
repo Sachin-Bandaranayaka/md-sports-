@@ -1,27 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma, safeQuery } from '@/lib/prisma';
 
-// Default fallback data for inventory distribution
-const defaultInventoryData = [
-    { name: 'Cricket', value: 350 },
-    { name: 'Football', value: 280 },
-    { name: 'Basketball', value: 200 },
-    { name: 'Tennis', value: 150 },
-    { name: 'Swimming', value: 100 }
-];
-
-// GET: Fetch inventory distribution by category
+// GET: Fetch inventory distribution by category or product name if no categories exist
 export async function GET() {
     try {
-        // Get all categories with their products and inventory
+        // First try to get inventory by category
         const categories = await safeQuery(
             () => prisma.category.findMany({
-                where: {
-                    // Only include categories with a parent (subcategories)
-                    parentId: {
-                        not: null
-                    }
-                },
                 include: {
                     products: {
                         include: {
@@ -35,7 +20,7 @@ export async function GET() {
         );
 
         // Calculate inventory count by category
-        const inventoryByCategoryMap = categories.map(category => {
+        let inventoryByCategoryMap = categories.map(category => {
             // Sum up quantities across all products in this category
             const totalQuantity = category.products.reduce((sum, product) => {
                 // Sum up quantities for this product across all inventory items
@@ -53,18 +38,48 @@ export async function GET() {
         });
 
         // Filter out categories with zero inventory
-        const data = inventoryByCategoryMap
+        inventoryByCategoryMap = inventoryByCategoryMap
             .filter(item => item.value > 0)
             .sort((a, b) => b.value - a.value)
             .slice(0, 5);
 
-        // If we don't have enough data, provide some defaults
-        if (data.length === 0) {
+        // If we have category data, return it
+        if (inventoryByCategoryMap.length > 0) {
             return NextResponse.json({
                 success: true,
-                data: defaultInventoryData
+                data: inventoryByCategoryMap
             });
         }
+
+        // If we don't have category data, group by product name instead
+        const products = await safeQuery(
+            () => prisma.product.findMany({
+                include: {
+                    inventoryItems: true
+                }
+            }),
+            [], // Empty array fallback
+            'Failed to fetch product data'
+        );
+
+        const inventoryByProductMap = products.map(product => {
+            // Sum up quantities for this product across all inventory items
+            const totalQuantity = product.inventoryItems.reduce(
+                (sum, item) => sum + item.quantity,
+                0
+            );
+
+            return {
+                name: product.name,
+                value: totalQuantity
+            };
+        });
+
+        // Filter out products with zero inventory
+        const data = inventoryByProductMap
+            .filter(item => item.value > 0)
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 5);
 
         return NextResponse.json({
             success: true,
@@ -73,10 +88,11 @@ export async function GET() {
     } catch (error) {
         console.error('Error fetching inventory distribution data:', error);
 
-        // Return default data in case of error
+        // Return empty data in case of error
         return NextResponse.json({
-            success: true,
-            data: defaultInventoryData
-        });
+            success: false,
+            message: 'Error fetching inventory distribution data',
+            error: error instanceof Error ? error.message : String(error)
+        }, { status: 500 });
     }
 } 
