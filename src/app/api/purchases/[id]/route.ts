@@ -150,9 +150,17 @@ export async function DELETE(
             );
         }
 
+        // First get the purchase invoice with its items to know what needs to be reversed
         const purchase = await prisma.purchaseInvoice.findUnique({
             where: {
                 id: purchaseId
+            },
+            include: {
+                items: {
+                    include: {
+                        product: true
+                    }
+                }
             }
         });
 
@@ -165,6 +173,99 @@ export async function DELETE(
 
         // Delete in a transaction
         await prisma.$transaction(async (tx) => {
+            // For each purchase item, reverse the inventory updates
+            for (const item of purchase.items) {
+                // First check if this invoice has distribution data
+                const distributionData = purchase.distributions ? purchase.distributions[purchase.items.indexOf(item)] : null;
+
+                if (distributionData && Object.keys(distributionData).length > 0) {
+                    // Distributed to specific shops, reverse each allocation
+                    for (const [shopIdStr, quantity] of Object.entries(distributionData)) {
+                        const shopId = parseInt(shopIdStr);
+                        const qty = Number(quantity);
+
+                        if (qty <= 0) continue;
+
+                        // Find inventory for this product/shop combination
+                        const inventory = await tx.inventoryItem.findFirst({
+                            where: {
+                                productId: item.productId,
+                                shopId: shopId
+                            }
+                        });
+
+                        if (inventory) {
+                            // Reduce the quantity
+                            const newQuantity = Math.max(0, inventory.quantity - qty);
+
+                            if (newQuantity > 0) {
+                                await tx.inventoryItem.update({
+                                    where: { id: inventory.id },
+                                    data: { quantity: newQuantity }
+                                });
+                            } else {
+                                // If quantity would be zero, delete the inventory record
+                                await tx.inventoryItem.delete({
+                                    where: { id: inventory.id }
+                                });
+                            }
+                        }
+                    }
+                } else {
+                    // Default behavior - everything was added to shop 1
+                    const shopId = 1;
+                    const inventory = await tx.inventoryItem.findFirst({
+                        where: {
+                            productId: item.productId,
+                            shopId: shopId
+                        }
+                    });
+
+                    if (inventory) {
+                        // Reduce the quantity
+                        const newQuantity = Math.max(0, inventory.quantity - item.quantity);
+
+                        if (newQuantity > 0) {
+                            await tx.inventoryItem.update({
+                                where: { id: inventory.id },
+                                data: { quantity: newQuantity }
+                            });
+                        } else {
+                            // If quantity would be zero, delete the inventory record
+                            await tx.inventoryItem.delete({
+                                where: { id: inventory.id }
+                            });
+                        }
+                    }
+                }
+
+                // Update the product's weighted average cost
+                // This is a simplification, as calculating the exact reversal of WAC is complex
+                // Get all remaining purchase items for this product
+                const remainingPurchaseItems = await tx.purchaseInvoiceItem.findMany({
+                    where: {
+                        productId: item.productId,
+                        purchaseInvoiceId: { not: purchaseId }
+                    }
+                });
+
+                // Calculate new weighted average cost based on remaining purchases
+                if (remainingPurchaseItems.length > 0) {
+                    const totalQuantity = remainingPurchaseItems.reduce((sum, item) => sum + item.quantity, 0);
+                    const weightedTotal = remainingPurchaseItems.reduce(
+                        (sum, item) => sum + (item.quantity * item.price), 0
+                    );
+
+                    if (totalQuantity > 0) {
+                        const newWAC = weightedTotal / totalQuantity;
+                        await tx.product.update({
+                            where: { id: item.productId },
+                            data: { weightedAverageCost: newWAC }
+                        });
+                    }
+                }
+            }
+
             // Delete associated items
             await tx.purchaseInvoiceItem.deleteMany({
                 where: {
