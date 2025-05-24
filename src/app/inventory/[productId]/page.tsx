@@ -68,79 +68,82 @@ interface ProductDetail {
 }
 
 // Mock data function - in a real app, this would fetch data from an API
-const fetchProductDetails = (id: string): Promise<ProductDetail> => {
-    // This is dummy data - in production this would come from your API
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve({
-                id,
-                name: id === 'MD-001' ? 'Cricket Bat - Professional' : 'Sample Product',
-                category: 'Cricket',
-                stock: 45,
-                retailPrice: 8500,
-                wholesalePrice: 7200,
-                weightedAverageCost: 6500,
-                status: 'In Stock',
-                branchStock: [
-                    { branchId: 'SH001', branchName: 'Main Shop', quantity: 20 },
-                    { branchId: 'SH002', branchName: 'City Center', quantity: 15 },
-                    { branchId: 'SH003', branchName: 'Stadium Shop', quantity: 10 }
-                ],
-                invoices: [
-                    {
-                        id: 'INV-1001',
-                        date: '2023-09-01',
-                        shopId: 'SH001',
-                        shopName: 'Main Shop',
-                        cashierName: 'John Doe',
-                        quantity: 2,
-                        total: 17000
-                    },
-                    {
-                        id: 'INV-1023',
-                        date: '2023-09-05',
-                        shopId: 'SH002',
-                        shopName: 'City Center',
-                        cashierName: 'Jane Smith',
-                        quantity: 1,
-                        total: 8500
-                    },
-                    {
-                        id: 'INV-1045',
-                        date: '2023-09-10',
-                        shopId: 'SH001',
-                        shopName: 'Main Shop',
-                        cashierName: 'John Doe',
-                        quantity: 3,
-                        total: 25500
-                    },
-                    {
-                        id: 'INV-1067',
-                        date: '2023-09-15',
-                        shopId: 'SH003',
-                        shopName: 'Stadium Shop',
-                        cashierName: 'Mike Johnson',
-                        quantity: 2,
-                        total: 17000
-                    },
-                    {
-                        id: 'INV-1089',
-                        date: '2023-09-18',
-                        shopId: 'SH002',
-                        shopName: 'City Center',
-                        cashierName: 'Sarah Williams',
-                        quantity: 1,
-                        total: 8500
-                    }
-                ],
-                sales: {
-                    daily: 2,
-                    weekly: 8,
-                    monthly: 35
-                }
-            });
-        }, 500);
+const fetchProductDetails = async (id: string): Promise<ProductDetail> => {
+    // Make a real API call to the product endpoint
+    const response = await fetch(`/api/products/${id}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        },
     });
+
+    if (!response.ok) {
+        throw new Error('Failed to fetch product details');
+    }
+
+    const responseData = await response.json();
+
+    if (!responseData.success) {
+        throw new Error(responseData.message || 'Failed to fetch product details');
+    }
+
+    const productData = responseData.data;
+
+    // Get total stock quantity across all locations
+    const totalStock = productData.inventory.reduce(
+        (sum: number, item: any) => sum + item.quantity,
+        0
+    );
+
+    // Prepare branch stock data from inventory items
+    const branchStock: BranchStock[] = productData.inventory.map((item: any) => ({
+        branchId: item.shop_id.toString(),
+        branchName: item.shop_name,
+        quantity: item.quantity
+    }));
+
+    // Fetch sales history data from the API
+    const salesResponse = await fetch(`/api/products/${id}/sales`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    });
+
+    let invoices: Invoice[] = [];
+    let salesMetrics = {
+        daily: 0,
+        weekly: 0,
+        monthly: 0
+    };
+
+    // If the sales history API is successful, use the data; otherwise use default values
+    if (salesResponse.ok) {
+        const salesData = await salesResponse.json();
+        if (salesData.success) {
+            invoices = salesData.data.invoices;
+            salesMetrics = {
+                daily: salesData.data.metrics.daily,
+                weekly: salesData.data.metrics.weekly,
+                monthly: salesData.data.metrics.monthly
+            };
+        }
+    }
+
+    // Transform the API response to match our ProductDetail interface
+    return {
+        id: productData.id.toString(),
+        name: productData.name,
+        category: productData.category_name || 'Uncategorized',
+        stock: totalStock,
+        retailPrice: productData.price,
+        wholesalePrice: productData.wholesalePrice || productData.price * 0.85, // Default calculation if not available
+        weightedAverageCost: productData.weightedAverageCost || 0,
+        status: totalStock > 0 ? (totalStock < 10 ? 'Low Stock' : 'In Stock') : 'Out of Stock',
+        branchStock,
+        invoices,
+        sales: salesMetrics
+    };
 };
 
 // Status badge color function
@@ -174,16 +177,16 @@ const ShopSection = ({
                 onClick={() => setExpanded(!expanded)}
             >
                 <div className="flex items-center">
-                    <Store className="w-4 h-4 mr-2 text-gray-600" />
-                    <h3 className="font-semibold">{shopName}</h3>
+                    <Store className="w-4 h-4 mr-2 text-black" />
+                    <h3 className="font-semibold text-black">{shopName}</h3>
                 </div>
-                {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                {expanded ? <ChevronUp className="w-4 h-4 text-black" /> : <ChevronDown className="w-4 h-4 text-black" />}
             </div>
 
             {expanded && (
                 <div className="p-4">
                     <table className="w-full text-sm">
-                        <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                        <thead className="text-xs text-black uppercase bg-gray-50">
                             <tr>
                                 <th className="px-4 py-2 text-left">Invoice ID</th>
                                 <th className="px-4 py-2 text-left">Date</th>
@@ -195,16 +198,16 @@ const ShopSection = ({
                         <tbody>
                             {invoices.map(invoice => (
                                 <tr key={invoice.id} className="border-b hover:bg-gray-50">
-                                    <td className="px-4 py-2">{invoice.id}</td>
-                                    <td className="px-4 py-2">{new Date(invoice.date).toLocaleDateString()}</td>
+                                    <td className="px-4 py-2 text-black">{invoice.id}</td>
+                                    <td className="px-4 py-2 text-black">{new Date(invoice.date).toLocaleDateString()}</td>
                                     <td className="px-4 py-2">
-                                        <div className="flex items-center">
-                                            <User className="w-3 h-3 mr-1 text-gray-500" />
+                                        <div className="flex items-center text-black">
+                                            <User className="w-3 h-3 mr-1 text-black" />
                                             {invoice.cashierName}
                                         </div>
                                     </td>
-                                    <td className="px-4 py-2">{invoice.quantity}</td>
-                                    <td className="px-4 py-2">Rs. {invoice.total.toLocaleString()}</td>
+                                    <td className="px-4 py-2 text-black">{invoice.quantity}</td>
+                                    <td className="px-4 py-2 text-black">Rs. {invoice.total.toLocaleString()}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -228,7 +231,7 @@ const StatCard = ({
     <div className="bg-white p-4 rounded-lg border shadow-sm">
         <div className="flex justify-between items-start">
             <div>
-                <p className="text-sm text-gray-500">{title}</p>
+                <p className="text-sm text-black">{title}</p>
                 <p className="text-2xl font-semibold mt-1">{value}</p>
             </div>
             <div className="p-2 rounded-full bg-primary/10 text-primary">
@@ -265,15 +268,19 @@ export default function ProductDetail() {
             : params.productId;
 
         setIsLoading(true);
-        fetchProductDetails(productId)
-            .then(data => {
+
+        const loadProductData = async () => {
+            try {
+                const data = await fetchProductDetails(productId);
                 setProduct(data);
-                setIsLoading(false);
-            })
-            .catch(error => {
+            } catch (error) {
                 console.error('Error fetching product details:', error);
+            } finally {
                 setIsLoading(false);
-            });
+            }
+        };
+
+        loadProductData();
     }, [params.productId]);
 
     // Prepare data for charts
@@ -333,7 +340,7 @@ export default function ProductDetail() {
                 <div className="flex items-center justify-center h-64">
                     <div className="text-center">
                         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-                        <p className="mt-2 text-gray-500">Loading product details...</p>
+                        <p className="mt-2 text-black">Loading product details...</p>
                     </div>
                 </div>
             </MainLayout>
@@ -344,8 +351,8 @@ export default function ProductDetail() {
         return (
             <MainLayout>
                 <div className="text-center py-12">
-                    <h2 className="text-2xl font-bold text-gray-700">Product Not Found</h2>
-                    <p className="text-gray-500 mt-2">The product you're looking for doesn't exist or has been removed.</p>
+                    <h2 className="text-2xl font-bold text-black">Product Not Found</h2>
+                    <p className="text-black mt-2">The product you're looking for doesn't exist or has been removed.</p>
                     <Button
                         variant="primary"
                         size="sm"
@@ -381,8 +388,8 @@ export default function ProductDetail() {
                                 <Package className="w-6 h-6" />
                             </div>
                             <div>
-                                <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
-                                <p className="text-gray-500">{product.id} &middot; {product.category}</p>
+                                <h1 className="text-2xl font-bold text-black">{product.name}</h1>
+                                <p className="text-black">{product.id} &middot; {product.category}</p>
                             </div>
                         </div>
                         <div>
@@ -399,7 +406,7 @@ export default function ProductDetail() {
                         <button
                             className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'details'
                                 ? 'border-primary text-primary'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                : 'border-transparent text-black hover:text-gray-700 hover:border-gray-300'
                                 }`}
                             onClick={() => setActiveTab('details')}
                         >
@@ -408,7 +415,7 @@ export default function ProductDetail() {
                         <button
                             className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'sales'
                                 ? 'border-primary text-primary'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                : 'border-transparent text-black hover:text-gray-700 hover:border-gray-300'
                                 }`}
                             onClick={() => setActiveTab('sales')}
                         >
@@ -423,29 +430,29 @@ export default function ProductDetail() {
                         {/* Stats cards */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                                <h3 className="text-sm font-medium text-gray-500">Retail Price</h3>
+                                <h3 className="text-sm font-medium text-black">Retail Price</h3>
                                 <p className="text-2xl font-bold mt-1">Rs. {product.retailPrice.toLocaleString()}</p>
                             </div>
                             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                                <h3 className="text-sm font-medium text-gray-500">Weighted Average Cost</h3>
+                                <h3 className="text-sm font-medium text-black">Weighted Average Cost</h3>
                                 <p className="text-2xl font-bold mt-1">Rs. {product.weightedAverageCost.toLocaleString()}</p>
-                                <div className="mt-2 text-sm text-gray-500">Margin: {Math.round((product.retailPrice - product.weightedAverageCost) / product.weightedAverageCost * 100)}%</div>
+                                <div className="mt-2 text-sm text-black">Margin: {Math.round((product.retailPrice - product.weightedAverageCost) / product.weightedAverageCost * 100)}%</div>
                             </div>
                             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                                <h3 className="text-sm font-medium text-gray-500">Total Stock</h3>
+                                <h3 className="text-sm font-medium text-black">Total Stock</h3>
                                 <p className="text-2xl font-bold mt-1">{product.stock} units</p>
-                                <div className="mt-2 text-sm text-gray-500">Across {product.branchStock.length} locations</div>
+                                <div className="mt-2 text-sm text-black">Across {product.branchStock.length} locations</div>
                             </div>
                         </div>
 
                         {/* Stock by branch */}
                         <div className="bg-white rounded-lg border shadow-sm">
                             <div className="p-4 border-b">
-                                <h2 className="font-semibold text-lg">Stock by Location</h2>
+                                <h2 className="font-semibold text-lg text-black">Stock by Location</h2>
                             </div>
                             <div className="p-4">
                                 <table className="w-full text-sm">
-                                    <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                                    <thead className="text-xs text-black uppercase bg-gray-50">
                                         <tr>
                                             <th className="px-4 py-2 text-left">Branch ID</th>
                                             <th className="px-4 py-2 text-left">Branch Name</th>
@@ -455,14 +462,14 @@ export default function ProductDetail() {
                                     <tbody>
                                         {product.branchStock.map((branch) => (
                                             <tr key={branch.branchId} className="border-b">
-                                                <td className="px-4 py-2">{branch.branchId}</td>
+                                                <td className="px-4 py-2 text-black">{branch.branchId}</td>
                                                 <td className="px-4 py-2">
-                                                    <div className="flex items-center">
-                                                        <Store className="w-4 h-4 mr-2 text-gray-500" />
+                                                    <div className="flex items-center text-black">
+                                                        <Store className="w-4 h-4 mr-2 text-black" />
                                                         {branch.branchName}
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-2">{branch.quantity}</td>
+                                                <td className="px-4 py-2 text-black">{branch.quantity}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -497,7 +504,7 @@ export default function ProductDetail() {
                             {/* Sales by Location - Bar Chart */}
                             <div className="bg-white rounded-lg border shadow-sm">
                                 <div className="p-4 border-b">
-                                    <h2 className="font-semibold text-lg">Sales by Location</h2>
+                                    <h2 className="font-semibold text-lg text-black">Sales by Location</h2>
                                 </div>
                                 <div className="p-4">
                                     <div className="h-64">
@@ -523,7 +530,7 @@ export default function ProductDetail() {
                             {/* Sales Distribution - Pie Chart */}
                             <div className="bg-white rounded-lg border shadow-sm">
                                 <div className="p-4 border-b">
-                                    <h2 className="font-semibold text-lg">Sales Distribution</h2>
+                                    <h2 className="font-semibold text-lg text-black">Sales Distribution</h2>
                                 </div>
                                 <div className="p-4">
                                     <div className="h-64">
@@ -555,8 +562,8 @@ export default function ProductDetail() {
                         {/* Invoices by shop */}
                         <div className="bg-white rounded-lg border shadow-sm">
                             <div className="p-4 border-b flex items-center justify-between">
-                                <h2 className="font-semibold text-lg">Sales History by Shop</h2>
-                                <div className="text-sm text-gray-500">
+                                <h2 className="font-semibold text-lg text-black">Sales History by Shop</h2>
+                                <div className="text-sm text-black">
                                     <FileText className="w-4 h-4 inline mr-1" />
                                     {product.invoices.length} Invoices
                                 </div>

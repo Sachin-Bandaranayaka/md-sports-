@@ -40,6 +40,7 @@ const navItems: NavItem[] = [
         label: 'Inventory',
         requiredPermission: 'inventory:view',
         children: [
+            { icon: Store, href: '/inventory/distribution', label: 'Shop Distribution', requiredPermission: 'inventory:view' },
             { icon: TruckIcon, href: '/inventory/transfers', label: 'Transfers', requiredPermission: 'inventory:view' },
             { icon: TruckIcon, href: '/suppliers', label: 'Suppliers', requiredPermission: 'inventory:view' },
             { icon: FileText, href: '/purchases', label: 'Purchases', requiredPermission: 'inventory:manage' },

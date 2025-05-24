@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Package, Filter, Search, Loader2, X, Trash2, PlusCircle, ShoppingBag, UploadCloud, DownloadCloud, ArrowUpDown } from 'lucide-react';
+import { Package, Filter, Search, Loader2, X, Trash2, PlusCircle, ShoppingBag, UploadCloud, DownloadCloud, ArrowUpDown, Store } from 'lucide-react';
 import AddInventoryModal from '@/components/inventory/AddInventoryModal';
 import { authDelete } from '@/utils/api';
 
@@ -325,6 +325,15 @@ export default function Inventory() {
                         >
                             <Package className="w-4 h-4 mr-2" />
                             Add Stock via Purchase
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.push('/inventory/distribution')}
+                            className="text-black"
+                        >
+                            <Store className="h-4 w-4 mr-2" />
+                            Shop Distribution
                         </Button>
                     </div>
                 </div>
