@@ -77,9 +77,7 @@ export default function Purchases() {
     const handleAddInvoice = () => { router.push('/purchases/new'); };
 
     const handleEditInvoice = (invoice: PurchaseInvoice) => {
-        setSelectedInvoice(invoice);
-        setIsEditMode(true);
-        setShowAddEditModal(true);
+        router.push(`/purchases/${invoice.id}/edit`);
     };
 
     const handleViewInvoice = (invoice: PurchaseInvoice) => {
