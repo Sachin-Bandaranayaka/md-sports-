@@ -176,7 +176,12 @@ export async function DELETE(
             // For each purchase item, reverse the inventory updates
             for (const item of purchase.items) {
                 // First check if this invoice has distribution data
-                const distributionData = purchase.distributions ? purchase.distributions[purchase.items.indexOf(item)] : null;
+                const distributionData = purchase.distributions &&
+                    typeof purchase.distributions === 'object' &&
+                    Array.isArray(purchase.distributions) ?
+                    purchase.distributions[purchase.items.indexOf(item)] :
+                    (purchase.distributions && typeof purchase.distributions === 'object' ?
+                        purchase.distributions : null);
 
                 if (distributionData && Object.keys(distributionData).length > 0) {
                     // Distributed to specific shops, reverse each allocation
@@ -184,7 +189,7 @@ export async function DELETE(
                         const shopId = parseInt(shopIdStr);
                         const qty = Number(quantity);
 
-                        if (qty <= 0) continue;
+                        if (qty <= 0 || isNaN(qty) || isNaN(shopId)) continue;
 
                         // Find inventory for this product/shop combination
                         const inventory = await tx.inventoryItem.findFirst({

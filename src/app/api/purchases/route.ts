@@ -96,13 +96,14 @@ export async function POST(request: NextRequest) {
         const { items, distributions, totalAmount, paidAmount, date, dueDate, notes, ...rest } = body;
 
         // Only include fields that exist in the Prisma schema
-        const invoiceData = {
+        const invoiceData: any = {
             invoiceNumber: body.invoiceNumber,
             supplierId: parseInt(body.supplierId as unknown as string) || 0,
             total: totalAmount || 0,
             status: body.status || 'unpaid',
             date: date ? new Date(date) : null,
-            dueDate: dueDate ? new Date(dueDate) : null
+            dueDate: dueDate ? new Date(dueDate) : null,
+            distributions: distributions
         };
 
         // Create the purchase invoice with items in a transaction
