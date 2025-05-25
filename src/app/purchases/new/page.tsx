@@ -280,6 +280,7 @@ export default function NewPurchaseInvoice() {
             if (!updated[selectedItemIndex]) {
                 updated[selectedItemIndex] = {};
             }
+            // Store empty or 0 values properly
             updated[selectedItemIndex][shopId] = quantity;
             return updated;
         });
@@ -974,8 +975,11 @@ export default function NewPurchaseInvoice() {
                                         </label>
                                         <input
                                             type="number"
-                                            value={distribution[selectedItemIndex]?.[shop.id] || 0}
-                                            onChange={(e) => handleDistributionChange(shop.id, parseInt(e.target.value) || 0)}
+                                            value={distribution[selectedItemIndex]?.[shop.id] !== undefined ? distribution[selectedItemIndex][shop.id] : ''}
+                                            onChange={(e) => {
+                                                const value = e.target.value === '' ? 0 : parseInt(e.target.value);
+                                                handleDistributionChange(shop.id, value);
+                                            }}
                                             className="w-24 p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary text-black"
                                             min="0"
                                             max={formData.items[selectedItemIndex].quantity}

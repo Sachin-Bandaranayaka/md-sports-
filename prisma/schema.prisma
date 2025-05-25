@@ -23,14 +23,13 @@ model User {
   inventoryTransferFrom InventoryTransfer[] @relation("FromUser")
   inventoryTransferTo   InventoryTransfer[] @relation("ToUser")
   notifications         Notification[]
+  refreshTokens         RefreshToken[]      @relation("UserRefreshTokens")
   role                  Role                @relation(fields: [roleId], references: [id])
   shop                  Shop?               @relation(fields: [shopId], references: [id])
-  managedShops          Shop[]              @relation("ShopManager")
-  refreshTokens         RefreshToken[]      @relation("UserRefreshTokens")
 }
 
 model RefreshToken {
-  id        String   @id @default(uuid())
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId    Int
   token     String   @unique
   expiresAt DateTime
@@ -66,53 +65,52 @@ model Shop {
   id             Int                 @id @default(autoincrement())
   name           String
   location       String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
   contact_person String?
   phone          String?
   email          String?
-  is_active      Boolean             @default(true)
-  opening_time   DateTime?           @db.Time()
-  closing_time   DateTime?           @db.Time()
+  is_active      Boolean?            @default(true)
+  opening_time   DateTime?           @db.Time(6)
+  closing_time   DateTime?           @db.Time(6)
   manager_id     Int?
   opening_date   DateTime?           @db.Date
-  status         String              @default("open")
+  status         String?             @default("open")
   address_line1  String?
   address_line2  String?
   city           String?
   state          String?
   postal_code    String?
   country        String?             @default("Malaysia")
-  latitude       Float?
-  longitude      Float?
-  tax_rate       Float?              @default(0)
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
+  latitude       Decimal?            @db.Decimal
+  longitude      Decimal?            @db.Decimal
+  tax_rate       Decimal?            @default(0) @db.Decimal
   inventoryItems InventoryItem[]
   transfersFrom  InventoryTransfer[] @relation("FromShop")
   transfersTo    InventoryTransfer[] @relation("ToShop")
   products       Product[]
   users          User[]
-  manager        User?               @relation("ShopManager", fields: [manager_id], references: [id], onDelete: SetNull)
 }
 
 model Product {
-  id             Int                   @id @default(autoincrement())
-  name           String
-  description    String?
-  price          Float
-  weightedAverageCost Float?           @map("weightedaveragecost")
-  sku            String?               @unique
-  barcode        String?
-  categoryId     Int?
-  shopId         Int?
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
-  inventoryItems InventoryItem[]
-  invoiceItems   InvoiceItem[]
-  category       Category?             @relation(fields: [categoryId], references: [id])
-  shop           Shop?                 @relation(fields: [shopId], references: [id])
-  purchaseItems  PurchaseInvoiceItem[]
-  quotationItems QuotationItem[]
-  transferItems  TransferItem[]
+  id                  Int                   @id @default(autoincrement())
+  name                String
+  description         String?
+  price               Float
+  weightedAverageCost Float?                @map("weightedaveragecost")
+  sku                 String?               @unique
+  barcode             String?
+  categoryId          Int?
+  shopId              Int?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  inventoryItems      InventoryItem[]
+  invoiceItems        InvoiceItem[]
+  category            Category?             @relation(fields: [categoryId], references: [id])
+  shop                Shop?                 @relation(fields: [shopId], references: [id])
+  purchaseItems       PurchaseInvoiceItem[]
+  quotationItems      QuotationItem[]
+  transferItems       TransferItem[]
 }
 
 model Category {
@@ -192,15 +190,15 @@ model Customer {
 model Supplier {
   id               Int               @id @default(autoincrement())
   name             String
-  contactPerson    String?
   email            String?
   phone            String?
   address          String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  contactPerson    String?
   city             String?
   notes            String?
   status           String            @default("active")
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
   purchaseInvoices PurchaseInvoice[]
 }
 
@@ -275,11 +273,11 @@ model PurchaseInvoice {
   supplierId    Int
   total         Float
   status        String
-  date          DateTime?             @db.Date
-  dueDate       DateTime?             @db.Date
-  distributions Json?                 
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
+  distributions Json?
+  date          DateTime?             @db.Date
+  dueDate       DateTime?             @db.Date
   supplier      Supplier              @relation(fields: [supplierId], references: [id])
   items         PurchaseInvoiceItem[]
 }
@@ -320,11 +318,11 @@ model AuditLog {
 
 model SystemSettings {
   id          Int      @id @default(autoincrement())
-  key         String   @unique
+  key         String   @unique @db.VarChar(255)
   value       String
   description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now()) @db.Timestamp(6)
+  updatedAt   DateTime @default(now()) @updatedAt @db.Timestamp(6)
 }
 
 model Account {

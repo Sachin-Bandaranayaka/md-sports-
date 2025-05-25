@@ -6,8 +6,9 @@ export async function GET(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
+    const id = params.id; // Store params.id early to avoid async issues
     try {
-        const purchaseId = parseInt(params.id);
+        const purchaseId = parseInt(id);
 
         if (isNaN(purchaseId)) {
             return NextResponse.json(
@@ -39,7 +40,7 @@ export async function GET(
 
         return NextResponse.json(purchase);
     } catch (error) {
-        console.error(`Error fetching purchase invoice ${params.id}:`, error);
+        console.error(`Error fetching purchase invoice ${id}:`, error);
         return NextResponse.json(
             { error: 'Failed to fetch purchase invoice' },
             { status: 500 }
@@ -52,8 +53,9 @@ export async function PUT(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
+    const id = params.id; // Store params.id early to avoid async issues
     try {
-        const purchaseId = parseInt(params.id);
+        const purchaseId = parseInt(id);
 
         if (isNaN(purchaseId)) {
             return NextResponse.json(
@@ -76,8 +78,29 @@ export async function PUT(
             );
         }
 
-        // Extract items from the request
-        const { items, ...invoiceData } = body;
+        // Extract items and distributions from the request
+        const { items, distributions, ...invoiceData } = body;
+
+        // Remove fields that should not be passed to Prisma's update
+        const { id: _, createdAt, updatedAt, supplier, notes, ...dirtyData } = invoiceData;
+
+        // Prepare clean data for Prisma update
+        const cleanedInvoiceData: any = {};
+
+        // Copy allowed fields
+        if (dirtyData.invoiceNumber) cleanedInvoiceData.invoiceNumber = dirtyData.invoiceNumber;
+        if (dirtyData.status) cleanedInvoiceData.status = dirtyData.status;
+        if (dirtyData.date) cleanedInvoiceData.date = dirtyData.date;
+        if (dirtyData.dueDate !== undefined) cleanedInvoiceData.dueDate = dirtyData.dueDate;
+        if (dirtyData.totalAmount !== undefined) cleanedInvoiceData.total = Number(dirtyData.totalAmount);
+        if (distributions) cleanedInvoiceData.distributions = distributions;
+
+        // Handle supplier relationship properly
+        if (dirtyData.supplierId) {
+            cleanedInvoiceData.supplier = {
+                connect: { id: Number(dirtyData.supplierId) }
+            };
+        }
 
         // Update the purchase invoice in a transaction
         const updatedPurchase = await prisma.$transaction(async (tx) => {
@@ -86,11 +109,18 @@ export async function PUT(
                 where: {
                     id: purchaseId
                 },
-                data: invoiceData
+                data: cleanedInvoiceData
             });
 
             // Handle items update if provided
             if (items && Array.isArray(items)) {
+                // Get current items to manage inventory changes
+                const currentItems = await tx.purchaseInvoiceItem.findMany({
+                    where: {
+                        purchaseInvoiceId: purchaseId
+                    }
+                });
+
                 // Delete existing items
                 await tx.purchaseInvoiceItem.deleteMany({
                     where: {
@@ -100,12 +130,28 @@ export async function PUT(
 
                 // Create new items
                 for (const item of items) {
-                    await tx.purchaseInvoiceItem.create({
-                        data: {
-                            ...item,
-                            purchaseInvoiceId: purchaseId
-                        }
-                    });
+                    console.log('Processing item:', JSON.stringify(item));
+
+                    // Skip items without a product ID
+                    if (!item.productId) {
+                        console.log('Skipping item with no productId');
+                        continue;
+                    }
+
+                    try {
+                        await tx.purchaseInvoiceItem.create({
+                            data: {
+                                purchaseInvoiceId: purchaseId,
+                                productId: Number(item.productId),
+                                quantity: Number(item.quantity || 0),
+                                price: Number(item.price || 0),
+                                total: Number(item.total || 0)
+                            }
+                        });
+                    } catch (itemError) {
+                        console.error('Error creating purchase item:', itemError);
+                        throw itemError;
+                    }
                 }
             }
 
@@ -127,9 +173,16 @@ export async function PUT(
 
         return NextResponse.json(updatedPurchase);
     } catch (error) {
-        console.error(`Error updating purchase invoice ${params.id}:`, error);
+        console.error(`Error updating purchase invoice ${id}:`, error);
+
+        // Return a more detailed error message
+        let errorMessage = 'Failed to update purchase invoice';
+        if (error instanceof Error) {
+            errorMessage = error.message;
+        }
+
         return NextResponse.json(
-            { error: 'Failed to update purchase invoice' },
+            { error: errorMessage, details: error instanceof Error ? error.stack : String(error) },
             { status: 500 }
         );
     }
@@ -140,8 +193,9 @@ export async function DELETE(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
+    const id = params.id; // Store params.id early to avoid async issues
     try {
-        const purchaseId = parseInt(params.id);
+        const purchaseId = parseInt(id);
 
         if (isNaN(purchaseId)) {
             return NextResponse.json(
@@ -291,7 +345,7 @@ export async function DELETE(
             { status: 200 }
         );
     } catch (error) {
-        console.error(`Error deleting purchase invoice ${params.id}:`, error);
+        console.error(`Error deleting purchase invoice ${id}:`, error);
         return NextResponse.json(
             { error: 'Failed to delete purchase invoice' },
             { status: 500 }
