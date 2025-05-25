@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Search, Plus, Filter, FileText, Download, Eye, CheckCircle, Trash2 } from 'lucide-react';
+import { Search, Plus, Filter, FileText, Download, Eye, CheckCircle, Trash2, Edit } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 
 // Interface for Invoice
@@ -391,6 +391,11 @@ export default function Invoices() {
                                                 <a href={`/invoices/${invoice.id}`}>
                                                     <Button variant="ghost" size="sm" title="View Invoice">
                                                         <Eye className="w-4 h-4" />
+                                                    </Button>
+                                                </a>
+                                                <a href={`/invoices/edit/${invoice.id}`}>
+                                                    <Button variant="ghost" size="sm" title="Edit Invoice">
+                                                        <Edit className="w-4 h-4" />
                                                     </Button>
                                                 </a>
                                                 <a href={`/invoices/${invoice.id}`}>

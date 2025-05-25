@@ -66,23 +66,70 @@ export async function PUT(
 
         const invoiceData = await request.json();
 
-        // Update invoice details only (not items)
-        const updatedInvoice = await prisma.invoice.update({
-            where: { id },
-            data: {
-                status: invoiceData.status,
-                // Add other fields that can be updated
-            },
-            include: {
-                customer: true,
-                items: {
+        // Update invoice with transaction to handle items
+        const updatedInvoice = await prisma.$transaction(
+            async (tx) => {
+                // Check if invoice exists
+                const existingInvoice = await tx.invoice.findUnique({
+                    where: { id },
                     include: {
-                        product: true
+                        items: true
                     }
-                },
-                payments: true
-            }
-        });
+                });
+
+                if (!existingInvoice) {
+                    throw new Error('Invoice not found');
+                }
+
+                // Update basic invoice details
+                const updatedInvoiceDetails = await tx.invoice.update({
+                    where: { id },
+                    data: {
+                        customerId: invoiceData.customerId,
+                        total: invoiceData.total,
+                        status: invoiceData.status,
+                        paymentMethod: invoiceData.paymentMethod,
+                        // Add other fields that can be updated
+                    }
+                });
+
+                // If items are provided, update them
+                if (invoiceData.items && Array.isArray(invoiceData.items)) {
+                    // Delete existing items
+                    await tx.invoiceItem.deleteMany({
+                        where: { invoiceId: id }
+                    });
+
+                    // Create new items
+                    for (const item of invoiceData.items) {
+                        await tx.invoiceItem.create({
+                            data: {
+                                invoiceId: id,
+                                productId: item.productId,
+                                quantity: item.quantity,
+                                price: item.price,
+                                total: item.quantity * item.price
+                            }
+                        });
+                    }
+                }
+
+                // Return the complete updated invoice with relations
+                return tx.invoice.findUnique({
+                    where: { id },
+                    include: {
+                        customer: true,
+                        items: {
+                            include: {
+                                product: true
+                            }
+                        },
+                        payments: true
+                    }
+                });
+            },
+            { timeout: 30000 }
+        );
 
         return NextResponse.json({
             success: true,
