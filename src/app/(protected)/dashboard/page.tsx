@@ -8,7 +8,8 @@ import {
     AlertTriangle,
     TrendingUp,
     TrendingDown,
-    Loader2
+    Loader2,
+    Tag
 } from 'lucide-react';
 import {
     BarChart,
@@ -85,7 +86,8 @@ export default function DashboardPage() {
         'Package': Package,
         'Truck': Truck,
         'CreditCard': CreditCard,
-        'AlertTriangle': AlertTriangle
+        'AlertTriangle': AlertTriangle,
+        'Tag': Tag
     };
 
     useEffect(() => {
@@ -99,14 +101,31 @@ export default function DashboardPage() {
                     'Authorization': `Bearer ${token}`
                 };
 
-                // Fetch summary data
+                // Fetch summary data (which now includes a placeholder for Total Retail Value)
                 const summaryResponse = await fetch('/api/dashboard/summary', { headers });
                 if (!summaryResponse.ok) {
                     throw new Error('Failed to fetch summary data');
                 }
-                const summaryData = await summaryResponse.json();
-                if (summaryData.success) {
-                    setSummaryData(summaryData.data || dummySummaryData);
+                const summaryJson = await summaryResponse.json();
+                if (summaryJson.success) {
+                    setSummaryData(summaryJson.data || dummySummaryData);
+                }
+
+                // Fetch Total Retail Value separately
+                const retailValueResponse = await fetch('/api/dashboard/total-retail-value', { headers });
+                if (!retailValueResponse.ok) {
+                    console.warn('Failed to fetch total retail value data'); // Log as warning, don't throw error
+                } else {
+                    const retailValueJson = await retailValueResponse.json();
+                    if (retailValueJson.success) {
+                        setSummaryData(prevData =>
+                            prevData.map(item =>
+                                item.title === 'Total Retail Value'
+                                    ? { ...item, value: retailValueJson.formattedValue, trend: '+0%', trendUp: false } // Update placeholder, add basic trend
+                                    : item
+                            )
+                        );
+                    }
                 }
 
                 // Fetch shop performance

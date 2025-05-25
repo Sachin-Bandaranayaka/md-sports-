@@ -165,6 +165,13 @@ export async function GET() {
                 trendUp: inventoryTrendUp
             },
             {
+                title: 'Total Retail Value',
+                value: 'Loading...', // Placeholder, will be updated by client
+                icon: 'Tag', // Using 'Tag' icon for retail price, can be changed
+                trend: '', // Trend can be calculated if historical data is available
+                trendUp: false
+            },
+            {
                 title: 'Pending Transfers',
                 value: `${pendingTransfers}`,
                 icon: 'Truck',
