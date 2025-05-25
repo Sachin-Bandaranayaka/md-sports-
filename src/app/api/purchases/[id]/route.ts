@@ -65,13 +65,16 @@ export async function PUT(
         }
 
         const body = await request.json();
-        const purchase = await prisma.purchaseInvoice.findUnique({
-            where: {
-                id: purchaseId
+
+        // Fetch the original purchase invoice with its items and distributions
+        const originalPurchase = await prisma.purchaseInvoice.findUnique({
+            where: { id: purchaseId },
+            include: {
+                items: { include: { product: true } },
             }
         });
 
-        if (!purchase) {
+        if (!originalPurchase) {
             return NextResponse.json(
                 { error: 'Purchase invoice not found' },
                 { status: 404 }
@@ -79,97 +82,218 @@ export async function PUT(
         }
 
         // Extract items and distributions from the request
-        const { items, distributions, ...invoiceData } = body;
+        const { items: newItemsData, distributions: newDistributionsData, ...invoiceData } = body;
 
-        // Remove fields that should not be passed to Prisma's update
+        // Remove fields that should not be passed to Prisma's update for the invoice itself
         const { id: _, createdAt, updatedAt, supplier, notes, ...dirtyData } = invoiceData;
 
         // Prepare clean data for Prisma update
         const cleanedInvoiceData: any = {};
-
-        // Copy allowed fields
         if (dirtyData.invoiceNumber) cleanedInvoiceData.invoiceNumber = dirtyData.invoiceNumber;
         if (dirtyData.status) cleanedInvoiceData.status = dirtyData.status;
-        if (dirtyData.date) cleanedInvoiceData.date = dirtyData.date;
-        if (dirtyData.dueDate !== undefined) cleanedInvoiceData.dueDate = dirtyData.dueDate;
+        if (dirtyData.date) cleanedInvoiceData.date = new Date(dirtyData.date);
+        if (dirtyData.dueDate !== undefined) cleanedInvoiceData.dueDate = dirtyData.dueDate ? new Date(dirtyData.dueDate) : null;
         if (dirtyData.totalAmount !== undefined) cleanedInvoiceData.total = Number(dirtyData.totalAmount);
-        if (distributions) cleanedInvoiceData.distributions = distributions;
+
+        // Store new distributions if provided, otherwise keep original or set to null
+        cleanedInvoiceData.distributions = newDistributionsData !== undefined ? newDistributionsData : originalPurchase.distributions;
+
 
         // Handle supplier relationship properly
         if (dirtyData.supplierId) {
             cleanedInvoiceData.supplier = {
                 connect: { id: Number(dirtyData.supplierId) }
             };
+        } else if (dirtyData.supplierId === null && originalPurchase.supplierId) {
+            cleanedInvoiceData.supplier = {
+                disconnect: true
+            };
         }
+
 
         // Update the purchase invoice in a transaction
         const updatedPurchase = await prisma.$transaction(async (tx) => {
-            // Update the purchase invoice
-            const updated = await tx.purchaseInvoice.update({
-                where: {
-                    id: purchaseId
-                },
+            // 1. Reverse inventory and WAC for original items
+            if (originalPurchase.items && originalPurchase.items.length > 0) {
+                for (const oldItem of originalPurchase.items) {
+                    const productToUpdate = await tx.product.findUnique({ where: { id: oldItem.productId } });
+                    if (!productToUpdate) continue;
+
+                    let currentTotalProductQuantity = 0;
+                    const allInventoryForProduct = await tx.inventoryItem.findMany({ where: { productId: oldItem.productId } });
+                    currentTotalProductQuantity = allInventoryForProduct.reduce((sum, inv) => sum + inv.quantity, 0);
+
+                    // Determine shop distributions for this old item
+                    const oldItemDistribution = originalPurchase.distributions && Array.isArray(originalPurchase.distributions) && originalPurchase.distributions[originalPurchase.items.indexOf(oldItem)]
+                        ? originalPurchase.distributions[originalPurchase.items.indexOf(oldItem)]
+                        : (originalPurchase.distributions && typeof originalPurchase.distributions === 'object' && !Array.isArray(originalPurchase.distributions) ? originalPurchase.distributions : null);
+
+
+                    if (oldItemDistribution && Object.keys(oldItemDistribution).length > 0) {
+                        for (const [shopIdStr, quantityInShop] of Object.entries(oldItemDistribution)) {
+                            const shopId = parseInt(shopIdStr);
+                            const qtyToRemove = Number(quantityInShop);
+                            if (qtyToRemove <= 0 || isNaN(qtyToRemove) || isNaN(shopId)) continue;
+
+                            const inventory = await tx.inventoryItem.findFirst({
+                                where: { productId: oldItem.productId, shopId: shopId }
+                            });
+                            if (inventory) {
+                                const newQuantity = Math.max(0, inventory.quantity - qtyToRemove);
+                                await tx.inventoryItem.update({
+                                    where: { id: inventory.id },
+                                    data: { quantity: newQuantity }
+                                });
+                            }
+                        }
+                    } else { // Default to shop 1 if no distribution
+                        const shopId = 1;
+                        const inventory = await tx.inventoryItem.findFirst({
+                            where: { productId: oldItem.productId, shopId: shopId }
+                        });
+                        if (inventory) {
+                            const newQuantity = Math.max(0, inventory.quantity - oldItem.quantity);
+                            await tx.inventoryItem.update({
+                                where: { id: inventory.id },
+                                data: { quantity: newQuantity }
+                            });
+                        }
+                    }
+
+                    // Recalculate WAC after reversing this item
+                    // (Total Value - Item Value) / (Total Quantity - Item Quantity)
+                    const remainingTotalQuantity = currentTotalProductQuantity - oldItem.quantity;
+                    if (remainingTotalQuantity > 0 && productToUpdate.weightedAverageCost !== null) {
+                        const currentTotalValue = currentTotalProductQuantity * productToUpdate.weightedAverageCost;
+                        const oldItemValue = oldItem.quantity * oldItem.price;
+                        const newWAC = (currentTotalValue - oldItemValue) / remainingTotalQuantity;
+                        await tx.product.update({
+                            where: { id: oldItem.productId },
+                            data: { weightedAverageCost: newWAC > 0 ? newWAC : 0 }
+                        });
+                    } else if (remainingTotalQuantity <= 0) {
+                        await tx.product.update({ // No items left or only this one, WAC becomes 0 or based on other logic
+                            where: { id: oldItem.productId },
+                            data: { weightedAverageCost: 0 }
+                        });
+                    }
+                }
+            }
+
+            // Delete existing purchase invoice items
+            await tx.purchaseInvoiceItem.deleteMany({
+                where: { purchaseInvoiceId: purchaseId }
+            });
+
+            // Update the purchase invoice itself
+            const updatedInvoice = await tx.purchaseInvoice.update({
+                where: { id: purchaseId },
                 data: cleanedInvoiceData
             });
 
-            // Handle items update if provided
-            if (items && Array.isArray(items)) {
-                // Get current items to manage inventory changes
-                const currentItems = await tx.purchaseInvoiceItem.findMany({
-                    where: {
-                        purchaseInvoiceId: purchaseId
+            // 3. Add new items to inventory and calculate new WAC
+            if (newItemsData && Array.isArray(newItemsData)) {
+                for (let i = 0; i < newItemsData.length; i++) {
+                    const newItem = newItemsData[i];
+                    if (!newItem.productId || !newItem.quantity || newItem.quantity <= 0) continue;
+
+                    await tx.purchaseInvoiceItem.create({
+                        data: {
+                            purchaseInvoiceId: purchaseId,
+                            productId: Number(newItem.productId),
+                            quantity: Number(newItem.quantity),
+                            price: Number(newItem.price || 0),
+                            total: Number(newItem.quantity) * Number(newItem.price || 0)
+                        }
+                    });
+
+                    const productToUpdate = await tx.product.findUnique({ where: { id: Number(newItem.productId) } });
+                    if (!productToUpdate) continue;
+
+                    let currentTotalProductQuantityBeforeNewItem = 0;
+                    const allInventoryForProduct = await tx.inventoryItem.findMany({ where: { productId: Number(newItem.productId) } });
+                    currentTotalProductQuantityBeforeNewItem = allInventoryForProduct.reduce((sum, inv) => sum + inv.quantity, 0);
+
+                    const currentWAC = productToUpdate.weightedAverageCost || 0;
+                    const newItemQuantity = Number(newItem.quantity);
+                    const newItemCost = Number(newItem.price);
+
+                    let newWeightedAverageCost = newItemCost;
+                    if (currentTotalProductQuantityBeforeNewItem > 0) {
+                        newWeightedAverageCost =
+                            ((currentTotalProductQuantityBeforeNewItem * currentWAC) + (newItemQuantity * newItemCost)) /
+                            (currentTotalProductQuantityBeforeNewItem + newItemQuantity);
+                    } else if (newItemQuantity > 0) { // This is the first stock for this item
+                        newWeightedAverageCost = newItemCost;
                     }
-                });
 
-                // Delete existing items
-                await tx.purchaseInvoiceItem.deleteMany({
-                    where: {
-                        purchaseInvoiceId: purchaseId
-                    }
-                });
 
-                // Create new items
-                for (const item of items) {
-                    console.log('Processing item:', JSON.stringify(item));
+                    await tx.product.update({
+                        where: { id: Number(newItem.productId) },
+                        data: { weightedAverageCost: newWeightedAverageCost }
+                    });
 
-                    // Skip items without a product ID
-                    if (!item.productId) {
-                        console.log('Skipping item with no productId');
-                        continue;
-                    }
+                    // Handle distribution for the new item
+                    const newItemDistribution = newDistributionsData && Array.isArray(newDistributionsData) && newDistributionsData[i]
+                        ? newDistributionsData[i]
+                        : (newDistributionsData && typeof newDistributionsData === 'object' && !Array.isArray(newDistributionsData) ? newDistributionsData : null);
 
-                    try {
-                        await tx.purchaseInvoiceItem.create({
-                            data: {
-                                purchaseInvoiceId: purchaseId,
-                                productId: Number(item.productId),
-                                quantity: Number(item.quantity || 0),
-                                price: Number(item.price || 0),
-                                total: Number(item.total || 0)
+                    if (newItemDistribution && Object.keys(newItemDistribution).length > 0) {
+                        for (const [shopIdStr, quantityInShop] of Object.entries(newItemDistribution)) {
+                            const shopId = parseInt(shopIdStr);
+                            const qtyToAdd = Number(quantityInShop);
+                            if (qtyToAdd <= 0 || isNaN(qtyToAdd) || isNaN(shopId)) continue;
+
+                            const inventory = await tx.inventoryItem.findFirst({
+                                where: { productId: Number(newItem.productId), shopId: shopId }
+                            });
+                            if (inventory) {
+                                await tx.inventoryItem.update({
+                                    where: { id: inventory.id },
+                                    data: { quantity: inventory.quantity + qtyToAdd }
+                                });
+                            } else {
+                                await tx.inventoryItem.create({
+                                    data: {
+                                        productId: Number(newItem.productId),
+                                        shopId: shopId,
+                                        quantity: qtyToAdd
+                                    }
+                                });
                             }
+                        }
+                    } else { // Default to shop 1
+                        const shopId = 1;
+                        const inventory = await tx.inventoryItem.findFirst({
+                            where: { productId: Number(newItem.productId), shopId: shopId }
                         });
-                    } catch (itemError) {
-                        console.error('Error creating purchase item:', itemError);
-                        throw itemError;
+                        if (inventory) {
+                            await tx.inventoryItem.update({
+                                where: { id: inventory.id },
+                                data: { quantity: inventory.quantity + newItemQuantity }
+                            });
+                        } else {
+                            await tx.inventoryItem.create({
+                                data: {
+                                    productId: Number(newItem.productId),
+                                    shopId: shopId,
+                                    quantity: newItemQuantity
+                                }
+                            });
+                        }
                     }
                 }
             }
 
             // Return the updated purchase with items
             return tx.purchaseInvoice.findUnique({
-                where: {
-                    id: purchaseId
-                },
+                where: { id: purchaseId },
                 include: {
                     supplier: true,
-                    items: {
-                        include: {
-                            product: true
-                        }
-                    }
+                    items: { include: { product: true } }
                 }
             });
-        });
+        }, { timeout: 30000 }); // Increased timeout for complex transaction
 
         return NextResponse.json(updatedPurchase);
     } catch (error) {
@@ -206,15 +330,9 @@ export async function DELETE(
 
         // First get the purchase invoice with its items to know what needs to be reversed
         const purchase = await prisma.purchaseInvoice.findUnique({
-            where: {
-                id: purchaseId
-            },
+            where: { id: purchaseId },
             include: {
-                items: {
-                    include: {
-                        product: true
-                    }
-                }
+                items: { include: { product: true } },
             }
         });
 
@@ -227,116 +345,99 @@ export async function DELETE(
 
         // Delete in a transaction
         await prisma.$transaction(async (tx) => {
-            // For each purchase item, reverse the inventory updates
+            // For each purchase item, reverse the inventory updates and WAC
             for (const item of purchase.items) {
-                // First check if this invoice has distribution data
-                const distributionData = purchase.distributions &&
-                    typeof purchase.distributions === 'object' &&
-                    Array.isArray(purchase.distributions) ?
-                    purchase.distributions[purchase.items.indexOf(item)] :
-                    (purchase.distributions && typeof purchase.distributions === 'object' ?
-                        purchase.distributions : null);
+                const productToUpdate = await tx.product.findUnique({ where: { id: item.productId } });
+                if (!productToUpdate) continue;
 
-                if (distributionData && Object.keys(distributionData).length > 0) {
-                    // Distributed to specific shops, reverse each allocation
-                    for (const [shopIdStr, quantity] of Object.entries(distributionData)) {
+                let currentTotalProductQuantity = 0;
+                const allInventoryForProduct = await tx.inventoryItem.findMany({ where: { productId: item.productId } });
+                currentTotalProductQuantity = allInventoryForProduct.reduce((sum, inv) => sum + inv.quantity, 0);
+
+                // Determine shop distributions for this item
+                const itemDistribution = purchase.distributions && Array.isArray(purchase.distributions) && purchase.distributions[purchase.items.indexOf(item)]
+                    ? purchase.distributions[purchase.items.indexOf(item)]
+                    : (purchase.distributions && typeof purchase.distributions === 'object' && !Array.isArray(purchase.distributions) ? purchase.distributions : null);
+
+                if (itemDistribution && Object.keys(itemDistribution).length > 0) {
+                    for (const [shopIdStr, quantityInShop] of Object.entries(itemDistribution)) {
                         const shopId = parseInt(shopIdStr);
-                        const qty = Number(quantity);
+                        const qtyToRemove = Number(quantityInShop);
+                        if (qtyToRemove <= 0 || isNaN(qtyToRemove) || isNaN(shopId)) continue;
 
-                        if (qty <= 0 || isNaN(qty) || isNaN(shopId)) continue;
-
-                        // Find inventory for this product/shop combination
                         const inventory = await tx.inventoryItem.findFirst({
-                            where: {
-                                productId: item.productId,
-                                shopId: shopId
-                            }
+                            where: { productId: item.productId, shopId: shopId }
                         });
-
                         if (inventory) {
-                            // Reduce the quantity
-                            const newQuantity = Math.max(0, inventory.quantity - qty);
-
+                            const newQuantity = Math.max(0, inventory.quantity - qtyToRemove);
+                            // Only update if quantity changes, delete if it becomes zero
+                            if (newQuantity !== inventory.quantity) {
+                                if (newQuantity > 0) {
+                                    await tx.inventoryItem.update({
+                                        where: { id: inventory.id },
+                                        data: { quantity: newQuantity }
+                                    });
+                                } else {
+                                    // If quantity is zero after reduction, consider deleting the inventory item
+                                    // For now, we'll just set it to 0. Deletion might be too aggressive.
+                                    await tx.inventoryItem.update({
+                                        where: { id: inventory.id },
+                                        data: { quantity: 0 }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } else { // Default to shop 1 if no distribution
+                    const shopId = 1;
+                    const inventory = await tx.inventoryItem.findFirst({
+                        where: { productId: item.productId, shopId: shopId }
+                    });
+                    if (inventory) {
+                        const newQuantity = Math.max(0, inventory.quantity - item.quantity);
+                        if (newQuantity !== inventory.quantity) {
                             if (newQuantity > 0) {
                                 await tx.inventoryItem.update({
                                     where: { id: inventory.id },
                                     data: { quantity: newQuantity }
                                 });
                             } else {
-                                // If quantity would be zero, delete the inventory record
-                                await tx.inventoryItem.delete({
-                                    where: { id: inventory.id }
+                                await tx.inventoryItem.update({
+                                    where: { id: inventory.id },
+                                    data: { quantity: 0 }
                                 });
                             }
                         }
                     }
-                } else {
-                    // Default behavior - everything was added to shop 1
-                    const shopId = 1;
-                    const inventory = await tx.inventoryItem.findFirst({
-                        where: {
-                            productId: item.productId,
-                            shopId: shopId
-                        }
-                    });
-
-                    if (inventory) {
-                        // Reduce the quantity
-                        const newQuantity = Math.max(0, inventory.quantity - item.quantity);
-
-                        if (newQuantity > 0) {
-                            await tx.inventoryItem.update({
-                                where: { id: inventory.id },
-                                data: { quantity: newQuantity }
-                            });
-                        } else {
-                            // If quantity would be zero, delete the inventory record
-                            await tx.inventoryItem.delete({
-                                where: { id: inventory.id }
-                            });
-                        }
-                    }
                 }
 
-                // Update the product's weighted average cost
-                // This is a simplification, as calculating the exact reversal of WAC is complex
-                // Get all remaining purchase items for this product
-                const remainingPurchaseItems = await tx.purchaseInvoiceItem.findMany({
-                    where: {
-                        productId: item.productId,
-                        purchaseInvoiceId: { not: purchaseId }
-                    }
-                });
-
-                // Calculate new weighted average cost based on remaining purchases
-                if (remainingPurchaseItems.length > 0) {
-                    const totalQuantity = remainingPurchaseItems.reduce((sum, item) => sum + item.quantity, 0);
-                    const weightedTotal = remainingPurchaseItems.reduce(
-                        (sum, item) => sum + (item.quantity * item.price), 0
-                    );
-
-                    if (totalQuantity > 0) {
-                        const newWAC = weightedTotal / totalQuantity;
-                        await tx.product.update({
-                            where: { id: item.productId },
-                            data: { weightedAverageCost: newWAC }
-                        });
-                    }
+                // Recalculate WAC
+                // (Total Value - Item Value) / (Total Quantity - Item Quantity)
+                const remainingTotalQuantity = currentTotalProductQuantity - item.quantity;
+                if (remainingTotalQuantity > 0 && productToUpdate.weightedAverageCost !== null) {
+                    const currentTotalValue = currentTotalProductQuantity * productToUpdate.weightedAverageCost;
+                    const itemValue = item.quantity * item.price;
+                    const newWAC = (currentTotalValue - itemValue) / remainingTotalQuantity;
+                    await tx.product.update({
+                        where: { id: item.productId },
+                        data: { weightedAverageCost: newWAC > 0 ? newWAC : 0 }
+                    });
+                } else if (remainingTotalQuantity <= 0) { // No items left or this was the only one
+                    await tx.product.update({
+                        where: { id: item.productId },
+                        data: { weightedAverageCost: 0 } // Set WAC to 0 if no stock remaining from purchases
+                    });
                 }
             }
 
             // Delete associated items
             await tx.purchaseInvoiceItem.deleteMany({
-                where: {
-                    purchaseInvoiceId: purchaseId
-                }
+                where: { purchaseInvoiceId: purchaseId }
             });
 
             // Delete the purchase invoice
             await tx.purchaseInvoice.delete({
-                where: {
-                    id: purchaseId
-                }
+                where: { id: purchaseId }
             });
         });
 

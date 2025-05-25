@@ -534,39 +534,39 @@ export default function Shops() {
                                         <h4 className="font-semibold text-gray-900 mb-4">General Information</h4>
                                         <div className="space-y-3">
                                             <div>
-                                                <p className="text-sm text-gray-500">Shop ID</p>
+                                                <p className="text-sm text-gray-900">Shop ID</p>
                                                 <p className="font-medium">{selectedShop.id}</p>
                                             </div>
                                             <div>
-                                                <p className="text-sm text-gray-500">Name</p>
+                                                <p className="text-sm text-gray-900">Name</p>
                                                 <p className="font-medium">{selectedShop.name}</p>
                                             </div>
                                             <div>
-                                                <p className="text-sm text-gray-500">Status</p>
+                                                <p className="text-sm text-gray-900">Status</p>
                                                 <p className={`font-medium ${selectedShop.is_active ? 'text-green-600' : 'text-red-600'}`}>
                                                     {selectedShop.is_active ? 'Active' : 'Inactive'} - {selectedShop.status}
                                                 </p>
                                             </div>
                                             <div>
-                                                <p className="text-sm text-gray-500">Created At</p>
+                                                <p className="text-sm text-gray-900">Created At</p>
                                                 <p className="font-medium">
                                                     {selectedShop.createdAt ? new Date(selectedShop.createdAt).toLocaleString() : 'Invalid Date'}
                                                 </p>
                                             </div>
                                             <div>
-                                                <p className="text-sm text-gray-500">Last Updated</p>
+                                                <p className="text-sm text-gray-900">Last Updated</p>
                                                 <p className="font-medium">
                                                     {selectedShop.updatedAt ? new Date(selectedShop.updatedAt).toLocaleString() : 'Invalid Date'}
                                                 </p>
                                             </div>
                                             <div>
-                                                <p className="text-sm text-gray-500">Opening Date</p>
+                                                <p className="text-sm text-gray-900">Opening Date</p>
                                                 <p className="font-medium">
                                                     {selectedShop.opening_date ? new Date(selectedShop.opening_date).toLocaleDateString() : 'Not set'}
                                                 </p>
                                             </div>
                                             <div>
-                                                <p className="text-sm text-gray-500">Business Hours</p>
+                                                <p className="text-sm text-gray-900">Business Hours</p>
                                                 <p className="font-medium">
                                                     {selectedShop.opening_time && selectedShop.closing_time
                                                         ? `${selectedShop.opening_time} - ${selectedShop.closing_time}`
@@ -574,7 +574,7 @@ export default function Shops() {
                                                 </p>
                                             </div>
                                             <div>
-                                                <p className="text-sm text-gray-500">Tax Rate</p>
+                                                <p className="text-sm text-gray-900">Tax Rate</p>
                                                 <p className="font-medium">
                                                     {selectedShop.tax_rate !== null ? `${selectedShop.tax_rate}%` : '0%'}
                                                 </p>
@@ -585,36 +585,32 @@ export default function Shops() {
                                         <h4 className="font-semibold text-gray-900 mb-4">Contact Information</h4>
                                         <div className="space-y-3">
                                             <div>
-                                                <p className="text-sm text-gray-500">Location</p>
-                                                <p className="font-medium">{selectedShop.location || 'No location provided'}</p>
+                                                <p className="text-sm text-gray-900">Location</p>
+                                                <p className="font-medium">{selectedShop.location || 'Not set'}</p>
                                             </div>
                                             <div>
-                                                <p className="text-sm text-gray-500">Address</p>
+                                                <p className="text-sm text-gray-900">Address</p>
                                                 <p className="font-medium">
-                                                    {selectedShop.address_line1 || 'No address provided'}
-                                                    {selectedShop.address_line2 ? <><br />{selectedShop.address_line2}</> : ''}
+                                                    {selectedShop.address_line1 || 'No address provided'}<br />
+                                                    {selectedShop.address_line2}
                                                 </p>
                                             </div>
                                             <div>
-                                                <p className="text-sm text-gray-500">City / State / Postal</p>
+                                                <p className="text-sm text-gray-900">City / State / Postal</p>
                                                 <p className="font-medium">
-                                                    {[
-                                                        selectedShop.city,
-                                                        selectedShop.state,
-                                                        selectedShop.postal_code
-                                                    ].filter(Boolean).join(', ') || 'Not provided'}
+                                                    {[selectedShop.city, selectedShop.state, selectedShop.postal_code].filter(Boolean).join(' / ') || 'Not provided'}
                                                 </p>
                                             </div>
                                             <div>
-                                                <p className="text-sm text-gray-500">Country</p>
+                                                <p className="text-sm text-gray-900">Country</p>
                                                 <p className="font-medium">{selectedShop.country || 'Malaysia'}</p>
                                             </div>
                                             <div>
-                                                <p className="text-sm text-gray-500">Manager</p>
+                                                <p className="text-sm text-gray-900">Manager</p>
                                                 <p className="font-medium">{selectedShop.contact_person || 'No manager assigned'}</p>
                                             </div>
                                             <div>
-                                                <p className="text-sm text-gray-500">System Manager</p>
+                                                <p className="text-sm text-gray-900">System Manager</p>
                                                 <p className="font-medium">
                                                     {selectedShop.manager
                                                         ? `${selectedShop.manager.name} (ID: ${selectedShop.manager.id})`
@@ -622,11 +618,11 @@ export default function Shops() {
                                                 </p>
                                             </div>
                                             <div>
-                                                <p className="text-sm text-gray-500">Phone</p>
+                                                <p className="text-sm text-gray-900">Phone</p>
                                                 <p className="font-medium">{selectedShop.phone || 'No phone number'}</p>
                                             </div>
                                             <div>
-                                                <p className="text-sm text-gray-500">Email</p>
+                                                <p className="text-sm text-gray-900">Email</p>
                                                 <p className="font-medium">{selectedShop.email || 'No email address'}</p>
                                             </div>
                                         </div>
@@ -635,11 +631,11 @@ export default function Shops() {
                                         <h4 className="font-semibold text-gray-900 mb-4">Inventory & Performance</h4>
                                         <div className="space-y-3">
                                             <div>
-                                                <p className="text-sm text-gray-500">Total Inventory</p>
-                                                <p className="font-medium text-xl">{selectedShop.total_inventory || 0} items</p>
+                                                <p className="text-sm text-gray-900">Total Inventory</p>
+                                                <p className="font-medium">{selectedShop.total_inventory !== undefined ? `${selectedShop.total_inventory} items` : 'Loading...'}</p>
                                             </div>
                                             <div>
-                                                <p className="text-sm text-gray-500">Coordinates</p>
+                                                <p className="text-sm text-gray-900">Coordinates</p>
                                                 <p className="font-medium">
                                                     {selectedShop.latitude && selectedShop.longitude
                                                         ? `${selectedShop.latitude}, ${selectedShop.longitude}`

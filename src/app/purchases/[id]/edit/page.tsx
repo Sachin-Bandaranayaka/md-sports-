@@ -142,7 +142,17 @@ export default function EditPurchaseInvoice() {
                 setFilteredProducts(productsArray);
 
                 // Initialize form data with the invoice data
-                setFormData(invoiceData);
+                // Map items to ensure unitPrice is correctly populated
+                const formattedInvoiceData = {
+                    ...invoiceData,
+                    items: invoiceData.items.map((item: any) => ({
+                        ...item,
+                        unitPrice: item.price, // Map price to unitPrice
+                        // Ensure other fields like productName are also present if needed
+                        productName: item.product?.name || '',
+                    })),
+                };
+                setFormData(formattedInvoiceData);
 
                 // Initialize distribution array
                 if (invoiceData.items && invoiceData.items.length > 0) {
