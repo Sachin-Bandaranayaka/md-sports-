@@ -12,6 +12,8 @@ interface Customer {
     name: string;
     email?: string | null;
     phone?: string | null;
+    paymentType?: string | null;
+    creditPeriod?: number | null;
 }
 
 // Interface for Product in dropdown
@@ -55,14 +57,15 @@ export default function CreateInvoice() {
     const [showProductDropdown, setShowProductDropdown] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [quantity, setQuantity] = useState<number>(1);
+    const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
     const [formData, setFormData] = useState<InvoiceFormData>({
         customerId: 0,
         customerName: '',
         invoiceDate: new Date().toISOString().split('T')[0],
-        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        dueDate: '', // Will be calculated based on customer
         notes: '',
-        status: 'Pending',
+        status: 'Pending', // Will be determined based on customer
         items: []
     });
 
@@ -109,9 +112,9 @@ export default function CreateInvoice() {
                 console.error('Error fetching data:', error);
                 // Set sample data if API fails
                 setCustomers([
-                    { id: 1, name: 'Colombo Cricket Club', email: 'info@colombocricket.lk', phone: '+94 112 345 123' },
-                    { id: 2, name: 'Kandy Sports Association', email: 'info@kandysports.lk', phone: '+94 812 345 456' },
-                    { id: 3, name: 'Galle School District', email: 'sports@galleschools.lk', phone: '+94 912 345 789' },
+                    { id: 1, name: 'Colombo Cricket Club', email: 'info@colombocricket.lk', phone: '+94 112 345 123', paymentType: 'Credit', creditPeriod: 30 },
+                    { id: 2, name: 'Kandy Sports Association', email: 'info@kandysports.lk', phone: '+94 812 345 456', paymentType: 'Cash', creditPeriod: null },
+                    { id: 3, name: 'Galle School District', email: 'sports@galleschools.lk', phone: '+94 912 345 789', paymentType: 'Credit', creditPeriod: 15 },
                 ]);
             }
         }
@@ -152,12 +155,61 @@ export default function CreateInvoice() {
     };
 
     // Handle customer selection
-    const handleSelectCustomer = (customer: Customer) => {
+    const handleSelectCustomer = async (customer: Customer) => {
+        setSelectedCustomer(customer);
+
+        // Get today's date
+        const today = new Date();
+        const invoiceDate = today.toISOString().split('T')[0];
+
+        // Calculate due date based on customer's credit period
+        let dueDate = invoiceDate;
+        let status = 'Paid'; // Default for cash customers
+
+        // If customer has a credit period, calculate due date and set status to Pending
+        if (customer.paymentType === 'Credit' && customer.creditPeriod) {
+            const dueDateObj = new Date(today);
+            dueDateObj.setDate(today.getDate() + customer.creditPeriod);
+            dueDate = dueDateObj.toISOString().split('T')[0];
+            status = 'Pending';
+        }
+
+        // Fetch detailed customer info if needed
+        try {
+            const customerResponse = await fetch(`/api/customers/${customer.id}`);
+            if (customerResponse.ok) {
+                const customerData = await customerResponse.json();
+                // Update customer with additional details if available
+                if (customerData.paymentType || customerData.creditPeriod) {
+                    customer = {
+                        ...customer,
+                        paymentType: customerData.paymentType || customer.paymentType,
+                        creditPeriod: customerData.creditPeriod || customer.creditPeriod
+                    };
+
+                    // Recalculate due date with updated information
+                    if (customer.paymentType === 'Credit' && customer.creditPeriod) {
+                        const dueDateObj = new Date(today);
+                        dueDateObj.setDate(today.getDate() + customer.creditPeriod);
+                        dueDate = dueDateObj.toISOString().split('T')[0];
+                        status = 'Pending';
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching customer details:', error);
+        }
+
+        // Update form data with customer info and calculated dates/status
         setFormData({
             ...formData,
             customerId: customer.id,
-            customerName: customer.name
+            customerName: customer.name,
+            invoiceDate: invoiceDate,
+            dueDate: dueDate,
+            status: status as 'Draft' | 'Pending' | 'Paid' | 'Overdue'
         });
+
         setCustomerSearch('');
         setShowCustomerDropdown(false);
     };
@@ -291,17 +343,15 @@ export default function CreateInvoice() {
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                             Status
                                         </label>
-                                        <select
-                                            name="status"
+                                        <input
+                                            type="text"
                                             value={formData.status}
-                                            onChange={handleInputChange}
-                                            className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
-                                        >
-                                            <option value="Draft">Draft</option>
-                                            <option value="Pending">Pending</option>
-                                            <option value="Paid">Paid</option>
-                                            <option value="Overdue">Overdue</option>
-                                        </select>
+                                            className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900 bg-gray-100"
+                                            disabled
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Status is determined automatically based on customer payment type
+                                        </p>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -321,11 +371,13 @@ export default function CreateInvoice() {
                                         </label>
                                         <input
                                             type="date"
-                                            name="dueDate"
                                             value={formData.dueDate}
-                                            onChange={handleInputChange}
-                                            className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
+                                            className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900 bg-gray-100"
+                                            disabled
                                         />
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Due date is calculated based on customer's credit period
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -360,8 +412,11 @@ export default function CreateInvoice() {
                                                             setFormData({
                                                                 ...formData,
                                                                 customerId: 0,
-                                                                customerName: ''
+                                                                customerName: '',
+                                                                status: 'Pending', // Reset status
+                                                                dueDate: '' // Reset due date
                                                             });
+                                                            setSelectedCustomer(null);
                                                             setCustomerSearch('');
                                                         }}
                                                         className="text-gray-400 hover:text-gray-500"
@@ -402,7 +457,20 @@ export default function CreateInvoice() {
                                             </div>
                                         )}
                                     </div>
-                                    <div className="pt-8">
+
+                                    {selectedCustomer && (
+                                        <div className="bg-blue-50 p-3 rounded-md border border-blue-100">
+                                            <h3 className="font-medium text-sm text-blue-700">Customer Details</h3>
+                                            <div className="text-xs text-blue-600 mt-1">
+                                                <p>Payment Type: {selectedCustomer.paymentType || 'Cash'}</p>
+                                                {selectedCustomer.paymentType === 'Credit' && (
+                                                    <p>Credit Period: {selectedCustomer.creditPeriod || 0} days</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="pt-4">
                                         <div className="bg-gray-50 p-4 rounded-md">
                                             <h3 className="font-semibold text-sm text-gray-900 mb-2">Invoice Summary</h3>
                                             <div className="flex justify-between text-sm text-gray-900">
@@ -509,11 +577,11 @@ export default function CreateInvoice() {
                                 <table className="w-full text-sm text-left">
                                     <thead className="text-xs uppercase bg-gray-50">
                                         <tr>
-                                            <th className="px-4 py-3">Item</th>
-                                            <th className="px-4 py-3 text-center">Quantity</th>
-                                            <th className="px-4 py-3 text-right">Price</th>
-                                            <th className="px-4 py-3 text-right">Total</th>
-                                            <th className="px-4 py-3 text-center">Action</th>
+                                            <th className="px-4 py-3 text-gray-900">Item</th>
+                                            <th className="px-4 py-3 text-center text-gray-900">Quantity</th>
+                                            <th className="px-4 py-3 text-right text-gray-900">Price</th>
+                                            <th className="px-4 py-3 text-right text-gray-900">Total</th>
+                                            <th className="px-4 py-3 text-center text-gray-900">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
