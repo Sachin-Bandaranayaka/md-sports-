@@ -176,11 +176,17 @@ export async function DELETE(
                     return null;
                 }
 
-                // We don't have an 'isActive' field in the Prisma schema
-                // Instead of deleting, we'll mark it as deleted in a real app
-                // For now, we'll actually delete it
-                return await prisma.product.delete({
-                    where: { id }
+                // Use a transaction to delete inventory items and then the product
+                return await prisma.$transaction(async (tx) => {
+                    // Delete all inventory items associated with this product
+                    await tx.inventoryItem.deleteMany({
+                        where: { productId: id }
+                    });
+
+                    // Then, delete the product itself
+                    return await tx.product.delete({
+                        where: { id }
+                    });
                 });
             },
             null,

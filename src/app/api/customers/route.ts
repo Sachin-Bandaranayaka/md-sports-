@@ -7,10 +7,32 @@ export async function GET() {
         const customers = await prisma.customer.findMany({
             orderBy: {
                 name: 'asc'
+            },
+            include: {
+                invoices: {
+                    orderBy: {
+                        createdAt: 'desc'
+                    },
+                    take: 1,
+                    select: {
+                        createdAt: true
+                    }
+                }
             }
         });
 
-        return NextResponse.json(customers);
+        // Add lastPurchaseDate field to each customer
+        const enrichedCustomers = customers.map(customer => {
+            const lastInvoice = customer.invoices?.[0];
+            return {
+                ...customer,
+                lastPurchaseDate: lastInvoice ? lastInvoice.createdAt : null,
+                // Remove the invoices array from the response to keep it clean
+                invoices: undefined
+            };
+        });
+
+        return NextResponse.json(enrichedCustomers);
     } catch (error) {
         console.error('Error fetching customers:', error);
         return NextResponse.json(

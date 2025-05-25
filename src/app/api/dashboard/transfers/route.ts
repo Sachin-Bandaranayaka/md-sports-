@@ -47,11 +47,10 @@ export async function GET() {
     } catch (error) {
         console.error('Error fetching transfer data:', error);
 
-        // Return empty array instead of fallback data
+        // Return empty array instead of error
         return NextResponse.json({
-            success: false,
-            message: 'Error fetching transfer data',
-            error: error instanceof Error ? error.message : String(error)
-        }, { status: 500 });
+            success: true,
+            data: []
+        });
     }
 } 

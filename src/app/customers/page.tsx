@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Search, UserPlus, Filter, X, Trash2, Loader2 } from 'lucide-react';
+import { Search, UserPlus, Filter, X, Trash2, Loader2, ChevronDown } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { authDelete } from '@/utils/api';
 
@@ -17,10 +17,11 @@ interface Customer {
     address?: string | null;
     createdAt: Date;
     updatedAt: Date;
+    lastPurchaseDate?: Date | null;
     // Custom fields for UI
     type?: 'Credit' | 'Cash';
     balance?: number;
-    lastPurchase?: string;
+    lastPurchase?: string | null;
     status?: 'Active' | 'Inactive';
     contactPerson?: string;
 }
@@ -48,6 +49,18 @@ export default function Customers() {
     const [error, setError] = useState<string | null>(null);
     const suggestionsRef = useRef<HTMLDivElement>(null);
 
+    // Add state for filter modal
+    const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
+    const [filterOptions, setFilterOptions] = useState({
+        balanceMin: '',
+        balanceMax: '',
+        lastPurchaseFrom: '',
+        lastPurchaseTo: '',
+        customerType: '',
+        customerStatus: ''
+    });
+    const filterModalRef = useRef<HTMLDivElement>(null);
+
     // Event handler for clicks outside the suggestions box
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -61,6 +74,22 @@ export default function Customers() {
             document.removeEventListener("mousedown", handleClickOutside);
         };
     }, []);
+
+    // Add handler for filter modal outside clicks
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (filterModalRef.current && !filterModalRef.current.contains(event.target as Node)) {
+                setShowFilterModal(false);
+            }
+        }
+
+        if (showFilterModal) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [showFilterModal]);
 
     useEffect(() => {
         async function fetchCustomers() {
@@ -85,9 +114,9 @@ export default function Customers() {
                     }
 
                     // Extract relevant data from the parsed address
-                    const { 
-                        paymentType = 'Cash', 
-                        creditLimit = 0, 
+                    const {
+                        paymentType = 'Cash',
+                        creditLimit = 0,
                         contactPerson = null,
                         customerType = 'Retail'
                     } = addressData as any;
@@ -98,7 +127,7 @@ export default function Customers() {
                         type: paymentType,
                         // Only show balance for Credit customers
                         balance: paymentType === 'Credit' ? creditLimit : 0,
-                        lastPurchase: new Date(customer.updatedAt).toISOString().split('T')[0],
+                        lastPurchase: customer.lastPurchaseDate ? new Date(customer.lastPurchaseDate).toISOString().split('T')[0] : null,
                         status: 'Active',
                         contactPerson: contactPerson || customer.name
                     };
@@ -230,6 +259,95 @@ export default function Customers() {
         } finally {
             setDeleteLoading(null);
         }
+    };
+
+    // Add function to apply advanced filters
+    const applyAdvancedFilters = () => {
+        let filteredCustomers = [...allCustomers];
+
+        // Apply search filter
+        if (searchTerm) {
+            const lowerCaseSearch = searchTerm.toLowerCase();
+            filteredCustomers = filteredCustomers.filter(customer =>
+                (customer.name && customer.name.toLowerCase().includes(lowerCaseSearch)) ||
+                (customer.phone && customer.phone.toLowerCase().includes(lowerCaseSearch)) ||
+                (typeof customer.id === 'number' && `cus-${String(customer.id).padStart(3, '0')}`.toLowerCase().includes(lowerCaseSearch))
+            );
+        }
+
+        // Apply type filter
+        if (filterOptions.customerType) {
+            const lowerCaseType = filterOptions.customerType.toLowerCase();
+            filteredCustomers = filteredCustomers.filter(customer =>
+                customer.type && customer.type.toLowerCase() === lowerCaseType
+            );
+        }
+
+        // Apply status filter
+        if (filterOptions.customerStatus) {
+            const lowerCaseStatus = filterOptions.customerStatus.toLowerCase();
+            filteredCustomers = filteredCustomers.filter(customer =>
+                customer.status && customer.status.toLowerCase() === lowerCaseStatus
+            );
+        }
+
+        // Apply balance range filter
+        if (filterOptions.balanceMin) {
+            const minBalance = parseFloat(filterOptions.balanceMin);
+            filteredCustomers = filteredCustomers.filter(customer =>
+                (customer.balance || 0) >= minBalance
+            );
+        }
+
+        if (filterOptions.balanceMax) {
+            const maxBalance = parseFloat(filterOptions.balanceMax);
+            filteredCustomers = filteredCustomers.filter(customer =>
+                (customer.balance || 0) <= maxBalance
+            );
+        }
+
+        // Apply last purchase date range filter
+        if (filterOptions.lastPurchaseFrom) {
+            const fromDate = new Date(filterOptions.lastPurchaseFrom);
+            filteredCustomers = filteredCustomers.filter(customer =>
+                customer.lastPurchase && new Date(customer.lastPurchase) >= fromDate
+            );
+        }
+
+        if (filterOptions.lastPurchaseTo) {
+            const toDate = new Date(filterOptions.lastPurchaseTo);
+            toDate.setHours(23, 59, 59, 999); // Set to end of day
+            filteredCustomers = filteredCustomers.filter(customer =>
+                customer.lastPurchase && new Date(customer.lastPurchase) <= toDate
+            );
+        }
+
+        setCustomers(filteredCustomers);
+        setShowFilterModal(false);
+    };
+
+    // Add function to handle filter option changes
+    const handleFilterOptionChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFilterOptions(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    // Add function to reset filters
+    const resetFilters = () => {
+        setFilterOptions({
+            balanceMin: '',
+            balanceMax: '',
+            lastPurchaseFrom: '',
+            lastPurchaseTo: '',
+            customerType: '',
+            customerStatus: ''
+        });
+        setSelectedType('');
+        setSelectedStatus('');
+        filterCustomers(searchTerm, '', '');
     };
 
     if (loading) {
@@ -365,11 +483,136 @@ export default function Customers() {
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
                             </select>
-                            <Button variant="outline" size="sm">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowFilterModal(true)}
+                            >
                                 <Filter className="w-4 h-4" />
                             </Button>
                         </div>
                     </div>
+
+                    {/* Advanced Filter Modal */}
+                    {showFilterModal && (
+                        <div className="fixed inset-0 bg-black bg-opacity-30 z-50 flex items-center justify-center">
+                            <div
+                                ref={filterModalRef}
+                                className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4"
+                            >
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-lg font-semibold text-black">Advanced Filters</h3>
+                                    <button
+                                        className="text-gray-500 hover:text-gray-700"
+                                        onClick={() => setShowFilterModal(false)}
+                                    >
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+
+                                <div className="space-y-4">
+                                    {/* Customer Type */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Customer Type
+                                        </label>
+                                        <select
+                                            name="customerType"
+                                            className="w-full rounded-md border border-gray-300 p-2 text-sm text-black"
+                                            value={filterOptions.customerType}
+                                            onChange={handleFilterOptionChange}
+                                        >
+                                            <option value="">All Types</option>
+                                            <option value="Credit">Credit</option>
+                                            <option value="Cash">Cash</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Customer Status */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Status
+                                        </label>
+                                        <select
+                                            name="customerStatus"
+                                            className="w-full rounded-md border border-gray-300 p-2 text-sm text-black"
+                                            value={filterOptions.customerStatus}
+                                            onChange={handleFilterOptionChange}
+                                        >
+                                            <option value="">All Status</option>
+                                            <option value="Active">Active</option>
+                                            <option value="Inactive">Inactive</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Balance Range */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Outstanding Balance Range (Rs.)
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="number"
+                                                name="balanceMin"
+                                                placeholder="Min"
+                                                className="flex-1 rounded-md border border-gray-300 p-2 text-sm text-black"
+                                                value={filterOptions.balanceMin}
+                                                onChange={handleFilterOptionChange}
+                                            />
+                                            <input
+                                                type="number"
+                                                name="balanceMax"
+                                                placeholder="Max"
+                                                className="flex-1 rounded-md border border-gray-300 p-2 text-sm text-black"
+                                                value={filterOptions.balanceMax}
+                                                onChange={handleFilterOptionChange}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Last Purchase Date Range */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Last Purchase Date Range
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="date"
+                                                name="lastPurchaseFrom"
+                                                className="flex-1 rounded-md border border-gray-300 p-2 text-sm text-black"
+                                                value={filterOptions.lastPurchaseFrom}
+                                                onChange={handleFilterOptionChange}
+                                            />
+                                            <input
+                                                type="date"
+                                                name="lastPurchaseTo"
+                                                className="flex-1 rounded-md border border-gray-300 p-2 text-sm text-black"
+                                                value={filterOptions.lastPurchaseTo}
+                                                onChange={handleFilterOptionChange}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end gap-2 mt-6">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={resetFilters}
+                                    >
+                                        Reset
+                                    </Button>
+                                    <Button
+                                        variant="primary"
+                                        size="sm"
+                                        onClick={applyAdvancedFilters}
+                                    >
+                                        Apply Filters
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Customers table */}
@@ -422,8 +665,20 @@ export default function Customers() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex gap-2">
-                                                <Button variant="ghost" size="sm">View</Button>
-                                                <Button variant="ghost" size="sm">Edit</Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => router.push(`/customers/${customer.id}`)}
+                                                >
+                                                    View
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => router.push(`/customers/${customer.id}/edit`)}
+                                                >
+                                                    Edit
+                                                </Button>
                                                 <Button
                                                     variant="destructive"
                                                     size="sm"

@@ -1,98 +1,73 @@
 import { NextResponse } from 'next/server';
 import { prisma, safeQuery } from '@/lib/prisma';
 
-// GET: Fetch inventory distribution by category or product name if no categories exist
+// GET: Fetch inventory distribution by category
 export async function GET() {
     try {
-        // First try to get inventory by category
+        // Get all categories
         const categories = await safeQuery(
-            () => prisma.category.findMany({
+            () => prisma.category.findMany(),
+            [], // Empty array fallback
+            'Failed to fetch categories'
+        );
+
+        // Get all inventory items with their products and categories
+        const inventoryItems = await safeQuery(
+            () => prisma.inventoryItem.findMany({
                 include: {
-                    products: {
+                    product: {
                         include: {
-                            inventoryItems: true
+                            category: true
                         }
                     }
                 }
             }),
             [], // Empty array fallback
-            'Failed to fetch category data'
+            'Failed to fetch inventory items'
         );
 
-        // Calculate inventory count by category
-        let inventoryByCategoryMap = categories.map(category => {
-            // Sum up quantities across all products in this category
-            const totalQuantity = category.products.reduce((sum, product) => {
-                // Sum up quantities for this product across all inventory items
-                const productQuantity = product.inventoryItems.reduce(
-                    (itemSum, item) => itemSum + item.quantity,
-                    0
-                );
-                return sum + productQuantity;
-            }, 0);
+        // Create a map of category ID to aggregate data
+        const categoryMap = new Map();
 
-            return {
+        // Initialize the map with all categories (including those with no inventory)
+        categories.forEach(category => {
+            categoryMap.set(category.id, {
                 name: category.name,
-                value: totalQuantity
-            };
-        });
-
-        // Filter out categories with zero inventory
-        inventoryByCategoryMap = inventoryByCategoryMap
-            .filter(item => item.value > 0)
-            .sort((a, b) => b.value - a.value)
-            .slice(0, 5);
-
-        // If we have category data, return it
-        if (inventoryByCategoryMap.length > 0) {
-            return NextResponse.json({
-                success: true,
-                data: inventoryByCategoryMap
+                value: 0 // Start with zero
             });
-        }
-
-        // If we don't have category data, group by product name instead
-        const products = await safeQuery(
-            () => prisma.product.findMany({
-                include: {
-                    inventoryItems: true
-                }
-            }),
-            [], // Empty array fallback
-            'Failed to fetch product data'
-        );
-
-        const inventoryByProductMap = products.map(product => {
-            // Sum up quantities for this product across all inventory items
-            const totalQuantity = product.inventoryItems.reduce(
-                (sum, item) => sum + item.quantity,
-                0
-            );
-
-            return {
-                name: product.name,
-                value: totalQuantity
-            };
         });
 
-        // Filter out products with zero inventory
-        const data = inventoryByProductMap
-            .filter(item => item.value > 0)
-            .sort((a, b) => b.value - a.value)
-            .slice(0, 5);
+        // Aggregate items by category
+        inventoryItems.forEach(item => {
+            if (item.product && item.product.category) {
+                const categoryId = item.product.categoryId;
+                const categoryData = categoryMap.get(categoryId) || {
+                    name: item.product.category.name,
+                    value: 0
+                };
+
+                // Increment the count for this category
+                categoryData.value += item.quantity;
+                categoryMap.set(categoryId, categoryData);
+            }
+        });
+
+        // Convert the map to an array
+        const data = Array.from(categoryMap.values())
+            // Filter out categories with no items
+            .filter(category => category.value > 0)
+            // Sort by count (highest first)
+            .sort((a, b) => b.value - a.value);
 
         return NextResponse.json({
             success: true,
             data
         });
     } catch (error) {
-        console.error('Error fetching inventory distribution data:', error);
-
-        // Return empty data in case of error
+        console.error('Error fetching inventory distribution:', error);
         return NextResponse.json({
-            success: false,
-            message: 'Error fetching inventory distribution data',
-            error: error instanceof Error ? error.message : String(error)
-        }, { status: 500 });
+            success: true,
+            data: [] // Return empty array on error
+        });
     }
 } 

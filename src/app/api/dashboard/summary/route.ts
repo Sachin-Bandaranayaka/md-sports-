@@ -63,7 +63,7 @@ export async function GET() {
             'Failed to count pending transfers'
         );
 
-        // Count unpaid invoices (if we had any)
+        // Count unpaid invoices
         const outstandingInvoices = await safeQuery(
             () => prisma.invoice.aggregate({
                 where: {
@@ -80,6 +80,55 @@ export async function GET() {
         );
 
         const totalOutstanding = outstandingInvoices._sum.total || 0;
+
+        // Get month-over-month invoice change (if any invoices exist)
+        const previousMonthStart = new Date();
+        previousMonthStart.setMonth(previousMonthStart.getMonth() - 1);
+        previousMonthStart.setDate(1);
+        previousMonthStart.setHours(0, 0, 0, 0);
+
+        const previousMonthEnd = new Date();
+        previousMonthEnd.setDate(0); // Last day of previous month
+        previousMonthEnd.setHours(23, 59, 59, 999);
+
+        // Calculate trend only if there are outstanding invoices
+        let invoiceTrend = '0%';
+        let invoiceTrendUp = false;
+
+        // Only calculate trend if there are outstanding invoices
+        if (totalOutstanding > 0) {
+            const previousMonthInvoices = await safeQuery(
+                () => prisma.invoice.aggregate({
+                    where: {
+                        status: {
+                            not: 'Paid'
+                        },
+                        createdAt: {
+                            gte: previousMonthStart,
+                            lte: previousMonthEnd
+                        }
+                    },
+                    _sum: {
+                        total: true
+                    }
+                }),
+                { _sum: { total: null } },
+                'Failed to calculate previous month invoices'
+            );
+
+            const previousTotal = previousMonthInvoices._sum.total || 0;
+
+            // Calculate percentage change
+            if (previousTotal > 0) {
+                const percentChange = ((totalOutstanding - previousTotal) / previousTotal) * 100;
+                invoiceTrend = `${percentChange > 0 ? '+' : ''}${Math.round(percentChange)}%`;
+                invoiceTrendUp = percentChange > 0;
+            } else if (totalOutstanding > 0) {
+                // If no previous invoices but we have current ones
+                invoiceTrend = '+100%';
+                invoiceTrendUp = true;
+            }
+        }
 
         // Count low stock items (assume less than 10 is low)
         const lowStockItems = await safeQuery(
@@ -126,8 +175,8 @@ export async function GET() {
                 title: 'Outstanding Invoices',
                 value: `Rs. ${Number(totalOutstanding).toLocaleString()}`,
                 icon: 'CreditCard',
-                trend: totalOutstanding > 0 ? `+${Math.round((totalOutstanding / 1000))}k` : '0',
-                trendUp: false
+                trend: invoiceTrend,
+                trendUp: invoiceTrendUp
             },
             {
                 title: 'Low Stock Items',

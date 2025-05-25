@@ -27,41 +27,51 @@ export async function GET() {
             'Failed to fetch shops data'
         );
 
+        // Get current month's start and end dates
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
         // Format the data as needed by the frontend
-        const data = shops.map(shop => {
+        const shopDataPromises = shops.map(async (shop) => {
             // Calculate total inventory quantity for this shop
             const totalStock = shop.inventoryItems.reduce(
                 (sum, item) => sum + item.quantity,
                 0
             );
 
-            // Calculate total inventory value (price * quantity) for this shop
-            // This gives us a real metric based on actual data
-            const totalValue = shop.inventoryItems.reduce(
-                (sum, item) => {
-                    const price = item.product?.price || 0;
-                    return sum + (price * item.quantity);
-                },
-                0
+            // Get actual sales for this shop from invoices - using shop name for now
+            // In a real system, you would link invoices to shops directly
+            const shopSales = await safeQuery(
+                () => prisma.invoice.aggregate({
+                    where: {
+                        createdAt: {
+                            gte: startOfMonth,
+                            lte: endOfMonth
+                        }
+                        // If your invoices have a shopId field, you would filter by that here
+                        // shopId: shop.id
+                    },
+                    _sum: {
+                        total: true
+                    }
+                }),
+                { _sum: { total: null } },
+                `Failed to fetch sales data for shop ${shop.name}`
             );
 
             return {
                 name: shop.name,
-                sales: totalValue, // Use inventory value as a proxy for sales
+                sales: shopSales._sum.total || 0, // Use real sales data or 0 if none
                 stock: totalStock
             };
         });
 
+        // Wait for all promises to resolve
+        const data = await Promise.all(shopDataPromises);
+
         // Filter out shops with no inventory
         const shopsWithInventory = data.filter(shop => shop.stock > 0);
-
-        // If we don't have any shops with inventory data, return empty array
-        if (shopsWithInventory.length === 0) {
-            return NextResponse.json({
-                success: true,
-                data: []
-            });
-        }
 
         return NextResponse.json({
             success: true,

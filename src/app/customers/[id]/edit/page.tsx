@@ -1,0 +1,443 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import MainLayout from '@/components/layout/MainLayout';
+import { Button } from '@/components/ui/Button';
+import { ArrowLeft, Save, Loader2 } from 'lucide-react';
+import { use } from 'react';
+
+interface CustomerFormData {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    postalCode: string;
+    contactPerson: string;
+    contactPersonPhone: string;
+    customerType: string;
+    paymentType: string;
+    creditLimit: string;
+    creditPeriod: string;
+    taxId: string;
+    notes: string;
+}
+
+export default function EditCustomer({ params }: { params: { id: string } }) {
+    // Unwrap params using React.use()
+    const unwrappedParams = use(params);
+    const customerId = unwrappedParams.id;
+
+    const router = useRouter();
+    const [loading, setLoading] = useState<boolean>(true);
+    const [saving, setSaving] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
+    const [formData, setFormData] = useState<CustomerFormData>({
+        name: '',
+        email: '',
+        phone: '',
+        address: '',
+        city: '',
+        postalCode: '',
+        contactPerson: '',
+        contactPersonPhone: '',
+        customerType: 'Retail',
+        paymentType: 'Cash',
+        creditLimit: '0',
+        creditPeriod: '0',
+        taxId: '',
+        notes: ''
+    });
+
+    useEffect(() => {
+        async function fetchCustomerData() {
+            try {
+                const response = await fetch(`/api/customers/${customerId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch customer data');
+                }
+                const data = await response.json();
+
+                // Parse the address field which might contain JSON data
+                let addressData = {};
+                try {
+                    if (data.address && typeof data.address === 'string' && data.address.includes('{')) {
+                        addressData = JSON.parse(data.address);
+                    }
+                } catch (e) {
+                    console.error('Error parsing address data:', e);
+                }
+
+                // Update form data with customer data
+                setFormData({
+                    name: data.name || '',
+                    email: data.email || '',
+                    phone: data.phone || '',
+                    address: addressData.mainAddress || addressData.address || '',
+                    city: addressData.city || '',
+                    postalCode: addressData.postalCode || '',
+                    contactPerson: addressData.contactPerson || data.contactPerson || '',
+                    contactPersonPhone: addressData.contactPersonPhone || data.contactPersonPhone || '',
+                    customerType: addressData.customerType || data.customerType || 'Retail',
+                    paymentType: addressData.paymentType || data.paymentType || 'Cash',
+                    creditLimit: addressData.creditLimit?.toString() || data.creditLimit?.toString() || '0',
+                    creditPeriod: addressData.creditPeriod?.toString() || data.creditPeriod?.toString() || '0',
+                    taxId: addressData.taxId || data.taxId || '',
+                    notes: addressData.notes || data.notes || ''
+                });
+            } catch (error) {
+                console.error('Error fetching customer data:', error);
+                setError('Failed to load customer data. Please try again later.');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchCustomerData();
+    }, [customerId]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSaving(true);
+        setError(null);
+
+        try {
+            // Format the address data to match the expected structure
+            const addressData = {
+                mainAddress: formData.address,
+                city: formData.city,
+                postalCode: formData.postalCode,
+                contactPerson: formData.contactPerson,
+                contactPersonPhone: formData.contactPersonPhone,
+                customerType: formData.customerType,
+                paymentType: formData.paymentType,
+                creditLimit: formData.paymentType === 'Credit' ? parseFloat(formData.creditLimit) : 0,
+                creditPeriod: formData.paymentType === 'Credit' ? parseInt(formData.creditPeriod) : 0,
+                taxId: formData.taxId,
+                notes: formData.notes
+            };
+
+            const response = await fetch(`/api/customers/${customerId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: formData.name,
+                    email: formData.email,
+                    phone: formData.phone,
+                    address: JSON.stringify(addressData),
+                    status: 'active'
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                router.push(`/customers/${customerId}`);
+            } else {
+                setError(data.message || 'Failed to update customer');
+                setSaving(false);
+            }
+        } catch (err) {
+            console.error('Error updating customer:', err);
+            setError('Failed to update customer. Please try again later.');
+            setSaving(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <MainLayout>
+                <div className="flex items-center justify-center min-h-[60vh]">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+            </MainLayout>
+        );
+    }
+
+    return (
+        <MainLayout>
+            <div className="space-y-6">
+                {/* Header with actions */}
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900">Edit Customer</h1>
+                        <p className="text-gray-500">Update customer information</p>
+                    </div>
+                    <div className="flex gap-3">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.push(`/customers/${customerId}`)}
+                        >
+                            <ArrowLeft className="w-4 h-4 mr-2" />
+                            Cancel
+                        </Button>
+                    </div>
+                </div>
+
+                {error && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+                        {error}
+                    </div>
+                )}
+
+                {/* Customer form */}
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="bg-tertiary rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                        {/* Basic Information */}
+                        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                            <h2 className="text-lg font-medium text-gray-900">Basic Information</h2>
+                        </div>
+                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                                    Name <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    name="name"
+                                    id="name"
+                                    required
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                                    Email
+                                </label>
+                                <input
+                                    type="email"
+                                    name="email"
+                                    id="email"
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                                    Phone
+                                </label>
+                                <input
+                                    type="text"
+                                    name="phone"
+                                    id="phone"
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                    value={formData.phone}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="customerType" className="block text-sm font-medium text-gray-700">
+                                    Customer Type
+                                </label>
+                                <select
+                                    name="customerType"
+                                    id="customerType"
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                    value={formData.customerType}
+                                    onChange={handleChange}
+                                >
+                                    <option value="Retail">Retail</option>
+                                    <option value="Wholesale">Wholesale</option>
+                                    <option value="Business">Business</option>
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="paymentType" className="block text-sm font-medium text-gray-700">
+                                    Payment Type
+                                </label>
+                                <select
+                                    name="paymentType"
+                                    id="paymentType"
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                    value={formData.paymentType}
+                                    onChange={handleChange}
+                                >
+                                    <option value="Cash">Cash</option>
+                                    <option value="Credit">Credit</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Contact Information */}
+                        <div className="px-6 py-4 border-t border-b border-gray-200 bg-gray-50">
+                            <h2 className="text-lg font-medium text-gray-900">Contact Information</h2>
+                        </div>
+                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label htmlFor="contactPerson" className="block text-sm font-medium text-gray-700">
+                                    Contact Person
+                                </label>
+                                <input
+                                    type="text"
+                                    name="contactPerson"
+                                    id="contactPerson"
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                    value={formData.contactPerson}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="contactPersonPhone" className="block text-sm font-medium text-gray-700">
+                                    Contact Phone
+                                </label>
+                                <input
+                                    type="text"
+                                    name="contactPersonPhone"
+                                    id="contactPersonPhone"
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                    value={formData.contactPersonPhone}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+                                    Address
+                                </label>
+                                <input
+                                    type="text"
+                                    name="address"
+                                    id="address"
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                    value={formData.address}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="city" className="block text-sm font-medium text-gray-700">
+                                    City
+                                </label>
+                                <input
+                                    type="text"
+                                    name="city"
+                                    id="city"
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                    value={formData.city}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700">
+                                    Postal Code
+                                </label>
+                                <input
+                                    type="text"
+                                    name="postalCode"
+                                    id="postalCode"
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                    value={formData.postalCode}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="taxId" className="block text-sm font-medium text-gray-700">
+                                    Tax ID
+                                </label>
+                                <input
+                                    type="text"
+                                    name="taxId"
+                                    id="taxId"
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                    value={formData.taxId}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Payment Information (only shown for credit customers) */}
+                        {formData.paymentType === 'Credit' && (
+                            <>
+                                <div className="px-6 py-4 border-t border-b border-gray-200 bg-gray-50">
+                                    <h2 className="text-lg font-medium text-gray-900">Payment Information</h2>
+                                </div>
+                                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label htmlFor="creditLimit" className="block text-sm font-medium text-gray-700">
+                                            Credit Limit (Rs.)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="creditLimit"
+                                            id="creditLimit"
+                                            min="0"
+                                            step="0.01"
+                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                            value={formData.creditLimit}
+                                            onChange={handleChange}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label htmlFor="creditPeriod" className="block text-sm font-medium text-gray-700">
+                                            Credit Period (days)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="creditPeriod"
+                                            id="creditPeriod"
+                                            min="0"
+                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                            value={formData.creditPeriod}
+                                            onChange={handleChange}
+                                        />
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {/* Notes */}
+                        <div className="px-6 py-4 border-t border-b border-gray-200 bg-gray-50">
+                            <h2 className="text-lg font-medium text-gray-900">Additional Information</h2>
+                        </div>
+                        <div className="p-6 grid grid-cols-1 gap-6">
+                            <div className="space-y-2">
+                                <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
+                                    Notes
+                                </label>
+                                <textarea
+                                    name="notes"
+                                    id="notes"
+                                    rows={4}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                    value={formData.notes}
+                                    onChange={handleChange}
+                                ></textarea>
+                            </div>
+                        </div>
+
+                        {/* Form actions */}
+                        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end">
+                            <Button
+                                type="submit"
+                                variant="primary"
+                                disabled={saving}
+                            >
+                                {saving ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                        Saving...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Save className="w-4 h-4 mr-2" />
+                                        Save Changes
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </MainLayout>
+    );
+} 

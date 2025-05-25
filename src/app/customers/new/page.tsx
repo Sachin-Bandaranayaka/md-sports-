@@ -146,7 +146,7 @@ export default function NewCustomer() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Phone <span className="text-red-500">*</span>
+                                        Phone
                                     </label>
                                     <input
                                         type="tel"
@@ -154,7 +154,6 @@ export default function NewCustomer() {
                                         value={formData.phone}
                                         onChange={handleInputChange}
                                         className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
-                                        required
                                     />
                                 </div>
                                 <div>
