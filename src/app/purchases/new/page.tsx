@@ -236,22 +236,39 @@ export default function NewPurchaseInvoice() {
                     newItems[index].subtotal = qty * price;
                 }
             } else {
-                newItems[index] = {
-                    ...newItems[index],
-                    [name]: value
-                };
+                // For quantity field, allow empty string input during typing
+                if (name === 'quantity' && value === '') {
+                    newItems[index] = {
+                        ...newItems[index],
+                        quantity: '',
+                        subtotal: 0
+                    };
+                } else {
+                    newItems[index] = {
+                        ...newItems[index],
+                        [name]: value
+                    };
 
-                // Recalculate subtotal if quantity or unitPrice changed
-                if (name === 'quantity' || name === 'unitPrice') {
-                    const qty = newItems[index].quantity === '' ? 0 : Number(newItems[index].quantity);
-                    const price = newItems[index].unitPrice === '' ? 0 : Number(newItems[index].unitPrice);
-                    newItems[index].subtotal = qty * price;
+                    // Recalculate subtotal if quantity or unitPrice changed
+                    if (name === 'quantity' || name === 'unitPrice') {
+                        const qty = newItems[index].quantity === '' ? 0 : Number(newItems[index].quantity);
+                        const price = newItems[index].unitPrice === '' ? 0 : Number(newItems[index].unitPrice);
+                        newItems[index].subtotal = qty * price;
+                    }
                 }
             }
 
+            // Calculate total amount
+            let totalAmount = 0;
+            newItems.forEach(item => {
+                const subtotal = item.subtotal || 0;
+                totalAmount += subtotal;
+            });
+
             return {
                 ...prev,
-                items: newItems
+                items: newItems,
+                totalAmount: totalAmount
             };
         });
     };
@@ -359,7 +376,12 @@ export default function NewPurchaseInvoice() {
         }
 
         // Check if any items have invalid data
-        if (formData.items.some(item => !item.productId || item.quantity === '' || Number(item.quantity) <= 0 || item.unitPrice === '')) {
+        if (formData.items.some(item =>
+            !item.productId ||
+            item.quantity === '' ||
+            Number(item.quantity) <= 0 ||
+            item.unitPrice === ''
+        )) {
             setError('All items must have a product, quantity greater than zero, and a unit price');
             return;
         }
@@ -720,7 +742,7 @@ export default function NewPurchaseInvoice() {
                                                             <input
                                                                 type="number"
                                                                 name="quantity"
-                                                                value={item.quantity}
+                                                                value={item.quantity === '' ? '' : item.quantity}
                                                                 onChange={(e) => handleItemChange(e, index)}
                                                                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary text-black"
                                                                 placeholder="Quantity"

@@ -23,6 +23,7 @@ interface Product {
     price: number;
     description?: string;
     sku?: string;
+    stock?: number;
 }
 
 // Interface for Invoice Line Item
@@ -59,6 +60,7 @@ export default function CreateInvoice() {
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [quantity, setQuantity] = useState<number>(1);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+    const [productStock, setProductStock] = useState<number | null>(null);
 
     const [formData, setFormData] = useState<InvoiceFormData>({
         customerId: 0,
@@ -217,15 +219,41 @@ export default function CreateInvoice() {
     };
 
     // Handle product selection for adding to line items
-    const handleSelectProduct = (product: Product) => {
+    const handleSelectProduct = async (product: Product) => {
         setSelectedProduct(product);
         setProductSearch('');
         setShowProductDropdown(false);
+
+        // Fetch stock information for the selected product
+        try {
+            const response = await fetch(`/api/products/${product.id}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.data) {
+                    // Calculate total stock across all locations
+                    const totalStock = data.data.inventory?.reduce(
+                        (sum: number, item: any) => sum + item.quantity,
+                        0
+                    ) || 0;
+                    setProductStock(totalStock);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching product stock:', error);
+            setProductStock(null);
+        }
     };
 
     // Add line item to invoice
     const handleAddLineItem = () => {
         if (!selectedProduct) return;
+
+        // Validate that quantity is greater than 0
+        if (quantity <= 0) {
+            // Set to 1 if it's 0 or negative
+            setQuantity(1);
+            return;
+        }
 
         const newItem: InvoiceItem = {
             id: Date.now().toString(), // Temporary ID for UI
@@ -243,6 +271,7 @@ export default function CreateInvoice() {
 
         // Reset selection
         setSelectedProduct(null);
+        setProductStock(null);
         setQuantity(1);
     };
 
@@ -556,15 +585,23 @@ export default function CreateInvoice() {
                                             </div>
                                         )}
                                     </div>
-                                    <div className="md:col-span-1">
+                                    <div className="md:col-span-1 relative">
                                         <input
                                             type="number"
                                             placeholder="Qty"
                                             min="1"
-                                            value={quantity}
-                                            onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                                            value={quantity === 0 ? '' : quantity}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setQuantity(val === '' ? 0 : parseInt(val) || 0);
+                                            }}
                                             className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
                                         />
+                                        {productStock !== null && selectedProduct && (
+                                            <div className="absolute text-xs mt-1 text-gray-500">
+                                                Available: {productStock}
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="md:col-span-1">
                                         <input
