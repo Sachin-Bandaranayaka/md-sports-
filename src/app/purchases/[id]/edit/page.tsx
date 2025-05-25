@@ -571,7 +571,7 @@ export default function EditPurchaseInvoice() {
                     >
                         {/* Invoice Details Card */}
                         <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-                            <h2 className="text-lg font-semibold mb-4 flex items-center">
+                            <h2 className="text-lg font-semibold mb-4 flex items-center text-black">
                                 <FileText className="h-5 w-5 mr-2 text-primary" />
                                 Invoice Details
                             </h2>
@@ -590,7 +590,7 @@ export default function EditPurchaseInvoice() {
                                         name="invoiceNumber"
                                         value={formData.invoiceNumber || ""}
                                         onChange={handleChange}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 text-black"
                                         required
                                     />
                                 </div>
@@ -608,7 +608,7 @@ export default function EditPurchaseInvoice() {
                                         name="supplierId"
                                         value={formData.supplierId || ""}
                                         onChange={handleChange}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 text-black"
                                         required
                                     >
                                         <option value="">Select Supplier</option>
@@ -639,7 +639,7 @@ export default function EditPurchaseInvoice() {
                                                 name="date"
                                                 value={formData.date || ""}
                                                 onChange={handleChange}
-                                                className="pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                                                className="pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 text-black"
                                                 required
                                             />
                                         </div>
@@ -661,7 +661,7 @@ export default function EditPurchaseInvoice() {
                                                 name="dueDate"
                                                 value={formData.dueDate || ""}
                                                 onChange={handleChange}
-                                                className="pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                                                className="pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 text-black"
                                             />
                                         </div>
                                     </div>
@@ -680,7 +680,7 @@ export default function EditPurchaseInvoice() {
                                         name="status"
                                         value={formData.status || "unpaid"}
                                         onChange={handleChange}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 text-black"
                                     >
                                         <option value="unpaid">Unpaid</option>
                                         <option value="partial">Partially Paid</option>
@@ -710,7 +710,7 @@ export default function EditPurchaseInvoice() {
                                                     onChange={handleChange}
                                                     min="0"
                                                     step="0.01"
-                                                    className="pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                                                    className="pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 text-black"
                                                 />
                                             </div>
                                         </div>
@@ -730,7 +730,7 @@ export default function EditPurchaseInvoice() {
                                         value={formData.notes || ""}
                                         onChange={handleChange}
                                         rows={3}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 text-black"
                                     />
                                 </div>
                             </div>
@@ -738,29 +738,29 @@ export default function EditPurchaseInvoice() {
 
                         {/* Summary Card */}
                         <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-                            <h2 className="text-lg font-semibold mb-4 flex items-center">
+                            <h2 className="text-lg font-semibold mb-4 flex items-center text-black">
                                 <DollarSign className="h-5 w-5 mr-2 text-primary" />
                                 Invoice Summary
                             </h2>
                             <div className="space-y-4">
                                 <div className="flex justify-between py-2 border-b">
-                                    <span className="font-medium">Total Items:</span>
-                                    <span>{formData.items?.length || 0}</span>
+                                    <span className="font-medium text-black">Total Items:</span>
+                                    <span className="text-black">{formData.items?.length || 0}</span>
                                 </div>
                                 <div className="flex justify-between py-2 border-b">
-                                    <span className="font-medium">Total Amount:</span>
-                                    <span className="font-bold">
+                                    <span className="font-medium text-black">Total Amount:</span>
+                                    <span className="font-bold text-black">
                                         Rs. {(formData.totalAmount || 0).toLocaleString()}
                                     </span>
                                 </div>
                                 <div className="flex justify-between py-2 border-b">
-                                    <span className="font-medium">Status:</span>
+                                    <span className="font-medium text-black">Status:</span>
                                     <span
                                         className={`px-2 py-1 rounded-full text-xs ${formData.status === "paid"
-                                                ? "bg-green-100 text-green-800"
-                                                : formData.status === "partial"
-                                                    ? "bg-yellow-100 text-yellow-800"
-                                                    : "bg-red-100 text-red-800"
+                                            ? "bg-green-100 text-green-800"
+                                            : formData.status === "partial"
+                                                ? "bg-yellow-100 text-yellow-800"
+                                                : "bg-red-100 text-red-800"
                                             }`}
                                     >
                                         {formData.status === "paid"
@@ -803,7 +803,7 @@ export default function EditPurchaseInvoice() {
                         className="bg-white p-6 rounded-lg shadow-md border border-gray-200"
                     >
                         <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-lg font-semibold flex items-center">
+                            <h2 className="text-lg font-semibold flex items-center text-black">
                                 <Package className="h-5 w-5 mr-2 text-primary" />
                                 Invoice Items
                             </h2>
@@ -885,7 +885,7 @@ export default function EditPurchaseInvoice() {
                                                         name="productId"
                                                         value={item.productId || ""}
                                                         onChange={(e) => handleItemChange(e, index)}
-                                                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                                                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 text-black"
                                                         required
                                                     >
                                                         <option value="">Select Product</option>
@@ -903,7 +903,7 @@ export default function EditPurchaseInvoice() {
                                                         value={item.quantity || ""}
                                                         onChange={(e) => handleItemChange(e, index)}
                                                         min="1"
-                                                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                                                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 text-black"
                                                         required
                                                     />
                                                 </td>
@@ -919,12 +919,12 @@ export default function EditPurchaseInvoice() {
                                                             onChange={(e) => handleItemChange(e, index)}
                                                             min="0"
                                                             step="0.01"
-                                                            className="pl-12 w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                                                            className="pl-12 w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 text-black"
                                                             required
                                                         />
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3 whitespace-nowrap font-medium">
+                                                <td className="px-4 py-3 whitespace-nowrap font-medium text-black">
                                                     Rs.{" "}
                                                     {item.subtotal ? item.subtotal.toLocaleString() : "0"}
                                                 </td>
@@ -959,7 +959,7 @@ export default function EditPurchaseInvoice() {
                                         <tr>
                                             <td
                                                 colSpan={6}
-                                                className="px-4 py-6 text-center text-black"
+                                                className="px-4 py-6 text-center text-black font-medium"
                                             >
                                                 No items added yet. Click "Add Item" to add products to
                                                 this invoice.
@@ -977,7 +977,7 @@ export default function EditPurchaseInvoice() {
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                         <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
                             <div className="flex justify-between items-center border-b p-4">
-                                <h2 className="text-xl font-bold">Add New Product</h2>
+                                <h2 className="text-xl font-bold text-black">Add New Product</h2>
                                 <button
                                     onClick={() => setShowNewProductModal(false)}
                                     className="text-black hover:text-gray-900"
@@ -1003,7 +1003,7 @@ export default function EditPurchaseInvoice() {
                                                 name: e.target.value,
                                             })
                                         }
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 text-black"
                                         required
                                     />
                                 </div>
@@ -1024,7 +1024,7 @@ export default function EditPurchaseInvoice() {
                                                 sku: e.target.value,
                                             })
                                         }
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 text-black"
                                     />
                                 </div>
                                 <div>
@@ -1044,7 +1044,7 @@ export default function EditPurchaseInvoice() {
                                             })
                                         }
                                         rows={3}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 text-black"
                                     />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
@@ -1071,7 +1071,7 @@ export default function EditPurchaseInvoice() {
                                                 }
                                                 min="0"
                                                 step="0.01"
-                                                className="pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                                                className="pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 text-black"
                                                 required
                                             />
                                         </div>
@@ -1099,7 +1099,7 @@ export default function EditPurchaseInvoice() {
                                                 }
                                                 min="0"
                                                 step="0.01"
-                                                className="pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                                                className="pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 text-black"
                                             />
                                         </div>
                                     </div>
@@ -1120,7 +1120,7 @@ export default function EditPurchaseInvoice() {
                                                 categoryId: e.target.value,
                                             })
                                         }
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 text-black"
                                     >
                                         <option value="">Select Category</option>
                                         {categories.map((category) => (
@@ -1164,7 +1164,7 @@ export default function EditPurchaseInvoice() {
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                             <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4">
                                 <div className="flex justify-between items-center border-b p-4">
-                                    <h2 className="text-xl font-bold">
+                                    <h2 className="text-xl font-bold text-black">
                                         Distribute {formData.items[selectedItemIndex].productName}
                                     </h2>
                                     <button
@@ -1175,15 +1175,15 @@ export default function EditPurchaseInvoice() {
                                     </button>
                                 </div>
                                 <div className="p-4">
-                                    <p className="mb-4">
+                                    <p className="mb-4 text-black">
                                         Total Quantity:{" "}
-                                        <span className="font-bold">
+                                        <span className="font-bold text-black">
                                             {formData.items[selectedItemIndex].quantity}
                                         </span>
                                     </p>
-                                    <p className="mb-4">
+                                    <p className="mb-4 text-black">
                                         Distributed:{" "}
-                                        <span className="font-bold">
+                                        <span className="font-bold text-black">
                                             {getTotalDistributed(selectedItemIndex)}
                                         </span>
                                     </p>
@@ -1196,7 +1196,7 @@ export default function EditPurchaseInvoice() {
                                                 key={shop.id}
                                                 className="flex items-center justify-between border-b pb-2"
                                             >
-                                                <span className="font-medium">{shop.name}</span>
+                                                <span className="font-medium text-black">{shop.name}</span>
                                                 <input
                                                     type="number"
                                                     value={
@@ -1216,7 +1216,7 @@ export default function EditPurchaseInvoice() {
                                                     max={
                                                         formData.items?.[selectedItemIndex]?.quantity || 0
                                                     }
-                                                    className="w-24 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                                                    className="w-24 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 text-black"
                                                 />
                                             </div>
                                         ))}

@@ -58,6 +58,8 @@ export default function Invoices() {
             }
             const data = await response.json();
 
+            console.log("Raw invoice data:", data);
+
             // Calculate statistics
             const now = new Date();
             const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -67,7 +69,7 @@ export default function Invoices() {
             let overdueCount = 0;
 
             // Transform data for UI
-            const formattedInvoices = await Promise.all(data.map(async (invoice: Invoice) => {
+            const formattedInvoices = await Promise.all(data.map(async (invoice: any) => {
                 // Get customer name - in a real app this would be included in the API response
                 let customerName = 'Unknown Customer';
                 try {
@@ -96,14 +98,22 @@ export default function Invoices() {
                 const dueDate = new Date(createdDate);
                 dueDate.setDate(dueDate.getDate() + 30);
 
+                // Use the itemCount field from API or fall back to items.length if it exists
+                const itemsCount = invoice.itemCount !== undefined ? invoice.itemCount :
+                    (Array.isArray(invoice.items) ? invoice.items.length : 0);
+
+                console.log(`Items count for invoice ${invoice.invoiceNumber}:`, itemsCount);
+
                 return {
                     ...invoice,
                     customerName,
                     date: createdDate.toISOString().split('T')[0],
                     dueDate: dueDate.toISOString().split('T')[0],
-                    items: Math.floor(Math.random() * 15) + 1 // Example: random item count (would be from line items in real app)
+                    items: itemsCount
                 };
             }));
+
+            console.log("Formatted invoices:", formattedInvoices);
 
             setInvoices(formattedInvoices);
             setStatistics({

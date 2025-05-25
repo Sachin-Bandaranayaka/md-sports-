@@ -404,16 +404,16 @@ export default function CreateInvoice() {
                                     </div>
                                     <div className="pt-8">
                                         <div className="bg-gray-50 p-4 rounded-md">
-                                            <h3 className="font-semibold text-sm text-gray-700 mb-2">Invoice Summary</h3>
-                                            <div className="flex justify-between text-sm">
+                                            <h3 className="font-semibold text-sm text-gray-900 mb-2">Invoice Summary</h3>
+                                            <div className="flex justify-between text-sm text-gray-900">
                                                 <span>Subtotal:</span>
                                                 <span>Rs. {invoiceTotal.toLocaleString()}</span>
                                             </div>
-                                            <div className="flex justify-between text-sm mt-1">
+                                            <div className="flex justify-between text-sm text-gray-900 mt-1">
                                                 <span>Tax (0%):</span>
                                                 <span>Rs. 0.00</span>
                                             </div>
-                                            <div className="border-t mt-2 pt-2 flex justify-between font-semibold">
+                                            <div className="border-t mt-2 pt-2 flex justify-between font-semibold text-gray-900">
                                                 <span>Total:</span>
                                                 <span>Rs. {invoiceTotal.toLocaleString()}</span>
                                             </div>

@@ -25,7 +25,19 @@ interface Customer {
     name: string;
     email?: string;
     phone?: string;
-    address?: string;
+    address?: string | {
+        mainAddress?: string;
+        city?: string;
+        postalCode?: string;
+        contactPerson?: string;
+        contactPersonPhone?: string;
+        customerType?: string;
+        paymentType?: string;
+        creditLimit?: number | null;
+        creditPeriod?: number | null;
+        taxId?: string;
+        notes?: string;
+    };
     city?: string;
     postalCode?: string;
     contactPerson?: string;
@@ -410,12 +422,52 @@ export default function InvoiceDetail() {
                         <div className="grid grid-cols-2 gap-6">
                             <div>
                                 <h4 className="font-medium text-gray-700 mb-2">Bill To:</h4>
-                                <div className="text-gray-600">
+                                <div className="text-gray-900">
                                     <p className="font-medium">{invoice.customer.name}</p>
-                                    <p>{invoice.customer.address}</p>
-                                    {invoice.customer.city && invoice.customer.postalCode && (
-                                        <p>{invoice.customer.city}, {invoice.customer.postalCode}</p>
-                                    )}
+                                    {(() => {
+                                        // Handle different possible formats of address data
+                                        if (typeof invoice.customer.address === 'string') {
+                                            // Try to parse it as JSON if it starts with {
+                                            if (invoice.customer.address.trim().startsWith('{')) {
+                                                try {
+                                                    const addressObj = JSON.parse(invoice.customer.address);
+                                                    return (
+                                                        <>
+                                                            {addressObj.mainAddress && <p>{addressObj.mainAddress}</p>}
+                                                            {addressObj.city && <p>{addressObj.city}</p>}
+                                                            {addressObj.postalCode && <p>{addressObj.postalCode}</p>}
+                                                            {addressObj.contactPerson && <p>Contact: {addressObj.contactPerson}</p>}
+                                                        </>
+                                                    );
+                                                } catch (e) {
+                                                    // If parsing fails, treat as regular string
+                                                    return <p>{invoice.customer.address}</p>;
+                                                }
+                                            } else {
+                                                // Regular string address
+                                                return <p>{invoice.customer.address}</p>;
+                                            }
+                                        } else if (typeof invoice.customer.address === 'object' && invoice.customer.address !== null) {
+                                            // Object address
+                                            return (
+                                                <>
+                                                    {invoice.customer.address.mainAddress && <p>{invoice.customer.address.mainAddress}</p>}
+                                                    {invoice.customer.address.city && <p>{invoice.customer.address.city}</p>}
+                                                    {invoice.customer.address.postalCode && <p>{invoice.customer.address.postalCode}</p>}
+                                                    {invoice.customer.address.contactPerson && <p>Contact: {invoice.customer.address.contactPerson}</p>}
+                                                </>
+                                            );
+                                        } else {
+                                            // Fallback to top-level fields
+                                            return (
+                                                <>
+                                                    {invoice.customer.city && invoice.customer.postalCode && (
+                                                        <p>{invoice.customer.city}, {invoice.customer.postalCode}</p>
+                                                    )}
+                                                </>
+                                            );
+                                        }
+                                    })()}
                                     {invoice.customer.phone && <p>Phone: {invoice.customer.phone}</p>}
                                     {invoice.customer.email && <p>Email: {invoice.customer.email}</p>}
                                 </div>
