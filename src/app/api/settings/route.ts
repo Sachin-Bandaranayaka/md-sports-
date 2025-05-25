@@ -2,16 +2,44 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/utils/middleware';
 
-// GET: Retrieve all system settings
+// GET: Retrieve all system settings or a specific setting by key
 export async function GET(req: NextRequest) {
-    // Check for 'settings:manage' permission
-    const permissionError = await requirePermission('settings:manage')(req);
-    if (permissionError) {
-        return permissionError;
-    }
-
     try {
+        const { searchParams } = new URL(req.url);
+        const key = searchParams.get('key');
+
+        // If key is provided, return just that setting (no permission check for specific key)
+        if (key) {
+            console.log(`Fetching specific setting: ${key}`);
+            const setting = await prisma.systemSettings.findUnique({
+                where: { key }
+            });
+
+            if (!setting) {
+                console.log(`Setting not found: ${key}`);
+                return NextResponse.json({
+                    success: false,
+                    message: 'Setting not found'
+                }, { status: 404 });
+            }
+
+            console.log(`Setting found: ${key}, value length: ${setting.value?.length || 0}`);
+            return NextResponse.json({
+                success: true,
+                setting
+            });
+        }
+
+        // If fetching all settings, require permission
+        const permissionError = await requirePermission('settings:manage')(req);
+        if (permissionError) {
+            return permissionError;
+        }
+
+        // Otherwise return all settings
+        console.log('Fetching all settings');
         const settings = await prisma.systemSettings.findMany();
+        console.log(`Found ${settings.length} settings`);
 
         return NextResponse.json({
             success: true,
@@ -31,6 +59,7 @@ export async function POST(req: NextRequest) {
     // Check for 'settings:manage' permission
     const permissionError = await requirePermission('settings:manage')(req);
     if (permissionError) {
+        console.error('Permission denied for settings:manage');
         return permissionError;
     }
 
@@ -45,6 +74,8 @@ export async function POST(req: NextRequest) {
                 { status: 400 }
             );
         }
+
+        console.log(`Saving setting: ${key}, value length: ${value?.length || 0}`);
 
         // Check if setting exists
         const existingSetting = await prisma.systemSettings.findUnique({
@@ -61,6 +92,7 @@ export async function POST(req: NextRequest) {
                     description: description || existingSetting.description
                 }
             });
+            console.log(`Updated setting: ${key}`);
         } else {
             // Create new setting
             setting = await prisma.systemSettings.create({
@@ -70,6 +102,7 @@ export async function POST(req: NextRequest) {
                     description
                 }
             });
+            console.log(`Created new setting: ${key}`);
         }
 
         return NextResponse.json({

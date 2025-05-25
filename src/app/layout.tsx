@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/hooks/useAuth';
 import ApiInitializer from '@/components/ApiInitializer';
 import DevTools from '@/components/DevTools';
+import { ChatbotWrapper } from '@/components/chatbot/ChatbotWrapper';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -22,6 +23,7 @@ export default function RootLayout({
         <AuthProvider>
           <ApiInitializer />
           {children}
+          <ChatbotWrapper />
           <DevTools />
         </AuthProvider>
       </body>

@@ -20,7 +20,8 @@ import {
     ReceiptIcon,
     WalletIcon,
     ChevronDown,
-    ChevronRight
+    ChevronRight,
+    MessageSquare
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
@@ -52,6 +53,7 @@ const navItems: NavItem[] = [
     { icon: FileText, href: '/invoices', label: 'Invoices', requiredPermission: 'sales:view' },
     { icon: WalletIcon, href: '/accounting', label: 'Accounting', requiredPermission: 'sales:manage' },
     { icon: BarChart2, href: '/reports', label: 'Reports', requiredPermission: 'reports:view' },
+    { icon: MessageSquare, href: '/chatbot', label: 'AI Assistant' },
     { icon: Settings, href: '/settings', label: 'Settings', requiredPermission: 'settings:manage' },
 ];
 

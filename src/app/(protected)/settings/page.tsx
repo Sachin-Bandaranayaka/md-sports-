@@ -11,11 +11,12 @@ export default function SettingsPage() {
     const [settings, setSettings] = useState<Record<string, string>>({});
     const [testSmsStatus, setTestSmsStatus] = useState<{ success?: boolean; message?: string } | null>(null);
     const [testSmsPhone, setTestSmsPhone] = useState('');
+    const [testAiStatus, setTestAiStatus] = useState<{ success?: boolean; message?: string } | null>(null);
 
     // Set the active tab from URL query parameter if present
     useEffect(() => {
         const tab = searchParams.get('tab');
-        if (tab && ['general', 'users', 'shops', 'system', 'notifications'].includes(tab)) {
+        if (tab && ['general', 'users', 'shops', 'system', 'notifications', 'ai'].includes(tab)) {
             setActiveTab(tab);
         }
     }, [searchParams]);
@@ -49,6 +50,7 @@ export default function SettingsPage() {
         { id: 'shops', label: 'Shop Management' },
         { id: 'system', label: 'System Settings' },
         { id: 'notifications', label: 'Notifications' },
+        { id: 'ai', label: 'AI Assistant' },
     ];
 
     const handleInputChange = (key: string, value: string) => {
@@ -104,6 +106,9 @@ export default function SettingsPage() {
             'db_backup_schedule': 'Database backup schedule',
             'log_level': 'System log level',
             'maintenance_mode': 'Enable or disable maintenance mode',
+            'deepseek_api_key': 'API key for Deepseek AI services',
+            'ai_chatbot_enabled': 'Enable or disable AI chatbot',
+            'ai_business_context': 'Business context provided to the AI chatbot',
         };
 
         return descriptions[key] || '';
@@ -126,6 +131,76 @@ export default function SettingsPage() {
             'maintenance_mode': settings['maintenance_mode'] || 'false',
         };
         saveSettings(systemSettings);
+    };
+
+    const handleSaveAISettings = async () => {
+        const aiSettings = {
+            'deepseek_api_key': settings['deepseek_api_key'] || '',
+            'ai_chatbot_enabled': settings['ai_chatbot_enabled'] || 'true',
+            'ai_business_context': settings['ai_business_context'] || 'You are an AI assistant for MS Sports, an inventory management system. You can help with questions about inventory management, sales tracking, customer information, supplier relationships, product information, business performance, and system features and usage.',
+        };
+        await saveSettings(aiSettings);
+
+        // After saving, check if the settings were applied
+        if (settings['deepseek_api_key']) {
+            setTestAiStatus({
+                success: undefined,
+                message: 'Settings saved. Testing API key...'
+            });
+            await testAiConnection();
+        }
+    };
+
+    const testAiConnection = async () => {
+        try {
+            setTestAiStatus({
+                success: undefined,
+                message: 'Testing API connection...'
+            });
+
+            const response = await fetch('/api/test-settings');
+            const data = await response.json();
+
+            if (data.success && !data.isEmpty && data.valueLength > 0) {
+                // Try making an actual API call to test the key
+                const testResponse = await fetch('/api/chatbot', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        messages: [
+                            { role: 'user', content: 'Hello, this is a test message.' }
+                        ]
+                    }),
+                });
+
+                const testData = await testResponse.json();
+
+                if (testResponse.ok) {
+                    setTestAiStatus({
+                        success: true,
+                        message: 'API key is valid and working correctly!'
+                    });
+                } else {
+                    setTestAiStatus({
+                        success: false,
+                        message: `API test failed: ${testData.error || 'Unknown error'}`
+                    });
+                }
+            } else {
+                setTestAiStatus({
+                    success: false,
+                    message: 'API key is empty or not set correctly.'
+                });
+            }
+        } catch (error) {
+            console.error('Failed to test AI connection:', error);
+            setTestAiStatus({
+                success: false,
+                message: error instanceof Error ? error.message : 'Failed to test AI connection'
+            });
+        }
     };
 
     const handleSaveNotificationSettings = () => {
@@ -525,10 +600,10 @@ export default function SettingsPage() {
 
                                     {testSmsStatus && (
                                         <div className={`p-3 rounded-md ${testSmsStatus.success === undefined
-                                                ? 'bg-gray-100 text-gray-700'
-                                                : testSmsStatus.success
-                                                    ? 'bg-green-100 text-green-700'
-                                                    : 'bg-red-100 text-red-700'
+                                            ? 'bg-gray-100 text-gray-700'
+                                            : testSmsStatus.success
+                                                ? 'bg-green-100 text-green-700'
+                                                : 'bg-red-100 text-red-700'
                                             }`}>
                                             {testSmsStatus.message}
                                         </div>
@@ -583,6 +658,93 @@ export default function SettingsPage() {
                                 )}
                             </div>
                         </div>
+                    </div>
+                )}
+
+                {activeTab === 'ai' && (
+                    <div className="space-y-6">
+                        <h3 className="text-lg font-medium text-gray-900">AI Assistant Settings</h3>
+                        <p className="text-gray-500">
+                            Configure your AI assistant settings. The AI assistant helps users with inquiries about inventory, sales, customers, and more.
+                            <br />
+                            <span className="text-primary font-medium">
+                                This page is only accessible to users with the settings:manage permission.
+                            </span>
+                        </p>
+
+                        <div className="grid grid-cols-1 gap-6">
+                            <div className="space-y-2">
+                                <div className="flex justify-between">
+                                    <label className="block text-sm font-medium text-gray-700">Enable AI Chatbot</label>
+                                </div>
+                                <div className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        className="h-4 w-4 text-primary border-gray-300 rounded"
+                                        checked={settings['ai_chatbot_enabled'] === 'true'}
+                                        onChange={(e) => handleCheckboxChange('ai_chatbot_enabled', e.target.checked)}
+                                    />
+                                    <label className="ml-2 block text-sm text-gray-700">
+                                        Enable or disable the AI chatbot
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium text-gray-700">Deepseek API Key</label>
+                                <input
+                                    type="password"
+                                    className="w-full p-2 border border-gray-300 rounded-md"
+                                    value={settings['deepseek_api_key'] || ''}
+                                    onChange={(e) => handleInputChange('deepseek_api_key', e.target.value)}
+                                    placeholder="Enter your Deepseek API key"
+                                />
+                                <p className="text-xs text-gray-500">
+                                    Get your API key from <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Deepseek Platform</a>
+                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium text-gray-700">Business Context</label>
+                                <textarea
+                                    className="w-full p-2 border border-gray-300 rounded-md h-32"
+                                    placeholder="Enter AI business context here"
+                                    value={settings['ai_business_context'] || 'You are an AI assistant for MS Sports, an inventory management system. You can help with questions about inventory management, sales tracking, customer information, supplier relationships, product information, business performance, and system features and usage.'}
+                                    onChange={(e) => handleInputChange('ai_business_context', e.target.value)}
+                                />
+                                <p className="text-xs text-gray-500">
+                                    This context helps the AI understand your business and answer questions more accurately.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end mt-6 space-x-3">
+                            <button
+                                onClick={testAiConnection}
+                                disabled={isSaving || !settings['deepseek_api_key']}
+                                className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-50"
+                            >
+                                Test Connection
+                            </button>
+                            <button
+                                onClick={handleSaveAISettings}
+                                disabled={isSaving}
+                                className="bg-primary text-tertiary px-4 py-2 rounded-md hover:bg-primary-700 disabled:opacity-50"
+                            >
+                                {isSaving ? 'Saving...' : 'Save AI Settings'}
+                            </button>
+                        </div>
+
+                        {testAiStatus && (
+                            <div className={`p-4 mt-4 rounded-md ${testAiStatus.success === undefined
+                                ? 'bg-gray-100 text-gray-700'
+                                : testAiStatus.success
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-red-100 text-red-700'
+                                }`}>
+                                {testAiStatus.message}
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

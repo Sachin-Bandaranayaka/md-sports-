@@ -11,6 +11,7 @@ A comprehensive inventory management system for MD Sports, a retail business wit
 - SMS integration for notifications
 - Export features for reports (PDF and Excel)
 - AI integration using ChatGPT 4o-mini
+- AI chatbot for business inquiries and assistance powered by Deepseek
 
 ## Tech Stack
 
@@ -19,6 +20,7 @@ A comprehensive inventory management system for MD Sports, a retail business wit
 - **Database**: NeonDB (PostgreSQL-compatible)
 - **Authentication**: JWT-based token system with role-based permissions
 - **Deployment**: Cloud-based deployment
+- **AI**: Deepseek API for intelligent chatbot capabilities
 
 ## Getting Started
 
@@ -48,6 +50,7 @@ npm install
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=your_secret_here
 DATABASE_URL=your_neondb_connection_string
+DEEPSEEK_API_KEY=your_deepseek_api_key
 ```
 
 4. Start the development server:
@@ -57,6 +60,33 @@ npm run dev
 ```
 
 5. Open [http://localhost:3000](http://localhost:3000) to view the application.
+
+## AI Chatbot
+
+The system includes an AI-powered chatbot to assist users with:
+
+- Answering questions about inventory status
+- Providing sales information
+- Helping with customer inquiries
+- Explaining system features and usage
+- Offering business insights
+
+### Setting Up the Chatbot
+
+1. Get an API key from [Deepseek](https://platform.deepseek.com/api_keys)
+2. Add the API key to your `.env.local` file:
+   ```
+   DEEPSEEK_API_KEY=your_deepseek_api_key
+   ```
+3. The chatbot will automatically be available on all pages of the application
+4. You can also access the dedicated chatbot page at `/chatbot`
+
+### Customizing the Chatbot
+
+You can customize the chatbot's behavior by modifying:
+- The business context in the API route (`src/app/api/chatbot/route.ts`)
+- The UI components in the chatbot folder (`src/components/chatbot/`)
+- The available business information in the chatbot service (`src/services/chatbotService.ts`)
 
 ## Development Conventions
 
@@ -96,6 +126,7 @@ src/
 ├── components/       # Reusable components
 │   ├── ui/           # UI components
 │   ├── forms/        # Form components
+│   ├── chatbot/      # AI chatbot components
 │   └── layout/       # Layout components
 ├── contexts/         # React contexts
 ├── hooks/            # Custom hooks
