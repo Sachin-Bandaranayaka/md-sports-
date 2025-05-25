@@ -65,7 +65,7 @@ export default function Purchases() {
         };
 
         fetchData();
-    }, []);
+    }, [router]);
 
     // Filter invoices based on search term
     const filteredInvoices = purchaseInvoices.filter((invoice) =>

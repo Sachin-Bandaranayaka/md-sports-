@@ -269,58 +269,27 @@ export default function EditPurchaseInvoice() {
         index: number,
     ) => {
         const { name, value } = e.target;
-
         setFormData((prev) => {
-            const newItems = [...(prev.items || [])];
+            const updatedItems = [...(prev.items || [])];
+            updatedItems[index] = {
+                ...updatedItems[index],
+                [name]: value,
+            };
 
-            if (name === "productId" && value) {
-                // Check if products is an array before using find
-                const selectedProduct = Array.isArray(products)
-                    ? products.find((p) => p.id.toString() === value)
-                    : null;
-
-                if (selectedProduct) {
-                    newItems[index] = {
-                        ...newItems[index],
-                        productId: value,
-                        productName: selectedProduct.name,
-                        unitPrice: selectedProduct.weightedAverageCost || "",
-                    };
-
-                    // Recalculate subtotal
-                    const qty =
-                        newItems[index].quantity === ""
-                            ? 0
-                            : Number(newItems[index].quantity);
-                    const price =
-                        newItems[index].unitPrice === ""
-                            ? 0
-                            : Number(newItems[index].unitPrice);
-                    newItems[index].subtotal = qty * price;
-                }
-            } else {
-                newItems[index] = {
-                    ...newItems[index],
-                    [name]: value,
-                };
-
-                // Recalculate subtotal if quantity or unitPrice changed
-                if (name === "quantity" || name === "unitPrice") {
-                    const qty =
-                        newItems[index].quantity === ""
-                            ? 0
-                            : Number(newItems[index].quantity);
-                    const price =
-                        newItems[index].unitPrice === ""
-                            ? 0
-                            : Number(newItems[index].unitPrice);
-                    newItems[index].subtotal = qty * price;
-                }
+            // Recalculate subtotal if quantity or unitPrice changes
+            if (name === 'quantity' || name === 'unitPrice') {
+                const quantity = name === 'quantity'
+                    ? parseFloat(value) || 0
+                    : parseFloat(updatedItems[index].quantity as string) || 0;
+                const unitPrice = name === 'unitPrice'
+                    ? parseFloat(value) || 0
+                    : parseFloat(updatedItems[index].unitPrice as string) || 0;
+                updatedItems[index].subtotal = quantity * unitPrice;
             }
 
             return {
                 ...prev,
-                items: newItems,
+                items: updatedItems,
             };
         });
     };
@@ -472,6 +441,7 @@ export default function EditPurchaseInvoice() {
                 status: formattedData.status,
                 date: formattedData.date,
                 dueDate: formattedData.dueDate || null,
+                totalAmount: Number(formattedData.totalAmount),
                 total: Number(formattedData.totalAmount),
                 distributions,
                 items: processedItems,
@@ -503,7 +473,7 @@ export default function EditPurchaseInvoice() {
             }
 
             // Navigate back to purchases list
-            router.push("/purchases");
+            router.push("/purchases", { forceRefresh: true });
         } catch (err) {
             console.error("Error updating purchase invoice:", err);
             setError("Failed to update purchase invoice. Please try again.");

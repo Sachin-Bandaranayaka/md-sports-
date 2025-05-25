@@ -93,7 +93,13 @@ export async function PUT(
         if (dirtyData.status) cleanedInvoiceData.status = dirtyData.status;
         if (dirtyData.date) cleanedInvoiceData.date = new Date(dirtyData.date);
         if (dirtyData.dueDate !== undefined) cleanedInvoiceData.dueDate = dirtyData.dueDate ? new Date(dirtyData.dueDate) : null;
-        if (dirtyData.totalAmount !== undefined) cleanedInvoiceData.total = Number(dirtyData.totalAmount);
+
+        // Handle total amount field with proper priority
+        if (dirtyData.totalAmount !== undefined) {
+            cleanedInvoiceData.total = Number(dirtyData.totalAmount);
+        } else if (dirtyData.total !== undefined) {
+            cleanedInvoiceData.total = Number(dirtyData.total);
+        }
 
         // Store new distributions if provided, otherwise keep original or set to null
         cleanedInvoiceData.distributions = newDistributionsData !== undefined ? newDistributionsData : originalPurchase.distributions;
@@ -285,12 +291,16 @@ export async function PUT(
                 }
             }
 
-            // Return the updated purchase with items
-            return tx.purchaseInvoice.findUnique({
+            // Return the full updated invoice with all related data
+            return await tx.purchaseInvoice.findUnique({
                 where: { id: purchaseId },
                 include: {
                     supplier: true,
-                    items: { include: { product: true } }
+                    items: {
+                        include: {
+                            product: true
+                        }
+                    }
                 }
             });
         }, { timeout: 30000 }); // Increased timeout for complex transaction
