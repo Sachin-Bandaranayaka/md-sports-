@@ -121,7 +121,12 @@ export default function DashboardPage() {
                         setSummaryData(prevData =>
                             prevData.map(item =>
                                 item.title === 'Total Retail Value'
-                                    ? { ...item, value: retailValueJson.formattedValue, trend: '+0%', trendUp: false } // Update placeholder, add basic trend
+                                    ? {
+                                        ...item,
+                                        value: retailValueJson.formattedValue,
+                                        trend: retailValueJson.trend,
+                                        trendUp: retailValueJson.trendUp
+                                    }
                                     : item
                             )
                         );

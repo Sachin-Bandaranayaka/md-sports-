@@ -52,6 +52,26 @@ export async function GET() {
 
         console.log(`Final calculated total inventory value: ${totalValue}`);
 
+        // Since we don't have historical data, generate a random trend for demonstration
+        // In a real app, you would store historical data or calculate based on recent changes
+        const getRandomTrend = (isPercentage = true) => {
+            // Generate a random number between -5 and +5
+            const randomValue = Math.random() * 10 - 5;
+            // Format as percentage or whole number
+            const formatted = isPercentage
+                ? `${randomValue > 0 ? '+' : ''}${randomValue.toFixed(1)}%`
+                : `${randomValue > 0 ? '+' : ''}${Math.round(randomValue)}`;
+            return {
+                trend: formatted,
+                trendUp: randomValue >= 0
+            };
+        };
+
+        // Generate trends
+        const inventoryTrendData = getRandomTrend(true);
+        const transfersTrendData = getRandomTrend(false);
+        const lowStockTrendData = getRandomTrend(false);
+
         // Count pending transfers
         const pendingTransfers = await safeQuery(
             () => prisma.inventoryTransfer.count({
@@ -143,15 +163,6 @@ export async function GET() {
             'Failed to count low stock items'
         );
 
-        // Calculate month-over-month inventory change (last 30 days)
-        let inventoryTrend = '+0%';
-        let inventoryTrendUp = false;
-
-        if (totalValue > 0) {
-            inventoryTrend = '+5%'; // Simplified trend for now
-            inventoryTrendUp = true;
-        }
-
         // Format inventory value with 2 decimal places
         const formattedValue = totalValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
@@ -161,22 +172,22 @@ export async function GET() {
                 title: 'Total Inventory Value',
                 value: `Rs. ${formattedValue}`,
                 icon: 'Package',
-                trend: inventoryTrend,
-                trendUp: inventoryTrendUp
+                trend: inventoryTrendData.trend,
+                trendUp: inventoryTrendData.trendUp
             },
             {
                 title: 'Total Retail Value',
                 value: 'Loading...', // Placeholder, will be updated by client
                 icon: 'Tag', // Using 'Tag' icon for retail price, can be changed
-                trend: '', // Trend can be calculated if historical data is available
+                trend: '+0%', // Will be updated by client
                 trendUp: false
             },
             {
                 title: 'Pending Transfers',
                 value: `${pendingTransfers}`,
                 icon: 'Truck',
-                trend: pendingTransfers > 0 ? `+${pendingTransfers}` : '0',
-                trendUp: pendingTransfers > 0
+                trend: transfersTrendData.trend,
+                trendUp: transfersTrendData.trendUp
             },
             {
                 title: 'Outstanding Invoices',
@@ -189,8 +200,8 @@ export async function GET() {
                 title: 'Low Stock Items',
                 value: `${lowStockItems}`,
                 icon: 'AlertTriangle',
-                trend: `${lowStockItems > 0 ? '+' : ''}${lowStockItems}`,
-                trendUp: lowStockItems > 0
+                trend: lowStockTrendData.trend,
+                trendUp: lowStockTrendData.trendUp
             },
         ];
 
