@@ -4,40 +4,43 @@ import prisma from '@/lib/prisma';
 // GET: Fetch all shops
 export async function GET(request: NextRequest) {
     try {
+        // Temporarily fetch only basic shop data for diagnostics
         const shops = await prisma.shop.findMany({
             orderBy: {
                 name: 'asc'
-            },
-            include: {
-                manager: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                        phone: true
-                    }
-                },
-                inventoryItems: true // Just include the full inventory items
             }
+            // Temporarily removed includes:
+            // include: {
+            //     manager: {
+            //         select: {
+            //             id: true,
+            //             name: true,
+            //             email: true,
+            //             phone: true
+            //         }
+            //     },
+            //     inventoryItems: true 
+            // }
         });
 
-        // Add inventory count to each shop
-        const shopsWithCounts = shops.map(shop => {
-            return {
-                ...shop,
-                total_inventory: shop.inventoryItems.length,
-                inventoryItems: undefined // Remove the raw inventory items
-            };
-        });
+        // Temporarily return shops directly without counts or modification
+        // const shopsWithCounts = shops.map(shop => {
+        //     return {
+        //         ...shop,
+        //         total_inventory: shop.inventoryItems ? shop.inventoryItems.length : 0, // Added a check for safety
+        //         inventoryItems: undefined 
+        //     };
+        // });
 
         return NextResponse.json({
             success: true,
-            data: shopsWithCounts
+            // data: shopsWithCounts // Return simplified data for now
+            data: shops
         });
     } catch (error) {
-        console.error('Error fetching shops:', error);
+        console.error('Error fetching shops (simplified):', error);
         return NextResponse.json(
-            { success: false, message: 'Failed to fetch shops' },
+            { success: false, message: 'Failed to fetch shops (simplified)' },
             { status: 500 }
         );
     }
