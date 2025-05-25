@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react'; import { useRouter, useParams } from 'next/navigation'; import MainLayout from '@/components/layout/MainLayout'; import { Button } from '@/components/ui/Button'; import { Printer, ArrowLeft, Edit, Trash2, CheckCircle, Clock, AlertTriangle, Download } from 'lucide-react'; import { useReactToPrint } from 'react-to-print'; import { formatCurrency } from '@/utils/formatters'; import { generateInvoicePDF } from '@/utils/pdfGenerator';
+import { useEffect, useState, useRef } from 'react'; import { useRouter, useParams } from 'next/navigation'; import MainLayout from '@/components/layout/MainLayout'; import { Button } from '@/components/ui/Button'; import { Printer, ArrowLeft, Edit, Trash2, CheckCircle, Clock, AlertTriangle, Download, Bell } from 'lucide-react'; import { useReactToPrint } from 'react-to-print'; import { formatCurrency } from '@/utils/formatters'; import { generateInvoicePDF } from '@/utils/pdfGenerator';
 
 // Invoice and related interfaces
 interface Product {
@@ -103,6 +103,8 @@ export default function InvoiceDetail() {
     const [error, setError] = useState<string | null>(null);
     const [confirmDelete, setConfirmDelete] = useState(false);
     const printRef = useRef<HTMLDivElement>(null);
+    const [isSendingSms, setIsSendingSms] = useState(false);
+    const [smsStatus, setSmsStatus] = useState<{ success: boolean; message: string } | null>(null);
 
     const handlePrint = useReactToPrint({
         content: () => printRef.current,
@@ -180,6 +182,39 @@ export default function InvoiceDetail() {
 
         // Generate PDF client-side
         generateInvoicePDF(invoice);
+    };
+
+    // Handle sending SMS notification
+    const handleSendSms = async () => {
+        if (!invoice) return;
+
+        setIsSendingSms(true);
+        setSmsStatus(null);
+
+        try {
+            const response = await fetch('/api/sms/invoice', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ invoiceId: invoice.id }),
+            });
+
+            const result = await response.json();
+
+            setSmsStatus({
+                success: response.ok,
+                message: result.message || (response.ok ? 'SMS sent successfully' : 'Failed to send SMS')
+            });
+        } catch (error) {
+            console.error('Error sending SMS:', error);
+            setSmsStatus({
+                success: false,
+                message: 'Error sending SMS. Please try again.'
+            });
+        } finally {
+            setIsSendingSms(false);
+        }
     };
 
     if (loading) {
@@ -313,6 +348,16 @@ export default function InvoiceDetail() {
                             Edit
                         </Button>
 
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleSendSms}
+                            disabled={isSendingSms}
+                        >
+                            <Bell className="w-4 h-4 mr-2" />
+                            {isSendingSms ? 'Sending...' : 'Send SMS'}
+                        </Button>
+
                         {confirmDelete ? (
                             <>
                                 <Button
@@ -351,6 +396,20 @@ export default function InvoiceDetail() {
                         </Button>
                     </div>
                 </div>
+
+                {/* SMS Status Message */}
+                {smsStatus && (
+                    <div className={`mb-4 p-3 rounded-md ${smsStatus.success ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>
+                        <p className="text-sm flex items-center">
+                            {smsStatus.success ? (
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                            ) : (
+                                <AlertTriangle className="w-4 h-4 mr-2" />
+                            )}
+                            {smsStatus.message}
+                        </p>
+                    </div>
+                )}
 
                 {/* Status and Payment */}
                 <div className="bg-tertiary p-4 rounded-lg shadow-sm border border-gray-200 mb-6">

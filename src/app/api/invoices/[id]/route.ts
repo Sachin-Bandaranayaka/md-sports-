@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { smsService } from '@/services/smsService';
 
 export async function GET(
     request: Request,
@@ -64,7 +65,8 @@ export async function PUT(
             );
         }
 
-        const invoiceData = await request.json();
+        const requestData = await request.json();
+        const { sendSms, ...invoiceData } = requestData;
 
         // Update invoice with transaction to handle items
         const updatedInvoice = await prisma.$transaction(
@@ -130,6 +132,30 @@ export async function PUT(
             },
             { timeout: 30000 }
         );
+
+        // Send SMS notification if requested
+        if (sendSms) {
+            try {
+                await smsService.init();
+                if (smsService.isConfigured()) {
+                    // Send SMS notification asynchronously
+                    smsService.sendInvoiceNotification(id)
+                        .then(result => {
+                            if (result.status >= 200 && result.status < 300) {
+                                console.log('SMS notification sent successfully');
+                            } else {
+                                console.warn('Failed to send SMS notification:', result.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error sending SMS notification:', error);
+                        });
+                }
+            } catch (smsError) {
+                // Log SMS error but don't fail the request
+                console.error('SMS notification error:', smsError);
+            }
+        }
 
         return NextResponse.json({
             success: true,

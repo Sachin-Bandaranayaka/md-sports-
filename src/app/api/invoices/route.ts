@@ -52,6 +52,8 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const invoiceData = await request.json();
+        // Extract the sendSms flag
+        const { sendSms, ...invoiceDetails } = invoiceData;
 
         // Create new invoice using Prisma within a transaction
         const invoice = await prisma.$transaction(
@@ -59,17 +61,17 @@ export async function POST(request: Request) {
                 // Create the invoice first
                 const createdInvoice = await tx.invoice.create({
                     data: {
-                        invoiceNumber: invoiceData.invoiceNumber,
-                        customerId: invoiceData.customerId,
-                        total: invoiceData.total,
-                        status: invoiceData.status || 'Pending',
-                        paymentMethod: invoiceData.paymentMethod || 'Cash',
+                        invoiceNumber: invoiceDetails.invoiceNumber,
+                        customerId: invoiceDetails.customerId,
+                        total: invoiceDetails.total,
+                        status: invoiceDetails.status || 'Pending',
+                        paymentMethod: invoiceDetails.paymentMethod || 'Cash',
                     },
                 });
 
                 // Process each item and update inventory
-                if (invoiceData.items && Array.isArray(invoiceData.items)) {
-                    for (const item of invoiceData.items) {
+                if (invoiceDetails.items && Array.isArray(invoiceDetails.items)) {
+                    for (const item of invoiceDetails.items) {
                         // Create invoice item
                         await tx.invoiceItem.create({
                             data: {
@@ -134,26 +136,28 @@ export async function POST(request: Request) {
             { timeout: 30000 }
         );
 
-        // Check if SMS notifications are enabled and send invoice notification
-        try {
-            await smsService.init();
-            if (smsService.isConfigured()) {
-                // Send SMS notification asynchronously
-                smsService.sendInvoiceNotification(invoice.id)
-                    .then(result => {
-                        if (result.status >= 200 && result.status < 300) {
-                            console.log('SMS notification sent successfully');
-                        } else {
-                            console.warn('Failed to send SMS notification:', result.message);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error sending SMS notification:', error);
-                    });
+        // Send SMS notification only if sendSms flag is true
+        if (sendSms) {
+            try {
+                await smsService.init();
+                if (smsService.isConfigured()) {
+                    // Send SMS notification asynchronously
+                    smsService.sendInvoiceNotification(invoice.id)
+                        .then(result => {
+                            if (result.status >= 200 && result.status < 300) {
+                                console.log('SMS notification sent successfully');
+                            } else {
+                                console.warn('Failed to send SMS notification:', result.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error sending SMS notification:', error);
+                        });
+                }
+            } catch (smsError) {
+                // Log SMS error but don't fail the request
+                console.error('SMS notification error:', smsError);
             }
-        } catch (smsError) {
-            // Log SMS error but don't fail the request
-            console.error('SMS notification error:', smsError);
         }
 
         return NextResponse.json(

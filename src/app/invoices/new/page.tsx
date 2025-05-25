@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { ArrowLeft, Save, Plus, Trash2, ChevronDown, ChevronUp, Search } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, ChevronDown, ChevronUp, Search, Bell } from 'lucide-react';
 
 // Interface for Customer in dropdown
 interface Customer {
@@ -61,6 +61,7 @@ export default function CreateInvoice() {
     const [quantity, setQuantity] = useState<number>(1);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [productStock, setProductStock] = useState<number | null>(null);
+    const [sendSms, setSendSms] = useState<boolean>(true);
 
     const [formData, setFormData] = useState<InvoiceFormData>({
         customerId: 0,
@@ -304,7 +305,9 @@ export default function CreateInvoice() {
                     quantity: item.quantity,
                     price: item.price,
                     total: item.total
-                }))
+                })),
+                // Include the sendSms flag in the API request
+                sendSms: sendSms
             };
 
             // Create invoice via API
@@ -704,6 +707,19 @@ export default function CreateInvoice() {
 
                         {/* Form Actions */}
                         <div className="flex justify-end gap-3 pt-4 border-t">
+                            <div className="flex items-center mr-auto">
+                                <input
+                                    type="checkbox"
+                                    id="sendSms"
+                                    checked={sendSms}
+                                    onChange={(e) => setSendSms(e.target.checked)}
+                                    className="mr-2 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                />
+                                <label htmlFor="sendSms" className="flex items-center text-sm text-gray-700">
+                                    <Bell className="w-4 h-4 mr-1 text-gray-500" />
+                                    Send SMS notification to customer
+                                </label>
+                            </div>
                             <Button
                                 type="button"
                                 variant="outline"
