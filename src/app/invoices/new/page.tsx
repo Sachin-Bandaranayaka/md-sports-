@@ -43,6 +43,7 @@ interface InvoiceFormData {
     dueDate: string;
     notes: string;
     status: 'Draft' | 'Pending' | 'Paid' | 'Overdue';
+    paymentMethod: 'Cash' | 'Credit' | 'Card' | 'Bank';
     items: InvoiceItem[];
 }
 
@@ -66,6 +67,7 @@ export default function CreateInvoice() {
         dueDate: '', // Will be calculated based on customer
         notes: '',
         status: 'Pending', // Will be determined based on customer
+        paymentMethod: 'Cash',
         items: []
     });
 
@@ -264,6 +266,7 @@ export default function CreateInvoice() {
                 customerId: formData.customerId,
                 total: invoiceTotal,
                 status: formData.status,
+                paymentMethod: formData.paymentMethod,
                 notes: formData.notes,
                 invoiceDate: formData.invoiceDate,
                 dueDate: formData.dueDate,
@@ -378,6 +381,22 @@ export default function CreateInvoice() {
                                         <p className="text-xs text-gray-500 mt-1">
                                             Due date is calculated based on customer's credit period
                                         </p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Payment Method
+                                        </label>
+                                        <select
+                                            name="paymentMethod"
+                                            value={formData.paymentMethod}
+                                            onChange={handleInputChange}
+                                            className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
+                                        >
+                                            <option value="Cash">Cash</option>
+                                            <option value="Credit">Credit</option>
+                                            <option value="Card">Card</option>
+                                            <option value="Bank">Bank</option>
+                                        </select>
                                     </div>
                                 </div>
                             </div>

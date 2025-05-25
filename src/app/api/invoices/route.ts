@@ -63,6 +63,7 @@ export async function POST(request: Request) {
                         customerId: invoiceData.customerId,
                         total: invoiceData.total,
                         status: invoiceData.status || 'Pending',
+                        paymentMethod: invoiceData.paymentMethod || 'Cash',
                     },
                 });
 

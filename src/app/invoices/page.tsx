@@ -13,6 +13,7 @@ interface Invoice {
     customerId: number;
     total: number;
     status: string;
+    paymentMethod: string;
     createdAt: Date;
     updatedAt: Date;
     // Relations and UI fields
@@ -39,6 +40,10 @@ const getStatusBadgeClass = (status: string) => {
 export default function Invoices() {
     const [loading, setLoading] = useState<boolean>(true);
     const [invoices, setInvoices] = useState<Invoice[]>([]);
+    const [filteredInvoices, setFilteredInvoices] = useState<Invoice[]>([]);
+    const [statusFilter, setStatusFilter] = useState<string>('');
+    const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('');
+    const [searchQuery, setSearchQuery] = useState<string>('');
     const [statistics, setStatistics] = useState({
         totalOutstanding: 0,
         paidThisMonth: 0,
@@ -48,6 +53,42 @@ export default function Invoices() {
     useEffect(() => {
         fetchInvoices();
     }, []);
+
+    // Apply filters whenever filter states change
+    useEffect(() => {
+        applyFilters();
+    }, [invoices, statusFilter, paymentMethodFilter, searchQuery]);
+
+    // Filter function
+    const applyFilters = () => {
+        let result = [...invoices];
+
+        // Apply status filter
+        if (statusFilter) {
+            result = result.filter(invoice =>
+                invoice.status.toLowerCase() === statusFilter.toLowerCase()
+            );
+        }
+
+        // Apply payment method filter
+        if (paymentMethodFilter) {
+            result = result.filter(invoice =>
+                invoice.paymentMethod === paymentMethodFilter
+            );
+        }
+
+        // Apply search query
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            result = result.filter(invoice =>
+                invoice.invoiceNumber.toLowerCase().includes(query) ||
+                invoice.customerName?.toLowerCase().includes(query) ||
+                String(invoice.total).includes(query)
+            );
+        }
+
+        setFilteredInvoices(result);
+    };
 
     async function fetchInvoices() {
         try {
@@ -116,6 +157,7 @@ export default function Invoices() {
             console.log("Formatted invoices:", formattedInvoices);
 
             setInvoices(formattedInvoices);
+            setFilteredInvoices(formattedInvoices);
             setStatistics({
                 totalOutstanding: outstanding,
                 paidThisMonth,
@@ -263,14 +305,31 @@ export default function Invoices() {
                                 type="text"
                                 className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full pl-10 p-2.5"
                                 placeholder="Search invoices..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
                         <div className="flex gap-2">
-                            <select className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5">
+                            <select
+                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5"
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                            >
                                 <option value="">All Status</option>
-                                <option value="paid">Paid</option>
-                                <option value="pending">Pending</option>
-                                <option value="overdue">Overdue</option>
+                                <option value="Paid">Paid</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Overdue">Overdue</option>
+                            </select>
+                            <select
+                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5"
+                                value={paymentMethodFilter}
+                                onChange={(e) => setPaymentMethodFilter(e.target.value)}
+                            >
+                                <option value="">All Payment Methods</option>
+                                <option value="Cash">Cash</option>
+                                <option value="Credit">Credit</option>
+                                <option value="Card">Card</option>
+                                <option value="Bank">Bank</option>
                             </select>
                             <input
                                 type="date"
@@ -295,18 +354,19 @@ export default function Invoices() {
                         <table className="w-full text-sm text-left text-gray-500">
                             <thead className="text-xs text-gray-700 uppercase bg-gray-50">
                                 <tr>
-                                    <th className="px-6 py-3">Invoice #</th>
-                                    <th className="px-6 py-3">Customer</th>
-                                    <th className="px-6 py-3">Date</th>
-                                    <th className="px-6 py-3">Due Date</th>
-                                    <th className="px-6 py-3">Amount</th>
-                                    <th className="px-6 py-3">Items</th>
-                                    <th className="px-6 py-3">Status</th>
-                                    <th className="px-6 py-3">Actions</th>
+                                    <th className="px-6 py-3 text-gray-900">Invoice #</th>
+                                    <th className="px-6 py-3 text-gray-900">Customer</th>
+                                    <th className="px-6 py-3 text-gray-900">Date</th>
+                                    <th className="px-6 py-3 text-gray-900">Due Date</th>
+                                    <th className="px-6 py-3 text-gray-900">Amount</th>
+                                    <th className="px-6 py-3 text-gray-900">Items</th>
+                                    <th className="px-6 py-3 text-gray-900">Payment Method</th>
+                                    <th className="px-6 py-3 text-gray-900">Status</th>
+                                    <th className="px-6 py-3 text-gray-900">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {invoices.length > 0 ? invoices.map((invoice) => (
+                                {filteredInvoices.length > 0 ? filteredInvoices.map((invoice) => (
                                     <tr key={invoice.id} className="border-b hover:bg-gray-50">
                                         <td className="px-6 py-4 font-medium text-primary">
                                             <a href={`/invoices/${invoice.id}`} className="hover:underline">
@@ -320,6 +380,7 @@ export default function Invoices() {
                                         <td className="px-6 py-4">{invoice.dueDate}</td>
                                         <td className="px-6 py-4 font-medium">Rs. {invoice.total.toLocaleString()}</td>
                                         <td className="px-6 py-4">{invoice.items} items</td>
+                                        <td className="px-6 py-4">{invoice.paymentMethod || 'Cash'}</td>
                                         <td className="px-6 py-4">
                                             <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(invoice.status)}`}>
                                                 {invoice.status}
@@ -360,7 +421,7 @@ export default function Invoices() {
                                     </tr>
                                 )) : (
                                     <tr>
-                                        <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
+                                        <td colSpan={9} className="px-6 py-4 text-center text-gray-500">
                                             No invoices found
                                         </td>
                                     </tr>
@@ -370,7 +431,7 @@ export default function Invoices() {
                     </div>
                     <div className="flex items-center justify-between p-4 border-t">
                         <div className="text-sm text-gray-700">
-                            Showing <span className="font-medium">1</span> to <span className="font-medium">{invoices.length}</span> of <span className="font-medium">{invoices.length}</span> invoices
+                            Showing <span className="font-medium">1</span> to <span className="font-medium">{filteredInvoices.length}</span> of <span className="font-medium">{filteredInvoices.length}</span> invoices
                         </div>
                         <div className="flex gap-2">
                             <Button variant="outline" size="sm" disabled>Previous</Button>
