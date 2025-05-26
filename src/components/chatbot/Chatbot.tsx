@@ -7,8 +7,11 @@ import { ChatMessage } from './ChatMessage';
 import { chatbotService, ChatMessage as ChatMessageType } from '@/services/chatbotService';
 import Link from 'next/link';
 
-export function Chatbot() {
-    const [isOpen, setIsOpen] = useState(false);
+interface ChatbotProps {
+    onClose: () => void;
+}
+
+export function Chatbot({ onClose }: ChatbotProps) {
     const [messages, setMessages] = useState<ChatMessageType[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -23,12 +26,12 @@ export function Chatbot() {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-    // Check API key validity when chat is opened
+    // Check API key validity when component mounts
     useEffect(() => {
-        if (isOpen && hasValidConfig === null) {
+        if (hasValidConfig === null) {
             checkApiKeyValidity();
         }
-    }, [isOpen, hasValidConfig]);
+    }, [hasValidConfig]);
 
     const checkApiKeyValidity = async () => {
         try {
@@ -128,19 +131,6 @@ export function Chatbot() {
         }
     };
 
-    // If chatbot is closed, show only the trigger button
-    if (!isOpen) {
-        return (
-            <button
-                onClick={() => setIsOpen(true)}
-                className="fixed bottom-6 right-6 p-4 bg-primary text-white rounded-full shadow-lg hover:bg-primary-700 transition-colors"
-                aria-label="Open chatbot"
-            >
-                <MessageSquare size={24} />
-            </button>
-        );
-    }
-
     return (
         <div className="fixed bottom-6 right-6 w-80 sm:w-96 h-[500px] bg-white rounded-lg shadow-xl flex flex-col border border-gray-200 z-50">
             {/* Header */}
@@ -167,7 +157,7 @@ export function Chatbot() {
                         </button>
                     )}
                     <button
-                        onClick={() => setIsOpen(false)}
+                        onClick={onClose}
                         className="text-gray-500 hover:text-gray-700"
                         aria-label="Close chatbot"
                     >

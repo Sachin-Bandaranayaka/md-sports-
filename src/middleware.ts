@@ -34,6 +34,24 @@ const API_ROUTES = [
     '/api/auth/refresh',
 ];
 
+// Static assets and paths to skip middleware processing
+const SKIP_PATHS = [
+    '/_next',
+    '/images',
+    '/favicon.ico',
+    '/robots.txt',
+    '/manifest.json',
+    '/sitemap.xml',
+    '.svg',
+    '.png',
+    '.jpg',
+    '.jpeg',
+    '.gif',
+    '.webp',
+    '.css',
+    '.js',
+];
+
 // Function to clean up expired rate limit entries
 const cleanupRateLimitStore = () => {
     const now = Date.now();
@@ -50,19 +68,28 @@ if (typeof setInterval !== 'undefined') {
 }
 
 export function middleware(request: NextRequest) {
-    const response = NextResponse.next();
+    const pathname = request.nextUrl.pathname;
+
+    // Skip middleware for static assets and non-critical paths
+    if (SKIP_PATHS.some(path => pathname.startsWith(path) || pathname.endsWith(path)) ||
+        pathname.startsWith('/_next') ||  // Skip Next.js internal paths
+        pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|css|js)$/)) { // Skip static files
+        return NextResponse.next();
+    }
 
     // Skip middleware in development if needed
     if (process.env.NODE_ENV === 'development' && process.env.SKIP_MIDDLEWARE === 'true') {
-        return response;
+        return NextResponse.next();
     }
+
+    const response = NextResponse.next();
 
     // Get IP address for rate limiting
     const ip = request.ip || 'unknown';
 
     // Only rate limit specific API endpoints
     const isRateLimitedRoute = API_ROUTES.some(route =>
-        request.nextUrl.pathname.startsWith(route)
+        pathname.startsWith(route)
     );
 
     if (isRateLimitedRoute) {
@@ -110,20 +137,22 @@ export function middleware(request: NextRequest) {
         }
     }
 
-    // Set security headers for all responses
-    response.headers.set('X-Content-Type-Options', 'nosniff');
-    response.headers.set('X-Frame-Options', 'DENY');
-    response.headers.set('X-XSS-Protection', '1; mode=block');
-    response.headers.set('Referrer-Policy', 'same-origin');
+    // Set security headers only for HTML responses, not for API or assets
+    if (!pathname.startsWith('/api/') && !pathname.includes('.')) {
+        response.headers.set('X-Content-Type-Options', 'nosniff');
+        response.headers.set('X-Frame-Options', 'DENY');
+        response.headers.set('X-XSS-Protection', '1; mode=block');
+        response.headers.set('Referrer-Policy', 'same-origin');
+    }
 
-    // Add CSRF protection
+    // Add CSRF protection only for non-GET methods that are not static assets
     if (request.method !== 'GET' && request.method !== 'HEAD') {
         const csrfTokenFromCookie = request.cookies.get('csrfToken')?.value;
         const csrfTokenFromHeader = request.headers.get('X-CSRF-Token');
 
         // Skip CSRF check for login and initial auth routes
         const isAuthRoute = ['/api/auth/login', '/api/auth/register'].some(
-            route => request.nextUrl.pathname.startsWith(route)
+            route => pathname.startsWith(route)
         );
 
         if (!isAuthRoute && (!csrfTokenFromCookie || csrfTokenFromHeader !== csrfTokenFromCookie)) {
@@ -140,7 +169,12 @@ export function middleware(request: NextRequest) {
     }
 
     // For GET requests to pages, set a new CSRF token if one doesn't exist
-    if (request.method === 'GET' && !request.nextUrl.pathname.startsWith('/api/')) {
+    // Only do this for HTML page requests, not for assets or API calls
+    if (request.method === 'GET' &&
+        !pathname.startsWith('/api/') &&
+        !pathname.includes('.') &&
+        !pathname.startsWith('/_next')) {
+
         const currentToken = request.cookies.get('csrfToken')?.value;
         if (!currentToken) {
             const csrfToken = generateUUID();
@@ -162,7 +196,9 @@ export function middleware(request: NextRequest) {
 export const config = {
     matcher: [
         // Apply the middleware to all API routes and page routes
+        // Exclude static assets and _next directory
         '/api/:path*',
-        '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'
+        '/:path*',
+        '/:path*/:subpath*',
     ],
 }; 

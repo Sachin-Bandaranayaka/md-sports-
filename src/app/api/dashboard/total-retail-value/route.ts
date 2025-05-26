@@ -1,47 +1,69 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma, safeQuery } from '@/lib/prisma';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
-        // Direct SQL query to calculate total retail inventory value
-        const result = await prisma.$queryRaw`
-            SELECT SUM(i.quantity * p.price) as total_retail_value
-            FROM "InventoryItem" i
-            JOIN "Product" p ON i."productId" = p.id
-        `;
+        // Get all inventory items
+        const inventoryItems = await prisma.inventoryItem.findMany();
 
-        // Log the raw result
-        console.log('Raw total retail value result:', result);
+        // Get all products to access their retail prices
+        const productIds = inventoryItems.map(item => item.productId);
+        const products = await prisma.product.findMany({
+            where: {
+                id: {
+                    in: productIds
+                }
+            },
+            select: {
+                id: true,
+                name: true,
+                price: true  // This is the retail price
+            }
+        });
 
-        // Extract the value from the result
-        const totalRetailValue = result[0]?.total_retail_value || 0;
-        console.log('Extracted total retail value:', totalRetailValue);
+        // Create a map of product ID to product data for easy lookup
+        const productMap = new Map();
+        products.forEach(product => {
+            productMap.set(product.id, product);
+        });
 
-        // Since we don't have historical data, we'll use a simplified approach
-        // We'll assume a small random change for demonstration purposes
-        // In a real app, you would store historical data or calculate based on recent changes
+        // Calculate total retail value
+        let totalRetailValue = 0;
+        let previousPeriodValue = 0;  // For comparison with previous period
 
-        // Generate a random percentage between -5% and +5%
-        const randomPercentage = (Math.random() * 10 - 5).toFixed(1);
-        const retailTrend = `${randomPercentage > 0 ? '+' : ''}${randomPercentage}%`;
-        const retailTrendUp = parseFloat(randomPercentage) >= 0;
+        // Process each inventory item
+        inventoryItems.forEach(item => {
+            const product = productMap.get(item.productId);
+            if (product && item.quantity > 0) {
+                const retailPrice = product.price || 0;
+                const itemRetailValue = retailPrice * item.quantity;
+                totalRetailValue += itemRetailValue;
+            }
+        });
 
-        // Format the value
-        const formattedValue = Number(totalRetailValue).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        // For demo purposes, let's assume previous value was 5% less
+        // In a real app, you would fetch historical data
+        previousPeriodValue = totalRetailValue * 0.95;
+
+        // Calculate trend
+        const difference = totalRetailValue - previousPeriodValue;
+        const percentChange = (difference / previousPeriodValue) * 100;
+
+        // Format the value for display
+        const formattedValue = `Rs. ${totalRetailValue.toLocaleString()}`;
 
         return NextResponse.json({
             success: true,
-            totalRetailValue,
-            formattedValue: `Rs. ${formattedValue}`,
-            trend: retailTrend,
-            trendUp: retailTrendUp
+            formattedValue,
+            rawValue: totalRetailValue,
+            trend: `+${percentChange.toFixed(0)}%`,
+            trendUp: percentChange >= 0
         });
     } catch (error) {
         console.error('Error calculating total retail value:', error);
         return NextResponse.json({
             success: false,
-            message: 'Failed to calculate total retail value',
-            error: error instanceof Error ? error.message : String(error)
+            message: 'Failed to calculate total retail value'
         }, { status: 500 });
     }
 } 
