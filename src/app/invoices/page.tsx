@@ -134,16 +134,11 @@ async function fetchInvoicesData(
 
 export default async function InvoicesPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
 
-    const page = searchParams?.page as string | undefined;
-    const status = searchParams?.status as string | undefined;
-    const paymentMethod = searchParams?.paymentMethod as string | undefined;
-    const search = searchParams?.search as string | undefined;
-
     const { invoices, totalPages, currentPage, statistics, error } = await fetchInvoicesData(
-        page,
-        status,
-        paymentMethod,
-        search
+        searchParams?.page as string | undefined,
+        searchParams?.status as string | undefined,
+        searchParams?.paymentMethod as string | undefined,
+        searchParams?.search as string | undefined
     );
 
     if (error) {

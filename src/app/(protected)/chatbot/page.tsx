@@ -1,22 +1,5 @@
-import React, { Suspense } from 'react';
-import dynamic from 'next/dynamic';
-import { Loader2 } from 'lucide-react';
-
-// Dynamically import the Chatbot component with no SSR
-const ChatbotComponent = dynamic(
-    () => import('@/components/chatbot/Chatbot'),
-    {
-        ssr: false,
-        loading: () => (
-            <div className="flex items-center justify-center h-[600px]">
-                <div className="text-center">
-                    <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
-                    <p className="text-gray-500">Loading AI Assistant...</p>
-                </div>
-            </div>
-        )
-    }
-);
+import React from 'react';
+import ChatbotClientWrapper from '@/components/chatbot/ChatbotClientWrapper';
 
 export default function ChatbotPage() {
     return (
@@ -31,7 +14,7 @@ export default function ChatbotPage() {
                 </p>
 
                 <div className="border rounded-lg h-[600px] relative">
-                    <ChatbotComponent />
+                    <ChatbotClientWrapper />
                 </div>
             </div>
         </div>

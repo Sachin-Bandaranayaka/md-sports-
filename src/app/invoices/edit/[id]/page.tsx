@@ -357,6 +357,49 @@ export default function EditInvoice() {
         });
     };
 
+    // Update item quantity
+    const handleUpdateItemQuantity = (itemId: string | number, newQuantity: number) => {
+        console.log('Updating quantity:', itemId, newQuantity);
+        if (newQuantity <= 0) {
+            // If new quantity is invalid, find the item and revert its input to the current quantity
+            setFormData(prevData => {
+                const currentItem = prevData.items.find(item => item.id === itemId);
+                if (currentItem) {
+                    // Trigger a re-render with the existing quantity to reset the input
+                    const updatedItems = prevData.items.map(item => {
+                        if (item.id === itemId) {
+                            return { ...item, quantity: currentItem.quantity };
+                        }
+                        return item;
+                    });
+                    return { ...prevData, items: updatedItems };
+                }
+                return prevData;
+            });
+            return;
+        }
+
+        setFormData(prevData => {
+            console.log('Previous formData:', prevData);
+            const updatedItems = prevData.items.map(item => {
+                if (item.id === itemId) {
+                    console.log('Updating item:', item.id, 'from', item.quantity, 'to', newQuantity);
+                    return {
+                        ...item,
+                        quantity: newQuantity,
+                        total: item.price * newQuantity
+                    };
+                }
+                return item;
+            });
+            console.log('Updated items:', updatedItems);
+            return {
+                ...prevData,
+                items: updatedItems
+            };
+        });
+    };
+
     // Handle form submission
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -382,6 +425,8 @@ export default function EditInvoice() {
                 sendSms: sendSms
             };
 
+            console.log('Submitting invoice data:', invoiceData);
+
             // Update invoice via API
             const response = await fetch(`/api/invoices/${params.id}`, {
                 method: 'PUT',
@@ -392,7 +437,9 @@ export default function EditInvoice() {
             });
 
             if (!response.ok) {
-                throw new Error('Failed to update invoice');
+                const errorData = await response.json();
+                console.error('API error response:', errorData);
+                throw new Error(errorData.error || 'Failed to update invoice');
             }
 
             // Redirect to invoice detail page
@@ -749,7 +796,41 @@ export default function EditInvoice() {
                                                     <td className="px-4 py-3 font-medium text-gray-900">
                                                         {item.productName}
                                                     </td>
-                                                    <td className="px-4 py-3 text-center">{item.quantity}</td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            value={item.quantity}
+                                                            onChange={(e) => {
+                                                                try {
+                                                                    // Parse to integer, default to current item quantity if parsing fails
+                                                                    const currentItem = formData.items.find(i => i.id === item.id);
+                                                                    const currentValue = currentItem ? currentItem.quantity : 1;
+                                                                    const newValue = parseInt(e.target.value);
+
+                                                                    if (isNaN(newValue) || newValue <= 0) {
+                                                                        // Handle invalid input: either reset or keep current valid quantity
+                                                                        // For now, let's call update with a value that will be caught by the check (e.g., 0 or current)
+                                                                        // This ensures the input visually reverts if an invalid number is typed.
+                                                                        handleUpdateItemQuantity(item.id, 0); // This will revert to old value or do nothing based on the check
+                                                                        // Or, to be more direct, you could reset the input field's display value here
+                                                                        // e.target.value = currentValue.toString(); // but this is less React-idiomatic
+                                                                    } else {
+                                                                        console.log('Input change detected (parsed):', item.id, newValue);
+                                                                        handleUpdateItemQuantity(item.id, newValue);
+                                                                    }
+                                                                } catch (error) {
+                                                                    console.error('Error updating quantity from input:', error);
+                                                                    // Optionally, revert to old value if there's an error
+                                                                    const currentItem = formData.items.find(i => i.id === item.id);
+                                                                    if (currentItem) {
+                                                                        e.target.value = currentItem.quantity.toString();
+                                                                    }
+                                                                }
+                                                            }}
+                                                            className="w-16 text-center rounded-md border border-gray-300 p-1 text-sm text-gray-900"
+                                                        />
+                                                    </td>
                                                     <td className="px-4 py-3 text-right">Rs. {item.price.toLocaleString()}</td>
                                                     <td className="px-4 py-3 text-right">Rs. {item.total.toLocaleString()}</td>
                                                     <td className="px-4 py-3 text-center">

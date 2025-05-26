@@ -65,6 +65,8 @@ interface Invoice {
     customer: Customer;
     items: InvoiceItem[];
     payments: Payment[];
+    paymentMethod: string;
+    dueDate?: string;
 }
 
 // Status badge component
@@ -298,7 +300,8 @@ export default function InvoiceDetail() {
 
     // Calculate paid amount and remaining balance
     const paidAmount = invoice.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
-    const remainingBalance = invoice.total - paidAmount;
+    // For cash payments, balance is always 0 regardless of payment records
+    const remainingBalance = invoice.paymentMethod === 'Cash' ? 0 : invoice.total - paidAmount;
 
     // Format dates
     const formatDate = (dateString: string) => {
@@ -306,10 +309,11 @@ export default function InvoiceDetail() {
         return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     };
 
-    // Generate due date (30 days after creation)
-    const createdDate = new Date(invoice.createdAt);
-    const dueDate = new Date(createdDate);
-    dueDate.setDate(dueDate.getDate() + 30);
+    // Due date calculation - for cash payments, there is no due date
+    const dueDate = invoice.dueDate ? new Date(invoice.dueDate) :
+        (invoice.paymentMethod === 'Cash' ?
+            new Date(invoice.createdAt) : // For cash, due date is same as creation date
+            new Date(new Date(invoice.createdAt).setDate(new Date(invoice.createdAt).getDate() + 30)));
 
     return (
         <MainLayout>
@@ -421,22 +425,22 @@ export default function InvoiceDetail() {
 
                         <div className="flex flex-col gap-1">
                             <span className="text-sm text-gray-900">Date</span>
-                            <span className="font-medium">{formatDate(invoice.createdAt)}</span>
+                            <span className="font-medium text-black">{formatDate(invoice.createdAt)}</span>
                         </div>
 
                         <div className="flex flex-col gap-1">
                             <span className="text-sm text-gray-900">Due Date</span>
-                            <span className="font-medium">{formatDate(dueDate.toISOString())}</span>
+                            <span className="font-medium text-black">{invoice.paymentMethod === 'Cash' ? 'N/A' : formatDate(dueDate.toISOString())}</span>
                         </div>
 
                         <div className="flex flex-col gap-1">
                             <span className="text-sm text-gray-900">Amount</span>
-                            <span className="font-medium">{formatCurrency(invoice.total)}</span>
+                            <span className="font-medium text-black">{formatCurrency(invoice.total)}</span>
                         </div>
 
                         <div className="flex flex-col gap-1">
                             <span className="text-sm text-gray-900">Paid</span>
-                            <span className="font-medium">{formatCurrency(paidAmount)}</span>
+                            <span className="font-medium text-black">{formatCurrency(paidAmount)}</span>
                         </div>
 
                         <div className="flex flex-col gap-1">
@@ -534,7 +538,7 @@ export default function InvoiceDetail() {
 
                             <div>
                                 <h4 className="font-medium text-gray-700 mb-2">Invoice Details:</h4>
-                                <div className="grid grid-cols-2 text-gray-600">
+                                <div className="grid grid-cols-2 text-black">
                                     <p>Invoice Number:</p>
                                     <p className="font-medium">{invoice.invoiceNumber}</p>
 
@@ -542,7 +546,7 @@ export default function InvoiceDetail() {
                                     <p className="font-medium">{formatDate(invoice.createdAt)}</p>
 
                                     <p>Due Date:</p>
-                                    <p className="font-medium">{formatDate(dueDate.toISOString())}</p>
+                                    <p className="font-medium">{invoice.paymentMethod === 'Cash' ? 'N/A' : formatDate(dueDate.toISOString())}</p>
 
                                     <p>Status:</p>
                                     <p className="font-medium">{invoice.status}</p>
@@ -555,24 +559,24 @@ export default function InvoiceDetail() {
                             <table className="w-full border-collapse">
                                 <thead>
                                     <tr className="bg-gray-50 text-left">
-                                        <th className="py-3 px-4 text-sm font-medium text-gray-700 border-b">Item</th>
-                                        <th className="py-3 px-4 text-sm font-medium text-gray-700 border-b text-right">Qty</th>
-                                        <th className="py-3 px-4 text-sm font-medium text-gray-700 border-b text-right">Price</th>
-                                        <th className="py-3 px-4 text-sm font-medium text-gray-700 border-b text-right">Total</th>
+                                        <th className="py-3 px-4 text-sm font-medium text-black border-b">Item</th>
+                                        <th className="py-3 px-4 text-sm font-medium text-black border-b text-right">Qty</th>
+                                        <th className="py-3 px-4 text-sm font-medium text-black border-b text-right">Price</th>
+                                        <th className="py-3 px-4 text-sm font-medium text-black border-b text-right">Total</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {invoice.items.map((item) => (
                                         <tr key={item.id} className="border-b">
                                             <td className="py-4 px-4">
-                                                <div className="font-medium text-gray-900">{item.product.name}</div>
+                                                <div className="font-medium text-black">{item.product.name}</div>
                                                 {item.product.description && (
-                                                    <div className="text-sm text-gray-500">{item.product.description}</div>
+                                                    <div className="text-sm text-black">{item.product.description}</div>
                                                 )}
                                             </td>
-                                            <td className="py-4 px-4 text-gray-700 text-right">{item.quantity}</td>
-                                            <td className="py-4 px-4 text-gray-700 text-right">{formatCurrency(item.price)}</td>
-                                            <td className="py-4 px-4 text-gray-700 text-right">{formatCurrency(item.total)}</td>
+                                            <td className="py-4 px-4 text-black text-right">{item.quantity}</td>
+                                            <td className="py-4 px-4 text-black text-right">{formatCurrency(item.price)}</td>
+                                            <td className="py-4 px-4 text-black text-right">{formatCurrency(item.total)}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -584,23 +588,23 @@ export default function InvoiceDetail() {
                             <div className="flex justify-end">
                                 <div className="w-64">
                                     <div className="flex justify-between py-2">
-                                        <span className="text-gray-600">Subtotal:</span>
-                                        <span className="font-medium">{formatCurrency(invoice.total)}</span>
+                                        <span className="text-black">Subtotal:</span>
+                                        <span className="font-medium text-black">{formatCurrency(invoice.total)}</span>
                                     </div>
                                     <div className="flex justify-between py-2">
-                                        <span className="text-gray-600">Tax:</span>
-                                        <span className="font-medium">{formatCurrency(0)}</span>
+                                        <span className="text-black">Tax:</span>
+                                        <span className="font-medium text-black">{formatCurrency(0)}</span>
                                     </div>
                                     <div className="flex justify-between py-2 border-t border-gray-200 font-bold">
-                                        <span>Total:</span>
-                                        <span>{formatCurrency(invoice.total)}</span>
+                                        <span className="text-black">Total:</span>
+                                        <span className="text-black">{formatCurrency(invoice.total)}</span>
                                     </div>
                                     <div className="flex justify-between py-2">
-                                        <span className="text-gray-600">Amount Paid:</span>
-                                        <span className="font-medium">{formatCurrency(paidAmount)}</span>
+                                        <span className="text-black">Amount Paid:</span>
+                                        <span className="font-medium text-black">{formatCurrency(paidAmount)}</span>
                                     </div>
                                     <div className="flex justify-between py-2 text-lg font-bold">
-                                        <span>Balance Due:</span>
+                                        <span className="text-black">Balance Due:</span>
                                         <span className={remainingBalance > 0 ? 'text-red-600' : 'text-green-600'}>
                                             {formatCurrency(remainingBalance)}
                                         </span>
@@ -614,11 +618,11 @@ export default function InvoiceDetail() {
                             <div className="grid grid-cols-2 gap-6">
                                 <div>
                                     <h4 className="font-medium text-gray-700 mb-2">Notes:</h4>
-                                    <p className="text-gray-600 text-sm">Thank you for your business.</p>
+                                    <p className="text-black text-sm">Thank you for your business.</p>
                                 </div>
                                 <div>
                                     <h4 className="font-medium text-gray-700 mb-2">Terms & Conditions:</h4>
-                                    <p className="text-gray-600 text-sm">Payment is due within 30 days.</p>
+                                    <p className="text-black text-sm">Payment is due within 30 days.</p>
                                 </div>
                             </div>
                         </div>
@@ -630,19 +634,19 @@ export default function InvoiceDetail() {
                                 <table className="w-full border-collapse">
                                     <thead>
                                         <tr className="bg-gray-50 text-left">
-                                            <th className="py-2 px-4 text-sm font-medium text-gray-700 border-b">Date</th>
-                                            <th className="py-2 px-4 text-sm font-medium text-gray-700 border-b">Method</th>
-                                            <th className="py-2 px-4 text-sm font-medium text-gray-700 border-b">Reference</th>
-                                            <th className="py-2 px-4 text-sm font-medium text-gray-700 border-b text-right">Amount</th>
+                                            <th className="py-2 px-4 text-sm font-medium text-black border-b">Date</th>
+                                            <th className="py-2 px-4 text-sm font-medium text-black border-b">Method</th>
+                                            <th className="py-2 px-4 text-sm font-medium text-black border-b">Reference</th>
+                                            <th className="py-2 px-4 text-sm font-medium text-black border-b text-right">Amount</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {invoice.payments.map((payment) => (
                                             <tr key={payment.id} className="border-b">
-                                                <td className="py-3 px-4 text-sm text-gray-700">{formatDate(payment.createdAt)}</td>
-                                                <td className="py-3 px-4 text-sm text-gray-700">{payment.paymentMethod}</td>
-                                                <td className="py-3 px-4 text-sm text-gray-700">{payment.referenceNumber || '-'}</td>
-                                                <td className="py-3 px-4 text-sm text-gray-700 text-right">{formatCurrency(payment.amount)}</td>
+                                                <td className="py-3 px-4 text-sm text-black">{formatDate(payment.createdAt)}</td>
+                                                <td className="py-3 px-4 text-sm text-black">{payment.paymentMethod}</td>
+                                                <td className="py-3 px-4 text-sm text-black">{payment.referenceNumber || '-'}</td>
+                                                <td className="py-3 px-4 text-sm text-black text-right">{formatCurrency(payment.amount)}</td>
                                             </tr>
                                         ))}
                                     </tbody>

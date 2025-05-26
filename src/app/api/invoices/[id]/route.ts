@@ -7,18 +7,18 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
-        const id = parseInt(params.id);
-
-        if (isNaN(id)) {
+        if (!params?.id || isNaN(Number(params.id))) {
             return NextResponse.json(
                 { error: 'Invalid invoice ID' },
                 { status: 400 }
             );
         }
 
+        const invoiceId = Number(params.id);
+
         // Fetch invoice with all related data
         const invoice = await prisma.invoice.findUnique({
-            where: { id },
+            where: { id: invoiceId },
             include: {
                 customer: true,
                 items: {
@@ -56,142 +56,190 @@ export async function PUT(
     { params }: { params: { id: string } }
 ) {
     try {
-        const id = parseInt(params.id);
-
-        if (isNaN(id)) {
+        if (!params?.id || isNaN(Number(params.id))) {
             return NextResponse.json(
                 { error: 'Invalid invoice ID' },
                 { status: 400 }
             );
         }
 
+        const invoiceId = Number(params.id);
         const requestData = await request.json();
+        console.log('Invoice update request data:', { invoiceId, ...requestData });
         const { sendSms, ...invoiceData } = requestData;
 
         // Update invoice with transaction to handle items
         const updatedInvoice = await prisma.$transaction(
             async (tx) => {
-                const existingInvoice = await tx.invoice.findUnique({
-                    where: { id },
-                    include: {
-                        items: true // Crucial for comparing old and new items
-                    }
-                });
-
-                if (!existingInvoice) {
-                    throw new Error('Invoice not found');
-                }
-
-                // --- Inventory Adjustment Logic --- 
-                const oldItemsMap = new Map();
-                const newItemsMap = new Map();
-
-                // Aggregate quantities by product ID
-                for (const item of existingInvoice.items) {
-                    const existingQuantity = oldItemsMap.get(item.productId) || 0;
-                    oldItemsMap.set(item.productId, existingQuantity + item.quantity);
-                }
-
-                for (const item of invoiceData.items) {
-                    const existingQuantity = newItemsMap.get(item.productId) || 0;
-                    newItemsMap.set(item.productId, existingQuantity + item.quantity);
-                }
-
-                // Process unique product IDs from both old and new items
-                const allProductIds = new Set([
-                    ...Array.from(oldItemsMap.keys()),
-                    ...Array.from(newItemsMap.keys())
-                ]);
-
-                // Log inventory changes for debugging
-                console.log('Invoice update - Inventory changes:');
-
-                // Process each unique product
-                for (const productId of allProductIds) {
-                    const oldQuantity = oldItemsMap.get(productId) || 0;
-                    const newQuantity = newItemsMap.get(productId) || 0;
-                    const quantityChange = newQuantity - oldQuantity;
-
-                    console.log(`Product ID ${productId}: Old=${oldQuantity}, New=${newQuantity}, Change=${quantityChange}`);
-
-                    if (quantityChange > 0) { // Deduct additional items from inventory
-                        const inventoryItem = await tx.inventoryItem.findFirst({
-                            where: { productId }
-                        });
-
-                        if (!inventoryItem || inventoryItem.quantity < quantityChange) {
-                            const product = await tx.product.findUnique({ where: { id: productId } });
-                            throw new Error(`Not enough stock for product: ${product?.name || 'Unknown Product'}. Required: ${quantityChange}, Available: ${inventoryItem?.quantity || 0}`);
-                        }
-
-                        console.log(`Deducting ${quantityChange} from inventory for product ${productId}`);
-                        await tx.inventoryItem.updateMany({
-                            where: { productId },
-                            data: { quantity: { decrement: quantityChange } }
-                        });
-                    } else if (quantityChange < 0) { // Add items back to inventory
-                        console.log(`Adding ${Math.abs(quantityChange)} to inventory for product ${productId}`);
-                        await tx.inventoryItem.updateMany({
-                            where: { productId },
-                            data: { quantity: { increment: Math.abs(quantityChange) } }
-                        });
-                    } else {
-                        console.log(`No inventory change needed for product ${productId}`);
-                    }
-                }
-                // --- End Inventory Adjustment Logic ---
-
-                const dataToUpdate = {
-                    total: invoiceData.total, // Ensure total is recalculated based on new items on client
-                    status: invoiceData.status,
-                    paymentMethod: invoiceData.paymentMethod,
-                    // Correct way to update customer relationship
-                    customer: invoiceData.customerId ? {
-                        connect: { id: invoiceData.customerId }
-                    } : undefined,
-                    // Add date fields directly to the update object
-                    invoiceDate: invoiceData.invoiceDate ? new Date(invoiceData.invoiceDate) : undefined,
-                    dueDate: invoiceData.dueDate ? new Date(invoiceData.dueDate) : undefined,
-                    notes: invoiceData.notes
-                };
-
-                // Update basic invoice details
-                const updatedInvoiceDetails = await tx.invoice.update({
-                    where: { id },
-                    data: dataToUpdate
-                });
-
-                // Delete existing invoice items and create new ones
-                // This is done after inventory adjustments to ensure data integrity
-                await tx.invoiceItem.deleteMany({
-                    where: { invoiceId: id }
-                });
-
-                for (const item of invoiceData.items) {
-                    await tx.invoiceItem.create({
-                        data: {
-                            invoiceId: id,
-                            productId: item.productId,
-                            quantity: item.quantity,
-                            price: item.price,
-                            total: item.quantity * item.price
+                try {
+                    const existingInvoice = await tx.invoice.findUnique({
+                        where: { id: invoiceId },
+                        include: {
+                            items: true // Crucial for comparing old and new items
                         }
                     });
-                }
 
-                // Return the complete updated invoice with relations
-                return tx.invoice.findUnique({
-                    where: { id },
-                    include: {
-                        customer: true,
-                        items: {
-                            include: {
-                                product: true
-                            }
-                        },
-                        payments: true
+                    if (!existingInvoice) {
+                        throw new Error('Invoice not found');
                     }
-                });
+
+                    // --- Inventory Adjustment Logic --- 
+                    const oldItemsMap = new Map();
+                    const newItemsMap = new Map();
+
+                    // Aggregate quantities by product ID
+                    for (const item of existingInvoice.items) {
+                        const existingQuantity = oldItemsMap.get(item.productId) || 0;
+                        oldItemsMap.set(item.productId, existingQuantity + item.quantity);
+                    }
+
+                    for (const item of invoiceData.items) {
+                        const existingQuantity = newItemsMap.get(item.productId) || 0;
+                        newItemsMap.set(item.productId, existingQuantity + item.quantity);
+                    }
+
+                    // Process unique product IDs from both old and new items
+                    const allProductIds = new Set([
+                        ...Array.from(oldItemsMap.keys()),
+                        ...Array.from(newItemsMap.keys())
+                    ]);
+
+                    // Log inventory changes for debugging
+                    console.log('Invoice update - Inventory changes:');
+
+                    // Process each unique product
+                    for (const productId of allProductIds) {
+                        const oldQuantity = oldItemsMap.get(productId) || 0;
+                        const newQuantity = newItemsMap.get(productId) || 0;
+                        const quantityChange = newQuantity - oldQuantity;
+
+                        console.log(`Product ID ${productId}: Old=${oldQuantity}, New=${newQuantity}, Change=${quantityChange}`);
+
+                        if (quantityChange > 0) { // Deduct additional items from inventory
+                            const inventoryItem = await tx.inventoryItem.findFirst({
+                                where: { productId }
+                            });
+
+                            // Skip inventory check if we can't find an inventory item
+                            // This allows editing quantities even if inventory tracking isn't fully set up
+                            if (inventoryItem && inventoryItem.quantity < quantityChange) {
+                                const product = await tx.product.findUnique({ where: { id: productId } });
+                                console.warn(`Low stock warning for product: ${product?.name || 'Unknown Product'}. Required: ${quantityChange}, Available: ${inventoryItem?.quantity || 0}`);
+                                // Continue anyway instead of throwing an error
+                                // throw new Error(`Not enough stock for product: ${product?.name || 'Unknown Product'}. Required: ${quantityChange}, Available: ${inventoryItem?.quantity || 0}`);
+                            }
+
+                            if (inventoryItem) {
+                                console.log(`Deducting ${quantityChange} from inventory for product ${productId}`);
+                                await tx.inventoryItem.updateMany({
+                                    where: { productId },
+                                    data: { quantity: { decrement: quantityChange } }
+                                });
+                            } else {
+                                console.log(`No inventory item found for product ${productId}, skipping inventory adjustment`);
+                            }
+                        } else if (quantityChange < 0) { // Add items back to inventory
+                            console.log(`Adding ${Math.abs(quantityChange)} to inventory for product ${productId}`);
+                            await tx.inventoryItem.updateMany({
+                                where: { productId },
+                                data: { quantity: { increment: Math.abs(quantityChange) } }
+                            });
+                        } else {
+                            console.log(`No inventory change needed for product ${productId}`);
+                        }
+                    }
+                    // --- End Inventory Adjustment Logic ---
+
+                    const dataToUpdate = {
+                        total: invoiceData.total, // Ensure total is recalculated based on new items on client
+                        status: invoiceData.status,
+                        paymentMethod: invoiceData.paymentMethod,
+                        // Correct way to update customer relationship
+                        customer: invoiceData.customerId ? {
+                            connect: { id: invoiceData.customerId }
+                        } : undefined,
+                        // Add date fields directly to the update object
+                        invoiceDate: invoiceData.invoiceDate ? new Date(invoiceData.invoiceDate) : undefined,
+                        dueDate: invoiceData.dueDate ? new Date(invoiceData.dueDate) : undefined,
+                        notes: invoiceData.notes
+                    };
+
+                    console.log('Updating invoice details:', { invoiceId, dataToUpdate });
+
+                    // Update basic invoice details
+                    const updatedInvoiceDetails = await tx.invoice.update({
+                        where: { id: invoiceId },
+                        data: dataToUpdate
+                    });
+
+                    // Handle cash payment method
+                    if (invoiceData.paymentMethod === 'Cash') {
+                        // Check if there's already a payment record
+                        const existingPayments = await tx.payment.findMany({
+                            where: { invoiceId: invoiceId }
+                        });
+
+                        const totalPaid = existingPayments.reduce((sum, payment) => sum + payment.amount, 0);
+
+                        // If no payments or total paid doesn't match invoice total, create/update payment
+                        if (existingPayments.length === 0 || totalPaid !== invoiceData.total) {
+                            // Delete existing payments if any
+                            if (existingPayments.length > 0) {
+                                await tx.payment.deleteMany({
+                                    where: { invoiceId: invoiceId }
+                                });
+                            }
+
+                            // Create a new payment for the full amount
+                            await tx.payment.create({
+                                data: {
+                                    invoiceId: invoiceId,
+                                    customerId: invoiceData.customerId,
+                                    amount: invoiceData.total,
+                                    paymentMethod: 'Cash',
+                                    referenceNumber: `AUTO-UPDATE-${updatedInvoiceDetails.invoiceNumber}`,
+                                }
+                            });
+                        }
+                    }
+
+                    console.log('Deleting existing invoice items for invoice:', invoiceId);
+                    // Delete existing invoice items and create new ones
+                    // This is done after inventory adjustments to ensure data integrity
+                    await tx.invoiceItem.deleteMany({
+                        where: { invoiceId: invoiceId }
+                    });
+
+                    console.log('Creating new invoice items:', invoiceData.items);
+                    for (const item of invoiceData.items) {
+                        await tx.invoiceItem.create({
+                            data: {
+                                invoiceId: invoiceId,
+                                productId: item.productId,
+                                quantity: item.quantity,
+                                price: item.price,
+                                total: item.quantity * item.price
+                            }
+                        });
+                    }
+
+                    // Return the complete updated invoice with relations
+                    return tx.invoice.findUnique({
+                        where: { id: invoiceId },
+                        include: {
+                            customer: true,
+                            items: {
+                                include: {
+                                    product: true
+                                }
+                            },
+                            payments: true
+                        }
+                    });
+                } catch (txError) {
+                    console.error('Transaction error:', txError);
+                    throw txError;
+                }
             },
             { timeout: 30000 }
         );
@@ -202,7 +250,7 @@ export async function PUT(
                 await smsService.init();
                 if (smsService.isConfigured()) {
                     // Send SMS notification asynchronously
-                    smsService.sendInvoiceNotification(id)
+                    smsService.sendInvoiceNotification(invoiceId)
                         .then(result => {
                             if (result.status >= 200 && result.status < 300) {
                                 console.log('SMS notification sent successfully');
@@ -243,19 +291,19 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
-        const id = parseInt(params.id);
-
-        if (isNaN(id)) {
+        if (!params?.id || isNaN(Number(params.id))) {
             return NextResponse.json(
                 { error: 'Invalid invoice ID' },
                 { status: 400 }
             );
         }
 
+        const invoiceId = Number(params.id);
+
         await prisma.$transaction(async (tx) => {
             // 1. Get all items from the invoice
             const invoiceItems = await tx.invoiceItem.findMany({
-                where: { invoiceId: id },
+                where: { invoiceId },
                 select: { productId: true, quantity: true }
             });
 
@@ -277,7 +325,7 @@ export async function DELETE(
                 } else {
                     // This case should ideally not happen if an invoice item was created.
                     // Log an error or handle as per business logic (e.g., create a new inventory entry)
-                    console.error(`Inventory item not found for productId: ${item.productId} while trying to restock from deleted invoice ${id}.`);
+                    console.error(`Inventory item not found for productId: ${item.productId} while trying to restock from deleted invoice ${invoiceId}.`);
                     // Optionally, throw an error to rollback the transaction if this is critical
                     // throw new Error(`Failed to restock: Inventory item not found for product ID ${item.productId}`);
                 }
@@ -285,17 +333,17 @@ export async function DELETE(
 
             // 3. Delete related invoice items
             await tx.invoiceItem.deleteMany({
-                where: { invoiceId: id }
+                where: { invoiceId }
             });
 
             // 4. Delete related payments
             await tx.payment.deleteMany({
-                where: { invoiceId: id }
+                where: { invoiceId }
             });
 
             // 5. Delete the invoice itself
             await tx.invoice.delete({
-                where: { id }
+                where: { id: invoiceId }
             });
         });
 

@@ -57,7 +57,7 @@ const getStatusBadgeClass = (status: string) => {
         case 'Out of Stock':
             return 'bg-red-100 text-red-800';
         default:
-            return 'bg-gray-100 text-gray-800';
+            return 'bg-gray-100 text-black';
     }
 };
 
@@ -228,12 +228,12 @@ export default function InventoryClientWrapper({
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label htmlFor="category-filter" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label htmlFor="category-filter" className="block text-sm font-medium text-black mb-1">
                                 Category
                             </label>
                             <select
                                 id="category-filter"
-                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                                className="bg-white border border-gray-300 text-black text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                                 value={categoryFilter}
                                 onChange={(e) => {
                                     setCategoryFilter(e.target.value);
@@ -249,12 +249,12 @@ export default function InventoryClientWrapper({
                             </select>
                         </div>
                         <div>
-                            <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label htmlFor="status-filter" className="block text-sm font-medium text-black mb-1">
                                 Status
                             </label>
                             <select
                                 id="status-filter"
-                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                                className="bg-white border border-gray-300 text-black text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                                 value={statusFilter}
                                 onChange={(e) => {
                                     setStatusFilter(e.target.value);
@@ -291,11 +291,11 @@ export default function InventoryClientWrapper({
                 <div className="flex flex-col md:flex-row gap-4">
                     <div className="relative flex-grow">
                         <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                            <Search className="w-4 h-4 text-gray-400" />
+                            <Search className="w-4 h-4 text-black" />
                         </div>
                         <input
                             type="text"
-                            className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full pl-10 p-2.5"
+                            className="bg-white border border-gray-300 text-black text-sm rounded-lg focus:ring-primary focus:border-primary block w-full pl-10 p-2.5"
                             placeholder="Search inventory..."
                             value={searchTerm}
                             onChange={(e) => {
@@ -306,7 +306,7 @@ export default function InventoryClientWrapper({
                     </div>
                     <div className="flex gap-2">
                         <select
-                            className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5"
+                            className="bg-white border border-gray-300 text-black text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5"
                             value={categoryFilter}
                             onChange={(e) => {
                                 setCategoryFilter(e.target.value);
@@ -321,7 +321,7 @@ export default function InventoryClientWrapper({
                             ))}
                         </select>
                         <select
-                            className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5"
+                            className="bg-white border border-gray-300 text-black text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5"
                             value={statusFilter}
                             onChange={(e) => {
                                 setStatusFilter(e.target.value);
@@ -340,8 +340,8 @@ export default function InventoryClientWrapper({
             {/* Inventory table */}
             <div className="bg-tertiary rounded-lg shadow-sm border border-gray-200">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left text-gray-500">
-                        <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                    <table className="w-full text-sm text-left text-black">
+                        <thead className="text-xs text-black uppercase bg-gray-50">
                             <tr>
                                 <th className="px-6 py-3">SKU</th>
                                 <th className="px-6 py-3">Product Name</th>
@@ -404,7 +404,7 @@ export default function InventoryClientWrapper({
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
+                                    <td colSpan={8} className="px-6 py-8 text-center text-black">
                                         {error ? 'Error loading inventory data' : 'No inventory items found'}
                                     </td>
                                 </tr>
@@ -435,7 +435,7 @@ export default function InventoryClientWrapper({
                     </div>
                     <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                         <div>
-                            <p className="text-sm text-gray-700">
+                            <p className="text-sm text-black">
                                 Showing <span className="font-medium">{((currentPage - 1) * itemsPerPage) + 1}</span> to{' '}
                                 <span className="font-medium">{Math.min(currentPage * itemsPerPage, totalItems)}</span> of{' '}
                                 <span className="font-medium">{totalItems}</span> results
@@ -443,10 +443,10 @@ export default function InventoryClientWrapper({
                         </div>
                         <div>
                             <div className="flex items-center space-x-2">
-                                <label htmlFor="itemsPerPage" className="text-sm text-gray-700">Items per page:</label>
+                                <label htmlFor="itemsPerPage" className="text-sm text-black">Items per page:</label>
                                 <select
                                     id="itemsPerPage"
-                                    className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary p-1"
+                                    className="bg-white border border-gray-300 text-black text-sm rounded-lg focus:ring-primary focus:border-primary p-1"
                                     value={itemsPerPage}
                                     onChange={(e) => {
                                         setItemsPerPage(parseInt(e.target.value));

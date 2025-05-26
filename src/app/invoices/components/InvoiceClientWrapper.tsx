@@ -306,7 +306,7 @@ export default function InvoiceClientWrapper({
                                                     {loading ? <Loader2 className="animate-spin h-4 w-4" /> : <CheckCircle size={16} className="text-green-600" />}
                                                 </Button>
                                             )}
-                                            <Button variant="ghost" size="icon" onClick={() => router.push(`/invoices/${invoice.id}/edit`)} title="Edit Invoice" disabled={loading}>
+                                            <Button variant="ghost" size="icon" onClick={() => router.push(`/invoices/edit/${invoice.id}`)} title="Edit Invoice" disabled={loading}>
                                                 <Edit size={16} className="text-yellow-600" />
                                             </Button>
                                             <Button variant="ghost" size="icon" onClick={() => handleDeleteInvoice(invoice.id)} title="Delete Invoice" disabled={loading}>

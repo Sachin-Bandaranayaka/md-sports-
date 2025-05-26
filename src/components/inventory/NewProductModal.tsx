@@ -200,8 +200,8 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
                 <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-                    <h2 className="text-xl font-semibold text-gray-800">Add New Product</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                    <h2 className="text-xl font-semibold text-black">Add New Product</h2>
+                    <button onClick={onClose} className="text-black hover:text-gray-600">
                         <X size={24} />
                     </button>
                 </div>
@@ -213,13 +213,13 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
                     )}
 
                     <div className="mb-4">
-                        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="name" className="block text-sm font-medium text-black mb-1">
                             Product Name*
                         </label>
                         <input
                             type="text"
                             id="name"
-                            className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                            className="bg-white border border-gray-300 text-black text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             required
@@ -229,7 +229,7 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
 
                     <div className="mb-4">
                         <div className="flex justify-between items-center mb-1">
-                            <label htmlFor="sku" className="block text-sm font-medium text-gray-700">
+                            <label htmlFor="sku" className="block text-sm font-medium text-black">
                                 SKU*
                             </label>
                             <button
@@ -244,7 +244,7 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
                         <input
                             type="text"
                             id="sku"
-                            className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                            className="bg-white border border-gray-300 text-black text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                             value={sku}
                             onChange={(e) => setSku(e.target.value)}
                             required
@@ -253,12 +253,12 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
                     </div>
 
                     <div className="mb-4">
-                        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="description" className="block text-sm font-medium text-black mb-1">
                             Description
                         </label>
                         <textarea
                             id="description"
-                            className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                            className="bg-white border border-gray-300 text-black text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             rows={3}
@@ -268,13 +268,13 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
 
                     <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
-                            <label htmlFor="retailPrice" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label htmlFor="retailPrice" className="block text-sm font-medium text-black mb-1">
                                 Retail Price (Rs.)
                             </label>
                             <input
                                 type="number"
                                 id="retailPrice"
-                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                                className="bg-white border border-gray-300 text-black text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                                 value={retailPrice}
                                 onChange={(e) => setRetailPrice(e.target.value)}
                                 min="0"
@@ -283,13 +283,13 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
                             />
                         </div>
                         <div>
-                            <label htmlFor="basePrice" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label htmlFor="basePrice" className="block text-sm font-medium text-black mb-1">
                                 Base Cost (Rs.)
                             </label>
                             <input
                                 type="number"
                                 id="basePrice"
-                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                                className="bg-white border border-gray-300 text-black text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                                 value={basePrice}
                                 onChange={(e) => setBasePrice(e.target.value)}
                                 min="0"
@@ -300,18 +300,18 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
                     </div>
 
                     <div className="mb-4">
-                        <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="category" className="block text-sm font-medium text-black mb-1">
                             Category
                         </label>
                         {categoriesLoading ? (
                             <div className="flex items-center space-x-2 h-10">
-                                <Loader2 className="animate-spin h-4 w-4 text-gray-500" />
-                                <span className="text-gray-500">Loading categories...</span>
+                                <Loader2 className="animate-spin h-4 w-4 text-black" />
+                                <span className="text-black">Loading categories...</span>
                             </div>
                         ) : (
                             <select
                                 id="category"
-                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                                className="bg-white border border-gray-300 text-black text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                                 value={categoryId}
                                 onChange={(e) => setCategoryId(e.target.value)}
                                 disabled={isSubmitting}
@@ -337,7 +337,7 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
                                 onChange={(e) => setAddInventoryAfterCreate(e.target.checked)}
                                 disabled={isSubmitting}
                             />
-                            <label htmlFor="addInventory" className="ml-2 text-sm font-medium text-gray-700">
+                            <label htmlFor="addInventory" className="ml-2 text-sm font-medium text-black">
                                 Add to inventory after creating
                             </label>
                         </div>
@@ -345,18 +345,18 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
                         {addInventoryAfterCreate && (
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label htmlFor="shop" className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label htmlFor="shop" className="block text-sm font-medium text-black mb-1">
                                         Shop
                                     </label>
                                     {shopsLoading ? (
                                         <div className="flex items-center space-x-2 h-10">
-                                            <Loader2 className="animate-spin h-4 w-4 text-gray-500" />
-                                            <span className="text-gray-500">Loading shops...</span>
+                                            <Loader2 className="animate-spin h-4 w-4 text-black" />
+                                            <span className="text-black">Loading shops...</span>
                                         </div>
                                     ) : (
                                         <select
                                             id="shop"
-                                            className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                                            className="bg-white border border-gray-300 text-black text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                                             value={selectedShopId}
                                             onChange={(e) => setSelectedShopId(e.target.value)}
                                             disabled={isSubmitting}
@@ -370,13 +370,13 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
                                     )}
                                 </div>
                                 <div>
-                                    <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label htmlFor="quantity" className="block text-sm font-medium text-black mb-1">
                                         Initial Quantity
                                     </label>
                                     <input
                                         type="number"
                                         id="quantity"
-                                        className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                                        className="bg-white border border-gray-300 text-black text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                                         value={initialQuantity}
                                         onChange={(e) => setInitialQuantity(e.target.value)}
                                         min="1"

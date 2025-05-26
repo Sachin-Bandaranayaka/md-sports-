@@ -140,7 +140,7 @@ export function Chatbot({ onClose }: ChatbotProps) {
                     {configError && (
                         <Link
                             href="/settings?tab=ai"
-                            className="text-gray-500 hover:text-primary"
+                            className="text-black hover:text-primary"
                             title="Configure AI Settings"
                         >
                             <Settings size={18} />
@@ -149,7 +149,7 @@ export function Chatbot({ onClose }: ChatbotProps) {
                     {configError && (
                         <button
                             onClick={checkApiKeyValidity}
-                            className="text-gray-500 hover:text-primary"
+                            className="text-black hover:text-primary"
                             title="Refresh settings"
                             disabled={isCheckingConfig}
                         >
@@ -158,7 +158,7 @@ export function Chatbot({ onClose }: ChatbotProps) {
                     )}
                     <button
                         onClick={onClose}
-                        className="text-gray-500 hover:text-gray-700"
+                        className="text-black hover:text-gray-700"
                         aria-label="Close chatbot"
                     >
                         <X size={20} />
@@ -192,7 +192,7 @@ export function Chatbot({ onClose }: ChatbotProps) {
             {/* Messages area */}
             <div className="flex-1 p-4 overflow-y-auto">
                 {messages.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-center text-gray-500">
+                    <div className="h-full flex flex-col items-center justify-center text-center text-black">
                         <MessageSquare size={40} className="mb-2 text-primary" />
                         <p className="text-sm mb-1 text-black">Welcome to MS Sports Assistant!</p>
                         <p className="text-xs">Ask me anything about inventory, sales, or business operations.</p>

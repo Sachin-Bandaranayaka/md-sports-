@@ -145,12 +145,12 @@ export default function AddInventoryModal({ isOpen, onClose, onSuccess, preselec
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
                 <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-                    <h2 className="text-xl font-semibold text-gray-800">
+                    <h2 className="text-xl font-semibold text-black">
                         {preselectedProduct
                             ? `Add "${preselectedProduct.name}" to Inventory`
                             : "Add to Inventory"}
                     </h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                    <button onClick={onClose} className="text-black hover:text-gray-600">
                         <X size={24} />
                     </button>
                 </div>
@@ -162,18 +162,18 @@ export default function AddInventoryModal({ isOpen, onClose, onSuccess, preselec
                     )}
 
                     <div className="mb-4">
-                        <label htmlFor="product" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="product" className="block text-sm font-medium text-black mb-1">
                             Product
                         </label>
                         {productsLoading ? (
                             <div className="flex items-center space-x-2 h-10">
-                                <Loader2 className="animate-spin h-4 w-4 text-gray-500" />
-                                <span className="text-gray-500">Loading products...</span>
+                                <Loader2 className="animate-spin h-4 w-4 text-black" />
+                                <span className="text-black">Loading products...</span>
                             </div>
                         ) : (
                             <select
                                 id="product"
-                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                                className="bg-white border border-gray-300 text-black text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                                 value={selectedProductId}
                                 onChange={(e) => setSelectedProductId(e.target.value)}
                                 disabled={isSubmitting || !!preselectedProduct}
@@ -190,25 +190,25 @@ export default function AddInventoryModal({ isOpen, onClose, onSuccess, preselec
                             </select>
                         )}
                         {preselectedProduct && (
-                            <p className="mt-1 text-xs text-gray-500">
+                            <p className="mt-1 text-xs text-black">
                                 This newly created product is preselected for you.
                             </p>
                         )}
                     </div>
 
                     <div className="mb-4">
-                        <label htmlFor="shop" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="shop" className="block text-sm font-medium text-black mb-1">
                             Shop
                         </label>
                         {shopsLoading ? (
                             <div className="flex items-center space-x-2 h-10">
-                                <Loader2 className="animate-spin h-4 w-4 text-gray-500" />
-                                <span className="text-gray-500">Loading shops...</span>
+                                <Loader2 className="animate-spin h-4 w-4 text-black" />
+                                <span className="text-black">Loading shops...</span>
                             </div>
                         ) : (
                             <select
                                 id="shop"
-                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                                className="bg-white border border-gray-300 text-black text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                                 value={selectedShopId}
                                 onChange={(e) => setSelectedShopId(e.target.value)}
                                 disabled={isSubmitting}
@@ -227,13 +227,13 @@ export default function AddInventoryModal({ isOpen, onClose, onSuccess, preselec
                     </div>
 
                     <div className="mb-4">
-                        <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="quantity" className="block text-sm font-medium text-black mb-1">
                             Quantity
                         </label>
                         <input
                             type="number"
                             id="quantity"
-                            className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                            className="bg-white border border-gray-300 text-black text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                             value={quantity}
                             onChange={(e) => setQuantity(e.target.value)}
                             min="1"

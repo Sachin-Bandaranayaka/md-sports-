@@ -101,8 +101,24 @@ export async function POST(request: Request) {
                         total: invoiceDetails.total,
                         status: invoiceDetails.status || 'Pending',
                         paymentMethod: invoiceDetails.paymentMethod || 'Cash',
+                        invoiceDate: invoiceDetails.invoiceDate ? new Date(invoiceDetails.invoiceDate) : new Date(),
+                        dueDate: invoiceDetails.dueDate ? new Date(invoiceDetails.dueDate) : null,
+                        notes: invoiceDetails.notes || '',
                     },
                 });
+
+                // For cash payments, automatically create a payment record
+                if (invoiceDetails.paymentMethod === 'Cash') {
+                    await tx.payment.create({
+                        data: {
+                            invoiceId: createdInvoice.id,
+                            customerId: invoiceDetails.customerId,
+                            amount: invoiceDetails.total,
+                            paymentMethod: 'Cash',
+                            referenceNumber: `AUTO-${createdInvoice.invoiceNumber}`,
+                        }
+                    });
+                }
 
                 // Process each item and update inventory
                 if (invoiceDetails.items && Array.isArray(invoiceDetails.items)) {

@@ -103,7 +103,7 @@ export function Combobox({
             >
                 {isOpen ? (
                     <div className="flex items-center w-full">
-                        <Search className="w-4 h-4 text-gray-500 mr-2" />
+                        <Search className="w-4 h-4 text-black mr-2" />
                         <input
                             ref={inputRef}
                             type="text"
@@ -120,7 +120,7 @@ export function Combobox({
                 ) : (
                     <div className="flex items-center justify-between w-full text-black">
                         <span className="truncate">{selectedOption ? selectedOption.label : placeholder}</span>
-                        <Search className="w-4 h-4 text-gray-500 ml-2 flex-shrink-0" />
+                        <Search className="w-4 h-4 text-black ml-2 flex-shrink-0" />
                     </div>
                 )}
             </div>
@@ -150,7 +150,7 @@ export function Combobox({
                             </div>
                         ))
                     ) : (
-                        <div className="p-2 text-gray-500">No options found</div>
+                        <div className="p-2 text-black">No options found</div>
                     )}
                 </div>
             )}
