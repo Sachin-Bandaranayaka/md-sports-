@@ -91,6 +91,26 @@ export default function InventoryClientWrapper({
     const [totalItems, setTotalItems] = useState(initialPagination.total);
     const [itemsPerPage, setItemsPerPage] = useState(initialPagination.limit);
 
+    // Effect to synchronize state with props when they change
+    useEffect(() => {
+        setInventoryItems(initialInventoryItems);
+        setCategories(initialCategories);
+        setCurrentPage(initialPagination.page);
+        setTotalPages(initialPagination.totalPages);
+        setTotalItems(initialPagination.total);
+        setItemsPerPage(initialPagination.limit);
+        setSearchTerm(initialSearchTerm);
+        setCategoryFilter(initialCategoryFilter);
+        setStatusFilter(initialStatusFilter);
+    }, [
+        initialInventoryItems,
+        initialCategories,
+        initialPagination,
+        initialSearchTerm,
+        initialCategoryFilter,
+        initialStatusFilter
+    ]);
+
     // Update URL when filters or pagination changes
     useEffect(() => {
         const params = new URLSearchParams(searchParams);
@@ -441,7 +461,7 @@ export default function InventoryClientWrapper({
                             </div>
                         </div>
                         <div>
-                            <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                            <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px mr-16" aria-label="Pagination">
                                 <Button
                                     variant="outline"
                                     size="sm"
