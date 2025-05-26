@@ -10,15 +10,34 @@ export async function GET(request: NextRequest) {
         const supplierId = searchParams.get('supplierId');
         const startDate = searchParams.get('startDate');
         const endDate = searchParams.get('endDate');
+        const page = parseInt(searchParams.get('page') || '1');
+        const limit = parseInt(searchParams.get('limit') || '10');
+        const skip = (page - 1) * limit;
 
         // Build the where clause for Prisma
         const whereClause: any = {};
 
         if (search) {
-            whereClause.invoiceNumber = {
-                contains: search,
-                mode: 'insensitive'
-            };
+            // Search across multiple fields: invoiceNumber, supplier name, item product name
+            whereClause.OR = [
+                {
+                    invoiceNumber: {
+                        contains: search,
+                        mode: 'insensitive'
+                    }
+                },
+                {
+                    supplier: {
+                        name: {
+                            contains: search,
+                            mode: 'insensitive'
+                        }
+                    }
+                },
+                // Searching by item product name requires a more complex query if we want to keep it efficient.
+                // For simplicity now, we'll stick to invoiceNumber and supplier name for the main search.
+                // If product name search is critical, it might need a separate handling or different data structure.
+            ];
         }
 
         if (status) {
@@ -30,49 +49,62 @@ export async function GET(request: NextRequest) {
         }
 
         if (startDate && endDate) {
-            whereClause.createdAt = {
+            whereClause.date = { // Assuming filter by invoice date, not createdAt
                 gte: new Date(startDate),
                 lte: new Date(endDate)
             };
         } else if (startDate) {
-            whereClause.createdAt = {
+            whereClause.date = {
                 gte: new Date(startDate)
             };
         } else if (endDate) {
-            whereClause.createdAt = {
+            whereClause.date = {
                 lte: new Date(endDate)
             };
         }
 
-        const purchases = await prisma.purchaseInvoice.findMany({
-            where: whereClause,
-            include: {
-                supplier: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                        phone: true
-                    }
-                },
-                items: {
-                    include: {
-                        product: {
-                            select: {
-                                id: true,
-                                name: true,
-                                sku: true
+        const [purchases, totalCount] = await prisma.$transaction([
+            prisma.purchaseInvoice.findMany({
+                where: whereClause,
+                include: {
+                    supplier: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            phone: true
+                        }
+                    },
+                    items: {
+                        include: {
+                            product: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    sku: true
+                                }
                             }
                         }
                     }
-                }
-            },
-            orderBy: {
-                createdAt: 'desc'
+                },
+                orderBy: {
+                    date: 'desc' // More common to sort by invoice date
+                },
+                skip: skip,
+                take: limit
+            }),
+            prisma.purchaseInvoice.count({ where: whereClause })
+        ]);
+
+        return NextResponse.json({
+            data: purchases,
+            pagination: {
+                total: totalCount,
+                page,
+                limit,
+                totalPages: Math.ceil(totalCount / limit)
             }
         });
-
-        return NextResponse.json(purchases);
     } catch (error) {
         console.error('Error fetching purchase invoices:', error);
         return NextResponse.json(
@@ -87,9 +119,17 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
 
-        // Generate an invoice number if not provided
+        // Generate a more robust invoice number
         if (!body.invoiceNumber) {
-            body.invoiceNumber = `PI${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+            const today = new Date();
+            const year = today.getFullYear().toString().slice(-2); // Last 2 digits of year
+            const month = (today.getMonth() + 1).toString().padStart(2, '0'); // Month (01-12)
+            const day = today.getDate().toString().padStart(2, '0'); // Day (01-31)
+            // Get count of invoices for today to make it sequential, or use a random part
+            // For simplicity, using a timestamp fragment for uniqueness here.
+            // In a real app, a dedicated sequence generator per day/month is better.
+            const randomPart = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+            body.invoiceNumber = `PI-${year}${month}${day}-${randomPart}`;
         }
 
         // Extract items and distributions from the request
@@ -184,61 +224,97 @@ export async function POST(request: NextRequest) {
                                 if (existingInventory) {
                                     await tx.inventoryItem.update({
                                         where: { id: existingInventory.id },
-                                        data: { quantity: existingInventory.quantity + qty }
+                                        data: { quantity: existingInventory.quantity + qty, lastStockUpdate: new Date() }
                                     });
                                 } else {
                                     await tx.inventoryItem.create({
                                         data: {
                                             productId: parseInt(item.productId),
                                             shopId: shopId,
-                                            quantity: qty
+                                            quantity: qty,
+                                            lastStockUpdate: new Date()
                                         }
                                     });
                                 }
                             }
-                        } else {
-                            // Default behavior - add everything to shop 1 if no distribution specified
-                            const shopId = 1;
+                        } else if (body.defaultShopId) { // Distribute all to a default shop if specified
+                            const shopId = parseInt(body.defaultShopId as string);
+                            const qty = item.quantity;
+
                             const existingInventory = await tx.inventoryItem.findFirst({
                                 where: {
                                     productId: parseInt(item.productId),
                                     shopId: shopId
                                 }
                             });
-
-                            // Update or create inventory
                             if (existingInventory) {
                                 await tx.inventoryItem.update({
                                     where: { id: existingInventory.id },
-                                    data: { quantity: existingInventory.quantity + item.quantity }
+                                    data: { quantity: existingInventory.quantity + qty, lastStockUpdate: new Date() }
                                 });
                             } else {
                                 await tx.inventoryItem.create({
                                     data: {
                                         productId: parseInt(item.productId),
                                         shopId: shopId,
-                                        quantity: item.quantity
+                                        quantity: qty,
+                                        lastStockUpdate: new Date()
                                     }
                                 });
+                            }
+                        } else {
+                            // Fallback: if no distribution and no default shopId, what to do?
+                            // Option: Don't update inventory, or add to a predefined main/default shop (e.g. shopId 1)
+                            // For now, let's assume if no distribution/defaultShopId, inventory is not managed at shop level here
+                            // Or, as a simple fallback, let's attempt to add to shopId 1 if it exists (VERY SIMPLISTIC)
+                            const defaultShopIdFallback = 1; // This should be a configurable or better handled default
+                            const qty = item.quantity;
+                            try {
+                                const existingInventory = await tx.inventoryItem.findFirst({
+                                    where: {
+                                        productId: parseInt(item.productId),
+                                        shopId: defaultShopIdFallback
+                                    }
+                                });
+                                if (existingInventory) {
+                                    await tx.inventoryItem.update({
+                                        where: { id: existingInventory.id },
+                                        data: { quantity: existingInventory.quantity + qty, lastStockUpdate: new Date() }
+                                    });
+                                } else {
+                                    // Check if shopId 1 exists before creating. This is still very basic.
+                                    const shopOneExists = await tx.shop.findUnique({ where: { id: defaultShopIdFallback } });
+                                    if (shopOneExists) {
+                                        await tx.inventoryItem.create({
+                                            data: {
+                                                productId: parseInt(item.productId),
+                                                shopId: defaultShopIdFallback,
+                                                quantity: qty,
+                                                lastStockUpdate: new Date()
+                                            }
+                                        });
+                                    }
+                                }
+                            } catch (e) {
+                                console.warn(`Could not update inventory for product ${item.productId} in fallback shop ${defaultShopIdFallback}:`, e)
                             }
                         }
                     }
                 }
 
-                // Return the complete invoice with relations
-                return tx.purchaseInvoice.findUnique({
-                    where: {
-                        id: createdInvoice.id
-                    },
-                    include: {
-                        supplier: true,
-                        items: {
-                            include: {
-                                product: true
-                            }
+                // If there's a paidAmount, create a payment record
+                if (body.paidAmount && body.paidAmount > 0) {
+                    await tx.payment.create({
+                        data: {
+                            purchaseInvoiceId: createdInvoice.id,
+                            amount: parseFloat(body.paidAmount as unknown as string) || 0,
+                            paymentDate: new Date(), // Or use a date from body if provided
+                            paymentMethod: body.paymentMethod || 'cash' // Default or from body
                         }
-                    }
-                });
+                    });
+                }
+
+                return createdInvoice;
             },
             { timeout: 30000 }
         );

@@ -132,7 +132,8 @@ async function fetchInvoicesData(
     }
 }
 
-export default async function InvoicesPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
+export default async function InvoicesPage({ searchParams: passedSearchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
+    const searchParams = await passedSearchParams; // Await the searchParams
 
     const { invoices, totalPages, currentPage, statistics, error } = await fetchInvoicesData(
         searchParams?.page as string | undefined,
