@@ -10,95 +10,47 @@ export default async function DashboardPage() {
     // Fetch dashboard data server-side
     async function fetchDashboardData() {
         try {
-            // Get the host from headers for proper URL construction - properly awaited
-            const headersList = await headers();
+            // Get the host from headers for proper URL construction
+            const headersList = await headers(); // Corrected: await headers()
             const host = headersList.get('host') || 'localhost:3000';
             const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
             const baseUrl = `${protocol}://${host}`;
 
-            // Fetch summary data
-            const summaryResponse = await fetch(`${baseUrl}/api/dashboard/summary`, {
+            // Fetch all dashboard data from the consolidated endpoint
+            const response = await fetch(`${baseUrl}/api/dashboard/all`, {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                cache: 'no-store'
+                cache: 'no-store' // Retain no-store for now, can be re-evaluated
             });
-            const summaryData = await summaryResponse.json();
 
-            // Fetch total retail value data
-            const retailValueResponse = await fetch(`${baseUrl}/api/dashboard/total-retail-value`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                cache: 'no-store'
-            });
-            const retailValueData = await retailValueResponse.json();
+            const result = await response.json();
 
-            // If retail value data was successfully fetched, update the summary data
-            if (retailValueData.success && summaryData.success) {
-                // Find the Total Retail Value item in the summary data and update it
-                const updatedSummaryData = summaryData.data.map(item => {
-                    if (item.title === 'Total Retail Value') {
-                        return {
-                            ...item,
-                            value: retailValueData.formattedValue,
-                            trend: retailValueData.trend,
-                            trendUp: retailValueData.trendUp
-                        };
-                    }
-                    return item;
-                });
-
-                // Update the summary data
-                summaryData.data = updatedSummaryData;
+            if (!result.success) {
+                // Log the errors if any individual fetch failed
+                if (result.errors && result.errors.length > 0) {
+                    console.error('Errors fetching dashboard data:', result.errors.join('; '));
+                }
+                throw new Error(result.message || 'Failed to load dashboard data from /api/dashboard/all');
             }
 
-            // Fetch shop performance
-            const shopsResponse = await fetch(`${baseUrl}/api/dashboard/shops`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                cache: 'no-store'
-            });
-            const shopsData = await shopsResponse.json();
-
-            // Fetch inventory distribution
-            const inventoryResponse = await fetch(`${baseUrl}/api/dashboard/inventory`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                cache: 'no-store'
-            });
-            const inventoryData = await inventoryResponse.json();
-
-            // Fetch monthly sales
-            const salesResponse = await fetch(`${baseUrl}/api/dashboard/sales`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                cache: 'no-store'
-            });
-            const salesData = await salesResponse.json();
-
-            // Fetch recent transfers
-            const transfersResponse = await fetch(`${baseUrl}/api/dashboard/transfers`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                cache: 'no-store'
-            });
-            const transfersData = await transfersResponse.json();
-
             return {
-                summaryData: summaryData.success ? summaryData.data : null,
-                shopPerformance: shopsData.success ? shopsData.data : null,
-                inventoryDistribution: inventoryData.success ? inventoryData.data : null,
-                monthlySales: salesData.success ? salesData.data : null,
-                recentTransfers: transfersData.success ? transfersData.data : null,
+                summaryData: result.summaryData,
+                shopPerformance: result.shopPerformance,
+                inventoryDistribution: result.inventoryDistribution,
+                monthlySales: result.monthlySales,
+                recentTransfers: result.recentTransfers,
             };
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
-            return { error: 'Failed to load dashboard data' };
+            return {
+                error: error instanceof Error ? error.message : 'Failed to load dashboard data',
+                summaryData: null,
+                shopPerformance: null,
+                inventoryDistribution: null,
+                monthlySales: null,
+                recentTransfers: null
+            };
         }
     }
 

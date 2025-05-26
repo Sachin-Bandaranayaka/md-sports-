@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken, getUserFromToken } from '@/services/authService';
+import { verifyToken, getUserFromDecodedPayload } from '@/services/authService';
 
 export async function GET(req: NextRequest) {
     try {
@@ -19,45 +19,49 @@ export async function GET(req: NextRequest) {
         const tokenData = verifyToken(token);
 
         if (!tokenData) {
-            console.error('Token verification failed');
-            // Return a 403 status code for token expiration to trigger the refresh flow
+            console.error('Token verification failed or token is invalid/expired');
             return NextResponse.json(
                 { success: false, message: 'Invalid or expired token', expired: true },
                 { status: 403 }
             );
         }
 
-        // Get user data from token
-        const user = await getUserFromToken(token);
+        // Get user data using the decoded tokenData (payload)
+        const user = await getUserFromDecodedPayload(tokenData);
 
         if (!user) {
-            console.error('User not found from token');
+            console.error('User not found from token payload or user is inactive');
             return NextResponse.json(
                 { success: false, message: 'User not found or inactive' },
                 { status: 401 }
             );
         }
 
-        // Extract permissions from user with Prisma structure
-        const permissions = user.role.permissions.map(p => p.name);
-        console.log('User validated successfully:', user.id, user.name, 'with permissions:', permissions);
+        // Permissions are now part of the user object returned by getUserFromDecodedPayload
+        console.log('User validated successfully:', user.id, user.username, 'with permissions:', user.permissions);
 
-        // Return user data with field names matching the Prisma model
+        // Return user data
         return NextResponse.json({
             success: true,
             user: {
                 id: user.id,
-                username: user.name,
+                username: user.username,
                 fullName: user.name,
                 email: user.email,
                 roleId: user.roleId,
-                roleName: user.role.name,
+                roleName: user.roleName,
                 shopId: user.shopId,
-                permissions
+                permissions: user.permissions
             }
         });
     } catch (error) {
         console.error('Token validation error:', error);
+        if ((error as any).name === 'TokenExpiredError') {
+            return NextResponse.json(
+                { success: false, message: 'Token expired', expired: true },
+                { status: 403 }
+            );
+        }
         return NextResponse.json(
             { success: false, message: 'Token validation failed' },
             { status: 500 }

@@ -1,218 +1,225 @@
 import { NextResponse } from 'next/server';
 import { prisma, safeQuery } from '@/lib/prisma';
 
-// GET: Fetch dashboard summary statistics
-export async function GET() {
-    try {
-        // Use a simple approach to get inventory value
-        const inventoryItems = await prisma.inventoryItem.findMany({
-            include: {
-                product: {
-                    select: {
-                        id: true,
-                        name: true,
-                        weightedAverageCost: true // Corrected to camelCase
-                    }
-                }
-            }
-        });
-
-        console.log(`Found ${inventoryItems.length} inventory items for summary.`); // Clarified log
-
-        // Calculate total value manually
-        let totalValue = 0;
-        for (const item of inventoryItems) {
-            const productName = item.product?.name || 'Unknown Product';
-            const cost = item.product?.weightedAverageCost; // Corrected to camelCase
-            const quantity = item.quantity; // This should be number
-
-            console.log(`  Processing Item ID: ${item.id}, Product: ${productName}, Raw Cost: ${cost} (type: ${typeof cost}), Raw Qty: ${quantity} (type: ${typeof quantity})`);
-
-            if (item.product && typeof quantity === 'number') { // Check product exists and quantity is a number
-                const actualCost = (typeof cost === 'number' && cost !== null) ? cost : 0; // Treat null or non-number cost as 0
-                const actualQuantity = quantity; // Already checked it's a number
-
-                if (actualQuantity > 0) { // Only add if quantity is positive
-                    const itemValue = actualCost * actualQuantity;
-                    totalValue += itemValue;
-                    console.log(`    SUCCESS: Item ID: ${item.id} -> Name: ${productName}, Cost: ${actualCost}, Qty: ${actualQuantity}, ItemValue: ${itemValue}. Current Total: ${totalValue}`);
-                } else {
-                    console.log(`    INFO: Item ID: ${item.id} -> Name: ${productName}, Quantity is 0 or less. Not added to total.`);
-                }
-            } else {
-                console.log(`    SKIPPED Item ID: ${item.id} -> Product exists: ${!!item.product}, Quantity is number: ${typeof quantity === 'number'}`);
-                if (!item.product) {
-                    console.log(`      Reason: item.product is missing for item ID ${item.id}`);
-                }
-                if (typeof quantity !== 'number') {
-                    console.log(`      Reason: item.quantity is not a number for item ID ${item.id} (type: ${typeof quantity})`);
+// Extracted function to fetch dashboard summary data
+export async function fetchSummaryData() {
+    // Use a simple approach to get inventory value
+    const inventoryItems = await prisma.inventoryItem.findMany({
+        include: {
+            product: {
+                select: {
+                    id: true,
+                    name: true,
+                    weightedAverageCost: true // Corrected to camelCase
                 }
             }
         }
+    });
 
-        console.log(`Final calculated total inventory value: ${totalValue}`);
+    console.log(`Found ${inventoryItems.length} inventory items for summary.`); // Clarified log
 
-        // Since we don't have historical data, generate a random trend for demonstration
-        // In a real app, you would store historical data or calculate based on recent changes
-        const getRandomTrend = (isPercentage = true) => {
-            // Generate a random number between -5 and +5
-            const randomValue = Math.random() * 10 - 5;
-            // Format as percentage or whole number
-            const formatted = isPercentage
-                ? `${randomValue > 0 ? '+' : ''}${randomValue.toFixed(1)}%`
-                : `${randomValue > 0 ? '+' : ''}${Math.round(randomValue)}`;
-            return {
-                trend: formatted,
-                trendUp: randomValue >= 0
-            };
+    // Calculate total value manually
+    let totalValue = 0;
+    for (const item of inventoryItems) {
+        const productName = item.product?.name || 'Unknown Product';
+        const cost = item.product?.weightedAverageCost; // Corrected to camelCase
+        const quantity = item.quantity; // This should be number
+
+        console.log(`  Processing Item ID: ${item.id}, Product: ${productName}, Raw Cost: ${cost} (type: ${typeof cost}), Raw Qty: ${quantity} (type: ${typeof quantity})`);
+
+        if (item.product && typeof quantity === 'number') { // Check product exists and quantity is a number
+            const actualCost = (typeof cost === 'number' && cost !== null) ? cost : 0; // Treat null or non-number cost as 0
+            const actualQuantity = quantity; // Already checked it's a number
+
+            if (actualQuantity > 0) { // Only add if quantity is positive
+                const itemValue = actualCost * actualQuantity;
+                totalValue += itemValue;
+                console.log(`    SUCCESS: Item ID: ${item.id} -> Name: ${productName}, Cost: ${actualCost}, Qty: ${actualQuantity}, ItemValue: ${itemValue}. Current Total: ${totalValue}`);
+            } else {
+                console.log(`    INFO: Item ID: ${item.id} -> Name: ${productName}, Quantity is 0 or less. Not added to total.`);
+            }
+        } else {
+            console.log(`    SKIPPED Item ID: ${item.id} -> Product exists: ${!!item.product}, Quantity is number: ${typeof quantity === 'number'}`);
+            if (!item.product) {
+                console.log(`      Reason: item.product is missing for item ID ${item.id}`);
+            }
+            if (typeof quantity !== 'number') {
+                console.log(`      Reason: item.quantity is not a number for item ID ${item.id} (type: ${typeof quantity})`);
+            }
+        }
+    }
+
+    console.log(`Final calculated total inventory value: ${totalValue}`);
+
+    // Since we don't have historical data, generate a random trend for demonstration
+    // In a real app, you would store historical data or calculate based on recent changes
+    const getRandomTrend = (isPercentage = true) => {
+        // Generate a random number between -5 and +5
+        const randomValue = Math.random() * 10 - 5;
+        // Format as percentage or whole number
+        const formatted = isPercentage
+            ? `${randomValue > 0 ? '+' : ''}${randomValue.toFixed(1)}%`
+            : `${randomValue > 0 ? '+' : ''}${Math.round(randomValue)}`;
+        return {
+            trend: formatted,
+            trendUp: randomValue >= 0
         };
+    };
 
-        // Generate trends
-        const inventoryTrendData = getRandomTrend(true);
-        const transfersTrendData = getRandomTrend(false);
-        const lowStockTrendData = getRandomTrend(false);
+    // Generate trends
+    const inventoryTrendData = getRandomTrend(true);
+    const transfersTrendData = getRandomTrend(false);
+    const lowStockTrendData = getRandomTrend(false);
 
-        // Count pending transfers
-        const pendingTransfers = await safeQuery(
-            () => prisma.inventoryTransfer.count({
-                where: {
-                    status: 'pending'
+    // Count pending transfers
+    const pendingTransfers = await safeQuery(
+        () => prisma.inventoryTransfer.count({
+            where: {
+                status: 'pending'
+            }
+        }),
+        0, // Zero fallback
+        'Failed to count pending transfers'
+    );
+
+    // Count unpaid invoices
+    const outstandingInvoices = await safeQuery(
+        () => prisma.invoice.aggregate({
+            where: {
+                status: {
+                    not: 'Paid'
                 }
-            }),
-            0, // Zero fallback
-            'Failed to count pending transfers'
-        );
+            },
+            _sum: {
+                total: true
+            }
+        }),
+        { _sum: { total: null } }, // Null sum fallback
+        'Failed to calculate outstanding invoices'
+    );
 
-        // Count unpaid invoices
-        const outstandingInvoices = await safeQuery(
+    const totalOutstanding = outstandingInvoices._sum.total || 0;
+
+    // Get month-over-month invoice change (if any invoices exist)
+    const previousMonthStart = new Date();
+    previousMonthStart.setMonth(previousMonthStart.getMonth() - 1);
+    previousMonthStart.setDate(1);
+    previousMonthStart.setHours(0, 0, 0, 0);
+
+    const previousMonthEnd = new Date();
+    previousMonthEnd.setDate(0); // Last day of previous month
+    previousMonthEnd.setHours(23, 59, 59, 999);
+
+    // Calculate trend only if there are outstanding invoices
+    let invoiceTrend = '0%';
+    let invoiceTrendUp = false;
+
+    // Only calculate trend if there are outstanding invoices
+    if (totalOutstanding > 0) {
+        const previousMonthInvoices = await safeQuery(
             () => prisma.invoice.aggregate({
                 where: {
                     status: {
                         not: 'Paid'
+                    },
+                    createdAt: {
+                        gte: previousMonthStart,
+                        lte: previousMonthEnd
                     }
                 },
                 _sum: {
                     total: true
                 }
             }),
-            { _sum: { total: null } }, // Null sum fallback
-            'Failed to calculate outstanding invoices'
+            { _sum: { total: null } },
+            'Failed to calculate previous month invoices'
         );
 
-        const totalOutstanding = outstandingInvoices._sum.total || 0;
+        const previousTotal = previousMonthInvoices._sum.total || 0;
 
-        // Get month-over-month invoice change (if any invoices exist)
-        const previousMonthStart = new Date();
-        previousMonthStart.setMonth(previousMonthStart.getMonth() - 1);
-        previousMonthStart.setDate(1);
-        previousMonthStart.setHours(0, 0, 0, 0);
-
-        const previousMonthEnd = new Date();
-        previousMonthEnd.setDate(0); // Last day of previous month
-        previousMonthEnd.setHours(23, 59, 59, 999);
-
-        // Calculate trend only if there are outstanding invoices
-        let invoiceTrend = '0%';
-        let invoiceTrendUp = false;
-
-        // Only calculate trend if there are outstanding invoices
-        if (totalOutstanding > 0) {
-            const previousMonthInvoices = await safeQuery(
-                () => prisma.invoice.aggregate({
-                    where: {
-                        status: {
-                            not: 'Paid'
-                        },
-                        createdAt: {
-                            gte: previousMonthStart,
-                            lte: previousMonthEnd
-                        }
-                    },
-                    _sum: {
-                        total: true
-                    }
-                }),
-                { _sum: { total: null } },
-                'Failed to calculate previous month invoices'
-            );
-
-            const previousTotal = previousMonthInvoices._sum.total || 0;
-
-            // Calculate percentage change
-            if (previousTotal > 0) {
-                const percentChange = ((totalOutstanding - previousTotal) / previousTotal) * 100;
-                invoiceTrend = `${percentChange > 0 ? '+' : ''}${Math.round(percentChange)}%`;
-                invoiceTrendUp = percentChange > 0;
-            } else if (totalOutstanding > 0) {
-                // If no previous invoices but we have current ones
-                invoiceTrend = '+100%';
-                invoiceTrendUp = true;
-            }
+        // Calculate percentage change
+        if (previousTotal > 0) {
+            const percentChange = ((totalOutstanding - previousTotal) / previousTotal) * 100;
+            invoiceTrend = `${percentChange > 0 ? '+' : ''}${Math.round(percentChange)}%`;
+            invoiceTrendUp = percentChange > 0;
+        } else if (totalOutstanding > 0) {
+            // If no previous invoices but we have current ones
+            invoiceTrend = '+100%';
+            invoiceTrendUp = true;
         }
+    }
 
-        // Count low stock items (assume less than 10 is low)
-        const lowStockItems = await safeQuery(
-            () => prisma.inventoryItem.count({
-                where: {
-                    quantity: {
-                        lte: 10
-                    }
+    // Count low stock items (assume less than 10 is low)
+    const lowStockItems = await safeQuery(
+        () => prisma.inventoryItem.count({
+            where: {
+                quantity: {
+                    lte: 10
                 }
-            }),
-            0, // Zero fallback
-            'Failed to count low stock items'
-        );
-
-        // Format inventory value with 2 decimal places
-        const formattedValue = totalValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-
-        // Prepare the summary data in the format expected by the frontend
-        const data = [
-            {
-                title: 'Total Inventory Value',
-                value: `Rs. ${formattedValue}`,
-                icon: 'Package',
-                trend: inventoryTrendData.trend,
-                trendUp: inventoryTrendData.trendUp
-            },
-            {
-                title: 'Total Retail Value',
-                value: 'Loading...', // Placeholder, will be updated by client
-                icon: 'Tag', // Using 'Tag' icon for retail price, can be changed
-                trend: '+0%', // Will be updated by client
-                trendUp: false
-            },
-            {
-                title: 'Pending Transfers',
-                value: `${pendingTransfers}`,
-                icon: 'Truck',
-                trend: transfersTrendData.trend,
-                trendUp: transfersTrendData.trendUp
-            },
-            {
-                title: 'Outstanding Invoices',
-                value: `Rs. ${Number(totalOutstanding).toLocaleString()}`,
-                icon: 'CreditCard',
-                trend: invoiceTrend,
-                trendUp: invoiceTrendUp
-            },
-            {
-                title: 'Low Stock Items',
-                value: `${lowStockItems}`,
-                icon: 'AlertTriangle',
-                trend: lowStockTrendData.trend,
-                trendUp: lowStockTrendData.trendUp
-            },
-        ];
-
-        return NextResponse.json({
-            success: true,
-            data,
-            debug: {
-                inventoryItemCount: inventoryItems.length,
-                calculatedValue: totalValue
             }
-        });
+        }),
+        0, // Zero fallback
+        'Failed to count low stock items'
+    );
+
+    // Format inventory value with 2 decimal places
+    const formattedValue = totalValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+    // Prepare the summary data in the format expected by the frontend
+    const data = [
+        {
+            title: 'Total Inventory Value',
+            value: `Rs. ${formattedValue}`,
+            icon: 'Package',
+            trend: inventoryTrendData.trend,
+            trendUp: inventoryTrendData.trendUp
+        },
+        {
+            title: 'Total Retail Value',
+            value: 'Loading...', // Placeholder, will be updated by client
+            icon: 'Tag', // Using 'Tag' icon for retail price, can be changed
+            trend: '+0%', // Will be updated by client
+            trendUp: false
+        },
+        {
+            title: 'Pending Transfers',
+            value: `${pendingTransfers}`,
+            icon: 'Truck',
+            trend: transfersTrendData.trend,
+            trendUp: transfersTrendData.trendUp
+        },
+        {
+            title: 'Outstanding Invoices',
+            value: `Rs. ${Number(totalOutstanding).toLocaleString()}`,
+            icon: 'CreditCard',
+            trend: invoiceTrend,
+            trendUp: invoiceTrendUp
+        },
+        {
+            title: 'Low Stock Items',
+            value: `${lowStockItems}`,
+            icon: 'AlertTriangle',
+            trend: lowStockTrendData.trend,
+            trendUp: lowStockTrendData.trendUp
+        },
+    ];
+
+    return {
+        success: true,
+        data,
+        debug: {
+            inventoryItemCount: inventoryItems.length,
+            calculatedValue: totalValue
+        }
+    };
+}
+
+
+// GET: Fetch dashboard summary statistics
+export async function GET() {
+    try {
+        const summaryResult = await fetchSummaryData();
+        return NextResponse.json(summaryResult);
     } catch (error) {
         console.error('Error fetching dashboard summary data:', error);
 

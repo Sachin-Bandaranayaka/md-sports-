@@ -122,34 +122,34 @@ export const hasPermission = (tokenPayload: TokenPayload, permission: string) =>
 };
 
 /**
- * Get user details from token
+ * Get user details from a decoded token payload
  */
-export const getUserFromToken = async (token: string) => {
-    const payload = verifyToken(token);
-    console.log('Token payload:', payload);
+export const getUserFromDecodedPayload = async (payload: TokenPayload | null) => {
+    console.log('getUserFromDecodedPayload received payload:', payload);
 
     if (!payload) {
-        console.error('Invalid token payload');
+        console.error('Invalid token payload provided to getUserFromDecodedPayload');
         return null;
     }
 
     if (!payload.sub) {
-        console.error('Token missing user ID (sub claim)');
+        console.error('Token payload missing user ID (sub claim)');
         return null;
     }
 
     try {
         console.log('Looking up user with ID:', payload.sub);
+        // Fetch user, but role and permissions might already be in payload
+        // Decide if a DB call is always needed, e.g., to check isActive status
         const user = await prisma.user.findFirst({
             where: {
                 id: Number(payload.sub),
                 isActive: true
             },
+            // Conditionally include role and permissions if not in payload or if refresh is needed
             include: {
                 role: {
-                    include: {
-                        permissions: true
-                    }
+                    select: { name: true } // Only select role name, permissions are in token
                 }
             }
         });
@@ -160,9 +160,24 @@ export const getUserFromToken = async (token: string) => {
         }
 
         console.log('User found:', user.id, user.name);
-        return user;
+        // Combine user data from DB with permissions from token payload
+        return {
+            ...user,
+            roleName: user.role.name, // ensure roleName is added
+            permissions: payload.permissions || [] // Use permissions from token
+        };
     } catch (error) {
-        console.error('Error getting user from token:', error);
+        console.error('Error getting user from decoded payload:', error);
         return null;
     }
+};
+
+/**
+ * Get user details from token (Legacy - consider phasing out or refactoring)
+ * This function now calls verifyToken and then getUserFromDecodedPayload.
+ */
+export const getUserFromToken = async (token: string) => {
+    const payload = verifyToken(token);
+    // console.log('Token payload in getUserFromToken:', payload); // Already logged in verifyToken or called function
+    return getUserFromDecodedPayload(payload);
 }; 

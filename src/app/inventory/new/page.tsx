@@ -7,6 +7,16 @@ import { Button } from '@/components/ui/Button';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { authPost } from '@/utils/api';
 
+// Add custom styles to hide the "Add to inventory after creating" section
+const hideAddToInventoryStyle = `
+  /* Hide the "Add to inventory after creating" section */
+  .checkbox-container:has(input[type="checkbox"][id*="inventory"]),
+  div:has(> label:contains("Shop")),
+  div:has(> label:contains("Initial Quantity")) {
+    display: none !important;
+  }
+`;
+
 interface Category {
     id: number;
     name: string;
@@ -25,7 +35,6 @@ export default function NewProductPage() {
     const [categoriesLoading, setCategoriesLoading] = useState(true);
     const [shops, setShops] = useState<Shop[]>([]);
     const [shopsLoading, setShopsLoading] = useState(true);
-    const [addInventoryAfterCreate, setAddInventoryAfterCreate] = useState(true);
 
     // Form fields
     const [name, setName] = useState('');
@@ -34,8 +43,6 @@ export default function NewProductPage() {
     const [retailPrice, setRetailPrice] = useState('0');
     const [basePrice, setBasePrice] = useState('0');
     const [categoryId, setCategoryId] = useState('');
-    const [selectedShopId, setSelectedShopId] = useState<string>('');
-    const [initialQuantity, setInitialQuantity] = useState<string>('1');
 
     useEffect(() => {
         fetchCategories();
@@ -74,9 +81,6 @@ export default function NewProductPage() {
             const data = await response.json();
             if (data.success) {
                 setShops(data.data);
-                if (data.data.length > 0) {
-                    setSelectedShopId(data.data[0].id.toString());
-                }
             }
         } catch (error) {
             console.error('Error fetching shops:', error);
@@ -105,7 +109,7 @@ export default function NewProductPage() {
         try {
             setIsSubmitting(true);
 
-            // First create the product
+            // Create the product
             const productResponse = await authPost('/api/products', {
                 name,
                 sku,
@@ -118,12 +122,6 @@ export default function NewProductPage() {
             const productData = await productResponse.json();
 
             if (productData.success) {
-                if (addInventoryAfterCreate && selectedShopId) {
-                    // Add initial inventory
-                    const createdProductId = productData.data.id;
-                    await addInventoryForProduct(createdProductId);
-                }
-
                 // Redirect to inventory page
                 router.push('/inventory');
             } else {
@@ -137,26 +135,10 @@ export default function NewProductPage() {
         }
     };
 
-    const addInventoryForProduct = async (productId: number) => {
-        try {
-            const response = await authPost('/api/inventory/add', {
-                productId,
-                shopId: parseInt(selectedShopId),
-                quantity: parseInt(initialQuantity)
-            });
-
-            const data = await response.json();
-            if (!data.success) {
-                console.error('Failed to add initial inventory:', data.message);
-                // Don't show error to user since the product was created successfully
-            }
-        } catch (error) {
-            console.error('Error adding initial inventory:', error);
-        }
-    };
-
     return (
         <MainLayout>
+            {/* Add style tag to hide the section */}
+            <style dangerouslySetInnerHTML={{ __html: hideAddToInventoryStyle }} />
             <div className="space-y-6">
                 {/* Header with actions */}
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -298,71 +280,6 @@ export default function NewProductPage() {
                                     </select>
                                 )}
                             </div>
-
-                            <div></div> {/* Empty div for grid alignment */}
-
-                            {/* Add to inventory section */}
-                            <div className="md:col-span-2 p-4 bg-gray-50 rounded-md">
-                                <div className="mb-3">
-                                    <div className="flex items-center">
-                                        <input
-                                            type="checkbox"
-                                            id="addInventory"
-                                            className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary"
-                                            checked={addInventoryAfterCreate}
-                                            onChange={(e) => setAddInventoryAfterCreate(e.target.checked)}
-                                            disabled={isSubmitting}
-                                        />
-                                        <label htmlFor="addInventory" className="ml-2 text-sm font-medium text-gray-700">
-                                            Add to inventory after creating
-                                        </label>
-                                    </div>
-                                </div>
-
-                                {addInventoryAfterCreate && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label htmlFor="shop" className="block text-sm font-medium text-gray-700 mb-1">
-                                                Shop
-                                            </label>
-                                            {shopsLoading ? (
-                                                <div className="flex items-center space-x-2 h-10">
-                                                    <Loader2 className="animate-spin h-4 w-4 text-gray-500" />
-                                                    <span className="text-gray-500">Loading shops...</span>
-                                                </div>
-                                            ) : (
-                                                <select
-                                                    id="shop"
-                                                    className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
-                                                    value={selectedShopId}
-                                                    onChange={(e) => setSelectedShopId(e.target.value)}
-                                                    disabled={isSubmitting}
-                                                >
-                                                    {shops.map((shop) => (
-                                                        <option key={shop.id} value={shop.id}>
-                                                            {shop.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            )}
-                                        </div>
-                                        <div>
-                                            <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-1">
-                                                Initial Quantity
-                                            </label>
-                                            <input
-                                                type="number"
-                                                id="quantity"
-                                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
-                                                value={initialQuantity}
-                                                onChange={(e) => setInitialQuantity(e.target.value)}
-                                                min="1"
-                                                disabled={isSubmitting}
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
                         </div>
 
                         <div className="flex justify-end space-x-2 mt-6">
@@ -379,7 +296,7 @@ export default function NewProductPage() {
                                 type="submit"
                                 variant="primary"
                                 size="sm"
-                                disabled={isSubmitting || !name || !sku || (addInventoryAfterCreate && !selectedShopId)}
+                                disabled={isSubmitting || !name || !sku}
                             >
                                 {isSubmitting ? (
                                     <>

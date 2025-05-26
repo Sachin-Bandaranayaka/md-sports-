@@ -26,11 +26,6 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
     const [error, setError] = useState<string | null>(null);
     const [categories, setCategories] = useState<Category[]>([]);
     const [categoriesLoading, setCategoriesLoading] = useState(true);
-    const [shops, setShops] = useState<Shop[]>([]);
-    const [shopsLoading, setShopsLoading] = useState(true);
-    const [addInventoryAfterCreate, setAddInventoryAfterCreate] = useState(true);
-    const [selectedShopId, setSelectedShopId] = useState<string>('');
-    const [initialQuantity, setInitialQuantity] = useState<string>('1');
 
     // Form fields
     const [name, setName] = useState('');
@@ -44,7 +39,6 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
     useEffect(() => {
         if (isOpen) {
             fetchCategories();
-            fetchShops();
         }
     }, [isOpen]);
 
@@ -70,28 +64,6 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
         }
     };
 
-    const fetchShops = async () => {
-        try {
-            setShopsLoading(true);
-            const response = await fetch('/api/shops');
-            if (!response.ok) {
-                throw new Error('Failed to fetch shops');
-            }
-            const data = await response.json();
-            if (data.success) {
-                setShops(data.data);
-                if (data.data.length > 0) {
-                    setSelectedShopId(data.data[0].id.toString());
-                }
-            }
-        } catch (error) {
-            console.error('Error fetching shops:', error);
-            setError('Failed to load shops. Please try again.');
-        } finally {
-            setShopsLoading(false);
-        }
-    };
-
     const generateSku = () => {
         // Simple SKU generator: prefix + random alphanumeric
         const prefix = name.slice(0, 2).toUpperCase() || 'PR';
@@ -111,7 +83,7 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
         try {
             setIsSubmitting(true);
 
-            // First create the product
+            // Create the product
             const productResponse = await fetch('/api/products', {
                 method: 'POST',
                 headers: {
@@ -130,20 +102,6 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
             const productData = await productResponse.json();
 
             if (productData.success) {
-                if (addInventoryAfterCreate && onAddToInventory && selectedShopId) {
-                    // If the user wants to add inventory right away, and we have a shop selected
-                    const createdProductId = productData.data.id;
-
-                    // Option 1: Add inventory directly here
-                    if (!onAddToInventory) {
-                        // Add inventory directly
-                        await addInventoryForProduct(createdProductId);
-                    } else {
-                        // Option 2: Let the parent component handle opening the inventory modal
-                        onAddToInventory(createdProductId, name);
-                    }
-                }
-
                 resetForm();
                 onSuccess();
                 onClose();
@@ -158,30 +116,6 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
         }
     };
 
-    const addInventoryForProduct = async (productId: number) => {
-        try {
-            const response = await fetch('/api/inventory/add', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    productId,
-                    shopId: selectedShopId,
-                    quantity: parseInt(initialQuantity)
-                }),
-            });
-
-            const data = await response.json();
-            if (!data.success) {
-                console.error('Failed to add initial inventory:', data.message);
-                // Don't show error to user since the product was created successfully
-            }
-        } catch (error) {
-            console.error('Error adding initial inventory:', error);
-        }
-    };
-
     const resetForm = () => {
         setName('');
         setSku('');
@@ -189,8 +123,6 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
         setRetailPrice('0');
         setBasePrice('0');
         setCategoryId(categories.length > 0 ? categories[0].id.toString() : '');
-        setAddInventoryAfterCreate(true);
-        setInitialQuantity('1');
         setError(null);
     };
 
@@ -326,67 +258,6 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
                         )}
                     </div>
 
-                    {/* Add to inventory section */}
-                    <div className="mb-4 p-3 bg-gray-50 rounded-md">
-                        <div className="flex items-center mb-3">
-                            <input
-                                type="checkbox"
-                                id="addInventory"
-                                className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary"
-                                checked={addInventoryAfterCreate}
-                                onChange={(e) => setAddInventoryAfterCreate(e.target.checked)}
-                                disabled={isSubmitting}
-                            />
-                            <label htmlFor="addInventory" className="ml-2 text-sm font-medium text-black">
-                                Add to inventory after creating
-                            </label>
-                        </div>
-
-                        {addInventoryAfterCreate && (
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label htmlFor="shop" className="block text-sm font-medium text-black mb-1">
-                                        Shop
-                                    </label>
-                                    {shopsLoading ? (
-                                        <div className="flex items-center space-x-2 h-10">
-                                            <Loader2 className="animate-spin h-4 w-4 text-black" />
-                                            <span className="text-black">Loading shops...</span>
-                                        </div>
-                                    ) : (
-                                        <select
-                                            id="shop"
-                                            className="bg-white border border-gray-300 text-black text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
-                                            value={selectedShopId}
-                                            onChange={(e) => setSelectedShopId(e.target.value)}
-                                            disabled={isSubmitting}
-                                        >
-                                            {shops.map((shop) => (
-                                                <option key={shop.id} value={shop.id}>
-                                                    {shop.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    )}
-                                </div>
-                                <div>
-                                    <label htmlFor="quantity" className="block text-sm font-medium text-black mb-1">
-                                        Initial Quantity
-                                    </label>
-                                    <input
-                                        type="number"
-                                        id="quantity"
-                                        className="bg-white border border-gray-300 text-black text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
-                                        value={initialQuantity}
-                                        onChange={(e) => setInitialQuantity(e.target.value)}
-                                        min="1"
-                                        disabled={isSubmitting}
-                                    />
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
                     <div className="flex justify-end space-x-2 mt-6">
                         <Button
                             type="button"
@@ -401,7 +272,7 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
                             type="submit"
                             variant="primary"
                             size="sm"
-                            disabled={isSubmitting || !name || !sku || (addInventoryAfterCreate && !selectedShopId)}
+                            disabled={isSubmitting || !name || !sku}
                         >
                             {isSubmitting ? (
                                 <>
