@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma, safeQuery } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 // Default fallback for a single product
 const getDefaultProduct = (id: number) => ({
@@ -167,46 +168,88 @@ export async function DELETE(
             }, { status: 400 });
         }
 
-        // Note: Prisma doesn't natively support soft deletes, but we can simulate it
-        const deletedProduct = await safeQuery(
-            async () => {
-                // Check if product exists
-                const existingProduct = await prisma.product.findUnique({
+        try {
+            // Check if product exists first
+            const existingProduct = await prisma.product.findUnique({
+                where: { id }
+            });
+
+            if (!existingProduct) {
+                return NextResponse.json({
+                    success: false,
+                    message: `Product with ID ${id} not found`
+                }, { status: 404 });
+            }
+
+            // Check if product is referenced in purchase invoices
+            const purchaseInvoiceItems = await prisma.purchaseInvoiceItem.findFirst({
+                where: { productId: id }
+            });
+
+            if (purchaseInvoiceItems) {
+                return NextResponse.json({
+                    success: false,
+                    message: `Cannot delete product "${existingProduct.name}" because it is referenced in purchase invoice records.`
+                }, { status: 409 }); // 409 Conflict is appropriate for this case
+            }
+
+            // Check if product is referenced in sales invoices
+            const salesInvoiceItems = await prisma.salesInvoiceItem.findFirst({
+                where: { productId: id }
+            });
+
+            if (salesInvoiceItems) {
+                return NextResponse.json({
+                    success: false,
+                    message: `Cannot delete product "${existingProduct.name}" because it is referenced in sales invoice records.`
+                }, { status: 409 });
+            }
+
+            // Use a transaction to delete inventory items and then the product
+            await prisma.$transaction(async (tx) => {
+                // Delete all inventory items associated with this product
+                await tx.inventoryItem.deleteMany({
+                    where: { productId: id }
+                });
+
+                // Then, delete the product itself
+                await tx.product.delete({
                     where: { id }
                 });
+            });
 
-                if (!existingProduct) {
-                    return null;
-                }
-
-                // Use a transaction to delete inventory items and then the product
-                return await prisma.$transaction(async (tx) => {
-                    // Delete all inventory items associated with this product
-                    await tx.inventoryItem.deleteMany({
-                        where: { productId: id }
-                    });
-
-                    // Then, delete the product itself
-                    return await tx.product.delete({
-                        where: { id }
-                    });
-                });
-            },
-            null,
-            `Failed to delete product with ID ${id}`
-        );
-
-        if (!deletedProduct) {
             return NextResponse.json({
-                success: false,
-                message: `Product with ID ${id} not found`
-            }, { status: 404 });
-        }
+                success: true,
+                message: 'Product deleted successfully'
+            });
+        } catch (error) {
+            // Handle foreign key constraint violations
+            if (error instanceof Prisma.PrismaClientKnownRequestError) {
+                if (error.code === 'P2003') {
+                    // Foreign key constraint violation
+                    const constraintName = error.meta?.target as string || '';
 
-        return NextResponse.json({
-            success: true,
-            message: 'Product deleted successfully'
-        });
+                    // Determine which relation is causing the constraint violation
+                    let relationMessage = 'it is referenced in other records';
+
+                    if (constraintName.includes('PurchaseInvoiceItem')) {
+                        relationMessage = 'it is referenced in purchase invoice records';
+                    } else if (constraintName.includes('SalesInvoiceItem')) {
+                        relationMessage = 'it is referenced in sales invoice records';
+                    } else if (constraintName.includes('InventoryTransaction')) {
+                        relationMessage = 'it is referenced in inventory transaction records';
+                    }
+
+                    return NextResponse.json({
+                        success: false,
+                        message: `Cannot delete this product because ${relationMessage}.`,
+                        error: 'FOREIGN_KEY_CONSTRAINT'
+                    }, { status: 409 });
+                }
+            }
+
+            throw error; // Re-throw for the outer catch block
+        }
     } catch (error) {
         console.error(`Error deleting product:`, error);
         return NextResponse.json({
