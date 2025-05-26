@@ -40,8 +40,37 @@ module.exports = {
         '4xl': ['2.25rem', { lineHeight: '2.5rem' }],
         '5xl': ['3rem', { lineHeight: '1' }],
         '6xl': ['3.75rem', { lineHeight: '1' }],
-      }
+      },
+      typography: {
+        DEFAULT: {
+          css: {
+            maxWidth: '100%',
+            color: 'inherit',
+            p: {
+              marginTop: '0.5em',
+              marginBottom: '0.5em',
+            },
+            'ul > li': {
+              marginTop: '0.25em',
+              marginBottom: '0.25em',
+            },
+            'ol > li': {
+              marginTop: '0.25em',
+              marginBottom: '0.25em',
+            },
+            h3: {
+              marginTop: '0.75em',
+              marginBottom: '0.5em',
+            },
+            strong: {
+              fontWeight: '600',
+            },
+          },
+        },
+      },
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/typography'),
+  ],
 } 
