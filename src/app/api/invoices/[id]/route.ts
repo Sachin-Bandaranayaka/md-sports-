@@ -189,31 +189,63 @@ export async function DELETE(
             );
         }
 
-        // Delete related invoice items first
-        await prisma.invoiceItem.deleteMany({
-            where: { invoiceId: id }
-        });
+        await prisma.$transaction(async (tx) => {
+            // 1. Get all items from the invoice
+            const invoiceItems = await tx.invoiceItem.findMany({
+                where: { invoiceId: id },
+                select: { productId: true, quantity: true }
+            });
 
-        // Delete related payments
-        await prisma.payment.deleteMany({
-            where: { invoiceId: id }
-        });
+            // 2. For each item, update inventory
+            for (const item of invoiceItems) {
+                // Find an inventory item for the product.
+                // This assumes that if a product was sold, an inventory item for it must exist.
+                // If products can exist in multiple shops, this will add to the first one found.
+                // A more specific shopId might be needed if inventory is shop-specific for restocking.
+                const inventoryItem = await tx.inventoryItem.findFirst({
+                    where: { productId: item.productId }
+                });
 
-        // Delete the invoice
-        await prisma.invoice.delete({
-            where: { id }
+                if (inventoryItem) {
+                    await tx.inventoryItem.update({
+                        where: { id: inventoryItem.id },
+                        data: { quantity: { increment: item.quantity } }
+                    });
+                } else {
+                    // This case should ideally not happen if an invoice item was created.
+                    // Log an error or handle as per business logic (e.g., create a new inventory entry)
+                    console.error(`Inventory item not found for productId: ${item.productId} while trying to restock from deleted invoice ${id}.`);
+                    // Optionally, throw an error to rollback the transaction if this is critical
+                    // throw new Error(`Failed to restock: Inventory item not found for product ID ${item.productId}`);
+                }
+            }
+
+            // 3. Delete related invoice items
+            await tx.invoiceItem.deleteMany({
+                where: { invoiceId: id }
+            });
+
+            // 4. Delete related payments
+            await tx.payment.deleteMany({
+                where: { invoiceId: id }
+            });
+
+            // 5. Delete the invoice itself
+            await tx.invoice.delete({
+                where: { id }
+            });
         });
 
         return NextResponse.json({
             success: true,
-            message: 'Invoice deleted successfully'
+            message: 'Invoice deleted successfully and inventory restocked'
         });
     } catch (error) {
-        console.error('Error deleting invoice:', error);
+        console.error('Error deleting invoice and restocking inventory:', error);
         return NextResponse.json(
             {
                 success: false,
-                message: 'Error deleting invoice',
+                message: 'Error deleting invoice and restocking inventory',
                 error: error instanceof Error ? error.message : String(error)
             },
             { status: 500 }

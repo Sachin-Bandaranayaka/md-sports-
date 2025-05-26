@@ -1,0 +1,611 @@
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/Button';
+import { Search, UserPlus, Filter, X, Trash2, Loader2, ChevronDown } from 'lucide-react';
+import { authDelete } from '@/utils/api';
+
+// Interface for Customer
+interface Customer {
+    id: string | number;
+    name: string;
+    email?: string | null;
+    phone?: string | null;
+    address?: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+    lastPurchaseDate?: Date | null;
+    // Custom fields for UI
+    type?: 'Credit' | 'Cash';
+    balance?: number;
+    lastPurchase?: string | null;
+    status?: 'Active' | 'Inactive';
+    contactPerson?: string;
+}
+
+// Status badge colors
+const getStatusBadgeClass = (status: string) => {
+    return status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+};
+
+const getCustomerTypeClass = (type: string) => {
+    return type === 'Credit' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800';
+};
+
+interface CustomerClientWrapperProps {
+    initialCustomers: Customer[];
+    initialTotalPages: number;
+    initialCurrentPage: number;
+}
+
+export default function CustomerClientWrapper({ initialCustomers, initialTotalPages, initialCurrentPage }: CustomerClientWrapperProps) {
+    const router = useRouter();
+    const [loading, setLoading] = useState<boolean>(false); // Data loading will be handled by parent server component
+    const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
+    const [allCustomers, setAllCustomers] = useState<Customer[]>(initialCustomers); // This might need adjustment based on pagination strategy
+    const [searchTerm, setSearchTerm] = useState<string>('');
+    const [searchSuggestions, setSearchSuggestions] = useState<Customer[]>([]);
+    const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
+    const [selectedType, setSelectedType] = useState<string>('');
+    const [selectedStatus, setSelectedStatus] = useState<string>('');
+    const [deleteLoading, setDeleteLoading] = useState<string | number | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const suggestionsRef = useRef<HTMLDivElement>(null);
+
+    // Add state for filter modal
+    const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
+    const [filterOptions, setFilterOptions] = useState({
+        balanceMin: '',
+        balanceMax: '',
+        lastPurchaseFrom: '',
+        lastPurchaseTo: '',
+        customerType: '',
+        customerStatus: ''
+    });
+    const filterModalRef = useRef<HTMLDivElement>(null);
+
+    const [currentPage, setCurrentPage] = useState(initialCurrentPage);
+    const [totalPages, setTotalPages] = useState(initialTotalPages);
+
+
+    // Event handler for clicks outside the suggestions box
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node)) {
+                setShowSuggestions(false);
+            }
+        }
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
+
+    // Add handler for filter modal outside clicks
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (filterModalRef.current && !filterModalRef.current.contains(event.target as Node)) {
+                setShowFilterModal(false);
+            }
+        }
+
+        if (showFilterModal) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [showFilterModal]);
+
+    useEffect(() => {
+        setCustomers(initialCustomers);
+        setAllCustomers(initialCustomers); // Assuming initialCustomers is the full list for the current page
+        setTotalPages(initialTotalPages);
+        setCurrentPage(initialCurrentPage);
+    }, [initialCustomers, initialTotalPages, initialCurrentPage]);
+
+
+    // Function to search customers and update suggestions
+    const searchCustomers = (value: string) => {
+        setSearchTerm(value);
+        // Client-side search on the current page's data, or refetch from server
+        // For now, let's assume client-side search on current page data for simplicity,
+        // but a server-side search might be better for large datasets.
+        if (value.trim() === '') {
+            filterCustomers('', selectedType, selectedStatus); // Apply filters if search is cleared
+            setSearchSuggestions([]);
+            setShowSuggestions(false);
+            return;
+        }
+
+        const lowerCaseValue = value.toLowerCase();
+        const matchedCustomers = customers.filter(customer => // Search within current page customers
+            (customer.name && customer.name.toLowerCase().includes(lowerCaseValue)) ||
+            (customer.phone && customer.phone.toLowerCase().includes(lowerCaseValue)) ||
+            (typeof customer.id === 'number' && `cus-${String(customer.id).padStart(3, '0')}`.toLowerCase().includes(lowerCaseValue))
+        );
+        setSearchSuggestions(matchedCustomers.slice(0, 5));
+        setShowSuggestions(true);
+        // The main customer list will be updated by filterCustomers or handleApplyFilters
+    };
+
+    const handleApplyFilters = () => {
+        const queryParams = new URLSearchParams();
+        if (searchTerm) queryParams.set('search', searchTerm);
+        if (filterOptions.customerType) queryParams.set('type', filterOptions.customerType);
+        if (filterOptions.customerStatus) queryParams.set('status', filterOptions.customerStatus);
+        if (filterOptions.balanceMin) queryParams.set('balanceMin', filterOptions.balanceMin);
+        if (filterOptions.balanceMax) queryParams.set('balanceMax', filterOptions.balanceMax);
+        if (filterOptions.lastPurchaseFrom) queryParams.set('lastPurchaseFrom', filterOptions.lastPurchaseFrom);
+        if (filterOptions.lastPurchaseTo) queryParams.set('lastPurchaseTo', filterOptions.lastPurchaseTo);
+        queryParams.set('page', '1'); // Reset to page 1 on new filter/search
+        router.push(`/customers?${queryParams.toString()}`);
+        setShowFilterModal(false);
+    };
+
+
+    // Function to handle suggestion click
+    const handleSuggestionClick = (customer: Customer) => {
+        setSearchTerm(customer.name);
+        setShowSuggestions(false);
+        // Re-trigger filtering/searching with the selected customer name
+        // This might also involve a new fetch if searching is server-side
+        handleApplyFilters();
+    };
+
+    // Function to filter customers based on search term and filters (client-side for current page)
+    const filterCustomers = (search: string, type: string, status: string) => {
+        let filteredCustomers = [...allCustomers]; // Start with all customers for the current page
+
+        // Apply search filter
+        if (search) {
+            const lowerCaseSearch = search.toLowerCase();
+            filteredCustomers = filteredCustomers.filter(customer =>
+                (customer.name && customer.name.toLowerCase().includes(lowerCaseSearch)) ||
+                (customer.phone && customer.phone.toLowerCase().includes(lowerCaseSearch)) ||
+                (typeof customer.id === 'number' && `cus-${String(customer.id).padStart(3, '0')}`.toLowerCase().includes(lowerCaseSearch))
+            );
+        }
+
+        // Apply type filter
+        if (type) {
+            const lowerCaseType = type.toLowerCase();
+            filteredCustomers = filteredCustomers.filter(customer =>
+                customer.type && customer.type.toLowerCase() === lowerCaseType
+            );
+        }
+
+        // Apply status filter
+        if (status) {
+            const lowerCaseStatus = status.toLowerCase();
+            filteredCustomers = filteredCustomers.filter(customer =>
+                customer.status && customer.status.toLowerCase() === lowerCaseStatus
+            );
+        }
+        // This function should ideally not set state directly if pagination/filtering is server-side
+        // For now, it filters the current page's data.
+        setCustomers(filteredCustomers);
+    };
+
+    // Function to handle filter changes (for simple dropdowns, might need adjustment)
+    const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const value = e.target.value;
+        setSelectedType(value);
+        // Update filterOptions and then call handleApplyFilters or similar
+        setFilterOptions(prev => ({ ...prev, customerType: value }));
+        // If we want instant apply:
+        // const queryParams = new URLSearchParams();
+        // if (searchTerm) queryParams.set('search', searchTerm);
+        // queryParams.set('type', value);
+        // if (selectedStatus) queryParams.set('status', selectedStatus);
+        // queryParams.set('page', '1');
+        // router.push(`/customers?${queryParams.toString()}`);
+    };
+
+    const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const value = e.target.value;
+        setSelectedStatus(value);
+        setFilterOptions(prev => ({ ...prev, customerStatus: value }));
+        // If we want instant apply:
+        // const queryParams = new URLSearchParams();
+        // if (searchTerm) queryParams.set('search', searchTerm);
+        // if (selectedType) queryParams.set('type', selectedType);
+        // queryParams.set('status', value);
+        // queryParams.set('page', '1');
+        // router.push(`/customers?${queryParams.toString()}`);
+    };
+
+
+    // Function to clear search
+    const clearSearch = () => {
+        setSearchTerm('');
+        setShowSuggestions(false);
+        // Re-apply filters without search term, or refetch if server-side
+        const queryParams = new URLSearchParams();
+        if (filterOptions.customerType) queryParams.set('type', filterOptions.customerType);
+        if (filterOptions.customerStatus) queryParams.set('status', filterOptions.customerStatus);
+        // Add other filters from filterOptions
+        queryParams.set('page', currentPage.toString()); // Stay on current page or reset to 1
+        router.push(`/customers?${queryParams.toString()}`);
+    };
+
+    const handlePageChange = (newPage: number) => {
+        setCurrentPage(newPage);
+        const queryParams = new URLSearchParams(window.location.search);
+        queryParams.set('page', newPage.toString());
+        router.push(`/customers?${queryParams.toString()}`);
+    };
+
+    // Add delete customer handler
+    const handleDeleteCustomer = async (customerId: string | number) => {
+        if (!confirm('Are you sure you want to delete this customer? This action cannot be undone.')) {
+            return;
+        }
+
+        setDeleteLoading(customerId);
+        setError(null);
+
+        try {
+            const response = await authDelete(`/api/customers/${customerId}`);
+            const data = await response.json();
+
+            if (data.success) {
+                // Remove the deleted customer from the state and refetch or update
+                setCustomers(prevCustomers => prevCustomers.filter(customer => customer.id !== customerId));
+                setAllCustomers(prevAllCustomers => prevAllCustomers.filter(customer => customer.id !== customerId));
+                // Potentially refetch the current page data
+                // router.refresh(); // or fetch specific page data
+            } else {
+                setError(data.message || 'Failed to delete customer. Please try again.');
+            }
+        } catch (err) {
+            console.error('Error deleting customer:', err);
+            setError('An unexpected error occurred. Please try again.');
+        } finally {
+            setDeleteLoading(null);
+        }
+    };
+
+    const applyAdvancedFilters = () => {
+        // This function body was not fully provided in the original file snippet
+        // Assuming it uses filterOptions to construct query params and navigate
+        console.log("Applying advanced filters:", filterOptions);
+        handleApplyFilters(); // Use the unified apply function
+    };
+
+    const handleFilterOptionChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFilterOptions(prevOptions => ({
+            ...prevOptions,
+            [name]: value,
+        }));
+    };
+
+    const resetFilters = () => {
+        setFilterOptions({
+            balanceMin: '',
+            balanceMax: '',
+            lastPurchaseFrom: '',
+            lastPurchaseTo: '',
+            customerType: '',
+            customerStatus: ''
+        });
+        setSelectedType('');
+        setSelectedStatus('');
+        // Also clear search term and navigate to base page or re-apply empty filters
+        setSearchTerm('');
+        const queryParams = new URLSearchParams();
+        queryParams.set('page', '1');
+        router.push(`/customers?${queryParams.toString()}`);
+        setShowFilterModal(false);
+    };
+
+
+    return (
+        <>
+            {error && (
+                <div className="mb-4 p-3 bg-red-100 text-red-700 border border-red-400 rounded">
+                    {error}
+                    <button onClick={() => setError(null)} className="ml-4 text-red-700 font-bold">X</button>
+                </div>
+            )}
+            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                <h1 className="text-3xl font-bold text-gray-800">Manage Customers</h1>
+                <div className="flex gap-3">
+                    <Button variant="primary" onClick={() => router.push('/customers/new')} className="flex items-center">
+                        <UserPlus size={18} className="mr-2" /> Add New Customer
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowFilterModal(true)} className="flex items-center">
+                        <Filter size={18} className="mr-2" /> Filters
+                    </Button>
+                </div>
+            </div>
+
+            {/* Search and Simple Filters */}
+            <div className="mb-6 p-4 bg-white shadow rounded-lg">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div className="relative md:col-span-1">
+                        <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">Search Customer</label>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                            <input
+                                type="text"
+                                id="search"
+                                placeholder="Search by name, phone, or ID (e.g., cus-001)"
+                                value={searchTerm}
+                                onChange={(e) => searchCustomers(e.target.value)}
+                                className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                            />
+                            {searchTerm && (
+                                <X
+                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                                    size={20}
+                                    onClick={clearSearch}
+                                />
+                            )}
+                        </div>
+                        {showSuggestions && searchSuggestions.length > 0 && (
+                            <div ref={suggestionsRef} className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                                {searchSuggestions.map((customer) => (
+                                    <div
+                                        key={customer.id}
+                                        onClick={() => handleSuggestionClick(customer)}
+                                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                                    >
+                                        <p className="font-semibold">{customer.name}</p>
+                                        <p className="text-sm text-gray-500">{customer.phone || `ID: cus-${String(customer.id).padStart(3, '0')}`}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    <div>
+                        <label htmlFor="customerType" className="block text-sm font-medium text-gray-700 mb-1">Customer Type</label>
+                        <select
+                            id="customerType"
+                            value={selectedType}
+                            onChange={handleTypeChange}
+                            className="w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        >
+                            <option value="">All Types</option>
+                            <option value="Credit">Credit</option>
+                            <option value="Cash">Cash</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label htmlFor="customerStatus" className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <select
+                            id="customerStatus"
+                            value={selectedStatus}
+                            onChange={handleStatusChange}
+                            className="w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        >
+                            <option value="">All Statuses</option>
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            {/* Filter Modal */}
+            {showFilterModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div ref={filterModalRef} className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-semibold">Advanced Filters</h3>
+                            <Button variant="ghost" size="sm" onClick={() => setShowFilterModal(false)}>
+                                <X size={20} />
+                            </Button>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label htmlFor="filterCustomerType" className="block text-sm font-medium text-gray-700">Customer Type</label>
+                                <select
+                                    id="filterCustomerType"
+                                    name="customerType"
+                                    value={filterOptions.customerType}
+                                    onChange={handleFilterOptionChange}
+                                    className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                >
+                                    <option value="">Any</option>
+                                    <option value="Credit">Credit</option>
+                                    <option value="Cash">Cash</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label htmlFor="filterCustomerStatus" className="block text-sm font-medium text-gray-700">Customer Status</label>
+                                <select
+                                    id="filterCustomerStatus"
+                                    name="customerStatus"
+                                    value={filterOptions.customerStatus}
+                                    onChange={handleFilterOptionChange}
+                                    className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                >
+                                    <option value="">Any</option>
+                                    <option value="Active">Active</option>
+                                    <option value="Inactive">Inactive</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label htmlFor="balanceMin" className="block text-sm font-medium text-gray-700">Min Balance</label>
+                                <input
+                                    type="number"
+                                    id="balanceMin"
+                                    name="balanceMin"
+                                    value={filterOptions.balanceMin}
+                                    onChange={handleFilterOptionChange}
+                                    placeholder="e.g., 100"
+                                    className="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="balanceMax" className="block text-sm font-medium text-gray-700">Max Balance</label>
+                                <input
+                                    type="number"
+                                    id="balanceMax"
+                                    name="balanceMax"
+                                    value={filterOptions.balanceMax}
+                                    onChange={handleFilterOptionChange}
+                                    placeholder="e.g., 5000"
+                                    className="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="lastPurchaseFrom" className="block text-sm font-medium text-gray-700">Last Purchase From</label>
+                                <input
+                                    type="date"
+                                    id="lastPurchaseFrom"
+                                    name="lastPurchaseFrom"
+                                    value={filterOptions.lastPurchaseFrom}
+                                    onChange={handleFilterOptionChange}
+                                    className="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="lastPurchaseTo" className="block text-sm font-medium text-gray-700">Last Purchase To</label>
+                                <input
+                                    type="date"
+                                    id="lastPurchaseTo"
+                                    name="lastPurchaseTo"
+                                    value={filterOptions.lastPurchaseTo}
+                                    onChange={handleFilterOptionChange}
+                                    className="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                />
+                            </div>
+                        </div>
+                        <div className="mt-6 flex justify-end space-x-3">
+                            <Button variant="outline" onClick={resetFilters}>Reset</Button>
+                            <Button variant="primary" onClick={applyAdvancedFilters}>Apply Filters</Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Customers Table */}
+            {loading ? (
+                <div className="flex justify-center items-center h-64">
+                    <Loader2 className="animate-spin text-indigo-600" size={48} />
+                    <p className="ml-3 text-lg text-gray-600">Loading customers...</p>
+                </div>
+            ) : customers.length === 0 ? (
+                <div className="text-center py-10">
+                    <UserPlus size={48} className="mx-auto text-gray-400" />
+                    <h3 className="mt-2 text-xl font-semibold text-gray-700">No Customers Found</h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                        {searchTerm || selectedType || selectedStatus || Object.values(filterOptions).some(v => v)
+                            ? "Try adjusting your search or filter criteria."
+                            : "Get started by adding a new customer."}
+                    </p>
+                    {(searchTerm || selectedType || selectedStatus || Object.values(filterOptions).some(v => v)) && (
+                        <Button variant="outline" onClick={resetFilters} className="mt-4">Clear All Filters</Button>
+                    )}
+                </div>
+            ) : (
+                <div className="overflow-x-auto bg-white shadow rounded-lg">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer ID</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Contact Person</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Email</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Address</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Balance</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Last Purchase</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {customers.map((customer) => (
+                                <tr key={customer.id} className="hover:bg-gray-50 transition-colors duration-150">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{`cus-${String(customer.id).padStart(3, '0')}`}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{customer.name}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">{customer.contactPerson || 'N/A'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">{customer.email || 'N/A'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.phone || 'N/A'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell truncate max-w-xs" title={customer.address || undefined}>{customer.address || 'N/A'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getCustomerTypeClass(customer.type || 'Cash')}`}>
+                                            {customer.type || 'Cash'}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
+                                        {customer.type === 'Credit' ? `$${(customer.balance || 0).toFixed(2)}` : 'N/A'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell">{customer.lastPurchase || 'N/A'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(customer.status || 'Inactive')}`}>
+                                            {customer.status || 'Inactive'}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <div className="flex items-center space-x-2">
+                                            <Button variant="link" size="sm" onClick={() => router.push(`/customers/${customer.id}`)} className="text-indigo-600 hover:text-indigo-900">
+                                                View
+                                            </Button>
+                                            <Button variant="link" size="sm" onClick={() => router.push(`/customers/${customer.id}/edit`)} className="text-yellow-600 hover:text-yellow-900">
+                                                Edit
+                                            </Button>
+                                            <Button
+                                                variant="link"
+                                                size="sm"
+                                                onClick={() => handleDeleteCustomer(customer.id)}
+                                                className="text-red-600 hover:text-red-900"
+                                                disabled={deleteLoading === customer.id}
+                                            >
+                                                {deleteLoading === customer.id ? (
+                                                    <Loader2 className="animate-spin" size={16} />
+                                                ) : (
+                                                    <Trash2 size={16} />
+                                                )}
+                                            </Button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="mt-6 flex justify-center items-center space-x-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1 || loading}
+                    >
+                        Previous
+                    </Button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <Button
+                            key={page}
+                            variant={currentPage === page ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handlePageChange(page)}
+                            disabled={loading}
+                        >
+                            {page}
+                        </Button>
+                    ))}
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages || loading}
+                    >
+                        Next
+                    </Button>
+                </div>
+            )}
+        </>
+    );
+} 

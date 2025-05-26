@@ -1,0 +1,358 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Button } from '@/components/ui/Button';
+import { Search, Plus, Filter, FileText, Download, Eye, CheckCircle, Trash2, Edit, Loader2, X } from 'lucide-react';
+
+// Interface for Invoice (should match what the API provides or what page.tsx transforms)
+interface Invoice {
+    id: string | number;
+    invoiceNumber: string;
+    customerId: number;
+    customerName?: string; // Added by API or server component
+    total: number;
+    status: string;
+    paymentMethod: string;
+    createdAt: Date | string; // Can be string if pre-formatted
+    updatedAt: Date | string;
+    date?: string; // UI formatted date
+    dueDate?: string; // UI formatted due date
+    itemCount?: number; // Number of items in the invoice
+}
+
+// Status badge colors
+const getStatusBadgeClass = (status: string) => {
+    switch (status.toLowerCase()) {
+        case 'paid':
+            return 'bg-green-100 text-green-800';
+        case 'pending':
+            return 'bg-yellow-100 text-yellow-800';
+        case 'overdue':
+            return 'bg-red-100 text-red-800';
+        case 'cancelled':
+            return 'bg-gray-100 text-gray-700';
+        default:
+            return 'bg-gray-100 text-gray-800';
+    }
+};
+
+interface InvoiceClientWrapperProps {
+    initialInvoices: Invoice[];
+    initialTotalPages: number;
+    initialCurrentPage: number;
+    initialStatistics: {
+        totalOutstanding: number;
+        paidThisMonth: number;
+        overdueCount: number;
+    };
+}
+
+export default function InvoiceClientWrapper({
+    initialInvoices,
+    initialTotalPages,
+    initialCurrentPage,
+    initialStatistics
+}: InvoiceClientWrapperProps) {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+
+    const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
+    const [totalPages, setTotalPages] = useState<number>(initialTotalPages);
+    const [currentPage, setCurrentPage] = useState<number>(initialCurrentPage);
+    const [statistics, setStatistics] = useState(initialStatistics);
+    const [loading, setLoading] = useState<boolean>(false); // For client-side actions like payment, delete
+    const [error, setError] = useState<string | null>(null);
+
+    // Filters state - initialized from URL search params if present
+    const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('status') || '');
+    const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>(searchParams.get('paymentMethod') || '');
+    const [searchQuery, setSearchQuery] = useState<string>(searchParams.get('search') || '');
+
+    useEffect(() => {
+        setInvoices(initialInvoices);
+        setTotalPages(initialTotalPages);
+        setCurrentPage(initialCurrentPage);
+        setStatistics(initialStatistics);
+    }, [initialInvoices, initialTotalPages, initialCurrentPage, initialStatistics]);
+
+    const handleFilterChange = () => {
+        const params = new URLSearchParams(searchParams);
+        if (searchQuery) params.set('search', searchQuery);
+        else params.delete('search');
+        if (statusFilter) params.set('status', statusFilter);
+        else params.delete('status');
+        if (paymentMethodFilter) params.set('paymentMethod', paymentMethodFilter);
+        else params.delete('paymentMethod');
+        params.set('page', '1'); // Reset to page 1 on new filter
+        router.push(`/invoices?${params.toString()}`);
+    };
+
+    const clearFilters = () => {
+        setSearchQuery('');
+        setStatusFilter('');
+        setPaymentMethodFilter('');
+        const params = new URLSearchParams();
+        params.set('page', '1');
+        router.push(`/invoices?${params.toString()}`);
+    };
+
+    const handlePageChange = (newPage: number) => {
+        const params = new URLSearchParams(searchParams);
+        params.set('page', newPage.toString());
+        router.push(`/invoices?${params.toString()}`);
+    };
+
+    const handleRecordPayment = async (invoiceId: string | number) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await fetch(`/api/invoices/${invoiceId}`,
+                {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'Paid' }),
+                }
+            );
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.message || 'Failed to update invoice status');
+            }
+            // Trigger a refresh of server props by navigating to the current path
+            router.refresh();
+        } catch (err: any) {
+            console.error('Error recording payment:', err);
+            setError(err.message || 'Failed to record payment. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteInvoice = async (invoiceId: string | number) => {
+        if (confirm('Are you sure you want to delete this invoice? This action cannot be undone.')) {
+            setLoading(true);
+            setError(null);
+            try {
+                const response = await fetch(`/api/invoices/${invoiceId}`, { method: 'DELETE' });
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.message || 'Failed to delete invoice');
+                }
+                router.refresh(); // Refresh data
+            } catch (err: any) {
+                console.error('Error deleting invoice:', err);
+                setError(err.message || 'Failed to delete invoice. Please try again.');
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
+    // Format date string for display (if not already formatted)
+    const formatDate = (dateString: string | Date) => {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toISOString().split('T')[0];
+    };
+
+
+    return (
+        <>
+            {error && (
+                <div className="mb-4 p-3 bg-red-100 text-red-700 border border-red-400 rounded">
+                    {error}
+                    <button onClick={() => setError(null)} className="ml-4 text-red-700 font-bold">X</button>
+                </div>
+            )}
+
+            {/* Header & Statistics */}
+            <div className="mb-6">
+                <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                    <h1 className="text-3xl font-bold text-gray-800">Manage Invoices</h1>
+                    <Button variant="primary" onClick={() => router.push('/invoices/new')} className="flex items-center">
+                        <Plus size={18} className="mr-2" /> Create New Invoice
+                    </Button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="bg-white p-4 shadow rounded-lg">
+                        <h3 className="text-sm font-medium text-gray-500">Total Outstanding</h3>
+                        <p className="text-2xl font-semibold text-gray-800">Rs. {statistics.totalOutstanding.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-white p-4 shadow rounded-lg">
+                        <h3 className="text-sm font-medium text-gray-500">Paid This Month</h3>
+                        <p className="text-2xl font-semibold text-green-600">Rs. {statistics.paidThisMonth.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-white p-4 shadow rounded-lg">
+                        <h3 className="text-sm font-medium text-gray-500">Overdue Invoices</h3>
+                        <p className="text-2xl font-semibold text-red-600">{statistics.overdueCount}</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Search and Filter Bar */}
+            <div className="mb-6 p-4 bg-white shadow rounded-lg">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                    <div className="md:col-span-2">
+                        <label htmlFor="searchInvoice" className="block text-sm font-medium text-gray-700 mb-1">Search Invoices</label>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                            <input
+                                type="text"
+                                id="searchInvoice"
+                                placeholder="Search by Invoice #, Customer Name..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleFilterChange()}
+                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label htmlFor="statusFilter" className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <select
+                            id="statusFilter"
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        >
+                            <option value="">All Statuses</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Paid">Paid</option>
+                            <option value="Overdue">Overdue</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label htmlFor="paymentMethodFilter" className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                        <select
+                            id="paymentMethodFilter"
+                            value={paymentMethodFilter}
+                            onChange={(e) => setPaymentMethodFilter(e.target.value)}
+                            className="w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        >
+                            <option value="">All Methods</option>
+                            <option value="Cash">Cash</option>
+                            <option value="Card">Card</option>
+                            <option value="Bank Transfer">Bank Transfer</option>
+                            <option value="Cheque">Cheque</option>
+                        </select>
+                    </div>
+                </div>
+                <div className="mt-4 flex justify-end gap-2">
+                    <Button variant="outline" onClick={clearFilters} disabled={loading}>
+                        Clear Filters
+                    </Button>
+                    <Button variant="primary" onClick={handleFilterChange} disabled={loading}>
+                        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Filter size={18} className="mr-2" />} Apply Filters
+                    </Button>
+                </div>
+            </div>
+
+            {/* Invoices Table */}
+            {loading && initialInvoices.length === 0 ? (
+                <div className="flex justify-center items-center h-64">
+                    <Loader2 className="animate-spin text-indigo-600" size={48} />
+                    <p className="ml-3 text-lg text-gray-600">Loading invoices...</p>
+                </div>
+            ) : invoices.length === 0 ? (
+                <div className="text-center py-10 bg-white shadow rounded-lg">
+                    <FileText size={48} className="mx-auto text-gray-400" />
+                    <h3 className="mt-2 text-xl font-semibold text-gray-700">No Invoices Found</h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                        {searchQuery || statusFilter || paymentMethodFilter
+                            ? "Try adjusting your search or filter criteria."
+                            : "Get started by creating a new invoice."}
+                    </p>
+                    {(searchQuery || statusFilter || paymentMethodFilter) && (
+                        <Button variant="outline" onClick={clearFilters} className="mt-4">Clear All Filters</Button>
+                    )}
+                </div>
+            ) : (
+                <div className="overflow-x-auto bg-white shadow rounded-lg">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice #</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Date</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Due Date</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Items</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {invoices.map((invoice) => (
+                                <tr key={invoice.id} className="hover:bg-gray-50 transition-colors duration-150">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-600 hover:text-indigo-800 cursor-pointer" onClick={() => router.push(`/invoices/${invoice.id}`)}>{invoice.invoiceNumber}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{invoice.customerName}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">{formatDate(invoice.createdAt)}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell">{invoice.dueDate || formatDate(new Date(new Date(invoice.createdAt).setDate(new Date(invoice.createdAt).getDate() + 30)))}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-semibold">Rs. {invoice.total.toLocaleString()}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">{invoice.itemCount}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(invoice.status)}`}>
+                                            {invoice.status}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <div className="flex items-center space-x-1">
+                                            <Button variant="ghost" size="icon" onClick={() => router.push(`/invoices/${invoice.id}`)} title="View Invoice">
+                                                <Eye size={16} className="text-blue-600" />
+                                            </Button>
+                                            {invoice.status.toLowerCase() === 'pending' && (
+                                                <Button variant="ghost" size="icon" onClick={() => handleRecordPayment(invoice.id)} title="Record Payment" disabled={loading}>
+                                                    {loading ? <Loader2 className="animate-spin h-4 w-4" /> : <CheckCircle size={16} className="text-green-600" />}
+                                                </Button>
+                                            )}
+                                            <Button variant="ghost" size="icon" onClick={() => router.push(`/invoices/${invoice.id}/edit`)} title="Edit Invoice" disabled={loading}>
+                                                <Edit size={16} className="text-yellow-600" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteInvoice(invoice.id)} title="Delete Invoice" disabled={loading}>
+                                                {loading ? <Loader2 className="animate-spin h-4 w-4" /> : <Trash2 size={16} className="text-red-600" />}
+                                            </Button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="mt-6 flex justify-center items-center space-x-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1 || loading}
+                    >
+                        Previous
+                    </Button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <Button
+                            key={page}
+                            variant={currentPage === page ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handlePageChange(page)}
+                            disabled={loading}
+                        >
+                            {page}
+                        </Button>
+                    ))}
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages || loading}
+                    >
+                        Next
+                    </Button>
+                </div>
+            )}
+        </>
+    );
+} 

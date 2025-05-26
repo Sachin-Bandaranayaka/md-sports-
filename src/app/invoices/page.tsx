@@ -1,275 +1,156 @@
-'use client';
-
-import { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
-import { Button } from '@/components/ui/Button';
-import { Search, Plus, Filter, FileText, Download, Eye, CheckCircle, Trash2, Edit } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import InvoiceClientWrapper from './components/InvoiceClientWrapper';
+import { Suspense } from 'react';
+import { Loader2 } from 'lucide-react';
 
-// Interface for Invoice
+// Interface for Invoice - ensure this matches the shape expected by InvoiceClientWrapper
 interface Invoice {
     id: string | number;
     invoiceNumber: string;
     customerId: number;
+    customerName?: string;
     total: number;
     status: string;
     paymentMethod: string;
-    createdAt: Date;
-    updatedAt: Date;
-    // Relations and UI fields
-    customerName?: string;
-    date?: string;
-    dueDate?: string;
-    items?: number;
+    createdAt: Date | string;
+    updatedAt: Date | string;
+    date?: string; // Formatted for display
+    dueDate?: string; // Formatted for display
+    itemCount?: number;
 }
 
-// Status badge colors
-const getStatusBadgeClass = (status: string) => {
-    switch (status) {
-        case 'Paid':
-            return 'bg-green-100 text-green-800';
-        case 'Pending':
-            return 'bg-yellow-100 text-yellow-800';
-        case 'Overdue':
-            return 'bg-red-100 text-red-800';
-        default:
-            return 'bg-gray-100 text-gray-800';
+const ITEMS_PER_PAGE = 15;
+
+async function fetchInvoicesData(
+    pageParam: string | undefined,
+    statusFilterParam: string | undefined,
+    paymentMethodFilterParam: string | undefined,
+    searchQueryParam: string | undefined
+) {
+    const page = parseInt(pageParam || '1', 10);
+    const statusFilter = statusFilterParam || '';
+    const paymentMethodFilter = paymentMethodFilterParam || '';
+    const searchQuery = searchQueryParam || '';
+
+    let whereClause: any = {};
+    if (statusFilter) {
+        whereClause.status = statusFilter;
     }
-};
-
-export default function Invoices() {
-    const [loading, setLoading] = useState<boolean>(true);
-    const [invoices, setInvoices] = useState<Invoice[]>([]);
-    const [filteredInvoices, setFilteredInvoices] = useState<Invoice[]>([]);
-    const [statusFilter, setStatusFilter] = useState<string>('');
-    const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('');
-    const [searchQuery, setSearchQuery] = useState<string>('');
-    const [statistics, setStatistics] = useState({
-        totalOutstanding: 0,
-        paidThisMonth: 0,
-        overdueCount: 0
-    });
-
-    useEffect(() => {
-        fetchInvoices();
-    }, []);
-
-    // Apply filters whenever filter states change
-    useEffect(() => {
-        applyFilters();
-    }, [invoices, statusFilter, paymentMethodFilter, searchQuery]);
-
-    // Filter function
-    const applyFilters = () => {
-        let result = [...invoices];
-
-        // Apply status filter
-        if (statusFilter) {
-            result = result.filter(invoice =>
-                invoice.status.toLowerCase() === statusFilter.toLowerCase()
-            );
-        }
-
-        // Apply payment method filter
-        if (paymentMethodFilter) {
-            result = result.filter(invoice =>
-                invoice.paymentMethod === paymentMethodFilter
-            );
-        }
-
-        // Apply search query
-        if (searchQuery) {
-            const query = searchQuery.toLowerCase();
-            result = result.filter(invoice =>
-                invoice.invoiceNumber.toLowerCase().includes(query) ||
-                invoice.customerName?.toLowerCase().includes(query) ||
-                String(invoice.total).includes(query)
-            );
-        }
-
-        setFilteredInvoices(result);
-    };
-
-    async function fetchInvoices() {
-        try {
-            // Fetch invoices from API
-            const response = await fetch('/api/invoices');
-            if (!response.ok) {
-                throw new Error('Failed to fetch invoices');
-            }
-            const data = await response.json();
-
-            console.log("Raw invoice data:", data);
-
-            // Calculate statistics
-            const now = new Date();
-            const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-            let outstanding = 0;
-            let paidThisMonth = 0;
-            let overdueCount = 0;
-
-            // Transform data for UI
-            const formattedInvoices = await Promise.all(data.map(async (invoice: any) => {
-                // Get customer name - in a real app this would be included in the API response
-                let customerName = 'Unknown Customer';
-                try {
-                    const customerResponse = await fetch(`/api/customers/${invoice.customerId}`);
-                    if (customerResponse.ok) {
-                        const customer = await customerResponse.json();
-                        customerName = customer.name;
-                    }
-                } catch (e) {
-                    console.error('Error fetching customer:', e);
-                }
-
-                // Calculate statistics
-                if (invoice.status === 'Paid' && new Date(invoice.updatedAt) >= firstDayOfMonth) {
-                    paidThisMonth += invoice.total;
-                } else if (invoice.status !== 'Paid') {
-                    outstanding += invoice.total;
-                }
-
-                if (invoice.status === 'Overdue') {
-                    overdueCount++;
-                }
-
-                // Create date and due date (30 days later)
-                const createdDate = new Date(invoice.createdAt);
-                const dueDate = new Date(createdDate);
-                dueDate.setDate(dueDate.getDate() + 30);
-
-                // Use the itemCount field from API or fall back to items.length if it exists
-                const itemsCount = invoice.itemCount !== undefined ? invoice.itemCount :
-                    (Array.isArray(invoice.items) ? invoice.items.length : 0);
-
-                console.log(`Items count for invoice ${invoice.invoiceNumber}:`, itemsCount);
-
-                return {
-                    ...invoice,
-                    customerName,
-                    date: createdDate.toISOString().split('T')[0],
-                    dueDate: dueDate.toISOString().split('T')[0],
-                    items: itemsCount
-                };
-            }));
-
-            console.log("Formatted invoices:", formattedInvoices);
-
-            setInvoices(formattedInvoices);
-            setFilteredInvoices(formattedInvoices);
-            setStatistics({
-                totalOutstanding: outstanding,
-                paidThisMonth,
-                overdueCount
-            });
-        } catch (error) {
-            console.error('Error fetching invoices:', error);
-        } finally {
-            setLoading(false);
+    if (paymentMethodFilter) {
+        whereClause.paymentMethod = paymentMethodFilter;
+    }
+    if (searchQuery) {
+        whereClause.OR = [
+            { invoiceNumber: { contains: searchQuery, mode: 'insensitive' } },
+            { customer: { name: { contains: searchQuery, mode: 'insensitive' } } },
+        ];
+        const numericQuery = parseFloat(searchQuery);
+        if (!isNaN(numericQuery)) {
+            // If you want to search by total if a number is entered
+            // whereClause.OR.push({ total: numericQuery }); 
         }
     }
 
-    // Handle recording payment for an invoice
-    const handleRecordPayment = async (invoiceId: string | number) => {
-        try {
-            const response = await fetch(`/api/invoices/${invoiceId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
+    try {
+        const invoicesFromDB = await prisma.invoice.findMany({
+            where: whereClause,
+            include: {
+                customer: true, // To get customerName
+                _count: {
+                    select: { items: true }, // To get itemCount
                 },
-                body: JSON.stringify({ status: 'Paid' }),
-            });
+            },
+            orderBy: { createdAt: 'desc' },
+            skip: (page - 1) * ITEMS_PER_PAGE,
+            take: ITEMS_PER_PAGE,
+        });
 
-            if (!response.ok) {
-                throw new Error('Failed to update invoice status');
+        const totalInvoicesCount = await prisma.invoice.count({ where: whereClause });
+
+        const formattedInvoices: Invoice[] = invoicesFromDB.map(inv => {
+            const createdDate = new Date(inv.createdAt);
+            const dueDate = new Date(createdDate);
+            dueDate.setDate(dueDate.getDate() + 30);
+
+            return {
+                ...inv,
+                id: inv.id.toString(), // Ensure ID is string
+                customerName: inv.customer?.name || 'Unknown Customer',
+                itemCount: inv._count?.items || 0,
+                date: createdDate.toISOString().split('T')[0],
+                dueDate: dueDate.toISOString().split('T')[0],
+            };
+        });
+
+        // Calculate statistics
+        const now = new Date();
+        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        // For stats, we might need to query without pagination but with filters
+        const allFilteredInvoicesForStats = await prisma.invoice.findMany({
+            where: whereClause, // Apply same filters as the main list for consistency in stats
+            select: { total: true, status: true, updatedAt: true }
+        });
+
+        let totalOutstanding = 0;
+        let paidThisMonth = 0;
+        let overdueCount = 0;
+
+        allFilteredInvoicesForStats.forEach(inv => {
+            if (inv.status !== 'Paid' && inv.status !== 'Cancelled') { // Consider what non-paid means for outstanding
+                totalOutstanding += inv.total;
             }
-
-            // Refresh invoices list after successful update
-            fetchInvoices();
-        } catch (error) {
-            console.error('Error recording payment:', error);
-            alert('Failed to record payment. Please try again.');
-        }
-    };
-
-    // Handle deleting an invoice
-    const handleDeleteInvoice = async (invoiceId: string | number) => {
-        if (confirm('Are you sure you want to delete this invoice? This action cannot be undone.')) {
-            try {
-                const response = await fetch(`/api/invoices/${invoiceId}`, {
-                    method: 'DELETE',
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to delete invoice');
-                }
-
-                // Refresh invoices list after successful deletion
-                fetchInvoices();
-            } catch (error) {
-                console.error('Error deleting invoice:', error);
-                alert('Failed to delete invoice. Please try again.');
+            if (inv.status === 'Paid' && new Date(inv.updatedAt) >= firstDayOfMonth) {
+                paidThisMonth += inv.total;
             }
-        }
-    };
+            if (inv.status === 'Overdue') { // Ensure 'Overdue' is a valid status you set
+                overdueCount++;
+            }
+        });
 
-    if (loading) {
+        return {
+            invoices: formattedInvoices,
+            totalPages: Math.ceil(totalInvoicesCount / ITEMS_PER_PAGE),
+            currentPage: page,
+            statistics: {
+                totalOutstanding,
+                paidThisMonth,
+                overdueCount,
+            },
+        };
+
+    } catch (error) {
+        console.error('Error fetching invoices data:', error);
+        return {
+            invoices: [],
+            totalPages: 0,
+            currentPage: 1,
+            statistics: { totalOutstanding: 0, paidThisMonth: 0, overdueCount: 0 },
+            error: 'Failed to fetch invoices',
+        };
+    }
+}
+
+export default async function InvoicesPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
+
+    const page = searchParams?.page as string | undefined;
+    const status = searchParams?.status as string | undefined;
+    const paymentMethod = searchParams?.paymentMethod as string | undefined;
+    const search = searchParams?.search as string | undefined;
+
+    const { invoices, totalPages, currentPage, statistics, error } = await fetchInvoicesData(
+        page,
+        status,
+        paymentMethod,
+        search
+    );
+
+    if (error) {
         return (
             <MainLayout>
-                <div className="space-y-6">
-                    {/* Loading header placeholder */}
-                    <div className="bg-tertiary p-5 rounded-xl shadow-sm border border-gray-200 animate-pulse">
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                            <div className="space-y-2">
-                                <div className="h-8 bg-gray-200 rounded w-64"></div>
-                                <div className="h-4 bg-gray-200 rounded w-48"></div>
-                            </div>
-                            <div className="flex gap-3">
-                                <div className="h-9 bg-gray-200 rounded w-32"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Loading filters placeholder */}
-                    <div className="bg-tertiary p-5 rounded-xl shadow-sm border border-gray-200 animate-pulse">
-                        <div className="flex flex-col md:flex-row gap-4">
-                            <div className="h-10 bg-gray-200 rounded w-full"></div>
-                            <div className="flex flex-wrap gap-2">
-                                <div className="h-10 bg-gray-200 rounded w-32"></div>
-                                <div className="h-10 bg-gray-200 rounded w-32"></div>
-                                <div className="h-10 bg-gray-200 rounded w-32"></div>
-                                <div className="h-10 bg-gray-200 rounded w-12"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Loading table placeholder */}
-                    <div className="bg-tertiary rounded-xl shadow-sm overflow-hidden border border-gray-200 animate-pulse">
-                        <div className="p-5">
-                            <div className="space-y-4">
-                                <div className="h-8 bg-gray-200 rounded w-full"></div>
-                                {[...Array(5)].map((_, i) => (
-                                    <div key={i} className="h-16 bg-gray-200 rounded w-full"></div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Loading summary cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {[...Array(3)].map((_, i) => (
-                            <div key={i} className="bg-tertiary p-6 rounded-lg shadow-sm border border-gray-200 animate-pulse">
-                                <div className="flex items-center justify-between">
-                                    <div className="space-y-2">
-                                        <div className="h-4 bg-gray-200 rounded w-24"></div>
-                                        <div className="h-8 bg-gray-200 rounded w-32"></div>
-                                    </div>
-                                    <div className="h-12 w-12 bg-gray-200 rounded-full"></div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                <div className="container mx-auto px-4 py-8">
+                    <p className="text-red-500 text-center">{error}. Please try refreshing the page.</p>
                 </div>
             </MainLayout>
         );
@@ -277,212 +158,20 @@ export default function Invoices() {
 
     return (
         <MainLayout>
-            <div className="space-y-6">
-                {/* Header with actions */}
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Invoice Management</h1>
-                        <p className="text-gray-500">Create and manage customer invoices</p>
+            <div className="container mx-auto px-4 py-8">
+                <Suspense fallback={
+                    <div className="flex justify-center items-center h-screen">
+                        <Loader2 className="animate-spin text-indigo-600" size={60} />
+                        <p className="ml-4 text-xl text-gray-600">Loading invoices...</p>
                     </div>
-                    <div className="flex gap-3">
-                        <a href="/invoices/new">
-                            <Button variant="primary" size="sm">
-                                <Plus className="w-4 h-4 mr-2" />
-                                Create Invoice
-                            </Button>
-                        </a>
-                    </div>
-                </div>
-
-                {/* Search and filter bar */}
-                <div className="bg-tertiary p-4 rounded-lg shadow-sm border border-gray-200">
-                    <div className="flex flex-col md:flex-row gap-4">
-                        <div className="relative flex-grow">
-                            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                                <Search className="w-4 h-4 text-gray-400" />
-                            </div>
-                            <input
-                                type="text"
-                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full pl-10 p-2.5"
-                                placeholder="Search invoices..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                        </div>
-                        <div className="flex gap-2">
-                            <select
-                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5"
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                            >
-                                <option value="">All Status</option>
-                                <option value="Paid">Paid</option>
-                                <option value="Pending">Pending</option>
-                                <option value="Overdue">Overdue</option>
-                            </select>
-                            <select
-                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5"
-                                value={paymentMethodFilter}
-                                onChange={(e) => setPaymentMethodFilter(e.target.value)}
-                            >
-                                <option value="">All Payment Methods</option>
-                                <option value="Cash">Cash</option>
-                                <option value="Credit">Credit</option>
-                                <option value="Card">Card</option>
-                                <option value="Bank">Bank</option>
-                            </select>
-                            <input
-                                type="date"
-                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5"
-                                placeholder="From Date"
-                            />
-                            <input
-                                type="date"
-                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5"
-                                placeholder="To Date"
-                            />
-                            <Button variant="outline" size="sm">
-                                <Filter className="w-4 h-4" />
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Invoices table */}
-                <div className="bg-tertiary rounded-lg shadow-sm border border-gray-200">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left text-gray-500">
-                            <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-gray-900">Invoice #</th>
-                                    <th className="px-6 py-3 text-gray-900">Customer</th>
-                                    <th className="px-6 py-3 text-gray-900">Date</th>
-                                    <th className="px-6 py-3 text-gray-900">Due Date</th>
-                                    <th className="px-6 py-3 text-gray-900">Amount</th>
-                                    <th className="px-6 py-3 text-gray-900">Items</th>
-                                    <th className="px-6 py-3 text-gray-900">Payment Method</th>
-                                    <th className="px-6 py-3 text-gray-900">Status</th>
-                                    <th className="px-6 py-3 text-gray-900">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredInvoices.length > 0 ? filteredInvoices.map((invoice) => (
-                                    <tr key={invoice.id} className="border-b hover:bg-gray-50">
-                                        <td className="px-6 py-4 font-medium text-primary">
-                                            <a href={`/invoices/${invoice.id}`} className="hover:underline">
-                                                {invoice.invoiceNumber}
-                                            </a>
-                                        </td>
-                                        <td className="px-6 py-4 font-medium text-gray-900">
-                                            {invoice.customerName}
-                                        </td>
-                                        <td className="px-6 py-4">{invoice.date}</td>
-                                        <td className="px-6 py-4">{invoice.dueDate}</td>
-                                        <td className="px-6 py-4 font-medium">Rs. {invoice.total.toLocaleString()}</td>
-                                        <td className="px-6 py-4">{invoice.items} items</td>
-                                        <td className="px-6 py-4">{invoice.paymentMethod || 'Cash'}</td>
-                                        <td className="px-6 py-4">
-                                            <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(invoice.status)}`}>
-                                                {invoice.status}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex gap-2">
-                                                <a href={`/invoices/${invoice.id}`}>
-                                                    <Button variant="ghost" size="sm" title="View Invoice">
-                                                        <Eye className="w-4 h-4" />
-                                                    </Button>
-                                                </a>
-                                                <a href={`/invoices/edit/${invoice.id}`}>
-                                                    <Button variant="ghost" size="sm" title="Edit Invoice">
-                                                        <Edit className="w-4 h-4" />
-                                                    </Button>
-                                                </a>
-                                                <a href={`/invoices/${invoice.id}`}>
-                                                    <Button variant="ghost" size="sm" title="Print/Download Invoice">
-                                                        <Download className="w-4 h-4" />
-                                                    </Button>
-                                                </a>
-                                                {invoice.status !== 'Paid' && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        title="Record Payment"
-                                                        onClick={() => handleRecordPayment(invoice.id)}
-                                                    >
-                                                        <CheckCircle className="w-4 h-4 text-green-600" />
-                                                    </Button>
-                                                )}
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    title="Delete Invoice"
-                                                    onClick={() => handleDeleteInvoice(invoice.id)}
-                                                >
-                                                    <Trash2 className="w-4 h-4 text-red-600" />
-                                                </Button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                )) : (
-                                    <tr>
-                                        <td colSpan={9} className="px-6 py-4 text-center text-gray-500">
-                                            No invoices found
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div className="flex items-center justify-between p-4 border-t">
-                        <div className="text-sm text-gray-700">
-                            Showing <span className="font-medium">1</span> to <span className="font-medium">{filteredInvoices.length}</span> of <span className="font-medium">{filteredInvoices.length}</span> invoices
-                        </div>
-                        <div className="flex gap-2">
-                            <Button variant="outline" size="sm" disabled>Previous</Button>
-                            <Button variant="outline" size="sm" disabled>Next</Button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Summary cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-tertiary p-6 rounded-lg shadow-sm border border-gray-200">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-500">Total Outstanding</p>
-                                <p className="text-2xl font-bold text-gray-900">Rs. {statistics.totalOutstanding.toLocaleString()}</p>
-                            </div>
-                            <div className="p-3 rounded-full bg-red-100">
-                                <FileText className="h-6 w-6 text-red-600" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-tertiary p-6 rounded-lg shadow-sm border border-gray-200">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-500">Paid This Month</p>
-                                <p className="text-2xl font-bold text-gray-900">Rs. {statistics.paidThisMonth.toLocaleString()}</p>
-                            </div>
-                            <div className="p-3 rounded-full bg-green-100">
-                                <FileText className="h-6 w-6 text-green-600" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-tertiary p-6 rounded-lg shadow-sm border border-gray-200">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-500">Overdue Invoices</p>
-                                <p className="text-2xl font-bold text-gray-900">{statistics.overdueCount}</p>
-                            </div>
-                            <div className="p-3 rounded-full bg-yellow-100">
-                                <FileText className="h-6 w-6 text-yellow-600" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                }>
+                    <InvoiceClientWrapper
+                        initialInvoices={invoices}
+                        initialTotalPages={totalPages}
+                        initialCurrentPage={currentPage}
+                        initialStatistics={statistics}
+                    />
+                </Suspense>
             </div>
         </MainLayout>
     );

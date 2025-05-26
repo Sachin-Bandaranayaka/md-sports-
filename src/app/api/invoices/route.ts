@@ -1,48 +1,83 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { smsService } from '@/services/smsService';
 
-export async function GET() {
+const ITEMS_PER_PAGE = 15;
+
+export async function GET(request: NextRequest) {
+    const searchParams = request.nextUrl.searchParams;
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || ITEMS_PER_PAGE.toString(), 10);
+    const status = searchParams.get('status') || '';
+    const paymentMethod = searchParams.get('paymentMethod') || '';
+    const searchQuery = searchParams.get('search') || '';
+
+    let whereClause: any = {};
+
+    if (status) {
+        whereClause.status = status;
+    }
+    if (paymentMethod) {
+        whereClause.paymentMethod = paymentMethod;
+    }
+    if (searchQuery) {
+        whereClause.OR = [
+            { invoiceNumber: { contains: searchQuery, mode: 'insensitive' } },
+            { customer: { name: { contains: searchQuery, mode: 'insensitive' } } },
+            // Note: Searching by total (number) directly in OR with string fields is tricky.
+            // If total search is critical, it might need separate handling or conversion.
+        ];
+        // If searchQuery is a number, attempt to search by total. This is a simple check.
+        const numericQuery = parseFloat(searchQuery);
+        if (!isNaN(numericQuery)) {
+            // Add to OR or handle as a separate condition if it makes sense for your logic
+            // whereClause.OR.push({ total: numericQuery }); 
+            // For now, Prisma doesn't directly support OR with mixed types well in this structure.
+            // A more robust solution might involve conditional where clauses or raw queries if this is essential.
+        }
+    }
+
     try {
-        // Fetch invoices from database using Prisma with item count
         const invoices = await prisma.invoice.findMany({
+            where: whereClause,
             include: {
-                customer: true,
-                items: {
-                    select: {
-                        id: true,
-                        quantity: true,
-                        productId: true
-                    }
-                },
+                customer: true, // Already includes customer data
                 _count: {
-                    select: {
-                        items: true
-                    }
-                }
+                    select: { items: true },
+                },
             },
             orderBy: {
-                createdAt: 'desc'
-            }
+                createdAt: 'desc',
+            },
+            skip: (page - 1) * limit,
+            take: limit,
         });
 
-        // Format the response to include item count
+        const totalInvoices = await prisma.invoice.count({ where: whereClause });
+
         const formattedInvoices = invoices.map(invoice => {
-            const { _count, ...rest } = invoice;
+            const { _count, customer, ...rest } = invoice;
             return {
                 ...rest,
-                itemCount: _count.items
+                customerName: customer?.name || 'Unknown Customer',
+                customerId: customer?.id, // ensure customerId is present
+                itemCount: _count.items,
+                // Keep original date fields, formatting can be done on client or server page component
             };
         });
 
-        return NextResponse.json(formattedInvoices);
+        return NextResponse.json({
+            invoices: formattedInvoices,
+            totalPages: Math.ceil(totalInvoices / limit),
+            currentPage: page,
+        });
     } catch (error) {
         console.error('Error fetching invoices:', error);
         return NextResponse.json(
             {
                 success: false,
                 message: 'Error fetching invoices',
-                error: error instanceof Error ? error.message : String(error)
+                error: error instanceof Error ? error.message : String(error),
             },
             { status: 500 }
         );
