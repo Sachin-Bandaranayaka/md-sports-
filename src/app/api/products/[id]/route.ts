@@ -18,6 +18,7 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
+        // Ensure params.id is properly awaited in Next.js 14+
         const id = parseInt(params.id);
 
         if (isNaN(id)) {
@@ -88,6 +89,7 @@ export async function PUT(
     { params }: { params: { id: string } }
 ) {
     try {
+        // Ensure params.id is properly awaited in Next.js 14+
         const id = parseInt(params.id);
 
         if (isNaN(id)) {
@@ -155,6 +157,7 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
+        // Ensure params.id is properly awaited in Next.js 14+
         const id = parseInt(params.id);
 
         if (isNaN(id)) {
