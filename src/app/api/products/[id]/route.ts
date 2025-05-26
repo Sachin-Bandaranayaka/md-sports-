@@ -193,16 +193,19 @@ export async function DELETE(
                 }, { status: 409 }); // 409 Conflict is appropriate for this case
             }
 
-            // Check if product is referenced in sales invoices
-            const salesInvoiceItems = await prisma.salesInvoiceItem.findFirst({
-                where: { productId: id }
-            });
+            // Check if product is referenced in sales invoices - only if the model exists
+            // The model name might be different in your schema - adjust if needed
+            if ('salesInvoiceItem' in prisma) {
+                const salesInvoiceItems = await prisma.salesInvoiceItem.findFirst({
+                    where: { productId: id }
+                });
 
-            if (salesInvoiceItems) {
-                return NextResponse.json({
-                    success: false,
-                    message: `Cannot delete product "${existingProduct.name}" because it is referenced in sales invoice records.`
-                }, { status: 409 });
+                if (salesInvoiceItems) {
+                    return NextResponse.json({
+                        success: false,
+                        message: `Cannot delete product "${existingProduct.name}" because it is referenced in sales invoice records.`
+                    }, { status: 409 });
+                }
             }
 
             // Use a transaction to delete inventory items and then the product
