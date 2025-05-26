@@ -71,11 +71,10 @@ export async function PUT(
         // Update invoice with transaction to handle items
         const updatedInvoice = await prisma.$transaction(
             async (tx) => {
-                // Check if invoice exists
                 const existingInvoice = await tx.invoice.findUnique({
                     where: { id },
                     include: {
-                        items: true
+                        items: true // Crucial for comparing old and new items
                     }
                 });
 
@@ -83,37 +82,101 @@ export async function PUT(
                     throw new Error('Invoice not found');
                 }
 
+                // --- Inventory Adjustment Logic --- 
+                const oldItemsMap = new Map();
+                const newItemsMap = new Map();
+
+                // Aggregate quantities by product ID
+                for (const item of existingInvoice.items) {
+                    const existingQuantity = oldItemsMap.get(item.productId) || 0;
+                    oldItemsMap.set(item.productId, existingQuantity + item.quantity);
+                }
+
+                for (const item of invoiceData.items) {
+                    const existingQuantity = newItemsMap.get(item.productId) || 0;
+                    newItemsMap.set(item.productId, existingQuantity + item.quantity);
+                }
+
+                // Process unique product IDs from both old and new items
+                const allProductIds = new Set([
+                    ...Array.from(oldItemsMap.keys()),
+                    ...Array.from(newItemsMap.keys())
+                ]);
+
+                // Log inventory changes for debugging
+                console.log('Invoice update - Inventory changes:');
+
+                // Process each unique product
+                for (const productId of allProductIds) {
+                    const oldQuantity = oldItemsMap.get(productId) || 0;
+                    const newQuantity = newItemsMap.get(productId) || 0;
+                    const quantityChange = newQuantity - oldQuantity;
+
+                    console.log(`Product ID ${productId}: Old=${oldQuantity}, New=${newQuantity}, Change=${quantityChange}`);
+
+                    if (quantityChange > 0) { // Deduct additional items from inventory
+                        const inventoryItem = await tx.inventoryItem.findFirst({
+                            where: { productId }
+                        });
+
+                        if (!inventoryItem || inventoryItem.quantity < quantityChange) {
+                            const product = await tx.product.findUnique({ where: { id: productId } });
+                            throw new Error(`Not enough stock for product: ${product?.name || 'Unknown Product'}. Required: ${quantityChange}, Available: ${inventoryItem?.quantity || 0}`);
+                        }
+
+                        console.log(`Deducting ${quantityChange} from inventory for product ${productId}`);
+                        await tx.inventoryItem.updateMany({
+                            where: { productId },
+                            data: { quantity: { decrement: quantityChange } }
+                        });
+                    } else if (quantityChange < 0) { // Add items back to inventory
+                        console.log(`Adding ${Math.abs(quantityChange)} to inventory for product ${productId}`);
+                        await tx.inventoryItem.updateMany({
+                            where: { productId },
+                            data: { quantity: { increment: Math.abs(quantityChange) } }
+                        });
+                    } else {
+                        console.log(`No inventory change needed for product ${productId}`);
+                    }
+                }
+                // --- End Inventory Adjustment Logic ---
+
+                const dataToUpdate = {
+                    total: invoiceData.total, // Ensure total is recalculated based on new items on client
+                    status: invoiceData.status,
+                    paymentMethod: invoiceData.paymentMethod,
+                    // Correct way to update customer relationship
+                    customer: invoiceData.customerId ? {
+                        connect: { id: invoiceData.customerId }
+                    } : undefined,
+                    // Add date fields directly to the update object
+                    invoiceDate: invoiceData.invoiceDate ? new Date(invoiceData.invoiceDate) : undefined,
+                    dueDate: invoiceData.dueDate ? new Date(invoiceData.dueDate) : undefined,
+                    notes: invoiceData.notes
+                };
+
                 // Update basic invoice details
                 const updatedInvoiceDetails = await tx.invoice.update({
                     where: { id },
-                    data: {
-                        customerId: invoiceData.customerId,
-                        total: invoiceData.total,
-                        status: invoiceData.status,
-                        paymentMethod: invoiceData.paymentMethod,
-                        // Add other fields that can be updated
-                    }
+                    data: dataToUpdate
                 });
 
-                // If items are provided, update them
-                if (invoiceData.items && Array.isArray(invoiceData.items)) {
-                    // Delete existing items
-                    await tx.invoiceItem.deleteMany({
-                        where: { invoiceId: id }
-                    });
+                // Delete existing invoice items and create new ones
+                // This is done after inventory adjustments to ensure data integrity
+                await tx.invoiceItem.deleteMany({
+                    where: { invoiceId: id }
+                });
 
-                    // Create new items
-                    for (const item of invoiceData.items) {
-                        await tx.invoiceItem.create({
-                            data: {
-                                invoiceId: id,
-                                productId: item.productId,
-                                quantity: item.quantity,
-                                price: item.price,
-                                total: item.quantity * item.price
-                            }
-                        });
-                    }
+                for (const item of invoiceData.items) {
+                    await tx.invoiceItem.create({
+                        data: {
+                            invoiceId: id,
+                            productId: item.productId,
+                            quantity: item.quantity,
+                            price: item.price,
+                            total: item.quantity * item.price
+                        }
+                    });
                 }
 
                 // Return the complete updated invoice with relations

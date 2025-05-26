@@ -211,6 +211,9 @@ model Invoice {
   paymentMethod String        @default("Cash")
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+  invoiceDate   DateTime?     @db.Date
+  dueDate       DateTime?     @db.Date
+  notes         String?
   customer      Customer      @relation(fields: [customerId], references: [id])
   items         InvoiceItem[]
   payments      Payment[]
