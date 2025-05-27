@@ -16,11 +16,11 @@ export async function GET(request: NextRequest) {
 
         // Parse filter parameters
         const search = searchParams.get('search') || '';
-        const category = searchParams.get('category') || '';
-        const status = searchParams.get('status') || '';
+        const categoryNameFilter = searchParams.get('category') || '';
+        const statusFilter = searchParams.get('status') || '';
 
         // Fetch products with inventory in a single efficient query
-        const [productsWithInventory, totalCount] = await safeQuery(
+        const [productsToReturn, totalCountForPagination] = await safeQuery(
             async () => {
                 // Build the base where clause for product fetching (without status)
                 let productWhereClause: any = {};
@@ -35,92 +35,112 @@ export async function GET(request: NextRequest) {
                     productWhereClause.OR = [
                         { name: { contains: search, mode: 'insensitive' } },
                         { sku: { contains: search, mode: 'insensitive' } },
-                        { description: { contains: search, mode: 'insensitive' } }
+                        // { description: { contains: search, mode: 'insensitive' } } // Description search can be slow, consider if essential
                     ];
                 }
-                if (category) {
+                if (categoryNameFilter) {
                     productWhereClause.category = {
-                        name: category
+                        name: categoryNameFilter
                     };
                 }
 
-                let finalProductsToPaginate = [];
-                let countForPagination = 0;
+                let finalProductOutput = [];
+                let countForPaginationQuery = 0;
 
-                if (status) {
-                    // If status filter is applied, we need a multi-step process
-                    // 1. Fetch all products matching non-status filters (search, category, shopId)
-                    const allMatchingProducts = await prisma.product.findMany({
+                if (statusFilter) {
+                    // Step 1: Fetch products matching non-status filters, but only data needed for status calculation + IDs
+                    const candidateProducts = await prisma.product.findMany({
                         where: productWhereClause,
-                        include: {
-                            category: true,
+                        select: {
+                            id: true,
+                            // Only include inventoryItems for stock calculation, not full product data yet
                             inventoryItems: {
-                                include: {
-                                    shop: {
-                                        select: { id: true, name: true }
-                                    }
-                                }
-                            }
+                                select: { quantity: true, shopId: true } // shopId might be useful if low stock is per shop
+                            },
+                            // We will fetch other details (name, sku, category, price) in a second query for only the filtered & paginated IDs
                         },
-                        orderBy: { name: 'asc' }
+                        orderBy: { name: 'asc' } // Consistent ordering for potential later slicing if needed before final fetch
                     });
 
-                    // 2. Calculate status for each and filter by status
-                    const statusFilteredProducts = allMatchingProducts.map(product => {
+                    // Step 2: Calculate status in JS and filter by status, collecting IDs
+                    const productsMeetingStatusCriteria: Array<{ id: number; calculatedStatus: string; totalStock: number; }> = [];
+                    candidateProducts.forEach(product => {
                         let totalStock = 0;
-                        product.inventoryItems.forEach(item => {
-                            totalStock += item.quantity;
-                        });
-                        let productStatus = 'Out of Stock';
+                        product.inventoryItems.forEach(item => { totalStock += item.quantity; });
+
+                        let currentProductStatus = 'Out of Stock';
                         if (totalStock > 0) {
-                            const hasLowStock = product.inventoryItems.some(inv => inv.quantity > 0 && inv.quantity <= 5);
-                            productStatus = hasLowStock ? 'Low Stock' : 'In Stock';
+                            // Customize low stock definition, e.g., based on a threshold or specific shop conditions
+                            const lowStockThreshold = 5; // Example threshold
+                            const hasLowStock = product.inventoryItems.some(inv => inv.quantity > 0 && inv.quantity <= lowStockThreshold);
+                            currentProductStatus = hasLowStock ? 'Low Stock' : 'In Stock';
                         }
-                        return {
+
+                        if (currentProductStatus === statusFilter) {
+                            productsMeetingStatusCriteria.push({ id: product.id, calculatedStatus: currentProductStatus, totalStock });
+                        }
+                    });
+
+                    countForPaginationQuery = productsMeetingStatusCriteria.length;
+                    const paginatedProductIdsAndInfo = productsMeetingStatusCriteria.slice(skip, skip + limit);
+                    const paginatedProductIds = paginatedProductIdsAndInfo.map(p => p.id);
+
+                    if (paginatedProductIds.length > 0) {
+                        // Step 3: Fetch full data for the filtered and paginated product IDs
+                        const fullProductsData = await prisma.product.findMany({
+                            where: { id: { in: paginatedProductIds } },
+                            include: {
+                                category: { select: { name: true } }, // Select only name
+                                inventoryItems: {
+                                    include: {
+                                        shop: { select: { id: true, name: true } }
+                                    }
+                                },
+                                // Add other necessary includes for the final output
+                            },
+                            orderBy: { name: 'asc' } // Ensure consistent order with ID selection if any implicit ordering matters
+                        });
+
+                        // Map to final structure, using pre-calculated status and stock
+                        // Need to merge fullProductsData with paginatedProductIdsAndInfo for status and totalStock
+                        const infoMap = new Map(paginatedProductIdsAndInfo.map(p => [p.id, { status: p.calculatedStatus, stock: p.totalStock }]));
+
+                        finalProductOutput = fullProductsData.map(product => ({
                             id: product.id,
                             sku: product.sku,
                             name: product.name,
                             category: product.category?.name || 'Uncategorized',
-                            stock: totalStock,
+                            stock: infoMap.get(product.id)?.stock ?? 0, // Use pre-calculated stock
                             retailPrice: product.price,
                             weightedAverageCost: product.weightedAverageCost,
-                            status: productStatus
-                        };
-                    }).filter(p => p.status === status);
-
-                    countForPagination = statusFilteredProducts.length;
-                    finalProductsToPaginate = statusFilteredProducts.slice(skip, skip + limit);
-
+                            status: infoMap.get(product.id)?.status ?? 'Error', // Use pre-calculated status
+                        }));
+                    }
                 } else {
-                    countForPagination = await prisma.product.count({
-                        where: productWhereClause
-                    });
-
+                    // Original logic for no status filter (seems okay, but ensure includes are minimal)
+                    countForPaginationQuery = await prisma.product.count({ where: productWhereClause });
                     const paginatedProducts = await prisma.product.findMany({
                         where: productWhereClause,
                         include: {
-                            category: true,
+                            category: { select: { name: true } },
                             inventoryItems: {
                                 include: {
-                                    shop: {
-                                        select: { id: true, name: true, location: true }
-                                    }
+                                    shop: { select: { id: true, name: true } }
                                 }
-                            }
+                            },
                         },
                         orderBy: { name: 'asc' },
                         skip,
                         take: limit
                     });
 
-                    finalProductsToPaginate = paginatedProducts.map(product => {
+                    finalProductOutput = paginatedProducts.map(product => {
                         let totalStock = 0;
-                        product.inventoryItems.forEach(item => {
-                            totalStock += item.quantity;
-                        });
+                        product.inventoryItems.forEach(item => { totalStock += item.quantity; });
                         let productStatus = 'Out of Stock';
                         if (totalStock > 0) {
-                            const hasLowStock = product.inventoryItems.some(inv => inv.quantity > 0 && inv.quantity <= 5);
+                            const lowStockThreshold = 5; // Example threshold
+                            const hasLowStock = product.inventoryItems.some(inv => inv.quantity > 0 && inv.quantity <= lowStockThreshold);
                             productStatus = hasLowStock ? 'Low Stock' : 'In Stock';
                         }
                         return {
@@ -131,12 +151,11 @@ export async function GET(request: NextRequest) {
                             stock: totalStock,
                             retailPrice: product.price,
                             weightedAverageCost: product.weightedAverageCost,
-                            status: productStatus
+                            status: productStatus,
                         };
                     });
                 }
-
-                return [finalProductsToPaginate, countForPagination];
+                return [finalProductOutput, countForPaginationQuery];
             },
             [[], 0],
             'Failed to fetch inventory summary'
@@ -144,12 +163,12 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            data: productsWithInventory,
+            data: productsToReturn,
             pagination: {
-                total: totalCount,
+                total: totalCountForPagination,
                 page,
                 limit,
-                totalPages: Math.ceil(totalCount / limit)
+                totalPages: Math.ceil(totalCountForPagination / limit)
             }
         });
     } catch (error) {

@@ -4,43 +4,51 @@ import prisma from '@/lib/prisma';
 // GET: Fetch all shops
 export async function GET(request: NextRequest) {
     try {
-        // Temporarily fetch only basic shop data for diagnostics
+        console.log('Fetching shops with inventory items...');
+
+        // Fetch shops with inventory items only (no manager relation)
         const shops = await prisma.shop.findMany({
             orderBy: {
                 name: 'asc'
+            },
+            include: {
+                inventoryItems: true
             }
-            // Temporarily removed includes:
-            // include: {
-            //     manager: {
-            //         select: {
-            //             id: true,
-            //             name: true,
-            //             email: true,
-            //             phone: true
-            //         }
-            //     },
-            //     inventoryItems: true 
-            // }
         });
 
-        // Temporarily return shops directly without counts or modification
-        // const shopsWithCounts = shops.map(shop => {
-        //     return {
-        //         ...shop,
-        //         total_inventory: shop.inventoryItems ? shop.inventoryItems.length : 0, // Added a check for safety
-        //         inventoryItems: undefined 
-        //     };
-        // });
+        console.log(`Successfully fetched ${shops.length} shops`);
+
+        // Add inventory count and remove the full inventory items array
+        const shopsWithCounts = shops.map(shop => {
+            const inventoryCount = shop.inventoryItems ? shop.inventoryItems.length : 0;
+            console.log(`Shop ${shop.id} (${shop.name}) has ${inventoryCount} inventory items`);
+
+            return {
+                ...shop,
+                total_inventory: inventoryCount,
+                inventoryItems: undefined // Don't send the full inventory items array to the client
+            };
+        });
 
         return NextResponse.json({
             success: true,
-            // data: shopsWithCounts // Return simplified data for now
-            data: shops
+            data: shopsWithCounts
         });
     } catch (error) {
-        console.error('Error fetching shops (simplified):', error);
+        console.error('Error fetching shops:', error);
+
+        // Check if it's a Prisma-specific error
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorName = error instanceof Error ? error.name : 'Unknown error type';
+
+        console.error(`Error details - Name: ${errorName}, Message: ${errorMessage}`);
+
         return NextResponse.json(
-            { success: false, message: 'Failed to fetch shops (simplified)' },
+            {
+                success: false,
+                message: 'Failed to fetch shops',
+                error: errorMessage
+            },
             { status: 500 }
         );
     }

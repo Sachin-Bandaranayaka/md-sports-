@@ -327,139 +327,158 @@ export async function DELETE(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
-    const id = params.id; // Store params.id early to avoid async issues
+    const purchaseIdStr = params.id;
     try {
-        const purchaseId = parseInt(id);
-
+        const purchaseId = parseInt(purchaseIdStr);
         if (isNaN(purchaseId)) {
-            return NextResponse.json(
-                { error: 'Invalid purchase ID' },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: 'Invalid purchase ID' }, { status: 400 });
         }
 
-        // First get the purchase invoice with its items to know what needs to be reversed
-        const purchase = await prisma.purchaseInvoice.findUnique({
+        // Fetch the purchase invoice with its items and potentially distribution info
+        const purchaseToDelete = await prisma.purchaseInvoice.findUnique({
             where: { id: purchaseId },
             include: {
-                items: { include: { product: true } },
-            }
+                items: {
+                    include: {
+                        product: true, // Needed for product ID
+                    },
+                },
+                // supplier: true, // Not strictly needed for stock reversal but good for context if debugging
+                // Ensure your PurchaseInvoice model actually has a 'distributions' field if you use it below,
+                // or a 'defaultShopId' or similar field if that's how undistributed items were handled.
+            },
         });
 
-        if (!purchase) {
-            return NextResponse.json(
-                { error: 'Purchase invoice not found' },
-                { status: 404 }
-            );
+        if (!purchaseToDelete) {
+            return NextResponse.json({ error: 'Purchase invoice not found' }, { status: 404 });
         }
 
-        // Delete in a transaction
         await prisma.$transaction(async (tx) => {
-            // For each purchase item, reverse the inventory updates and WAC
-            for (const item of purchase.items) {
-                const productToUpdate = await tx.product.findUnique({ where: { id: item.productId } });
-                if (!productToUpdate) continue;
+            // 1. Adjust inventory for each item
+            if (purchaseToDelete.items && purchaseToDelete.items.length > 0) {
+                for (const item of purchaseToDelete.items) {
+                    if (!item.product) {
+                        console.warn(`Item ${item.id} for purchase ${purchaseId} is missing product data. Skipping stock adjustment for this item.`);
+                        continue;
+                    }
 
-                let currentTotalProductQuantity = 0;
-                const allInventoryForProduct = await tx.inventoryItem.findMany({ where: { productId: item.productId } });
-                currentTotalProductQuantity = allInventoryForProduct.reduce((sum, inv) => sum + inv.quantity, 0);
+                    const productId = item.productId;
+                    const quantityToRemoveForItem = item.quantity; // Total quantity of this item on the invoice
 
-                // Determine shop distributions for this item
-                const itemDistribution = purchase.distributions && Array.isArray(purchase.distributions) && purchase.distributions[purchase.items.indexOf(item)]
-                    ? purchase.distributions[purchase.items.indexOf(item)]
-                    : (purchase.distributions && typeof purchase.distributions === 'object' && !Array.isArray(purchase.distributions) ? purchase.distributions : null);
+                    // Logic to determine how this item's quantity was distributed to shops
+                    // This is the most complex part and needs to match your data model and POST logic for purchases.
 
-                if (itemDistribution && Object.keys(itemDistribution).length > 0) {
-                    for (const [shopIdStr, quantityInShop] of Object.entries(itemDistribution)) {
-                        const shopId = parseInt(shopIdStr);
-                        const qtyToRemove = Number(quantityInShop);
-                        if (qtyToRemove <= 0 || isNaN(qtyToRemove) || isNaN(shopId)) continue;
-
-                        const inventory = await tx.inventoryItem.findFirst({
-                            where: { productId: item.productId, shopId: shopId }
-                        });
-                        if (inventory) {
-                            const newQuantity = Math.max(0, inventory.quantity - qtyToRemove);
-                            // Only update if quantity changes, delete if it becomes zero
-                            if (newQuantity !== inventory.quantity) {
-                                if (newQuantity > 0) {
-                                    await tx.inventoryItem.update({
-                                        where: { id: inventory.id },
-                                        data: { quantity: newQuantity }
-                                    });
-                                } else {
-                                    // If quantity is zero after reduction, consider deleting the inventory item
-                                    // For now, we'll just set it to 0. Deletion might be too aggressive.
-                                    await tx.inventoryItem.update({
-                                        where: { id: inventory.id },
-                                        data: { quantity: 0 }
-                                    });
-                                }
-                            }
+                    // Attempt 1: Check for item-specific distribution from 'distributions' field (if it's an array)
+                    // Assumes 'distributions' is an array on PurchaseInvoice, parallel to 'items'.
+                    // Each element of 'distributions' is an object like { shopId1: quantity, shopId2: quantity }
+                    let itemDistributionInfo: { [shopId: string]: number } | null = null;
+                    if (
+                        purchaseToDelete.distributions &&
+                        Array.isArray(purchaseToDelete.distributions) &&
+                        purchaseToDelete.items.indexOf(item) < purchaseToDelete.distributions.length
+                    ) {
+                        const distData = purchaseToDelete.distributions[purchaseToDelete.items.indexOf(item)];
+                        if (distData && typeof distData === 'object' && Object.keys(distData).length > 0) {
+                            itemDistributionInfo = distData as { [shopId: string]: number };
                         }
                     }
-                } else { // Default to shop 1 if no distribution
-                    const shopId = 1;
-                    const inventory = await tx.inventoryItem.findFirst({
-                        where: { productId: item.productId, shopId: shopId }
-                    });
-                    if (inventory) {
-                        const newQuantity = Math.max(0, inventory.quantity - item.quantity);
-                        if (newQuantity !== inventory.quantity) {
-                            if (newQuantity > 0) {
+
+                    if (itemDistributionInfo) {
+                        console.log(`Reversing item-specific distribution for product ${productId}, purchase ${purchaseId}`);
+                        for (const [shopIdStr, distributedQuantityStr] of Object.entries(itemDistributionInfo)) {
+                            const shopId = parseInt(shopIdStr);
+                            const qtyInShopToRemove = Number(distributedQuantityStr);
+
+                            if (isNaN(shopId) || isNaN(qtyInShopToRemove) || qtyInShopToRemove <= 0) {
+                                console.warn(`Invalid shop distribution data for product ${productId} in purchase ${purchaseId}: shopId='${shopIdStr}', quantity='${distributedQuantityStr}'. Skipping.`);
+                                continue;
+                            }
+
+                            const inventoryItem = await tx.inventoryItem.findFirst({
+                                where: { productId, shopId },
+                            });
+
+                            if (inventoryItem) {
                                 await tx.inventoryItem.update({
-                                    where: { id: inventory.id },
-                                    data: { quantity: newQuantity }
+                                    where: { id: inventoryItem.id },
+                                    data: { quantity: Math.max(0, inventoryItem.quantity - qtyInShopToRemove) },
                                 });
+                                console.log(`  - Reduced inventory for product ${productId} in shop ${shopId} by ${qtyInShopToRemove}`);
                             } else {
-                                await tx.inventoryItem.update({
-                                    where: { id: inventory.id },
-                                    data: { quantity: 0 }
-                                });
+                                console.warn(`  - Inventory item not found for product ${productId} in shop ${shopId} during purchase deletion. Stock may be inconsistent.`);
                             }
                         }
-                    }
-                }
+                    } else if ((purchaseToDelete as any).defaultShopId) {
+                        // Attempt 2: Check for a 'defaultShopId' on the purchase invoice itself.
+                        // Replace '(purchaseToDelete as any).defaultShopId' with the actual field name if it exists.
+                        const defaultShopId = parseInt((purchaseToDelete as any).defaultShopId);
+                        if (!isNaN(defaultShopId)) {
+                            console.log(`Reversing stock for product ${productId} from defaultShopId ${defaultShopId} on purchase ${purchaseId}`);
+                            const inventoryItem = await tx.inventoryItem.findFirst({
+                                where: { productId, shopId: defaultShopId },
+                            });
+                            if (inventoryItem) {
+                                await tx.inventoryItem.update({
+                                    where: { id: inventoryItem.id },
+                                    data: { quantity: Math.max(0, inventoryItem.quantity - quantityToRemoveForItem) },
+                                });
+                                console.log(`  - Reduced inventory for product ${productId} in shop ${defaultShopId} by ${quantityToRemoveForItem}`);
+                            } else {
+                                console.warn(`  - Inventory item not found for product ${productId} in default shop ${defaultShopId} during purchase deletion.`);
+                            }
+                        } else {
+                            console.warn(`defaultShopId on purchase ${purchaseId} is invalid. Cannot determine shop for product ${productId}.`);
+                        }
+                    } else {
+                        // Attempt 3: Fallback to a system-wide default shop (e.g., shopId 1)
+                        // This is a last resort and indicates that distribution tracking might be insufficient.
+                        const FALLBACK_SHOP_ID = 1; // Define your system's absolute fallback shop ID
+                        console.warn(`No specific distribution or defaultShopId found for product ${productId} on purchase ${purchaseId}. Attempting fallback to shop ${FALLBACK_SHOP_ID}.`);
 
-                // Recalculate WAC
-                // (Total Value - Item Value) / (Total Quantity - Item Quantity)
-                const remainingTotalQuantity = currentTotalProductQuantity - item.quantity;
-                if (remainingTotalQuantity > 0 && productToUpdate.weightedAverageCost !== null) {
-                    const currentTotalValue = currentTotalProductQuantity * productToUpdate.weightedAverageCost;
-                    const itemValue = item.quantity * item.price;
-                    const newWAC = (currentTotalValue - itemValue) / remainingTotalQuantity;
-                    await tx.product.update({
-                        where: { id: item.productId },
-                        data: { weightedAverageCost: newWAC > 0 ? newWAC : 0 }
-                    });
-                } else if (remainingTotalQuantity <= 0) { // No items left or this was the only one
-                    await tx.product.update({
-                        where: { id: item.productId },
-                        data: { weightedAverageCost: 0 } // Set WAC to 0 if no stock remaining from purchases
-                    });
+                        const inventoryItem = await tx.inventoryItem.findFirst({
+                            where: { productId, shopId: FALLBACK_SHOP_ID },
+                        });
+
+                        if (inventoryItem) {
+                            await tx.inventoryItem.update({
+                                where: { id: inventoryItem.id },
+                                data: { quantity: Math.max(0, inventoryItem.quantity - quantityToRemoveForItem) },
+                            });
+                            console.log(`  - Reduced inventory for product ${productId} in fallback shop ${FALLBACK_SHOP_ID} by ${quantityToRemoveForItem}`);
+                        } else {
+                            console.error(`  - FALLBACK FAILED: Inventory item not found for product ${productId} in fallback shop ${FALLBACK_SHOP_ID}. Stock not adjusted for this item for purchase ${purchaseId}.`);
+                        }
+                    }
                 }
             }
 
-            // Delete associated items
+            // 2. Delete associated payments
+            await tx.payment.deleteMany({
+                where: { purchaseInvoiceId: purchaseId },
+            });
+            console.log(`Deleted payments for purchase invoice ${purchaseId}`);
+
+            // 3. Delete purchase invoice items
             await tx.purchaseInvoiceItem.deleteMany({
-                where: { purchaseInvoiceId: purchaseId }
+                where: { purchaseInvoiceId: purchaseId },
             });
+            console.log(`Deleted items for purchase invoice ${purchaseId}`);
 
-            // Delete the purchase invoice
+            // 4. Delete the purchase invoice itself
             await tx.purchaseInvoice.delete({
-                where: { id: purchaseId }
+                where: { id: purchaseId },
             });
-        });
+            console.log(`Deleted purchase invoice ${purchaseId}`);
 
-        return NextResponse.json(
-            { message: 'Purchase invoice deleted successfully' },
-            { status: 200 }
-        );
+        }); // End of transaction
+
+        return NextResponse.json({ message: 'Purchase invoice deleted successfully' });
+
     } catch (error) {
-        console.error(`Error deleting purchase invoice ${id}:`, error);
-        return NextResponse.json(
-            { error: 'Failed to delete purchase invoice' },
-            { status: 500 }
-        );
+        console.error(`Error deleting purchase invoice ${purchaseIdStr}:`, error);
+        const errorMessage = error instanceof Error ? error.message : 'Failed to delete purchase invoice';
+        // It's good practice to not expose raw error details to the client in production
+        // For debugging, error.toString() or specific fields might be okay in dev.
+        return NextResponse.json({ error: 'Failed to delete purchase invoice. Check server logs for details.' }, { status: 500 });
     }
 } 

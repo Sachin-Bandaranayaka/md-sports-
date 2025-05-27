@@ -42,7 +42,7 @@ async function fetchProducts(baseUrl: string): Promise<Product[]> {
 async function fetchCategories(baseUrl: string): Promise<Category[]> {
     try {
         const response = await fetch(`${baseUrl}/api/products/categories`, { next: { revalidate: 3600 } });
-        if (!response.ok) {
+            if (!response.ok) {
             console.error(`Failed to fetch categories: ${response.status} ${await response.text()}`);
             return [];
         }
@@ -57,7 +57,7 @@ async function fetchCategories(baseUrl: string): Promise<Category[]> {
 async function fetchShops(baseUrl: string): Promise<Shop[]> {
     try {
         const response = await fetch(`${baseUrl}/api/shops`, { next: { revalidate: 3600 } });
-        if (!response.ok) {
+            if (!response.ok) {
             console.error(`Failed to fetch shops: ${response.status} ${await response.text()}`);
             return [];
         }
@@ -91,7 +91,7 @@ export default async function NewPurchaseInvoicePage() {
                         <ArrowLeft className="w-5 h-5 text-gray-600" />
                     </Link> */}
                     <h1 className="text-2xl font-bold text-gray-800">Create New Purchase Invoice</h1>
-                </div>
+                    </div>
                 <Suspense fallback={
                     <div className="flex flex-col justify-center items-center h-64">
                         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -105,7 +105,7 @@ export default async function NewPurchaseInvoicePage() {
                         initialShops={shops}
                     />
                 </Suspense>
-            </div>
+                </div>
         </MainLayout>
     );
 } 

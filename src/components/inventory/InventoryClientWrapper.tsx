@@ -6,6 +6,7 @@ import { Search, X, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { authDelete } from '@/utils/api';
 import AddInventoryModal from '@/components/inventory/AddInventoryModal';
+import { useInventoryUpdates } from '@/hooks/useWebSocket';
 
 // Define proper types for our data
 interface BranchStock {
@@ -84,6 +85,7 @@ export default function InventoryClientWrapper({
     const [showFilterPanel, setShowFilterPanel] = useState(false);
     const [showAddInventoryModal, setShowAddInventoryModal] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<{ id: number, name: string } | null>(null);
+    const [isWebSocketUpdate, setIsWebSocketUpdate] = useState(false);
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(initialPagination.page);
@@ -91,24 +93,69 @@ export default function InventoryClientWrapper({
     const [totalItems, setTotalItems] = useState(initialPagination.total);
     const [itemsPerPage, setItemsPerPage] = useState(initialPagination.limit);
 
-    // Effect to synchronize state with props when they change
+    // Subscribe to inventory updates via WebSocket
+    useInventoryUpdates((data) => {
+        console.log('Received inventory update via WebSocket:', data);
+
+        if (data.type === 'full_update' && data.items) {
+            // Full inventory update
+            setInventoryItems(data.items);
+            if (data.pagination) {
+                setTotalPages(data.pagination.totalPages);
+                setTotalItems(data.pagination.total);
+            }
+            setIsWebSocketUpdate(true);
+        } else if (data.type === 'item_update' && data.item) {
+            // Single item update
+            setInventoryItems(prev =>
+                prev.map(item => item.id === data.item.id ? data.item : item)
+            );
+            setIsWebSocketUpdate(true);
+        } else if (data.type === 'item_create' && data.item) {
+            // New item created
+            if (currentPage === 1) { // Only add to first page
+                setInventoryItems(prev => [data.item, ...prev.slice(0, itemsPerPage - 1)]);
+                setTotalItems(prev => prev + 1);
+                setTotalPages(Math.ceil((totalItems + 1) / itemsPerPage));
+            } else {
+                // Just update the counts
+                setTotalItems(prev => prev + 1);
+                setTotalPages(Math.ceil((totalItems + 1) / itemsPerPage));
+            }
+            setIsWebSocketUpdate(true);
+        } else if (data.type === 'item_delete' && data.itemId) {
+            // Item deleted
+            setInventoryItems(prev => prev.filter(item => item.id !== data.itemId));
+            setTotalItems(prev => prev - 1);
+            setTotalPages(Math.ceil((totalItems - 1) / itemsPerPage));
+            setIsWebSocketUpdate(true);
+        }
+    });
+
+    // Effect to synchronize state with props when they change (but not for WebSocket updates)
     useEffect(() => {
-        setInventoryItems(initialInventoryItems);
-        setCategories(initialCategories);
-        setCurrentPage(initialPagination.page);
-        setTotalPages(initialPagination.totalPages);
-        setTotalItems(initialPagination.total);
-        setItemsPerPage(initialPagination.limit);
-        setSearchTerm(initialSearchTerm);
-        setCategoryFilter(initialCategoryFilter);
-        setStatusFilter(initialStatusFilter);
+        if (!isWebSocketUpdate) {
+            setInventoryItems(initialInventoryItems);
+            setCategories(initialCategories);
+            setCurrentPage(initialPagination.page);
+            setTotalPages(initialPagination.totalPages);
+            setTotalItems(initialPagination.total);
+            setItemsPerPage(initialPagination.limit);
+            setSearchTerm(initialSearchTerm);
+            setCategoryFilter(initialCategoryFilter);
+            setStatusFilter(initialStatusFilter);
+        }
+
+        // Reset the WebSocket update flag
+        setIsWebSocketUpdate(false);
     }, [
         initialInventoryItems,
         initialCategories,
         initialPagination,
         initialSearchTerm,
         initialCategoryFilter,
-        initialStatusFilter
+        initialStatusFilter,
+        isWebSocketUpdate
     ]);
 
     // Update URL when filters or pagination changes

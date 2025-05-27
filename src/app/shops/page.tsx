@@ -471,8 +471,8 @@ export default function Shops() {
                                         <div className="grid grid-cols-3 gap-2 text-center">
                                             <div>
                                                 <p className="text-sm text-gray-500">Manager</p>
-                                                <p className="font-medium text-gray-900">
-                                                    {shop.manager ? shop.manager.name : (shop.contact_person || 'No manager')}
+                                                <p className="font-medium">
+                                                    {shop.contact_person || 'No manager'}
                                                 </p>
                                             </div>
                                             <div>
@@ -612,9 +612,7 @@ export default function Shops() {
                                             <div>
                                                 <p className="text-sm text-gray-900">System Manager</p>
                                                 <p className="font-medium">
-                                                    {selectedShop.manager
-                                                        ? `${selectedShop.manager.name} (ID: ${selectedShop.manager.id})`
-                                                        : 'No system manager assigned'}
+                                                    {selectedShop.manager_id ? `Manager ID: ${selectedShop.manager_id}` : 'No system manager assigned'}
                                                 </p>
                                             </div>
                                             <div>

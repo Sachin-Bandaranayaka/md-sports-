@@ -4,6 +4,9 @@ import CustomerClientWrapper from './components/CustomerClientWrapper';
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 
+// Add revalidation - cache customers page for 60 seconds
+export const revalidate = 60;
+
 // Interface for Customer (can be shared or defined in a common types file)
 interface Customer {
     id: string | number;

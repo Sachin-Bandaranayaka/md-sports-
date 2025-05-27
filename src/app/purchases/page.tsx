@@ -4,6 +4,9 @@ import MainLayout from '@/components/layout/MainLayout';
 import PurchaseListClient from '@/components/purchases/PurchaseListClient';
 import { PurchaseInvoice, Supplier } from '@/types'; // Ensure types are available
 
+// Add revalidation - cache purchases page for 60 seconds
+export const revalidate = 60;
+
 const ITEMS_PER_PAGE = 10; // Define how many items per page
 
 async function fetchPurchaseInvoices(baseUrl: string, page: number, limit: number, search?: string, status?: string, supplierId?: string, startDate?: string, endDate?: string): Promise<{ invoices: PurchaseInvoice[], totalPages: number, currentPage: number }> {

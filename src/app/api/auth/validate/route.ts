@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, getUserFromDecodedPayload } from '@/services/authService';
+import jwt from 'jsonwebtoken'; // Import jwt to access error types
 
 export async function GET(req: NextRequest) {
     try {
@@ -16,17 +17,10 @@ export async function GET(req: NextRequest) {
         const token = authHeader.split(' ')[1];
         console.log('Token received for validation:', token.substring(0, 10) + '...');
 
+        // verifyToken will now throw if token is invalid/expired
         const tokenData = verifyToken(token);
 
-        if (!tokenData) {
-            console.error('Token verification failed or token is invalid/expired');
-            return NextResponse.json(
-                { success: false, message: 'Invalid or expired token', expired: true },
-                { status: 403 }
-            );
-        }
-
-        // Get user data using the decoded tokenData (payload)
+        // If verifyToken didn't throw, tokenData is valid and populated
         const user = await getUserFromDecodedPayload(tokenData);
 
         if (!user) {
@@ -55,15 +49,22 @@ export async function GET(req: NextRequest) {
             }
         });
     } catch (error) {
-        console.error('Token validation error:', error);
-        if ((error as any).name === 'TokenExpiredError') {
+        console.error('Token validation error in GET /api/auth/validate:', error);
+        if (error instanceof jwt.TokenExpiredError) {
             return NextResponse.json(
-                { success: false, message: 'Token expired', expired: true },
-                { status: 403 }
+                { success: false, message: 'Token expired', errorType: 'TOKEN_EXPIRED' },
+                { status: 401 }
             );
         }
+        if (error instanceof jwt.JsonWebTokenError) { // Catches other JWT errors (e.g. invalid signature)
+            return NextResponse.json(
+                { success: false, message: 'Invalid token', errorType: 'TOKEN_INVALID' },
+                { status: 401 }
+            );
+        }
+        // Fallback for other unexpected errors not related to JWT verification specifically
         return NextResponse.json(
-            { success: false, message: 'Token validation failed' },
+            { success: false, message: 'Token validation failed due to an unexpected error' },
             { status: 500 }
         );
     }

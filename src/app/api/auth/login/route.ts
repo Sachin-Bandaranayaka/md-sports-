@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '@/lib/prisma';
 import { generateRefreshToken } from '@/services/refreshTokenService';
+import { parseTimeStringToSeconds } from '@/services/authService';
 
 // JWT configuration - use environment variables
 const JWT_SECRET = process.env.JWT_SECRET || 'CHANGE_THIS_IN_PRODUCTION';
@@ -111,7 +112,7 @@ export async function POST(req: NextRequest) {
             httpOnly: true,
             secure: COOKIE_SECURE,
             sameSite: 'strict',
-            maxAge: 60 * 15, // 15 minutes in seconds
+            maxAge: parseTimeStringToSeconds(JWT_ACCESS_TOKEN_EXPIRES_IN),
             path: '/'
         });
 

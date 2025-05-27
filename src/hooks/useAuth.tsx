@@ -49,146 +49,115 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         const requestInterceptor = api.interceptors.request.use(
             (config) => {
-                if (accessToken) {
-                    config.headers.Authorization = `Bearer ${accessToken}`;
+                const currentToken = accessToken || localStorage.getItem('accessToken') || localStorage.getItem('authToken');
+                if (currentToken) {
+                    config.headers.Authorization = `Bearer ${currentToken}`;
                 }
-
-                // Add CSRF token from cookie if available
+                // CSRF token logic remains unchanged
                 const csrfToken = getCookie('csrfToken');
-                if (csrfToken && config.method !== 'get') {
+                if (csrfToken && config.method !== 'get' && config.method !== 'head') { // Ensure method check is robust
                     config.headers['X-CSRF-Token'] = csrfToken;
                 }
-
                 return config;
             },
             (error) => Promise.reject(error)
         );
 
-        // Response interceptor to handle token refresh
         const responseInterceptor = api.interceptors.response.use(
             (response) => response,
             async (error) => {
                 const originalRequest = error.config;
-
-                // If error is 401 Unauthorized or 403 Forbidden and we haven't tried to refresh the token yet
-                if ((error.response?.status === 401 || error.response?.status === 403) && !originalRequest._retry) {
+                if ((error.response?.status === 401) && !originalRequest._retry) { // Only retry on 401 for token refresh
                     originalRequest._retry = true;
-
                     try {
-                        console.log('Token expired, attempting to refresh...');
-                        // Try to refresh the token, include current token as refreshToken
-                        const refreshResponse = await axios.post('/api/auth/refresh',
-                            { refreshToken: accessToken },
-                            { withCredentials: true }
-                        );
+                        console.log('Access Token expired or invalid, attempting to refresh via /api/auth/refresh...');
+                        // Send an empty object or no body. Relies on httpOnly refreshToken cookie.
+                        const refreshResponse = await axios.post('/api/auth/refresh', {}, {
+                            withCredentials: true
+                        });
 
                         if (refreshResponse.data.success) {
-                            // Update the access token
                             const newAccessToken = refreshResponse.data.accessToken;
-                            setAccessToken(newAccessToken);
                             setUser(refreshResponse.data.user);
-
-                            // Update localStorage
+                            setAccessToken(newAccessToken);
                             localStorage.setItem('accessToken', newAccessToken);
-                            localStorage.setItem('authToken', newAccessToken);
+                            localStorage.setItem('authToken', newAccessToken); // Keep for compatibility if still used
 
-                            // Update the auth header and retry the original request
+                            console.log('Token refreshed successfully. New accessToken:', newAccessToken.substring(0, 10) + '...');
                             originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
                             return api(originalRequest);
                         } else {
-                            // If refresh explicitly failed with error message
-                            await logout();
-                            return Promise.reject(error);
+                            console.error('Token refresh explicitly failed by API:', refreshResponse.data.message);
+                            await logout(); // Logout if refresh attempt itself fails
+                            return Promise.reject(error); // Reject with original error
                         }
-                    } catch (refreshError) {
-                        console.error('Token refresh failed:', refreshError);
-                        // If refresh failed, log the user out
-                        await logout();
-                        return Promise.reject(refreshError);
+                    } catch (refreshError: any) {
+                        console.error('Full error during token refresh attempt:', refreshError);
+                        if (refreshError.response) {
+                            console.error('Refresh attempt failed with status:', refreshError.response.status, 'data:', refreshError.response.data);
+                        }
+                        await logout(); // Logout on any error during refresh process
+                        return Promise.reject(refreshError); // Reject with refresh error
                     }
                 }
-
                 return Promise.reject(error);
             }
         );
 
-        // Clean up interceptors on unmount
         return () => {
             api.interceptors.request.eject(requestInterceptor);
             api.interceptors.response.eject(responseInterceptor);
         };
-    }, [accessToken]);
+    }, [accessToken]); // Added accessToken to dependency array
 
-    // Check if user is logged in on mount
     useEffect(() => {
         const validateAuth = async () => {
+            setIsLoading(true);
             try {
-                setIsLoading(true);
+                const storedAccessToken = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
 
-                // Try to get user from stored token (check both key names for compatibility)
-                const storedToken = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
-
-                if (!storedToken) {
-                    // No token, user is not logged in
-                    setIsLoading(false);
-                    return;
-                }
-
-                try {
-                    // Validate token with backend
-                    const response = await api.get('/api/auth/validate', {
-                        headers: {
-                            Authorization: `Bearer ${storedToken}`,
-                        },
-                    });
-
-                    if (response.data.success) {
-                        setUser(response.data.user);
-                        setAccessToken(storedToken);
-
-                        // Ensure both token keys are set
-                        localStorage.setItem('accessToken', storedToken);
-                        localStorage.setItem('authToken', storedToken);
-                    }
-                } catch (validationError: any) {
-                    console.log('Token validation failed, attempting refresh...');
-
-                    // If token validation fails with 401/403, try refresh
-                    if (validationError.response?.status === 401 || validationError.response?.status === 403) {
-                        try {
-                            const refreshResponse = await axios.post('/api/auth/refresh',
-                                { refreshToken: storedToken }, // Send current token as refresh token
-                                { withCredentials: true }
-                            );
-
-                            if (refreshResponse.data.success) {
-                                setUser(refreshResponse.data.user);
-                                setAccessToken(refreshResponse.data.accessToken);
-                                localStorage.setItem('accessToken', refreshResponse.data.accessToken);
-                                localStorage.setItem('authToken', refreshResponse.data.accessToken);
-                            } else {
-                                throw new Error('Refresh token invalid');
-                            }
-                        } catch (refreshError) {
-                            console.error('Refresh token failed:', refreshError);
-                            // Clean up on refresh failure
+                if (storedAccessToken) {
+                    console.log('Found stored accessToken, validating with /api/auth/validate...');
+                    try {
+                        const response = await api.get('/api/auth/validate', {
+                            headers: { Authorization: `Bearer ${storedAccessToken}` },
+                        });
+                        if (response.data.success) {
+                            setUser(response.data.user);
+                            setAccessToken(storedAccessToken); // Keep current token if still valid
+                            // The /api/auth/validate does not return a token, it validates the existing one.
+                            // No need to set localStorage items here again if they were already set.
+                            console.log('Stored accessToken is valid.');
+                        } else {
+                            // This case should ideally be handled by the 401 response from /validate directly
+                            console.warn('/api/auth/validate returned success:false, but not an error status. This is unusual.');
+                            // Attempt refresh if validate says not success but didn't error with 401
+                            // This scenario might indicate a valid token but inactive user, etc. which validate handles.
+                            // For now, let the interceptor handle 401s if validate actually throws one.
+                        }
+                    } catch (validationError: any) {
+                        console.log('Initial /api/auth/validate call failed. Error status:', validationError?.response?.status);
+                        // If validation fails (e.g. 401), the response interceptor will try to refresh.
+                        // If refresh also fails, user will be logged out by interceptor.
+                        // No need to explicitly call refresh here if interceptor handles it.
+                        if (!(validationError.response?.status === 401 && !validationError.config?._retry)) {
+                            // If it's not a 401 that the interceptor will handle, or if it's already a retry, clear auth.
+                            // This might happen if /validate returns e.g. 500, or if it was a 401 and refresh already failed.
+                            console.log('Clearing auth state due to unhandled validation error or failed refresh.');
                             setUser(null);
                             setAccessToken(null);
                             localStorage.removeItem('accessToken');
                             localStorage.removeItem('authToken');
-                            // Don't redirect here to avoid interrupting the UX
                         }
-                    } else {
-                        // For other errors, clear auth state
-                        console.error('Auth error:', validationError);
-                        setUser(null);
-                        setAccessToken(null);
-                        localStorage.removeItem('accessToken');
-                        localStorage.removeItem('authToken');
+                        // The error will be re-thrown or handled by the interceptor trying to refresh
                     }
+                } else {
+                    console.log('No stored accessToken found.');
+                    // No token, user is not logged in
                 }
             } catch (error) {
-                console.error('Auth validation error:', error);
+                // Catch-all for unexpected errors during initial auth validation phase
+                console.error('Unexpected error in validateAuth:', error);
                 setUser(null);
                 setAccessToken(null);
                 localStorage.removeItem('accessToken');
@@ -197,52 +166,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 setIsLoading(false);
             }
         };
-
         validateAuth();
-    }, []);
+    }, []); // Validate auth only on initial mount
 
-    // Login function
     const login = async (email: string, password: string): Promise<boolean> => {
+        setIsLoading(true);
         try {
-            setIsLoading(true);
-            const response = await api.post('/api/auth/login', { email, password });
-
+            const response = await axios.post('/api/auth/login', { email, password });
             if (response.data.success) {
-                setUser(response.data.user);
-                setAccessToken(response.data.accessToken);
+                const { accessToken: newAccessToken, user: userData } = response.data;
+                setUser(userData);
+                setAccessToken(newAccessToken);
+                localStorage.setItem('accessToken', newAccessToken);
+                localStorage.setItem('authToken', newAccessToken); // for compatibility
 
-                // Store both tokens for compatibility
-                localStorage.setItem('accessToken', response.data.accessToken);
-                localStorage.setItem('authToken', response.data.accessToken);
-
-                console.log("Login successful, redirecting to dashboard");
+                // The refreshToken should have been set as an httpOnly cookie by the /api/auth/login endpoint
+                console.log('Login successful. AccessToken set. RefreshToken should be in httpOnly cookie.');
+                setIsLoading(false);
                 return true;
-            } else {
-                console.error('Login failed:', response.data.message);
-                return false;
             }
-        } catch (error) {
-            console.error('Login error:', error);
-            return false;
-        } finally {
-            setIsLoading(false);
+        } catch (error: any) {
+            console.error('Login failed:', error.response?.data?.message || error.message);
         }
+        setIsLoading(false);
+        setUser(null);
+        setAccessToken(null);
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('authToken');
+        return false;
     };
 
-    // Logout function
     const logout = async (): Promise<void> => {
+        setIsLoading(true);
+        setUser(null);
+        setAccessToken(null);
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('authToken');
         try {
-            await api.post('/api/auth/logout', {});
+            // Call the backend to invalidate the refresh token and clear cookies
+            await api.post('/api/auth/logout');
+            console.log('Logout successful, server-side session cleared.');
         } catch (error) {
-            console.error('Logout error:', error);
-        } finally {
-            // Clean up regardless of API success
-            setUser(null);
-            setAccessToken(null);
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('authToken');
-            router.push('/login');
+            console.error('Logout API call failed:', error);
+            // Still clear client-side, even if server call fails
         }
+        router.push('/login'); // Redirect to login page
+        setIsLoading(false);
     };
 
     // Check if user has a specific permission

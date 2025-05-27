@@ -224,7 +224,7 @@ export async function POST(request: NextRequest) {
                                 if (existingInventory) {
                                     await tx.inventoryItem.update({
                                         where: { id: existingInventory.id },
-                                        data: { quantity: existingInventory.quantity + qty, lastStockUpdate: new Date() }
+                                        data: { quantity: existingInventory.quantity + qty /* lastStockUpdate: new Date() */ }
                                     });
                                 } else {
                                     await tx.inventoryItem.create({
@@ -232,7 +232,7 @@ export async function POST(request: NextRequest) {
                                             productId: parseInt(item.productId),
                                             shopId: shopId,
                                             quantity: qty,
-                                            lastStockUpdate: new Date()
+                                            // lastStockUpdate: new Date() // Also consider if needed for create
                                         }
                                     });
                                 }
@@ -250,7 +250,7 @@ export async function POST(request: NextRequest) {
                             if (existingInventory) {
                                 await tx.inventoryItem.update({
                                     where: { id: existingInventory.id },
-                                    data: { quantity: existingInventory.quantity + qty, lastStockUpdate: new Date() }
+                                    data: { quantity: existingInventory.quantity + qty /* lastStockUpdate: new Date() */ }
                                 });
                             } else {
                                 await tx.inventoryItem.create({
@@ -258,7 +258,7 @@ export async function POST(request: NextRequest) {
                                         productId: parseInt(item.productId),
                                         shopId: shopId,
                                         quantity: qty,
-                                        lastStockUpdate: new Date()
+                                        // lastStockUpdate: new Date() // Also consider if needed for create
                                     }
                                 });
                             }
@@ -279,7 +279,7 @@ export async function POST(request: NextRequest) {
                                 if (existingInventory) {
                                     await tx.inventoryItem.update({
                                         where: { id: existingInventory.id },
-                                        data: { quantity: existingInventory.quantity + qty, lastStockUpdate: new Date() }
+                                        data: { quantity: existingInventory.quantity + qty /* lastStockUpdate: new Date() */ }
                                     });
                                 } else {
                                     // Check if shopId 1 exists before creating. This is still very basic.
@@ -290,7 +290,7 @@ export async function POST(request: NextRequest) {
                                                 productId: parseInt(item.productId),
                                                 shopId: defaultShopIdFallback,
                                                 quantity: qty,
-                                                lastStockUpdate: new Date()
+                                                // lastStockUpdate: new Date() // Also consider if needed for create
                                             }
                                         });
                                     }

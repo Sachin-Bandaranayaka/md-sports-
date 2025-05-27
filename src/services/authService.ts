@@ -7,6 +7,29 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 // Changed token expiration to 12h (from 24h) for better security
 const JWT_EXPIRES_IN = process.env.JWT_ACCESS_TOKEN_EXPIRES_IN || '12h';
 
+/**
+ * Parses a time string like "15m", "2h", "1d" into seconds.
+ * @param timeStr The time string.
+ * @returns The number of seconds, or 0 if parsing fails.
+ */
+export const parseTimeStringToSeconds = (timeStr: string): number => {
+    if (!timeStr) return 0;
+    const lastChar = timeStr.slice(-1);
+    const num = parseInt(timeStr.slice(0, -1));
+
+    if (isNaN(num)) return 0;
+
+    switch (lastChar) {
+        case 's': return num;
+        case 'm': return num * 60;
+        case 'h': return num * 60 * 60;
+        case 'd': return num * 60 * 60 * 24;
+        default: // If no unit, assume seconds if it's just a number string
+            if (!isNaN(parseInt(timeStr))) return parseInt(timeStr);
+            return 0;
+    }
+};
+
 interface TokenPayload {
     sub: number; // User ID as 'sub' claim
     username: string;
@@ -103,14 +126,15 @@ export const verifyToken = (token: string) => {
     try {
         return jwt.verify(token, JWT_SECRET) as TokenPayload;
     } catch (error) {
+        // Log the error here if desired
         if (error instanceof jwt.TokenExpiredError) {
-            console.error('Token expired:', error.expiredAt);
+            console.error('Token expired during verification:', error.expiredAt);
         } else if (error instanceof jwt.JsonWebTokenError) {
-            console.error('Invalid token:', error.message);
+            console.error('Invalid token during verification:', error.message);
         } else {
-            console.error('Token verification error:', error);
+            console.error('Unknown token verification error:', error);
         }
-        return null;
+        throw error; // Re-throw the error
     }
 };
 

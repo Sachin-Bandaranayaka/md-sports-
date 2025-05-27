@@ -27,13 +27,15 @@ export async function GET(
             include: {
                 invoice: {
                     include: {
-                        shop: true,
+                        // shop: true, // Error: Unknown field 'shop' for include statement on model 'Invoice'.
+                        // This line needs to be removed or fixed based on actual Invoice model schema.
                         user: {
                             select: {
                                 id: true,
                                 name: true
                             }
-                        }
+                        },
+                        customer: true // Assuming 'customer' is a valid relation on Invoice
                     }
                 }
             },
@@ -41,6 +43,10 @@ export async function GET(
                 createdAt: 'desc'
             }
         });
+
+        if (!invoiceItems || invoiceItems.length === 0) {
+            return NextResponse.json({ success: true, data: [], message: 'No sales history found for this product.' });
+        }
 
         // Format the data for the frontend
         const salesData = invoiceItems.map(item => ({

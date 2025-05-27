@@ -4,6 +4,8 @@ import InvoiceClientWrapper from './components/InvoiceClientWrapper';
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 
+export const revalidate = 60; // Revalidate this page every 60 seconds
+
 // Interface for Invoice - ensure this matches the shape expected by InvoiceClientWrapper
 interface Invoice {
     id: string | number;
@@ -45,15 +47,15 @@ async function fetchInvoicesData(
             { invoiceNumber: { contains: searchQuery, mode: 'insensitive' } },
             { customer: { name: { contains: searchQuery, mode: 'insensitive' } } },
         ];
-        const numericQuery = parseFloat(searchQuery);
-        if (!isNaN(numericQuery)) {
-            // If you want to search by total if a number is entered
-            // whereClause.OR.push({ total: numericQuery }); 
-        }
+        // Optional: If you want to search by total if a number is entered
+        // const numericQuery = parseFloat(searchQuery);
+        // if (!isNaN(numericQuery)) {
+        //     whereClause.OR.push({ total: numericQuery }); 
+        // }
     }
 
     try {
-        const invoicesFromDB = await prisma.invoice.findMany({
+        const invoicesPromise = prisma.invoice.findMany({
             where: whereClause,
             include: {
                 customer: true, // To get customerName
@@ -66,12 +68,58 @@ async function fetchInvoicesData(
             take: ITEMS_PER_PAGE,
         });
 
-        const totalInvoicesCount = await prisma.invoice.count({ where: whereClause });
+        const totalInvoicesCountPromise = prisma.invoice.count({ where: whereClause });
+
+        const now = new Date();
+        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        const totalOutstandingPromise = prisma.invoice.aggregate({
+            _sum: { total: true },
+            where: {
+                ...whereClause,
+                status: { notIn: ['Paid', 'Cancelled', 'Void'] }, // Ensure 'Void' is also excluded if it means not outstanding
+                // AND: whereClause.AND ? [...whereClause.AND] : [], // if you have other AND conditions
+            }
+        });
+
+        const paidThisMonthPromise = prisma.invoice.aggregate({
+            _sum: { total: true },
+            where: {
+                ...whereClause,
+                status: 'Paid',
+                updatedAt: { gte: firstDayOfMonth },
+                // AND: whereClause.AND ? [...whereClause.AND] : [],
+            }
+        });
+
+        const overdueCountPromise = prisma.invoice.count({
+            where: {
+                ...whereClause,
+                status: 'Overdue',
+                // AND: whereClause.AND ? [...whereClause.AND] : [],
+            }
+        });
+
+        const [invoicesFromDB, totalInvoicesCount, totalOutstandingResult, paidThisMonthResult, overdueCountResult] = await Promise.all([
+            invoicesPromise,
+            totalInvoicesCountPromise,
+            totalOutstandingPromise,
+            paidThisMonthPromise,
+            overdueCountPromise
+        ]);
+
 
         const formattedInvoices: Invoice[] = invoicesFromDB.map(inv => {
             const createdDate = new Date(inv.createdAt);
-            const dueDate = new Date(createdDate);
-            dueDate.setDate(dueDate.getDate() + 30);
+            // const dueDate = new Date(createdDate);
+            // dueDate.setDate(dueDate.getDate() + 30); // Assuming due date is always 30 days from creation
+            // It's better if dueDate is stored or calculated based on actual terms
+            let displayDueDate = inv.dueDate ? new Date(inv.dueDate).toISOString().split('T')[0] : '';
+            if (!displayDueDate && inv.date) { // Fallback if specific dueDate field doesn't exist on model but a general 'date' might imply it
+                const tempDueDate = new Date(inv.date);
+                tempDueDate.setDate(tempDueDate.getDate() + 30); // Example: 30 days after invoice date
+                displayDueDate = tempDueDate.toISOString().split('T')[0];
+            }
 
             return {
                 ...inv,
@@ -79,34 +127,8 @@ async function fetchInvoicesData(
                 customerName: inv.customer?.name || 'Unknown Customer',
                 itemCount: inv._count?.items || 0,
                 date: createdDate.toISOString().split('T')[0],
-                dueDate: dueDate.toISOString().split('T')[0],
+                dueDate: displayDueDate, // Use the calculated or existing due date
             };
-        });
-
-        // Calculate statistics
-        const now = new Date();
-        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-        // For stats, we might need to query without pagination but with filters
-        const allFilteredInvoicesForStats = await prisma.invoice.findMany({
-            where: whereClause, // Apply same filters as the main list for consistency in stats
-            select: { total: true, status: true, updatedAt: true }
-        });
-
-        let totalOutstanding = 0;
-        let paidThisMonth = 0;
-        let overdueCount = 0;
-
-        allFilteredInvoicesForStats.forEach(inv => {
-            if (inv.status !== 'Paid' && inv.status !== 'Cancelled') { // Consider what non-paid means for outstanding
-                totalOutstanding += inv.total;
-            }
-            if (inv.status === 'Paid' && new Date(inv.updatedAt) >= firstDayOfMonth) {
-                paidThisMonth += inv.total;
-            }
-            if (inv.status === 'Overdue') { // Ensure 'Overdue' is a valid status you set
-                overdueCount++;
-            }
         });
 
         return {
@@ -114,20 +136,21 @@ async function fetchInvoicesData(
             totalPages: Math.ceil(totalInvoicesCount / ITEMS_PER_PAGE),
             currentPage: page,
             statistics: {
-                totalOutstanding,
-                paidThisMonth,
-                overdueCount,
+                totalOutstanding: totalOutstandingResult._sum.total || 0,
+                paidThisMonth: paidThisMonthResult._sum.total || 0,
+                overdueCount: overdueCountResult || 0,
             },
         };
 
     } catch (error) {
         console.error('Error fetching invoices data:', error);
+        // It's good practice to return a consistent shape even on error
         return {
             invoices: [],
             totalPages: 0,
             currentPage: 1,
             statistics: { totalOutstanding: 0, paidThisMonth: 0, overdueCount: 0 },
-            error: 'Failed to fetch invoices',
+            error: 'Failed to fetch invoices. Please try refreshing the page.',
         };
     }
 }

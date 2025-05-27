@@ -185,6 +185,8 @@ model Customer {
   invoices           Invoice[]
   payments           Payment[]
   quotations         Quotation[]
+
+  @@index([name])
 }
 
 model Supplier {
@@ -217,6 +219,15 @@ model Invoice {
   customer      Customer      @relation(fields: [customerId], references: [id])
   items         InvoiceItem[]
   payments      Payment[]
+
+  @@index([status])
+  @@index([paymentMethod])
+  @@index([createdAt])
+  @@index([customerId])
+  @@index([status, createdAt])
+  @@index([paymentMethod, createdAt])
+  @@index([status, paymentMethod, createdAt])
+  @@index([updatedAt, status])
 }
 
 model InvoiceItem {

@@ -7,6 +7,9 @@ import InventoryClientWrapper from '@/components/inventory/InventoryClientWrappe
 import InventoryHeaderActions from '@/components/inventory/InventoryHeaderActions';
 // import { prisma } from '@/lib/prisma'; // Prisma direct call removed for categories
 
+// Add revalidation - cache inventory page for 60 seconds
+export const revalidate = 60;
+
 // Define proper types for our data
 interface BranchStock {
     shopId: number;

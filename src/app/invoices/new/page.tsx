@@ -336,7 +336,7 @@ export default function CreateInvoice() {
 
     return (
         <MainLayout>
-            <div className="space-y-6">
+            <div className="space-y-6 pb-24">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
@@ -705,8 +705,8 @@ export default function CreateInvoice() {
                             </div>
                         </div>
 
-                        {/* Form Actions */}
-                        <div className="flex justify-end gap-3 pt-4 border-t">
+                        {/* Action Buttons */}
+                        <footer className="fixed bottom-0 left-0 right-0 bg-white p-4 pr-20 border-t border-gray-200 flex justify-end gap-3 z-50">
                             <div className="flex items-center mr-auto">
                                 <input
                                     type="checkbox"
@@ -736,7 +736,7 @@ export default function CreateInvoice() {
                                 <Save className="w-4 h-4 mr-2" />
                                 Save Invoice
                             </Button>
-                        </div>
+                        </footer>
                     </form>
                 </div>
             </div>

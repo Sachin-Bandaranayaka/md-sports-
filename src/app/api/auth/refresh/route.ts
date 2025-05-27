@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import prisma from '@/lib/prisma';
 import { verifyRefreshToken } from '@/services/refreshTokenService';
+import { parseTimeStringToSeconds } from '@/services/authService';
 
 // JWT configuration
 const JWT_SECRET = process.env.JWT_SECRET || 'CHANGE_THIS_IN_PRODUCTION';
@@ -10,46 +11,51 @@ const COOKIE_SECURE = process.env.NODE_ENV === 'production';
 
 export async function POST(req: NextRequest) {
     try {
-        // Get refresh token from request
-        const { refreshToken } = await req.json().catch(() => ({}));
-
-        // Alternative: get refresh token from cookies
+        // Prioritize refresh token from httpOnly cookie
         const cookieRefreshToken = req.cookies.get('refreshToken')?.value;
+        let tokenFromBody = null;
 
-        // Also try to get from Authorization header as fallback
-        const authHeader = req.headers.get('authorization');
-        const headerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+        // Attempt to parse body only if cookie is not present, and be careful with empty/malformed bodies
+        if (!cookieRefreshToken) {
+            try {
+                const body = await req.json();
+                tokenFromBody = body?.refreshToken;
+            } catch (e) {
+                // Ignore error if body is empty or not valid JSON, cookie is the preferred method
+                console.log('No JSON body or refreshToken field in body, relying on cookie if present.');
+            }
+        }
 
-        const token = refreshToken || cookieRefreshToken || headerToken;
+        const tokenToVerify = cookieRefreshToken || tokenFromBody;
 
         console.log('Refresh token request received', {
-            hasJsonToken: !!refreshToken,
             hasCookieToken: !!cookieRefreshToken,
-            hasHeaderToken: !!headerToken
+            hasTokenFromBody: !!tokenFromBody,
         });
 
-        if (!token) {
-            console.log('No refresh token provided');
+        if (!tokenToVerify) {
+            console.log('No refresh token provided in cookie or body');
             return NextResponse.json({
                 success: false,
                 message: 'Refresh token is required'
             }, { status: 400 });
         }
 
-        // Verify refresh token
+        // Verify refresh token (this comes from refreshTokenService)
         let userId;
         try {
-            userId = await verifyRefreshToken(token);
+            userId = await verifyRefreshToken(tokenToVerify);
         } catch (error) {
             console.error('Error during refresh token verification:', error);
+            // verifyRefreshToken itself should handle logging details of the error.
             return NextResponse.json({
                 success: false,
-                message: 'Refresh token verification failed'
+                message: 'Refresh token verification failed' // Generic message
             }, { status: 401 });
         }
 
         if (!userId) {
-            console.log('Invalid or expired refresh token');
+            console.log('Invalid, expired, or revoked refresh token. Token used:', tokenToVerify.substring(0, 10) + '...');
             return NextResponse.json({
                 success: false,
                 message: 'Invalid or expired refresh token'
@@ -81,11 +87,9 @@ export async function POST(req: NextRequest) {
             }, { status: 401 });
         }
 
-        // Extract permissions
         const permissions = user.role.permissions.map(p => p.name);
 
-        // Generate new access token
-        const accessToken = jwt.sign({
+        const newAccessToken = jwt.sign({
             sub: user.id,
             username: user.name,
             email: user.email,
@@ -96,10 +100,9 @@ export async function POST(req: NextRequest) {
 
         console.log('Generated new access token for user:', user.id);
 
-        // Create response with new access token
         const response = NextResponse.json({
             success: true,
-            accessToken,
+            accessToken: newAccessToken,
             user: {
                 id: user.id,
                 username: user.name,
@@ -112,16 +115,19 @@ export async function POST(req: NextRequest) {
             }
         });
 
-        // Set HTTP-only cookie for access token
+        // Set the new access token in an httpOnly cookie as well
         response.cookies.set({
             name: 'accessToken',
-            value: accessToken,
+            value: newAccessToken,
             httpOnly: true,
             secure: COOKIE_SECURE,
             sameSite: 'strict',
-            maxAge: 60 * 15, // 15 minutes in seconds
+            maxAge: parseTimeStringToSeconds(JWT_ACCESS_TOKEN_EXPIRES_IN),
             path: '/'
         });
+
+        // IMPORTANT: If you implement refresh token rotation, generate a new refresh token here
+        // and set it in the 'refreshToken' cookie, potentially revoking the old one.
 
         return response;
     } catch (error) {

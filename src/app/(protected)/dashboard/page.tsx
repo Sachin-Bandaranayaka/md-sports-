@@ -5,6 +5,9 @@ import DashboardTransfers from './components/DashboardTransfers';
 import { Loader2 } from 'lucide-react';
 import { headers } from 'next/headers';
 
+// Add revalidation - cache dashboard page for 30 seconds (shorter time for more real-time feel)
+export const revalidate = 30;
+
 // Server Component for the Dashboard
 export default async function DashboardPage() {
     // Fetch dashboard data server-side

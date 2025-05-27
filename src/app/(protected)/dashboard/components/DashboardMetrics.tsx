@@ -1,6 +1,8 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Package, Truck, CreditCard, AlertTriangle, Tag, TrendingUp, TrendingDown } from 'lucide-react';
+import { useDashboardUpdates } from '@/hooks/useWebSocket';
 
 // Types for our data
 interface SummaryItem {
@@ -23,7 +25,18 @@ interface DashboardMetricsProps {
     summaryData: SummaryItem[] | null;
 }
 
-export default function DashboardMetrics({ summaryData }: DashboardMetricsProps) {
+export default function DashboardMetrics({ summaryData: initialSummaryData }: DashboardMetricsProps) {
+    // State to track the current summary data
+    const [summaryData, setSummaryData] = useState<SummaryItem[] | null>(initialSummaryData);
+
+    // Subscribe to dashboard updates via WebSocket
+    useDashboardUpdates((data) => {
+        if (data && data.summaryData) {
+            console.log('Received dashboard metrics update:', data.summaryData);
+            setSummaryData(data.summaryData);
+        }
+    });
+
     // Map icon names to components
     const iconMap: Record<string, React.ElementType> = {
         'Package': Package,
