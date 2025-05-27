@@ -26,6 +26,12 @@ interface Product {
     stock?: number;
 }
 
+// Interface for Shop in dropdown (NEW)
+interface Shop {
+    id: number;
+    name: string;
+}
+
 // Interface for Invoice Line Item
 interface InvoiceItem {
     id: string; // Temporary ID for UI
@@ -46,6 +52,7 @@ interface InvoiceFormData {
     status: 'Draft' | 'Pending' | 'Paid' | 'Overdue';
     paymentMethod: 'Cash' | 'Credit' | 'Card' | 'Bank';
     items: InvoiceItem[];
+    shopId: number | null; // Added shopId
 }
 
 export default function CreateInvoice() {
@@ -53,6 +60,7 @@ export default function CreateInvoice() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
+    const [shops, setShops] = useState<Shop[]>([]); // Added shops state
     const [customerSearch, setCustomerSearch] = useState('');
     const [productSearch, setProductSearch] = useState('');
     const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
@@ -71,7 +79,8 @@ export default function CreateInvoice() {
         notes: '',
         status: 'Pending', // Will be determined based on customer
         paymentMethod: 'Cash',
-        items: []
+        items: [],
+        shopId: null, // Initialize shopId
     });
 
     // Generate a unique invoice number based on current date
@@ -93,7 +102,6 @@ export default function CreateInvoice() {
                 const customerResponse = await fetch('/api/customers');
                 if (customerResponse.ok) {
                     const customerData = await customerResponse.json();
-                    // Handle both direct array and wrapped object formats
                     setCustomers(Array.isArray(customerData) ? customerData :
                         (customerData.data && Array.isArray(customerData.data) ? customerData.data : []));
                 }
@@ -104,7 +112,6 @@ export default function CreateInvoice() {
                     const productData = await productResponse.json();
                     setProducts(Array.isArray(productData.data) ? productData.data : []);
                 } else {
-                    // If API not available, set some sample products
                     setProducts([
                         { id: 1, name: 'Cricket Bat', price: 12500, description: 'Professional cricket bat', sku: 'CB-001' },
                         { id: 2, name: 'Cricket Ball', price: 1800, description: 'Match quality cricket ball', sku: 'CBL-002' },
@@ -113,14 +120,34 @@ export default function CreateInvoice() {
                         { id: 5, name: 'Tennis Racket', price: 8500, description: 'Professional tennis racket', sku: 'TR-005' },
                     ]);
                 }
+
+                // Fetch shops (NEW)
+                const shopResponse = await fetch('/api/shops?simple=true');
+                if (shopResponse.ok) {
+                    const shopData = await shopResponse.json();
+                    if (shopData.success && Array.isArray(shopData.data)) {
+                        setShops(shopData.data);
+                        // Optionally, set a default shop if desired
+                        // if (shopData.data.length > 0) {
+                        //     setFormData(prev => ({ ...prev, shopId: shopData.data[0].id }));
+                        // }
+                    } else {
+                        console.error('Failed to fetch shops or data format incorrect:', shopData);
+                        setShops([]); // Set to empty array on failure
+                    }
+                } else {
+                    console.error('Shop API request failed:', shopResponse.status);
+                    setShops([]); // Set to empty array on API error
+                }
+
             } catch (error) {
                 console.error('Error fetching data:', error);
-                // Set sample data if API fails
                 setCustomers([
                     { id: 1, name: 'Colombo Cricket Club', email: 'info@colombocricket.lk', phone: '+94 112 345 123', paymentType: 'Credit', creditPeriod: 30 },
                     { id: 2, name: 'Kandy Sports Association', email: 'info@kandysports.lk', phone: '+94 812 345 456', paymentType: 'Cash', creditPeriod: null },
                     { id: 3, name: 'Galle School District', email: 'sports@galleschools.lk', phone: '+94 912 345 789', paymentType: 'Credit', creditPeriod: 15 },
                 ]);
+                setShops([]); // Also set shops to empty on general catch
             }
         }
 
@@ -169,14 +196,12 @@ export default function CreateInvoice() {
 
         // Calculate due date based on customer's credit period
         let dueDate = invoiceDate;
-        let status = 'Paid'; // Default for cash customers
 
-        // If customer has a credit period, calculate due date and set status to Pending
-        if (customer.paymentType === 'Credit' && customer.creditPeriod) {
+        // If customer has a credit period, calculate due date
+        if (customer.creditPeriod) {
             const dueDateObj = new Date(today);
             dueDateObj.setDate(today.getDate() + customer.creditPeriod);
             dueDate = dueDateObj.toISOString().split('T')[0];
-            status = 'Pending';
         }
 
         // Fetch detailed customer info if needed
@@ -185,19 +210,17 @@ export default function CreateInvoice() {
             if (customerResponse.ok) {
                 const customerData = await customerResponse.json();
                 // Update customer with additional details if available
-                if (customerData.paymentType || customerData.creditPeriod) {
+                if (customerData.creditPeriod) {
                     customer = {
                         ...customer,
-                        paymentType: customerData.paymentType || customer.paymentType,
                         creditPeriod: customerData.creditPeriod || customer.creditPeriod
                     };
 
                     // Recalculate due date with updated information
-                    if (customer.paymentType === 'Credit' && customer.creditPeriod) {
+                    if (customer.creditPeriod) {
                         const dueDateObj = new Date(today);
                         dueDateObj.setDate(today.getDate() + customer.creditPeriod);
                         dueDate = dueDateObj.toISOString().split('T')[0];
-                        status = 'Pending';
                     }
                 }
             }
@@ -212,7 +235,7 @@ export default function CreateInvoice() {
             customerName: customer.name,
             invoiceDate: invoiceDate,
             dueDate: dueDate,
-            status: status as 'Draft' | 'Pending' | 'Paid' | 'Overdue'
+            status: 'Pending' // Always set to Pending
         });
 
         setCustomerSearch('');
@@ -307,7 +330,8 @@ export default function CreateInvoice() {
                     total: item.total
                 })),
                 // Include the sendSms flag in the API request
-                sendSms: sendSms
+                sendSms: sendSms,
+                shopId: formData.shopId,
             };
 
             // Create invoice via API
@@ -385,7 +409,7 @@ export default function CreateInvoice() {
                                             disabled
                                         />
                                         <p className="text-xs text-gray-500 mt-1">
-                                            Status is determined automatically based on customer payment type
+                                            All new invoices are created with Pending status
                                         </p>
                                     </div>
                                     <div>
@@ -413,6 +437,25 @@ export default function CreateInvoice() {
                                         <p className="text-xs text-gray-500 mt-1">
                                             Due date is calculated based on customer's credit period
                                         </p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Shop <span className="text-red-500">*</span>
+                                        </label>
+                                        <select
+                                            name="shopId"
+                                            value={formData.shopId || ''} // Handle null state for placeholder
+                                            onChange={(e) => setFormData({ ...formData, shopId: parseInt(e.target.value) || null })}
+                                            className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
+                                            required
+                                        >
+                                            <option value="" disabled>Select a shop</option>
+                                            {shops.map((shop) => (
+                                                <option key={shop.id} value={shop.id}>
+                                                    {shop.name}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">

@@ -44,31 +44,32 @@ interface NextApiResponseWithSocket extends NextApiResponse {
     socket: SocketWithIO;
 }
 
-// Global variable to store the Socket.IO server instance
-let io: IOServer | null = null;
-
 export function getSocketIO(): IOServer | null {
-    return io;
+    // @ts-ignore
+    return global.io || null;
 }
 
 export function initSocketIO(server: HTTPServer): IOServer {
-    if (!io) {
-        io = new SocketIOServer(server, {
+    let currentIO = getSocketIO();
+    if (!currentIO) {
+        currentIO = new SocketIOServer(server, {
             path: '/api/socketio',
             addTrailingSlash: false,
             cors: {
                 origin: process.env.NODE_ENV === 'production'
                     ? process.env.NEXT_PUBLIC_SITE_URL || '*'
-                    : 'http://localhost:3000',
+                    : 'http://localhost:3000', // Assuming client runs on 3000
                 methods: ['GET', 'POST'],
                 credentials: true,
             },
         });
 
-        console.log('Socket.IO server initialized');
+        console.log('Socket.IO server initialized and attached to global.io');
+        // @ts-ignore
+        global.io = currentIO;
 
         // Set up event handlers
-        io.on('connection', (socket) => {
+        currentIO.on('connection', (socket) => {
             console.log(`Client connected: ${socket.id}`);
 
             socket.on('disconnect', () => {
@@ -76,25 +77,26 @@ export function initSocketIO(server: HTTPServer): IOServer {
             });
         });
     }
-
-    return io;
+    return currentIO;
 }
 
 // Helper function to emit events to all connected clients
 export function emitToAll(event: string, data: any): void {
-    if (io) {
-        io.emit(event, data);
+    const ioInstance = getSocketIO();
+    if (ioInstance) {
+        ioInstance.emit(event, data);
     }
 }
 
 // Helper function to emit events to specific rooms
 export function emitToRoom(room: string, event: string, data: any): void {
-    if (io) {
-        io.to(room).emit(event, data);
+    const ioInstance = getSocketIO();
+    if (ioInstance) {
+        ioInstance.to(room).emit(event, data);
     }
 }
 
 // Helper to check if Socket.IO is initialized
 export function isSocketIOInitialized(): boolean {
-    return io !== null;
+    return getSocketIO() !== null;
 } 

@@ -8,6 +8,25 @@ import { fetchTransfersData } from '../transfers/route';
 
 export async function GET() {
     try {
+        console.time('fetchSummaryData');
+        const p1 = fetchSummaryData().finally(() => console.timeEnd('fetchSummaryData'));
+
+        console.time('fetchTotalRetailValueData');
+        const p2 = fetchTotalRetailValueData().finally(() => console.timeEnd('fetchTotalRetailValueData'));
+
+        console.time('fetchShopsData');
+        const p3 = fetchShopsData().finally(() => console.timeEnd('fetchShopsData'));
+
+        console.time('fetchInventoryDistributionData');
+        const p4 = fetchInventoryDistributionData().finally(() => console.timeEnd('fetchInventoryDistributionData'));
+
+        console.time('fetchSalesData');
+        const p5 = fetchSalesData().finally(() => console.timeEnd('fetchSalesData'));
+
+        console.time('fetchTransfersData');
+        const p6 = fetchTransfersData().finally(() => console.timeEnd('fetchTransfersData'));
+
+        console.time('Promise.all dashboard data');
         const [
             summaryResult,
             totalRetailValueResult,
@@ -15,14 +34,8 @@ export async function GET() {
             inventoryResult,
             salesResult,
             transfersResult
-        ] = await Promise.all([
-            fetchSummaryData(),
-            fetchTotalRetailValueData(),
-            fetchShopsData(),
-            fetchInventoryDistributionData(),
-            fetchSalesData(),
-            fetchTransfersData()
-        ]);
+        ] = await Promise.all([p1, p2, p3, p4, p5, p6]);
+        console.timeEnd('Promise.all dashboard data');
 
         // The summaryData expects totalRetailValue to be part of its structure.
         // Let's merge it here.

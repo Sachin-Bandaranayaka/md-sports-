@@ -10,69 +10,79 @@ import { prisma, safeQuery } from '@/lib/prisma';
 // ];
 
 export async function fetchShopsData() {
-    // Get all shops with their inventory items
-    const shops = await safeQuery(
-        () => prisma.shop.findMany({
-            include: {
-                inventoryItems: {
-                    include: {
-                        product: true
-                    }
-                }
-            }
-        }),
-        [], // Empty array as fallback
-        'Failed to fetch shops data'
-    );
-
     // Get current month's start and end dates
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
-    // Format the data as needed by the frontend
-    const shopDataPromises = shops.map(async (shop) => {
-        // Calculate total inventory quantity for this shop
+    // 1. Fetch all shops and their inventory in one go
+    const shopsWithInventory = await safeQuery(
+        () => prisma.shop.findMany({
+            include: {
+                inventoryItems: {
+                    select: { quantity: true } // Only select quantity for stock calculation
+                }
+            }
+        }),
+        [],
+        'Failed to fetch shops data'
+    );
+
+    if (!shopsWithInventory || shopsWithInventory.length === 0) {
+        return { success: true, data: [] };
+    }
+
+    // 2. Fetch aggregated sales data for all relevant shops in the current month
+    const shopIds = shopsWithInventory.map(s => s.id);
+    const monthlySalesByShop = await safeQuery(
+        () => prisma.invoice.groupBy({
+            by: ['shopId'],
+            where: {
+                shopId: { in: shopIds }, // Filter by the shops we care about
+                createdAt: {
+                    gte: startOfMonth,
+                    lte: endOfMonth
+                },
+                // Optionally, filter by invoice status if only e.g. 'Paid' invoices count as sales
+                // status: 'Paid' 
+            },
+            _sum: {
+                total: true
+            }
+        }),
+        [],
+        'Failed to fetch aggregated sales data for shops'
+    );
+
+    // Create a map for easy lookup of sales by shopId
+    const salesMap = new Map();
+    if (Array.isArray(monthlySalesByShop)) {
+        monthlySalesByShop.forEach(sale => {
+            if (sale.shopId !== null) { // Ensure shopId is not null before setting
+                salesMap.set(sale.shopId, sale._sum.total || 0);
+            }
+        });
+    }
+
+    // 3. Combine shop data with their sales and stock
+    const data = shopsWithInventory.map(shop => {
         const totalStock = shop.inventoryItems.reduce(
             (sum, item) => sum + item.quantity,
             0
         );
-
-        // Get actual sales for this shop from invoices
-        const shopSales = await safeQuery(
-            () => prisma.invoice.aggregate({
-                where: {
-                    createdAt: {
-                        gte: startOfMonth,
-                        lte: endOfMonth
-                    },
-                    // Assuming shopId is available on the invoice model
-                    // shopId: shop.id  // Uncomment and adjust if you have shopId on Invoice
-                },
-                _sum: {
-                    total: true
-                }
-            }),
-            { _sum: { total: null } },
-            `Failed to fetch sales data for shop ${shop.name}`
-        );
-
         return {
             name: shop.name,
-            sales: shopSales._sum.total || 0, // Use real sales data or 0 if none
+            sales: salesMap.get(shop.id) || 0, // Get sales from the map, default to 0
             stock: totalStock
         };
     });
 
-    // Wait for all promises to resolve
-    const data = await Promise.all(shopDataPromises);
-
-    // Filter out shops with no inventory
-    const shopsWithInventory = data.filter(shop => shop.stock > 0);
+    // Filter out shops with no inventory (if still desired, or adjust logic)
+    const shopsToDisplay = data.filter(shop => shop.stock > 0 || shop.sales > 0); // show if stock or sales
 
     return {
         success: true,
-        data: shopsWithInventory
+        data: shopsToDisplay
     };
 }
 
@@ -83,11 +93,10 @@ export async function GET() {
         return NextResponse.json(shopsResult);
     } catch (error) {
         console.error('Error fetching shop performance data:', error);
-        // Return empty array instead of an error, consistent with original logic
         return NextResponse.json({
-            success: true, // Or false, depending on desired error signaling
+            success: false, // Signal error more clearly
             data: [],
             message: error instanceof Error ? error.message : 'Unknown error'
-        });
+        }, { status: 500 });
     }
 } 

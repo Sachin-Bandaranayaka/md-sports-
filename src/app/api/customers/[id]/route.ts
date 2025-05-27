@@ -69,18 +69,75 @@ export async function PUT(
             );
         }
 
-        const customerData = await request.json();
+        const body = await request.json();
+        const { name, email, phone, address: addressString, ...otherData } = body;
+
+        let addressDetails = {};
+        if (addressString && typeof addressString === 'string') {
+            try {
+                addressDetails = JSON.parse(addressString);
+            } catch (e) {
+                console.warn('Address string is not valid JSON, proceeding with direct assignment if available or an empty object:', e);
+                // If addressString is not JSON, it might be a simple string address or undefined.
+                // We'll let Prisma handle it or use defaults.
+            }
+        } else if (typeof addressString === 'object' && addressString !== null) {
+            // If addressString is already an object (e.g. from direct API call not stringified form data)
+            addressDetails = addressString;
+        }
+
+
+        const {
+            mainAddress,
+            city,
+            postalCode,
+            contactPerson,
+            contactPersonPhone,
+            customerType,
+            creditLimit,
+            creditPeriod,
+            taxId,
+            notes
+        } = addressDetails as any; // Type assertion for easier access
+
+        const customerUpdateData: any = {
+            name: name,
+            email: email || null,
+            phone: phone || null,
+            // Store detailed address fields in the address JSON blob as per existing pattern
+            // and also individual fields if they exist at the top level of the Customer model
+            address: JSON.stringify({
+                mainAddress: mainAddress || (typeof addressString === 'string' && !addressString.startsWith('{') ? addressString : null), // Use raw addressString if it's not JSON
+                city: city || null,
+                postalCode: postalCode || null,
+                contactPerson: contactPerson || null,
+                contactPersonPhone: contactPersonPhone || null,
+                customerType: customerType || 'Retail',
+                creditLimit: parseFloat(creditLimit) || 0,
+                creditPeriod: parseInt(creditPeriod) || 0,
+                taxId: taxId || null,
+                notes: notes || null,
+            }),
+            customerType: customerType || 'Retail', // Persist this at the top level too
+            creditLimit: parseFloat(creditLimit) || 0, // Persist this at the top level too
+            creditPeriod: parseInt(creditPeriod) || 0, // Persist this at the top level too
+            // otherData might contain fields like 'status', which we want to preserve
+            ...otherData
+        };
+
+        // Remove undefined fields to avoid Prisma errors
+        Object.keys(customerUpdateData).forEach(key => {
+            if (customerUpdateData[key] === undefined) {
+                delete customerUpdateData[key];
+            }
+        });
+
 
         const updatedCustomer = await prisma.customer.update({
             where: {
                 id: id
             },
-            data: {
-                name: customerData.name,
-                email: customerData.email || null,
-                phone: customerData.phone || null,
-                address: customerData.address || null
-            }
+            data: customerUpdateData
         });
 
         return NextResponse.json({

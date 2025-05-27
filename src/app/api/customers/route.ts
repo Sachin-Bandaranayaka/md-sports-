@@ -50,29 +50,39 @@ export async function POST(request: Request) {
     try {
         const customerData = await request.json();
 
-        // Create new customer using Prisma - only include the fields that are recognized by current Prisma client
+        // Ensure numeric fields are correctly parsed or defaulted
+        const creditLimit = parseFloat(customerData.creditLimit) || 0;
+        const creditPeriod = parseInt(customerData.creditPeriod) || 30;
+        const customerType = customerData.customerType || 'Retail';
+
+        // Create new customer using Prisma
         const customer = await prisma.customer.create({
             data: {
                 name: customerData.name,
                 email: customerData.email || null,
                 phone: customerData.phone || null,
-                // Store additional fields in a structured format in the address field as a workaround
-                // until prisma client is regenerated properly
                 address: JSON.stringify({
                     mainAddress: customerData.address || null,
                     city: customerData.city || null,
                     postalCode: customerData.postalCode || null,
                     contactPerson: customerData.contactPerson || null,
                     contactPersonPhone: customerData.contactPersonPhone || null,
-                    customerType: customerData.customerType || null,
-                    paymentType: customerData.paymentType || 'Cash',
-                    creditLimit: customerData.paymentType === 'Credit' ? customerData.creditLimit || 0 : null,
-                    creditPeriod: customerData.paymentType === 'Credit' ? customerData.creditPeriod || 30 : null,
+                    // customerType, creditLimit, creditPeriod, taxId, and notes are also stored in the JSON blob
+                    // for potential use where the full address context is needed, but the primary source
+                    // for these specific fields will be the top-level columns in the Customer table.
+                    customerType: customerType,
+                    creditLimit: creditLimit,
+                    creditPeriod: creditPeriod,
                     taxId: customerData.taxId || null,
                     notes: customerData.notes || null
                 }),
-                // Also store the payment type in the dedicated field for future use
-                paymentType: customerData.paymentType || 'Cash'
+                // Store key fields at the top level for easier querying and indexing
+                customerType: customerType,
+                creditLimit: creditLimit,
+                creditPeriod: creditPeriod,
+                taxId: customerData.taxId || null, // also store taxId at top-level if it exists in schema
+                notes: customerData.notes || null, // also store notes at top-level if it exists in schema
+                // paymentType is removed
             }
         });
 

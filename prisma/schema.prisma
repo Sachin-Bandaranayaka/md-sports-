@@ -26,6 +26,7 @@ model User {
   refreshTokens         RefreshToken[]      @relation("UserRefreshTokens")
   role                  Role                @relation(fields: [roleId], references: [id])
   shop                  Shop?               @relation(fields: [shopId], references: [id])
+  confirmedReceipts     Receipt[]
 }
 
 model RefreshToken {
@@ -90,6 +91,7 @@ model Shop {
   transfersTo    InventoryTransfer[] @relation("ToShop")
   products       Product[]
   users          User[]
+  invoices       Invoice[]
 }
 
 model Product {
@@ -177,7 +179,6 @@ model Customer {
   contactPerson      String?
   contactPersonPhone String?
   customerType       String?
-  paymentType        String?
   creditLimit        Float?
   creditPeriod       Int?
   taxId              String?
@@ -210,13 +211,15 @@ model Invoice {
   customerId    Int
   total         Float
   status        String
-  paymentMethod String        @default("Cash")
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+  paymentMethod String?       @default("Cash")
   invoiceDate   DateTime?     @db.Date
   dueDate       DateTime?     @db.Date
   notes         String?
+  shopId        Int?
   customer      Customer      @relation(fields: [customerId], references: [id])
+  shop          Shop?         @relation(fields: [shopId], references: [id])
   items         InvoiceItem[]
   payments      Payment[]
 
@@ -224,6 +227,7 @@ model Invoice {
   @@index([paymentMethod])
   @@index([createdAt])
   @@index([customerId])
+  @@index([shopId])
   @@index([status, createdAt])
   @@index([paymentMethod, createdAt])
   @@index([status, paymentMethod, createdAt])
@@ -254,6 +258,24 @@ model Payment {
   updatedAt       DateTime @updatedAt
   customer        Customer @relation(fields: [customerId], references: [id])
   invoice         Invoice  @relation(fields: [invoiceId], references: [id])
+  receipt         Receipt?
+}
+
+model Receipt {
+  id                Int      @id @default(autoincrement())
+  paymentId         Int      @unique
+  receiptNumber     String   @unique
+  receiptDate       DateTime @db.Date
+  bankName          String?
+  accountNumber     String?
+  chequeNumber      String?
+  transactionId     String?
+  notes             String?
+  confirmedBy       Int?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  payment           Payment  @relation(fields: [paymentId], references: [id])
+  confirmedByUser   User?    @relation(fields: [confirmedBy], references: [id])
 }
 
 model Quotation {

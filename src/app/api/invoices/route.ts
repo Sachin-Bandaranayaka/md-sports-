@@ -99,11 +99,12 @@ export async function POST(request: Request) {
                         invoiceNumber: invoiceDetails.invoiceNumber,
                         customerId: invoiceDetails.customerId,
                         total: invoiceDetails.total,
-                        status: invoiceDetails.status || 'Pending',
+                        status: 'Pending', // Always set to Pending
                         paymentMethod: invoiceDetails.paymentMethod || 'Cash',
                         invoiceDate: invoiceDetails.invoiceDate ? new Date(invoiceDetails.invoiceDate) : new Date(),
                         dueDate: invoiceDetails.dueDate ? new Date(invoiceDetails.dueDate) : null,
                         notes: invoiceDetails.notes || '',
+                        shopId: invoiceDetails.shopId,
                     },
                 });
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react'; import { useRouter, useParams } from 'next/navigation'; import MainLayout from '@/components/layout/MainLayout'; import { Button } from '@/components/ui/Button'; import { Printer, ArrowLeft, Edit, Trash2, CheckCircle, Clock, AlertTriangle, Download, Bell } from 'lucide-react'; import { useReactToPrint } from 'react-to-print'; import { formatCurrency } from '@/utils/formatters'; import { generateInvoicePDF } from '@/utils/pdfGenerator';
+import { useEffect, useState, useRef } from 'react'; import { useRouter, useParams } from 'next/navigation'; import MainLayout from '@/components/layout/MainLayout'; import { Button } from '@/components/ui/Button'; import { Printer, ArrowLeft, Edit, Trash2, CheckCircle, Clock, AlertTriangle, Download, Bell, Receipt } from 'lucide-react'; import { useReactToPrint } from 'react-to-print'; import { formatCurrency } from '@/utils/formatters'; import { generateInvoicePDF } from '@/utils/pdfGenerator';
 
 // Invoice and related interfaces
 interface Product {
@@ -361,6 +361,17 @@ export default function InvoiceDetail() {
                             <Bell className="w-4 h-4 mr-2" />
                             {isSendingSms ? 'Sending...' : 'Send SMS'}
                         </Button>
+
+                        {invoice.status === 'Pending' && (
+                            <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={() => router.push(`/receipts/confirm/${invoice.id}`)}
+                            >
+                                <Receipt className="w-4 h-4 mr-2" />
+                                Confirm Receipt
+                            </Button>
+                        )}
 
                         {confirmDelete ? (
                             <>

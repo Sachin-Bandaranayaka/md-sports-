@@ -17,7 +17,6 @@ interface CustomerFormData {
     contactPerson: string;
     contactPersonPhone: string;
     customerType: string;
-    paymentType: string;
     creditLimit: string;
     creditPeriod: string;
     taxId: string;
@@ -43,7 +42,6 @@ export default function EditCustomer({ params }: { params: { id: string } }) {
         contactPerson: '',
         contactPersonPhone: '',
         customerType: 'Retail',
-        paymentType: 'Cash',
         creditLimit: '0',
         creditPeriod: '0',
         taxId: '',
@@ -74,15 +72,14 @@ export default function EditCustomer({ params }: { params: { id: string } }) {
                     name: data.name || '',
                     email: data.email || '',
                     phone: data.phone || '',
-                    address: addressData.mainAddress || addressData.address || '',
-                    city: addressData.city || '',
-                    postalCode: addressData.postalCode || '',
+                    address: addressData.mainAddress || addressData.address || data.address || '',
+                    city: addressData.city || data.city || '',
+                    postalCode: addressData.postalCode || data.postalCode || '',
                     contactPerson: addressData.contactPerson || data.contactPerson || '',
                     contactPersonPhone: addressData.contactPersonPhone || data.contactPersonPhone || '',
                     customerType: addressData.customerType || data.customerType || 'Retail',
-                    paymentType: addressData.paymentType || data.paymentType || 'Cash',
-                    creditLimit: addressData.creditLimit?.toString() || data.creditLimit?.toString() || '0',
-                    creditPeriod: addressData.creditPeriod?.toString() || data.creditPeriod?.toString() || '0',
+                    creditLimit: (addressData.creditLimit?.toString() || data.creditLimit?.toString() || '0').toString(),
+                    creditPeriod: (addressData.creditPeriod?.toString() || data.creditPeriod?.toString() || '0').toString(),
                     taxId: addressData.taxId || data.taxId || '',
                     notes: addressData.notes || data.notes || ''
                 });
@@ -116,9 +113,8 @@ export default function EditCustomer({ params }: { params: { id: string } }) {
                 contactPerson: formData.contactPerson,
                 contactPersonPhone: formData.contactPersonPhone,
                 customerType: formData.customerType,
-                paymentType: formData.paymentType,
-                creditLimit: formData.paymentType === 'Credit' ? parseFloat(formData.creditLimit) : 0,
-                creditPeriod: formData.paymentType === 'Credit' ? parseInt(formData.creditPeriod) : 0,
+                creditLimit: parseFloat(formData.creditLimit) || 0,
+                creditPeriod: parseInt(formData.creditPeriod) || 0,
                 taxId: formData.taxId,
                 notes: formData.notes
             };
@@ -250,22 +246,6 @@ export default function EditCustomer({ params }: { params: { id: string } }) {
                                 >
                                     <option value="Retail">Retail</option>
                                     <option value="Wholesale">Wholesale</option>
-                                    <option value="Business">Business</option>
-                                </select>
-                            </div>
-                            <div className="space-y-2">
-                                <label htmlFor="paymentType" className="block text-sm font-medium text-gray-700">
-                                    Payment Type
-                                </label>
-                                <select
-                                    name="paymentType"
-                                    id="paymentType"
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
-                                    value={formData.paymentType}
-                                    onChange={handleChange}
-                                >
-                                    <option value="Cash">Cash</option>
-                                    <option value="Credit">Credit</option>
                                 </select>
                             </div>
                         </div>
@@ -355,45 +335,43 @@ export default function EditCustomer({ params }: { params: { id: string } }) {
                             </div>
                         </div>
 
-                        {/* Payment Information (only shown for credit customers) */}
-                        {formData.paymentType === 'Credit' && (
-                            <>
-                                <div className="px-6 py-4 border-t border-b border-gray-200 bg-gray-50">
-                                    <h2 className="text-lg font-medium text-gray-900">Payment Information</h2>
+                        {/* Payment Information (now Credit Information and always shown) */}
+                        <>
+                            <div className="px-6 py-4 border-t border-b border-gray-200 bg-gray-50">
+                                <h2 className="text-lg font-medium text-gray-900">Credit Information</h2>
+                            </div>
+                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label htmlFor="creditLimit" className="block text-sm font-medium text-gray-700">
+                                        Credit Limit (Rs.)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        name="creditLimit"
+                                        id="creditLimit"
+                                        min="0"
+                                        step="0.01"
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                        value={formData.creditLimit}
+                                        onChange={handleChange}
+                                    />
                                 </div>
-                                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label htmlFor="creditLimit" className="block text-sm font-medium text-gray-700">
-                                            Credit Limit (Rs.)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            name="creditLimit"
-                                            id="creditLimit"
-                                            min="0"
-                                            step="0.01"
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
-                                            value={formData.creditLimit}
-                                            onChange={handleChange}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label htmlFor="creditPeriod" className="block text-sm font-medium text-gray-700">
-                                            Credit Period (days)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            name="creditPeriod"
-                                            id="creditPeriod"
-                                            min="0"
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
-                                            value={formData.creditPeriod}
-                                            onChange={handleChange}
-                                        />
-                                    </div>
+                                <div className="space-y-2">
+                                    <label htmlFor="creditPeriod" className="block text-sm font-medium text-gray-700">
+                                        Credit Period (days)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        name="creditPeriod"
+                                        id="creditPeriod"
+                                        min="0"
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                        value={formData.creditPeriod}
+                                        onChange={handleChange}
+                                    />
                                 </div>
-                            </>
-                        )}
+                            </div>
+                        </>
 
                         {/* Notes */}
                         <div className="px-6 py-4 border-t border-b border-gray-200 bg-gray-50">

@@ -4,9 +4,21 @@ import prisma from '@/lib/prisma';
 // GET: Fetch all shops
 export async function GET(request: NextRequest) {
     try {
-        console.log('Fetching shops with inventory items...');
+        const searchParams = request.nextUrl.searchParams;
+        const simpleList = searchParams.get('simple') === 'true';
 
-        // Fetch shops with inventory items only (no manager relation)
+        if (simpleList) {
+            console.log('Fetching simple list of shops (id and name only)...');
+            const shops = await prisma.shop.findMany({
+                orderBy: { name: 'asc' },
+                select: { id: true, name: true }
+            });
+            console.log(`Successfully fetched ${shops.length} shops for simple list.`);
+            return NextResponse.json({ success: true, data: shops });
+        }
+
+        // Existing logic for detailed shop list
+        console.log('Fetching shops with inventory items...');
         const shops = await prisma.shop.findMany({
             orderBy: {
                 name: 'asc'

@@ -17,7 +17,6 @@ interface CustomerFormData {
     contactPerson: string;
     contactPersonPhone: string;
     customerType: 'Retail' | 'Wholesale';
-    paymentType: 'Cash' | 'Credit';
     creditLimit: number;
     creditPeriod: number;
     taxId: string;
@@ -37,7 +36,6 @@ export default function NewCustomer() {
         contactPerson: '',
         contactPersonPhone: '',
         customerType: 'Retail',
-        paymentType: 'Cash',
         creditLimit: 0,
         creditPeriod: 30,
         taxId: '',
@@ -284,80 +282,41 @@ export default function NewCustomer() {
                                         </div>
                                     </div>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Payment Type <span className="text-red-500">*</span>
-                                    </label>
-                                    <div className="flex gap-4 mt-2">
-                                        <div className="flex items-center">
-                                            <input
-                                                type="radio"
-                                                id="cash"
-                                                name="paymentType"
-                                                value="Cash"
-                                                checked={formData.paymentType === 'Cash'}
-                                                onChange={handleInputChange}
-                                                className="w-4 h-4 text-primary focus:ring-primary"
-                                            />
-                                            <label htmlFor="cash" className="ml-2 text-sm font-medium text-gray-700">
-                                                Cash
-                                            </label>
-                                        </div>
-                                        <div className="flex items-center">
-                                            <input
-                                                type="radio"
-                                                id="credit"
-                                                name="paymentType"
-                                                value="Credit"
-                                                checked={formData.paymentType === 'Credit'}
-                                                onChange={handleInputChange}
-                                                className="w-4 h-4 text-primary focus:ring-primary"
-                                            />
-                                            <label htmlFor="credit" className="ml-2 text-sm font-medium text-gray-700">
-                                                Credit
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                         </div>
 
-                        {/* Credit Information - Only shown if payment type is Credit */}
-                        {formData.paymentType === 'Credit' && (
-                            <div>
-                                <h2 className="text-lg font-semibold mb-4 text-gray-900 border-b pb-2">Credit Information</h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Credit Limit (Rs.) <span className="text-red-500">*</span>
-                                        </label>
-                                        <input
-                                            type="number"
-                                            name="creditLimit"
-                                            value={formData.creditLimit}
-                                            onChange={handleInputChange}
-                                            className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
-                                            required={formData.paymentType === 'Credit'}
-                                            min="0"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Credit Period (Days) <span className="text-red-500">*</span>
-                                        </label>
-                                        <input
-                                            type="number"
-                                            name="creditPeriod"
-                                            value={formData.creditPeriod}
-                                            onChange={handleInputChange}
-                                            className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
-                                            required={formData.paymentType === 'Credit'}
-                                            min="0"
-                                        />
-                                    </div>
+                        {/* Credit Information */}
+                        <div>
+                            <h2 className="text-lg font-semibold mb-4 text-gray-900 border-b pb-2">Credit Information</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Credit Limit (Rs.)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        name="creditLimit"
+                                        value={formData.creditLimit}
+                                        onChange={handleInputChange}
+                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
+                                        min="0"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Credit Period (Days)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        name="creditPeriod"
+                                        value={formData.creditPeriod}
+                                        onChange={handleInputChange}
+                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
+                                        min="0"
+                                    />
                                 </div>
                             </div>
-                        )}
+                        </div>
 
                         {/* Additional Information */}
                         <div>
