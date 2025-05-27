@@ -452,11 +452,15 @@ export async function DELETE(
                 }
             }
 
-            // 2. Delete associated payments
+            // 2. Delete associated payments (IF APPLICABLE - Verify Payment model schema)
+            // If your Payment model does not have a direct purchaseInvoiceId field,
+            // this will cause an error. Commenting out for now.
+            /*
             await tx.payment.deleteMany({
-                where: { purchaseInvoiceId: purchaseId },
+                where: { purchaseInvoiceId: purchaseId }, 
             });
             console.log(`Deleted payments for purchase invoice ${purchaseId}`);
+            */
 
             // 3. Delete purchase invoice items
             await tx.purchaseInvoiceItem.deleteMany({

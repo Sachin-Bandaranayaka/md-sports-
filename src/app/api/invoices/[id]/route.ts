@@ -68,6 +68,12 @@ export async function PUT(
         console.log('Invoice update request data:', { invoiceId, ...requestData });
         const { sendSms, ...invoiceData } = requestData;
 
+        // Ensure invoiceData.items is an array, default to empty if not provided or not an array
+        if (!Array.isArray(invoiceData.items)) {
+            console.log('invoiceData.items was not an array, defaulting to [] for update.');
+            invoiceData.items = [];
+        }
+
         // Update invoice with transaction to handle items
         const updatedInvoice = await prisma.$transaction(
             async (tx) => {
