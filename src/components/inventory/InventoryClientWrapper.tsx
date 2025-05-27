@@ -97,7 +97,7 @@ export default function InventoryClientWrapper({
     // Memoized callback for WebSocket updates
     const handleInventoryUpdate = useCallback((eventData: any) => {
         console.log('Received event via useInventoryUpdates (memoized):', eventData);
-        setIsWebSocketUpdate(true); // Mark that an update came from WebSocket
+        setIsWebSocketUpdate(true);
 
         const { type, ...payload } = eventData;
 
@@ -165,7 +165,7 @@ export default function InventoryClientWrapper({
         } else {
             console.log('Received unhandled WebSocket event type or payload (memoized):', type, payload);
         }
-    }, [currentPage, itemsPerPage, totalItems]); // Added dependencies for useCallback
+    }, [currentPage, itemsPerPage, totalItems, WEBSOCKET_EVENTS]);
 
     // Subscribe to inventory updates via WebSocket
     useInventoryUpdates(handleInventoryUpdate);

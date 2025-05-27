@@ -277,7 +277,7 @@ export default function NewPurchaseInvoiceForm({
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6 pb-24">
+        <form onSubmit={handleSubmit} className="space-y-6">
             {error &&
                 <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-4 p-3 bg-red-100 text-red-700 rounded-md flex items-center gap-2">
                     <Info size={18} /> {error}
@@ -384,17 +384,6 @@ export default function NewPurchaseInvoiceForm({
                 {formData.items && formData.items.length === 0 && <p className="text-sm text-gray-500 text-center py-6">No items added yet.</p>}
             </motion.div>
 
-            <motion.div variants={cardVariants} className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-top z-10">
-                <div className="container mx-auto px-4 md:px-6 py-3 flex justify-end space-x-3 max-w-5xl">
-                    <Button type="button" variant="outline" onClick={() => router.back()} disabled={submitting}>
-                        <XCircle className="w-4 h-4 mr-2" /> Cancel
-                    </Button>
-                    <Button type="submit" variant="primary" disabled={submitting || !formData.items || formData.items.length === 0} className="min-w-[120px]">
-                        {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />} Save Invoice
-                    </Button>
-                </div>
-            </motion.div>
-
             {showNewProductModal && (
                 <AnimatePresence>
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -483,6 +472,14 @@ export default function NewPurchaseInvoiceForm({
                     </motion.div>
                 </AnimatePresence>
             )}
+            <div className="flex justify-end gap-3 pt-8">
+                <Button type="button" variant="outline" onClick={() => router.back()} disabled={submitting}>
+                    <XCircle className="w-4 h-4 mr-2" /> Cancel
+                </Button>
+                <Button type="submit" variant="primary" disabled={submitting || !formData.items || formData.items.length === 0} className="min-w-[120px]">
+                    {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />} Save Invoice
+                </Button>
+            </div>
         </form>
     );
 } 

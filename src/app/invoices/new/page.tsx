@@ -69,7 +69,6 @@ export default function CreateInvoice() {
     const [quantity, setQuantity] = useState<number>(1);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [productStock, setProductStock] = useState<number | null>(null);
-    const [sendSms, setSendSms] = useState<boolean>(true);
 
     const [formData, setFormData] = useState<InvoiceFormData>({
         customerId: 0,
@@ -329,8 +328,6 @@ export default function CreateInvoice() {
                     price: item.price,
                     total: item.total
                 })),
-                // Include the sendSms flag in the API request
-                sendSms: sendSms,
                 shopId: formData.shopId,
             };
 
@@ -747,26 +744,13 @@ export default function CreateInvoice() {
                                 ></textarea>
                             </div>
                         </div>
-
-                        {/* Action Buttons */}
-                        <footer className="fixed bottom-0 left-0 right-0 bg-white p-4 pr-20 border-t border-gray-200 flex justify-end gap-3 z-50">
-                            <div className="flex items-center mr-auto">
-                                <input
-                                    type="checkbox"
-                                    id="sendSms"
-                                    checked={sendSms}
-                                    onChange={(e) => setSendSms(e.target.checked)}
-                                    className="mr-2 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                />
-                                <label htmlFor="sendSms" className="flex items-center text-sm text-gray-700">
-                                    <Bell className="w-4 h-4 mr-1 text-gray-500" />
-                                    Send SMS notification to customer
-                                </label>
-                            </div>
+                        {/* Add a div for the buttons at the end of the form */}
+                        <div className="flex justify-end gap-3 pt-8">
                             <Button
                                 type="button"
                                 variant="outline"
                                 onClick={() => router.back()}
+                                size="sm"
                             >
                                 Cancel
                             </Button>
@@ -775,14 +759,15 @@ export default function CreateInvoice() {
                                 variant="primary"
                                 isLoading={isSubmitting}
                                 disabled={formData.items.length === 0 || !formData.customerId}
+                                size="sm"
                             >
                                 <Save className="w-4 h-4 mr-2" />
                                 Save Invoice
                             </Button>
-                        </footer>
+                        </div>
                     </form>
                 </div>
             </div>
         </MainLayout>
     );
-} 
+}
