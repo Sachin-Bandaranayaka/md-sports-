@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { smsService } from '@/services/smsService';
+import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
 
 const ITEMS_PER_PAGE = 15;
 
@@ -87,19 +88,18 @@ export async function GET(request: NextRequest) {
 export async function POST(request: Request) {
     try {
         const invoiceData = await request.json();
-        // Extract the sendSms flag
         const { sendSms, ...invoiceDetails } = invoiceData;
 
-        // Create new invoice using Prisma within a transaction
+        const inventoryUpdatesForEvent: Array<{ productId: number, shopId: number, newQuantity: number, oldQuantity: number }> = [];
+
         const invoice = await prisma.$transaction(
             async (tx) => {
-                // Create the invoice first
                 const createdInvoice = await tx.invoice.create({
                     data: {
                         invoiceNumber: invoiceDetails.invoiceNumber,
                         customerId: invoiceDetails.customerId,
                         total: invoiceDetails.total,
-                        status: 'Pending', // Always set to Pending
+                        status: 'Pending',
                         paymentMethod: invoiceDetails.paymentMethod || 'Cash',
                         invoiceDate: invoiceDetails.invoiceDate ? new Date(invoiceDetails.invoiceDate) : new Date(),
                         dueDate: invoiceDetails.dueDate ? new Date(invoiceDetails.dueDate) : null,
@@ -108,7 +108,6 @@ export async function POST(request: Request) {
                     },
                 });
 
-                // For cash payments, automatically create a payment record
                 if (invoiceDetails.paymentMethod === 'Cash') {
                     await tx.payment.create({
                         data: {
@@ -121,10 +120,8 @@ export async function POST(request: Request) {
                     });
                 }
 
-                // Process each item and update inventory
                 if (invoiceDetails.items && Array.isArray(invoiceDetails.items)) {
                     for (const item of invoiceDetails.items) {
-                        // Create invoice item
                         await tx.invoiceItem.create({
                             data: {
                                 invoiceId: createdInvoice.id,
@@ -135,65 +132,65 @@ export async function POST(request: Request) {
                             }
                         });
 
-                        // Get all inventory items for this product
                         const inventoryItems = await tx.inventoryItem.findMany({
                             where: { productId: item.productId },
-                            orderBy: { updatedAt: 'asc' } // Process oldest inventory first
+                            orderBy: { updatedAt: 'asc' }
                         });
-
                         let remainingQuantity = item.quantity;
-
-                        // If there's no inventory, throw an error
-                        if (inventoryItems.length === 0) {
-                            throw new Error(`No inventory found for product ID ${item.productId}`);
-                        }
-
-                        // Check if we have enough inventory across all shops
+                        if (inventoryItems.length === 0) throw new Error(`No inventory for product ID ${item.productId}`);
                         const totalInventory = inventoryItems.reduce((sum, inv) => sum + inv.quantity, 0);
-                        if (totalInventory < remainingQuantity) {
-                            throw new Error(`Insufficient inventory for product ID ${item.productId}. Available: ${totalInventory}, Requested: ${item.quantity}`);
-                        }
+                        if (totalInventory < remainingQuantity) throw new Error(`Insufficient inventory for product ID ${item.productId}. Have: ${totalInventory}, Need: ${item.quantity}`);
 
-                        // Deduct from inventory, shop by shop until fulfilled
                         for (const inventoryItem of inventoryItems) {
                             if (remainingQuantity <= 0) break;
-
                             if (inventoryItem.quantity > 0) {
                                 const deductAmount = Math.min(remainingQuantity, inventoryItem.quantity);
+                                const oldShopQuantity = inventoryItem.quantity;
+                                const newShopQuantity = inventoryItem.quantity - deductAmount;
 
-                                // Update inventory
                                 await tx.inventoryItem.update({
                                     where: { id: inventoryItem.id },
-                                    data: {
-                                        quantity: inventoryItem.quantity - deductAmount,
-                                        updatedAt: new Date()
-                                    }
+                                    data: { quantity: newShopQuantity, updatedAt: new Date() }
                                 });
 
+                                inventoryUpdatesForEvent.push({
+                                    productId: item.productId,
+                                    shopId: inventoryItem.shopId,
+                                    newQuantity: newShopQuantity,
+                                    oldQuantity: oldShopQuantity
+                                });
                                 remainingQuantity -= deductAmount;
                             }
                         }
                     }
                 }
-
-                // Return the complete invoice with relations
                 return tx.invoice.findUnique({
                     where: { id: createdInvoice.id },
-                    include: {
-                        customer: true,
-                        items: true
-                    }
+                    include: { customer: true, items: true }
                 });
             },
             { timeout: 30000 }
         );
 
-        // Send SMS notification only if sendSms flag is true
+        // Emit INVENTORY_LEVEL_UPDATED events
+        const io = getSocketIO();
+        if (io && inventoryUpdatesForEvent.length > 0) {
+            inventoryUpdatesForEvent.forEach(update => {
+                io.emit(WEBSOCKET_EVENTS.INVENTORY_LEVEL_UPDATED, {
+                    productId: update.productId,
+                    shopId: update.shopId,
+                    newQuantity: update.newQuantity,
+                    oldQuantity: update.oldQuantity,
+                    source: 'sales_invoice_creation'
+                });
+            });
+            console.log(`Emitted ${inventoryUpdatesForEvent.length} INVENTORY_LEVEL_UPDATED events for invoice ${invoice?.id}`);
+        }
+
         if (sendSms) {
             try {
                 await smsService.init();
                 if (smsService.isConfigured()) {
-                    // Send SMS notification asynchronously
                     smsService.sendInvoiceNotification(invoice.id)
                         .then(result => {
                             if (result.status >= 200 && result.status < 300) {
@@ -207,27 +204,18 @@ export async function POST(request: Request) {
                         });
                 }
             } catch (smsError) {
-                // Log SMS error but don't fail the request
                 console.error('SMS notification error:', smsError);
             }
         }
 
         return NextResponse.json(
-            {
-                success: true,
-                message: 'Invoice created successfully',
-                data: invoice
-            },
+            { success: true, message: 'Invoice created successfully', data: invoice },
             { status: 201 }
         );
     } catch (error) {
         console.error('Error creating invoice:', error);
         return NextResponse.json(
-            {
-                success: false,
-                message: 'Error creating invoice',
-                error: error instanceof Error ? error.message : String(error)
-            },
+            { success: false, message: 'Error creating invoice', error: error instanceof Error ? error.message : String(error) },
             { status: 500 }
         );
     }

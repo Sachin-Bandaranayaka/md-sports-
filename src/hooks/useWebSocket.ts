@@ -1,12 +1,14 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { WEBSOCKET_EVENTS } from '@/lib/websocket';
+import { useSocket as useSocketFromContext } from '@/context/SocketContext';
 
 export interface UseWebSocketOptions {
     autoConnect?: boolean;
     reconnectionAttempts?: number;
     reconnectionDelay?: number;
     events?: string[];
+    forceOwnConnection?: boolean;
 }
 
 export interface UseWebSocketResult {
@@ -25,19 +27,30 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRes
         reconnectionAttempts = 5,
         reconnectionDelay = 3000,
         events = [],
+        forceOwnConnection = false,
     } = options;
 
-    const [socket, setSocket] = useState<Socket | null>(null);
-    const [isConnected, setIsConnected] = useState<boolean>(false);
+    const contextSocket = useSocketFromContext();
+
+    const shouldUseContextSocket = !forceOwnConnection && contextSocket && contextSocket.socket;
+
+    const [socketState, setSocketState] = useState<Socket | null>(shouldUseContextSocket ? contextSocket.socket : null);
+    const [isConnected, setIsConnected] = useState<boolean>(shouldUseContextSocket ? contextSocket.isConnected : false);
     const [lastMessage, setLastMessage] = useState<{ event: string; data: any } | null>(null);
 
-    // Store callbacks in a ref to avoid re-subscribing on every render
     const callbacksRef = useRef<Map<string, Set<(data: any) => void>>>(new Map());
+    const ownSocketRef = useRef<Socket | null>(null);
 
-    // Initialize socket connection
     useEffect(() => {
-        if (!autoConnect) return;
+        if (shouldUseContextSocket) {
+            setSocketState(contextSocket.socket);
+            setIsConnected(contextSocket.isConnected);
+            return;
+        }
 
+        if (!autoConnect && !forceOwnConnection) return;
+
+        console.log('useWebSocket: Creating new own socket instance');
         const socketInstance = io({
             path: '/api/socketio',
             reconnectionAttempts,
@@ -45,53 +58,66 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRes
             autoConnect: true,
         });
 
-        setSocket(socketInstance);
+        ownSocketRef.current = socketInstance;
+        setSocketState(socketInstance);
 
-        // Clean up on unmount
         return () => {
-            if (socketInstance) {
-                socketInstance.disconnect();
+            if (ownSocketRef.current) {
+                console.log('useWebSocket: Disconnecting own socket instance');
+                ownSocketRef.current.disconnect();
+                ownSocketRef.current = null;
             }
         };
-    }, [autoConnect, reconnectionAttempts, reconnectionDelay]);
+    }, [autoConnect, reconnectionAttempts, reconnectionDelay, forceOwnConnection, shouldUseContextSocket, contextSocket?.socket, contextSocket?.isConnected]);
 
-    // Set up connection event handlers
     useEffect(() => {
-        if (!socket) return;
+        if (shouldUseContextSocket) {
+            setSocketState(contextSocket.socket);
+            setIsConnected(contextSocket.isConnected);
+        }
+    }, [contextSocket?.socket, contextSocket?.isConnected, shouldUseContextSocket]);
+
+    useEffect(() => {
+        const currentSocket = socketState;
+        if (!currentSocket) return;
 
         const onConnect = () => {
-            console.log('WebSocket connected');
+            console.log('useWebSocket: Event - connected', currentSocket.id);
             setIsConnected(true);
         };
 
         const onDisconnect = (reason: string) => {
-            console.log(`WebSocket disconnected: ${reason}`);
+            console.log(`useWebSocket: Event - disconnected: ${reason}`, currentSocket.id);
             setIsConnected(false);
         };
 
         const onError = (error: Error) => {
-            console.error('WebSocket error:', error);
+            console.error('useWebSocket: Event - error:', error, currentSocket.id);
         };
 
-        socket.on('connect', onConnect);
-        socket.on('disconnect', onDisconnect);
-        socket.on('error', onError);
+        currentSocket.on('connect', onConnect);
+        currentSocket.on('disconnect', onDisconnect);
+        currentSocket.on('error', onError);
+
+        if (shouldUseContextSocket && contextSocket.socket?.connected) {
+            setIsConnected(true);
+        } else if (!shouldUseContextSocket && ownSocketRef.current?.connected) {
+            setIsConnected(true);
+        }
 
         return () => {
-            socket.off('connect', onConnect);
-            socket.off('disconnect', onDisconnect);
-            socket.off('error', onError);
+            currentSocket.off('connect', onConnect);
+            currentSocket.off('disconnect', onDisconnect);
+            currentSocket.off('error', onError);
         };
-    }, [socket]);
+    }, [socketState, shouldUseContextSocket, contextSocket.socket]);
 
-    // Set up event listeners for specified events
     useEffect(() => {
-        if (!socket || !events.length) return;
+        const currentSocket = socketState;
+        if (!currentSocket || !events.length) return;
 
         const handleEvent = (event: string) => (data: any) => {
             setLastMessage({ event, data });
-
-            // Call all registered callbacks for this event
             const callbacks = callbacksRef.current.get(event);
             if (callbacks) {
                 callbacks.forEach(callback => {
@@ -104,21 +130,24 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRes
             }
         };
 
-        // Set up listeners for all events
         events.forEach(event => {
-            socket.on(event, handleEvent(event));
+            currentSocket.on(event, handleEvent(event));
         });
 
         return () => {
-            // Clean up listeners
             events.forEach(event => {
-                socket.off(event, handleEvent(event));
+                currentSocket.off(event, handleEvent(event));
             });
         };
-    }, [socket, events]);
+    }, [socketState, events]);
 
-    // Subscribe to an event with a callback
     const subscribe = useCallback((event: string, callback: (data: any) => void) => {
+        const currentSocket = socketState;
+        if (!currentSocket) {
+            console.warn("useWebSocket: Cannot subscribe, socket not available");
+            return () => { };
+        }
+
         if (!callbacksRef.current.has(event)) {
             callbacksRef.current.set(event, new Set());
         }
@@ -126,62 +155,63 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRes
         const callbacks = callbacksRef.current.get(event)!;
         callbacks.add(callback);
 
-        // Add socket listener if this is the first callback for this event
-        if (socket && callbacks.size === 1) {
-            const handler = (data: any) => {
-                setLastMessage({ event, data });
-                callbacks.forEach(cb => {
-                    try {
-                        cb(data);
-                    } catch (error) {
-                        console.error(`Error in WebSocket callback for event ${event}:`, error);
-                    }
-                });
-            };
+        const handler = (data: any) => {
+            callbacks.forEach(cb => {
+                try {
+                    cb(data);
+                } catch (error) {
+                    console.error(`Error in WebSocket callback for event ${event}:`, error);
+                }
+            });
+        };
 
-            socket.on(event, handler);
+        if (!events.includes(event)) {
+            currentSocket.on(event, handler);
         }
 
-        // Return unsubscribe function
         return () => {
             const callbacks = callbacksRef.current.get(event);
             if (callbacks) {
                 callbacks.delete(callback);
-
-                // Remove socket listener if no more callbacks for this event
-                if (callbacks.size === 0 && socket) {
-                    socket.off(event);
+                if (callbacks.size === 0) {
+                    if (!events.includes(event)) {
+                        currentSocket.off(event, handler);
+                    }
                     callbacksRef.current.delete(event);
                 }
             }
         };
-    }, [socket]);
+    }, [socketState, events]);
 
-    // Manually connect to socket
     const connect = useCallback(() => {
-        if (socket) {
-            socket.connect();
+        if (!shouldUseContextSocket && ownSocketRef.current) {
+            console.log('useWebSocket: Manually connecting own socket');
+            ownSocketRef.current.connect();
+        } else if (shouldUseContextSocket) {
+            console.warn('useWebSocket: Connect was called, but using context socket. Connection is managed by SocketProvider.');
         }
-    }, [socket]);
+    }, [shouldUseContextSocket]);
 
-    // Manually disconnect from socket
     const disconnect = useCallback(() => {
-        if (socket) {
-            socket.disconnect();
+        if (!shouldUseContextSocket && ownSocketRef.current) {
+            console.log('useWebSocket: Manually disconnecting own socket');
+            ownSocketRef.current.disconnect();
+        } else if (shouldUseContextSocket) {
+            console.warn('useWebSocket: Disconnect was called, but using context socket. Disconnection is managed by SocketProvider.');
         }
-    }, [socket]);
+    }, [shouldUseContextSocket]);
 
-    // Emit an event
     const emit = useCallback((event: string, data: any) => {
-        if (socket && isConnected) {
-            socket.emit(event, data);
+        const currentSocket = socketState;
+        if (currentSocket && isConnected) {
+            currentSocket.emit(event, data);
         } else {
-            console.warn('Cannot emit event: socket is not connected');
+            console.warn('Cannot emit event: socket is not connected or not available');
         }
-    }, [socket, isConnected]);
+    }, [socketState, isConnected]);
 
     return {
-        socket,
+        socket: socketState,
         isConnected,
         lastMessage,
         connect,
@@ -191,112 +221,121 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRes
     };
 }
 
-// Convenience hook for dashboard updates
 export function useDashboardUpdates(callback: (data: any) => void) {
-    const { subscribe } = useWebSocket({
-        events: [WEBSOCKET_EVENTS.DASHBOARD_UPDATE],
+    const { subscribe, isConnected, socket } = useWebSocket({
     });
 
     useEffect(() => {
-        const unsubscribe = subscribe(WEBSOCKET_EVENTS.DASHBOARD_UPDATE, callback);
+        if (!isConnected || !socket) return;
+        const handler = (eventData: any) => {
+            callback({ type: WEBSOCKET_EVENTS.DASHBOARD_UPDATE, ...eventData });
+        };
+        const unsubscribe = subscribe(WEBSOCKET_EVENTS.DASHBOARD_UPDATE, handler);
         return unsubscribe;
-    }, [subscribe, callback]);
+    }, [subscribe, callback, isConnected, socket]);
 }
 
-// Convenience hook for inventory updates
 export function useInventoryUpdates(callback: (data: any) => void) {
-    const { subscribe } = useWebSocket({
-        events: [
+    const { subscribe, isConnected, socket } = useWebSocket({
+    });
+
+    useEffect(() => {
+        if (!isConnected || !socket) {
+            console.log('useInventoryUpdates: Not connected or socket not available, skipping subscription setup.');
+            return;
+        }
+        console.log('useInventoryUpdates: Setting up subscriptions...');
+
+        const eventTypes = [
             WEBSOCKET_EVENTS.INVENTORY_UPDATE,
             WEBSOCKET_EVENTS.INVENTORY_ITEM_UPDATE,
             WEBSOCKET_EVENTS.INVENTORY_ITEM_CREATE,
             WEBSOCKET_EVENTS.INVENTORY_ITEM_DELETE,
-        ],
-    });
-
-    useEffect(() => {
-        const unsubscribes = [
-            subscribe(WEBSOCKET_EVENTS.INVENTORY_UPDATE, callback),
-            subscribe(WEBSOCKET_EVENTS.INVENTORY_ITEM_UPDATE, callback),
-            subscribe(WEBSOCKET_EVENTS.INVENTORY_ITEM_CREATE, callback),
-            subscribe(WEBSOCKET_EVENTS.INVENTORY_ITEM_DELETE, callback),
+            WEBSOCKET_EVENTS.INVENTORY_LEVEL_UPDATED,
         ];
 
+        const unsubscribes = eventTypes.map(eventType => {
+            const handler = (eventData: any) => {
+                console.log(`useInventoryUpdates: Received event ${eventType}`, eventData);
+                callback({ type: eventType, ...eventData });
+            };
+            return subscribe(eventType, handler);
+        });
+
         return () => {
+            console.log('useInventoryUpdates: Cleaning up subscriptions...');
             unsubscribes.forEach(unsubscribe => unsubscribe());
         };
-    }, [subscribe, callback]);
+    }, [subscribe, callback, isConnected, socket]);
 }
 
-// Convenience hook for invoice updates
 export function useInvoiceUpdates(callback: (data: any) => void) {
-    const { subscribe } = useWebSocket({
-        events: [
+    const { subscribe, isConnected, socket } = useWebSocket({});
+
+    useEffect(() => {
+        if (!isConnected || !socket) return;
+        const eventTypes = [
             WEBSOCKET_EVENTS.INVOICE_UPDATE,
             WEBSOCKET_EVENTS.INVOICE_CREATE,
             WEBSOCKET_EVENTS.INVOICE_STATUS_UPDATE,
             WEBSOCKET_EVENTS.INVOICE_DELETE,
-        ],
-    });
-
-    useEffect(() => {
-        const unsubscribes = [
-            subscribe(WEBSOCKET_EVENTS.INVOICE_UPDATE, callback),
-            subscribe(WEBSOCKET_EVENTS.INVOICE_CREATE, callback),
-            subscribe(WEBSOCKET_EVENTS.INVOICE_STATUS_UPDATE, callback),
-            subscribe(WEBSOCKET_EVENTS.INVOICE_DELETE, callback),
         ];
-
+        const unsubscribes = eventTypes.map(eventType => {
+            const handler = (eventData: any) => {
+                callback({ type: eventType, ...eventData });
+            };
+            return subscribe(eventType, handler);
+        });
         return () => {
             unsubscribes.forEach(unsubscribe => unsubscribe());
         };
-    }, [subscribe, callback]);
+    }, [subscribe, callback, isConnected, socket]);
 }
 
-// Convenience hook for customer updates
 export function useCustomerUpdates(callback: (data: any) => void) {
-    const { subscribe } = useWebSocket({
-        events: [
+    const { subscribe, isConnected, socket } = useWebSocket({});
+
+    useEffect(() => {
+        if (!isConnected || !socket) return;
+        const eventTypes = [
             WEBSOCKET_EVENTS.CUSTOMER_UPDATE,
             WEBSOCKET_EVENTS.CUSTOMER_CREATE,
             WEBSOCKET_EVENTS.CUSTOMER_DELETE,
-        ],
-    });
-
-    useEffect(() => {
-        const unsubscribes = [
-            subscribe(WEBSOCKET_EVENTS.CUSTOMER_UPDATE, callback),
-            subscribe(WEBSOCKET_EVENTS.CUSTOMER_CREATE, callback),
-            subscribe(WEBSOCKET_EVENTS.CUSTOMER_DELETE, callback),
         ];
-
+        const unsubscribes = eventTypes.map(eventType => {
+            const handler = (eventData: any) => {
+                callback({ type: eventType, ...eventData });
+            };
+            return subscribe(eventType, handler);
+        });
         return () => {
             unsubscribes.forEach(unsubscribe => unsubscribe());
         };
-    }, [subscribe, callback]);
+    }, [subscribe, callback, isConnected, socket]);
 }
 
-// Convenience hook for purchase updates
 export function usePurchaseUpdates(callback: (data: any) => void) {
-    const { subscribe } = useWebSocket({
-        events: [
+    const { subscribe, isConnected, socket } = useWebSocket({});
+
+    useEffect(() => {
+        if (!isConnected || !socket) return;
+        const eventTypes = [
             WEBSOCKET_EVENTS.PURCHASE_UPDATE,
             WEBSOCKET_EVENTS.PURCHASE_CREATE,
             WEBSOCKET_EVENTS.PURCHASE_STATUS_UPDATE,
             WEBSOCKET_EVENTS.PURCHASE_DELETE,
-        ],
-    });
-
-    useEffect(() => {
-        const unsubscribes = [
-            subscribe(WEBSOCKET_EVENTS.PURCHASE_UPDATE, callback),
-            subscribe(WEBSOCKET_EVENTS.PURCHASE_CREATE, callback),
-            subscribe(WEBSOCKET_EVENTS.PURCHASE_STATUS_UPDATE, callback),
-            subscribe(WEBSOCKET_EVENTS.PURCHASE_DELETE, callback),
+            WEBSOCKET_EVENTS.PURCHASE_INVOICE_CREATED,
+            WEBSOCKET_EVENTS.PURCHASE_INVOICE_UPDATED,
+            WEBSOCKET_EVENTS.PURCHASE_INVOICE_DELETED
         ];
-
+        const unsubscribes = eventTypes.map(eventType => {
+            const handler = (eventData: any) => {
+                callback({ type: eventType, ...eventData });
+            };
+            return subscribe(eventType, handler);
+        });
         return () => {
             unsubscribes.forEach(unsubscribe => unsubscribe());
         };
-    }, [subscribe, callback]);
+    }, [subscribe, callback, isConnected, socket]);
 } 

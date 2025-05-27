@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
 
 // GET /api/purchases - Get all purchase invoices
 export async function GET(request: NextRequest) {
@@ -154,6 +155,8 @@ export async function POST(request: NextRequest) {
                     data: invoiceData
                 });
 
+                const inventoryUpdates: Array<{ productId: number, shopId: number, newQuantity: number }> = [];
+
                 // Create the purchase invoice items and update inventory
                 if (items && Array.isArray(items)) {
                     for (let i = 0; i < items.length; i++) {
@@ -221,21 +224,24 @@ export async function POST(request: NextRequest) {
                                 });
 
                                 // Update or create inventory
+                                let finalQuantity = 0;
                                 if (existingInventory) {
+                                    finalQuantity = existingInventory.quantity + qty;
                                     await tx.inventoryItem.update({
                                         where: { id: existingInventory.id },
-                                        data: { quantity: existingInventory.quantity + qty /* lastStockUpdate: new Date() */ }
+                                        data: { quantity: finalQuantity }
                                     });
                                 } else {
+                                    finalQuantity = qty;
                                     await tx.inventoryItem.create({
                                         data: {
                                             productId: parseInt(item.productId),
                                             shopId: shopId,
-                                            quantity: qty,
-                                            // lastStockUpdate: new Date() // Also consider if needed for create
+                                            quantity: finalQuantity,
                                         }
                                     });
                                 }
+                                inventoryUpdates.push({ productId: parseInt(item.productId), shopId, newQuantity: finalQuantity });
                             }
                         } else if (body.defaultShopId) { // Distribute all to a default shop if specified
                             const shopId = parseInt(body.defaultShopId as string);
@@ -248,20 +254,22 @@ export async function POST(request: NextRequest) {
                                 }
                             });
                             if (existingInventory) {
+                                finalQuantity = existingInventory.quantity + qty;
                                 await tx.inventoryItem.update({
                                     where: { id: existingInventory.id },
-                                    data: { quantity: existingInventory.quantity + qty /* lastStockUpdate: new Date() */ }
+                                    data: { quantity: finalQuantity }
                                 });
                             } else {
+                                finalQuantity = qty;
                                 await tx.inventoryItem.create({
                                     data: {
                                         productId: parseInt(item.productId),
                                         shopId: shopId,
-                                        quantity: qty,
-                                        // lastStockUpdate: new Date() // Also consider if needed for create
+                                        quantity: finalQuantity,
                                     }
                                 });
                             }
+                            inventoryUpdates.push({ productId: parseInt(item.productId), shopId, newQuantity: finalQuantity });
                         } else {
                             // Fallback: if no distribution and no default shopId, what to do?
                             // Option: Don't update inventory, or add to a predefined main/default shop (e.g. shopId 1)
@@ -277,24 +285,26 @@ export async function POST(request: NextRequest) {
                                     }
                                 });
                                 if (existingInventory) {
+                                    finalQuantity = existingInventory.quantity + qty;
                                     await tx.inventoryItem.update({
                                         where: { id: existingInventory.id },
-                                        data: { quantity: existingInventory.quantity + qty /* lastStockUpdate: new Date() */ }
+                                        data: { quantity: finalQuantity }
                                     });
                                 } else {
                                     // Check if shopId 1 exists before creating. This is still very basic.
                                     const shopOneExists = await tx.shop.findUnique({ where: { id: defaultShopIdFallback } });
                                     if (shopOneExists) {
+                                        finalQuantity = qty;
                                         await tx.inventoryItem.create({
                                             data: {
                                                 productId: parseInt(item.productId),
                                                 shopId: defaultShopIdFallback,
-                                                quantity: qty,
-                                                // lastStockUpdate: new Date() // Also consider if needed for create
+                                                quantity: finalQuantity,
                                             }
                                         });
                                     }
                                 }
+                                inventoryUpdates.push({ productId: parseInt(item.productId), shopId: defaultShopIdFallback, newQuantity: finalQuantity });
                             } catch (e) {
                                 console.warn(`Could not update inventory for product ${item.productId} in fallback shop ${defaultShopIdFallback}:`, e)
                             }
@@ -314,16 +324,43 @@ export async function POST(request: NextRequest) {
                     });
                 }
 
-                return createdInvoice;
+                // Return the created invoice along with inventory updates for event emission
+                return { createdInvoice, inventoryUpdates };
             },
             { timeout: 30000 }
         );
 
-        return NextResponse.json(purchase, { status: 201 });
+        // Emit WebSocket events after successful transaction
+        const io = getSocketIO();
+        if (io && purchase) {
+            const fullPurchaseInvoice = await prisma.purchaseInvoice.findUnique({
+                where: { id: purchase.createdInvoice.id },
+                include: { supplier: true, items: { include: { product: true } } }
+            });
+            io.emit(WEBSOCKET_EVENTS.PURCHASE_INVOICE_CREATED, fullPurchaseInvoice);
+
+            // Emit inventory level updates
+            if (purchase.inventoryUpdates && purchase.inventoryUpdates.length > 0) {
+                purchase.inventoryUpdates.forEach(update => {
+                    io.emit(WEBSOCKET_EVENTS.INVENTORY_LEVEL_UPDATED, {
+                        productId: update.productId,
+                        shopId: update.shopId,
+                        // You might want to send the absolute new quantity or the change
+                        // Sending absolute new quantity is often simpler for client to update state
+                        newQuantity: update.newQuantity, // Assuming this is the final new quantity
+                        source: 'purchase_creation'
+                    });
+                });
+            }
+            console.log('Emitted PURCHASE_INVOICE_CREATED and INVENTORY_LEVEL_UPDATED events');
+        }
+
+        return NextResponse.json(purchase.createdInvoice, { status: 201 });
     } catch (error) {
         console.error('Error creating purchase invoice:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         return NextResponse.json(
-            { error: 'Failed to create purchase invoice', details: error instanceof Error ? error.message : String(error) },
+            { error: 'Failed to create purchase invoice', details: errorMessage },
             { status: 500 }
         );
     }

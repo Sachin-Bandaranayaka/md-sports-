@@ -163,20 +163,19 @@ export const getUserFromDecodedPayload = async (payload: TokenPayload | null) =>
 
     try {
         console.log('Looking up user with ID:', payload.sub);
-        // Fetch user, but role and permissions might already be in payload
-        // Decide if a DB call is always needed, e.g., to check isActive status
+        console.time('prisma.user.findFirst for auth'); // Start timer
         const user = await prisma.user.findFirst({
             where: {
                 id: Number(payload.sub),
                 isActive: true
             },
-            // Conditionally include role and permissions if not in payload or if refresh is needed
             include: {
                 role: {
-                    select: { name: true } // Only select role name, permissions are in token
+                    select: { name: true }
                 }
             }
         });
+        console.timeEnd('prisma.user.findFirst for auth'); // End timer
 
         if (!user) {
             console.error('User not found for ID:', payload.sub);
@@ -184,11 +183,10 @@ export const getUserFromDecodedPayload = async (payload: TokenPayload | null) =>
         }
 
         console.log('User found:', user.id, user.name);
-        // Combine user data from DB with permissions from token payload
         return {
             ...user,
-            roleName: user.role.name, // ensure roleName is added
-            permissions: payload.permissions || [] // Use permissions from token
+            roleName: user.role.name,
+            permissions: payload.permissions || []
         };
     } catch (error) {
         console.error('Error getting user from decoded payload:', error);
@@ -202,6 +200,5 @@ export const getUserFromDecodedPayload = async (payload: TokenPayload | null) =>
  */
 export const getUserFromToken = async (token: string) => {
     const payload = verifyToken(token);
-    // console.log('Token payload in getUserFromToken:', payload); // Already logged in verifyToken or called function
     return getUserFromDecodedPayload(payload);
 }; 

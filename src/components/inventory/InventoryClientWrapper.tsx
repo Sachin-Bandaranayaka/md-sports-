@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Search, X, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { authDelete } from '@/utils/api';
 import AddInventoryModal from '@/components/inventory/AddInventoryModal';
 import { useInventoryUpdates } from '@/hooks/useWebSocket';
+import { WEBSOCKET_EVENTS } from '@/lib/websocket';
 
 // Define proper types for our data
 interface BranchStock {
@@ -93,44 +94,81 @@ export default function InventoryClientWrapper({
     const [totalItems, setTotalItems] = useState(initialPagination.total);
     const [itemsPerPage, setItemsPerPage] = useState(initialPagination.limit);
 
-    // Subscribe to inventory updates via WebSocket
-    useInventoryUpdates((data) => {
-        console.log('Received inventory update via WebSocket:', data);
+    // Memoized callback for WebSocket updates
+    const handleInventoryUpdate = useCallback((eventData: any) => {
+        console.log('Received event via useInventoryUpdates (memoized):', eventData);
+        setIsWebSocketUpdate(true); // Mark that an update came from WebSocket
 
-        if (data.type === 'full_update' && data.items) {
-            // Full inventory update
-            setInventoryItems(data.items);
-            if (data.pagination) {
-                setTotalPages(data.pagination.totalPages);
-                setTotalItems(data.pagination.total);
+        const { type, ...payload } = eventData;
+
+        if (type === WEBSOCKET_EVENTS.INVENTORY_UPDATE && payload.items) {
+            setInventoryItems(payload.items);
+            if (payload.pagination) {
+                setTotalPages(payload.pagination.totalPages);
+                setTotalItems(payload.pagination.total);
             }
-            setIsWebSocketUpdate(true);
-        } else if (data.type === 'item_update' && data.item) {
-            // Single item update
+        } else if (type === WEBSOCKET_EVENTS.INVENTORY_ITEM_UPDATE && payload.item) {
             setInventoryItems(prev =>
-                prev.map(item => item.id === data.item.id ? data.item : item)
+                prev.map(item => item.id === payload.item.id ? payload.item : item)
             );
-            setIsWebSocketUpdate(true);
-        } else if (data.type === 'item_create' && data.item) {
-            // New item created
-            if (currentPage === 1) { // Only add to first page
-                setInventoryItems(prev => [data.item, ...prev.slice(0, itemsPerPage - 1)]);
-                setTotalItems(prev => prev + 1);
-                setTotalPages(Math.ceil((totalItems + 1) / itemsPerPage));
-            } else {
-                // Just update the counts
-                setTotalItems(prev => prev + 1);
-                setTotalPages(Math.ceil((totalItems + 1) / itemsPerPage));
-            }
-            setIsWebSocketUpdate(true);
-        } else if (data.type === 'item_delete' && data.itemId) {
-            // Item deleted
-            setInventoryItems(prev => prev.filter(item => item.id !== data.itemId));
+        } else if (type === WEBSOCKET_EVENTS.INVENTORY_ITEM_CREATE && payload.item) {
+            setInventoryItems(prevItems => {
+                // Add to the beginning if on the first page and not exceeding itemsPerPage
+                const newItems = [payload.item, ...prevItems];
+                if (currentPage === 1) {
+                    return newItems.slice(0, itemsPerPage);
+                }
+                return prevItems; // If not on page 1, data will be fetched on navigation
+            });
+            setTotalItems(prev => prev + 1);
+            // Recalculate totalPages based on new totalItems and itemsPerPage
+            setTotalPages(Math.ceil((totalItems + 1) / itemsPerPage));
+
+        } else if (type === WEBSOCKET_EVENTS.INVENTORY_ITEM_DELETE && payload.itemId) {
+            setInventoryItems(prev => prev.filter(item => item.id !== payload.itemId));
             setTotalItems(prev => prev - 1);
             setTotalPages(Math.ceil((totalItems - 1) / itemsPerPage));
-            setIsWebSocketUpdate(true);
+        } else if (type === WEBSOCKET_EVENTS.INVENTORY_LEVEL_UPDATED && payload.productId) {
+            console.log('Handling INVENTORY_LEVEL_UPDATED (memoized):', payload);
+            setInventoryItems(prevItems => {
+                return prevItems.map(item => {
+                    if (item.id === payload.productId) {
+                        let newTotalStock = item.stock;
+                        let updatedBranchStock = [...item.branchStock]; // Create a new array
+
+                        if (payload.shopId !== undefined && payload.newQuantity !== undefined) {
+                            const branchIndex = updatedBranchStock.findIndex(bs => bs.shopId === payload.shopId);
+                            if (branchIndex !== -1) {
+                                updatedBranchStock[branchIndex] = { ...updatedBranchStock[branchIndex], quantity: payload.newQuantity };
+                            } else {
+                                console.warn(`Shop ID ${payload.shopId} not found in branchStock for product ${payload.productId}. Adding with new quantity.`);
+                                updatedBranchStock.push({ shopId: payload.shopId, shopName: `Shop ${payload.shopId}`, quantity: payload.newQuantity });
+                            }
+                            newTotalStock = updatedBranchStock.reduce((sum, bs) => sum + bs.quantity, 0);
+                        } else if (payload.newTotalStock !== undefined) {
+                            newTotalStock = payload.newTotalStock;
+                            // Potentially adjust branchStock if needed, or assume it's implicitly handled
+                        } else {
+                            console.warn('INVENTORY_LEVEL_UPDATED event missing shopId/newQuantity or newTotalStock.', payload);
+                        }
+
+                        return {
+                            ...item,
+                            branchStock: updatedBranchStock,
+                            stock: newTotalStock,
+                            status: newTotalStock > 0 ? (newTotalStock < 10 ? 'Low Stock' : 'In Stock') : 'Out of Stock'
+                        };
+                    }
+                    return item;
+                });
+            });
+        } else {
+            console.log('Received unhandled WebSocket event type or payload (memoized):', type, payload);
         }
-    });
+    }, [currentPage, itemsPerPage, totalItems]); // Added dependencies for useCallback
+
+    // Subscribe to inventory updates via WebSocket
+    useInventoryUpdates(handleInventoryUpdate);
 
     // Effect to synchronize state with props when they change (but not for WebSocket updates)
     useEffect(() => {
@@ -145,9 +183,7 @@ export default function InventoryClientWrapper({
             setCategoryFilter(initialCategoryFilter);
             setStatusFilter(initialStatusFilter);
         }
-
-        // Reset the WebSocket update flag
-        setIsWebSocketUpdate(false);
+        setIsWebSocketUpdate(false); // Reset flag after processing or initial load
     }, [
         initialInventoryItems,
         initialCategories,
@@ -414,8 +450,12 @@ export default function InventoryClientWrapper({
                                         <td className="px-6 py-4">{item.name}</td>
                                         <td className="px-6 py-4">{item.category}</td>
                                         <td className="px-6 py-4">{item.stock}</td>
-                                        <td className="px-6 py-4">Rs. {item.retailPrice.toFixed(2)}</td>
-                                        <td className="px-6 py-4">Rs. {item.weightedAverageCost.toFixed(2)}</td>
+                                        <td className="px-6 py-4">
+                                            Rs. {typeof item.retailPrice === 'number' ? item.retailPrice.toFixed(2) : '0.00'}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            Rs. {typeof item.weightedAverageCost === 'number' ? item.weightedAverageCost.toFixed(2) : '0.00'}
+                                        </td>
                                         <td className="px-6 py-4">
                                             <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(item.status)}`}>
                                                 {item.status}

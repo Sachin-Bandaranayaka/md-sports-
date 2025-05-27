@@ -30,6 +30,21 @@ export const WEBSOCKET_EVENTS = {
     PURCHASE_CREATE: 'purchase:create',
     PURCHASE_STATUS_UPDATE: 'purchase:status:update',
     PURCHASE_DELETE: 'purchase:delete',
+
+    // Real-time User Activity (Example)
+    USER_ACTIVITY: 'user:activity',
+
+    // System Notifications (Example)
+    SYSTEM_NOTIFICATION: 'system:notification',
+
+    // Purchase Invoice Events (NEW)
+    PURCHASE_INVOICE_CREATED: 'purchase:invoice:created',
+    PURCHASE_INVOICE_UPDATED: 'purchase:invoice:updated',
+    PURCHASE_INVOICE_DELETED: 'purchase:invoice:deleted',
+
+    // Generic Inventory Level Update (NEW)
+    // Payload should ideally contain { productId, shopId, newQuantity } or similar
+    INVENTORY_LEVEL_UPDATED: 'inventory:level:updated',
 };
 
 interface SocketServer extends HTTPServer {

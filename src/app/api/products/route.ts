@@ -79,6 +79,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: Request) {
     try {
         const productData = await request.json();
+        console.log('Received productData:', productData);
+        console.log('productData.basePrice type:', typeof productData.basePrice);
+        console.log('productData.basePrice value:', productData.basePrice);
+
+        const newWeightedAverageCost = productData.basePrice || 0;
+        console.log('Calculated newWeightedAverageCost:', newWeightedAverageCost);
 
         const product = await safeQuery(
             async () => {
@@ -88,7 +94,7 @@ export async function POST(request: Request) {
                         sku: productData.sku,
                         barcode: productData.barcode || null,
                         description: productData.description || null,
-                        weightedAverageCost: productData.basePrice || 0,
+                        weightedAverageCost: newWeightedAverageCost,
                         price: productData.retailPrice || 0,
                         categoryId: productData.categoryId ? parseInt(productData.categoryId) : null,
                     }
@@ -101,6 +107,8 @@ export async function POST(request: Request) {
         if (!product) {
             throw new Error('Product creation failed');
         }
+
+        console.log('Product created successfully with WAC:', product.weightedAverageCost);
 
         return NextResponse.json({
             success: true,

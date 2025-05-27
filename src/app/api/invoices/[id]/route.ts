@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { smsService } from '@/services/smsService';
+import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
 
 export async function GET(
     request: Request,
@@ -74,6 +75,8 @@ export async function PUT(
             invoiceData.items = [];
         }
 
+        const inventoryUpdatesForEvent: Array<{ productId: number, shopId?: number, newQuantity?: number, oldQuantity?: number, quantityChange: number }> = [];
+
         // Update invoice with transaction to handle items
         const updatedInvoice = await prisma.$transaction(
             async (tx) => {
@@ -121,35 +124,54 @@ export async function PUT(
 
                         console.log(`Product ID ${productId}: Old=${oldQuantity}, New=${newQuantity}, Change=${quantityChange}`);
 
-                        if (quantityChange > 0) { // Deduct additional items from inventory
-                            const inventoryItem = await tx.inventoryItem.findFirst({
-                                where: { productId }
-                            });
+                        if (quantityChange !== 0) {
+                            // Attempt to find specific shop inventory items for this product
+                            // This is an important part for emitting granular shop-specific events.
+                            // The current logic uses updateMany by productId, which is not shop-specific.
+                            // If we want shop-specific events, this part needs to be more intelligent
+                            // to determine which shops are affected by quantityChange.
 
-                            // Skip inventory check if we can't find an inventory item
-                            // This allows editing quantities even if inventory tracking isn't fully set up
-                            if (inventoryItem && inventoryItem.quantity < quantityChange) {
-                                const product = await tx.product.findUnique({ where: { id: productId } });
-                                console.warn(`Low stock warning for product: ${product?.name || 'Unknown Product'}. Required: ${quantityChange}, Available: ${inventoryItem?.quantity || 0}`);
-                                // Continue anyway instead of throwing an error
-                                // throw new Error(`Not enough stock for product: ${product?.name || 'Unknown Product'}. Required: ${quantityChange}, Available: ${inventoryItem?.quantity || 0}`);
+                            // For now, we'll record the change at the product level.
+                            // If a shopId can be determined (e.g. if invoice is tied to one shop, or items are from one shop)
+                            // then that shopId should be used.
+                            // Assuming for now sales invoices can pull from any shop or a primary shop for the product.
+
+                            let affectedShopId: number | undefined = undefined;
+                            // If invoiceData.shopId is available, it means the sale is tied to a specific shop
+                            // and inventory should ideally be deducted from this shop.
+                            // The existing logic does not seem to use invoiceData.shopId for inventory deduction.
+                            if (invoiceData.shopId) {
+                                affectedShopId = invoiceData.shopId;
                             }
 
-                            if (inventoryItem) {
-                                console.log(`Deducting ${quantityChange} from inventory for product ${productId}`);
-                                await tx.inventoryItem.updateMany({
-                                    where: { productId },
-                                    data: { quantity: { decrement: quantityChange } }
-                                });
-                            } else {
-                                console.log(`No inventory item found for product ${productId}, skipping inventory adjustment`);
-                            }
-                        } else if (quantityChange < 0) { // Add items back to inventory
-                            console.log(`Adding ${Math.abs(quantityChange)} to inventory for product ${productId}`);
-                            await tx.inventoryItem.updateMany({
-                                where: { productId },
-                                data: { quantity: { increment: Math.abs(quantityChange) } }
+                            // Log the intended change for the event payload
+                            // The actual new/old quantities per shop might be complex to get accurately here
+                            // without refactoring the inventory update logic itself.
+                            inventoryUpdatesForEvent.push({
+                                productId: productId as number,
+                                shopId: affectedShopId, // This might be undefined if not determinable here
+                                quantityChange: quantityChange,
+                                // newQuantity/oldQuantity for specific shop would need more info
                             });
+
+                            if (quantityChange > 0) { // Deduct (more items sold)
+                                // Current logic: tx.inventoryItem.updateMany({ where: { productId }, data: { quantity: { decrement: quantityChange } } });
+                                // This is not shop-specific. To make it shop-specific for event, we'd need to know *which* shop(s) had stock decremented.
+                                // If tied to invoiceData.shopId:
+                                if (affectedShopId) {
+                                    await tx.inventoryItem.updateMany({ where: { productId: productId as number, shopId: affectedShopId }, data: { quantity: { decrement: quantityChange } } });
+                                } else {
+                                    // Fallback to general decrement if no shop specified or if product can be from any shop
+                                    // This is where the original logic might have been:
+                                    await tx.inventoryItem.updateMany({ where: { productId: productId as number }, data: { quantity: { decrement: quantityChange } } });
+                                }
+                            } else { // Add back (fewer items sold or items removed)
+                                if (affectedShopId) {
+                                    await tx.inventoryItem.updateMany({ where: { productId: productId as number, shopId: affectedShopId }, data: { quantity: { increment: Math.abs(quantityChange) } } });
+                                } else {
+                                    await tx.inventoryItem.updateMany({ where: { productId: productId as number }, data: { quantity: { increment: Math.abs(quantityChange) } } });
+                                }
+                            }
                         } else {
                             console.log(`No inventory change needed for product ${productId}`);
                         }
@@ -167,7 +189,8 @@ export async function PUT(
                         // Add date fields directly to the update object
                         invoiceDate: invoiceData.invoiceDate ? new Date(invoiceData.invoiceDate) : undefined,
                         dueDate: invoiceData.dueDate ? new Date(invoiceData.dueDate) : undefined,
-                        notes: invoiceData.notes
+                        notes: invoiceData.notes,
+                        shopId: invoiceData.shopId // Ensure shopId is updated on the invoice itself
                     };
 
                     console.log('Updating invoice details:', { invoiceId, dataToUpdate });
@@ -250,27 +273,43 @@ export async function PUT(
             { timeout: 30000 }
         );
 
+        // Emit INVENTORY_LEVEL_UPDATED events
+        const io = getSocketIO();
+        if (io && inventoryUpdatesForEvent.length > 0) {
+            inventoryUpdatesForEvent.forEach(update => {
+                // If shopId is not defined here, the client needs to handle this as a general product update
+                io.emit(WEBSOCKET_EVENTS.INVENTORY_LEVEL_UPDATED, {
+                    productId: update.productId,
+                    shopId: update.shopId, // This may be undefined
+                    quantityChange: update.quantityChange, // Sending the delta
+                    // newQuantity/oldQuantity for specific shop is hard to get without full inventory query here
+                    source: 'sales_invoice_update'
+                });
+            });
+            console.log(`Emitted ${inventoryUpdatesForEvent.length} INVENTORY_LEVEL_UPDATED events for updated invoice ${invoiceId}`);
+        }
+
         // Send SMS notification if requested
-        if (sendSms) {
+        if (sendSms && updatedInvoice) {
             try {
                 await smsService.init();
                 if (smsService.isConfigured()) {
                     // Send SMS notification asynchronously
-                    smsService.sendInvoiceNotification(invoiceId)
+                    smsService.sendInvoiceUpdateNotification(updatedInvoice.id)
                         .then(result => {
                             if (result.status >= 200 && result.status < 300) {
-                                console.log('SMS notification sent successfully');
+                                console.log('SMS update notification sent successfully');
                             } else {
-                                console.warn('Failed to send SMS notification:', result.message);
+                                console.warn('Failed to send SMS update notification:', result.message);
                             }
                         })
                         .catch(error => {
-                            console.error('Error sending SMS notification:', error);
+                            console.error('Error sending SMS update notification:', error);
                         });
                 }
             } catch (smsError) {
                 // Log SMS error but don't fail the request
-                console.error('SMS notification error:', smsError);
+                console.error('SMS update notification error:', smsError);
             }
         }
 
@@ -298,73 +337,99 @@ export async function DELETE(
 ) {
     try {
         if (!params?.id || isNaN(Number(params.id))) {
-            return NextResponse.json(
-                { error: 'Invalid invoice ID' },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: 'Invalid invoice ID' }, { status: 400 });
         }
-
         const invoiceId = Number(params.id);
 
-        await prisma.$transaction(async (tx) => {
-            // 1. Get all items from the invoice
-            const invoiceItems = await tx.invoiceItem.findMany({
-                where: { invoiceId },
-                select: { productId: true, quantity: true }
+        const inventoryUpdatesForEvent: Array<{productId: number, shopId?: number, quantityChange: number}> = [];
+
+        // Use Prisma transaction to ensure atomicity
+        const deletedInvoiceResult = await prisma.$transaction(async (tx) => {
+            const invoiceToDelete = await tx.invoice.findUnique({
+                where: { id: invoiceId },
+                include: { items: true, customer: true } // Include items for inventory adjustment & customer for context
             });
 
-            // 2. For each item, update inventory
-            for (const item of invoiceItems) {
-                // Find an inventory item for the product.
-                // This assumes that if a product was sold, an inventory item for it must exist.
-                // If products can exist in multiple shops, this will add to the first one found.
-                // A more specific shopId might be needed if inventory is shop-specific for restocking.
-                const inventoryItem = await tx.inventoryItem.findFirst({
-                    where: { productId: item.productId }
-                });
+            if (!invoiceToDelete) {
+                throw new Error('Invoice not found for deletion');
+            }
 
-                if (inventoryItem) {
-                    await tx.inventoryItem.update({
-                        where: { id: inventoryItem.id },
+            // Adjust inventory for each item deleted from the invoice
+            if (invoiceToDelete.items && invoiceToDelete.items.length > 0) {
+                for (const item of invoiceToDelete.items) {
+                    // Add item quantity back to inventory
+                    // Similar to PUT, we need to determine the shopId if possible.
+                    // If the invoice had a shopId, we assume items are returned to that shop's inventory.
+                    let targetShopId: number | undefined = invoiceToDelete.shopId || undefined;
+                    
+                    // If no shopId on invoice, this becomes a general increment for the product.
+                    // For more precise shop-specific return, the original shop source of item would be needed.
+                    await tx.inventoryItem.updateMany({
+                        where: { 
+                            productId: item.productId,
+                            ...(targetShopId && { shopId: targetShopId }) // Conditionally add shopId to where clause
+                        },
                         data: { quantity: { increment: item.quantity } }
                     });
-                } else {
-                    // This case should ideally not happen if an invoice item was created.
-                    // Log an error or handle as per business logic (e.g., create a new inventory entry)
-                    console.error(`Inventory item not found for productId: ${item.productId} while trying to restock from deleted invoice ${invoiceId}.`);
-                    // Optionally, throw an error to rollback the transaction if this is critical
-                    // throw new Error(`Failed to restock: Inventory item not found for product ID ${item.productId}`);
+
+                    inventoryUpdatesForEvent.push({
+                        productId: item.productId,
+                        shopId: targetShopId, // May be undefined
+                        quantityChange: item.quantity, // Positive, as it's being added back
+                    });
                 }
             }
 
-            // 3. Delete related invoice items
-            await tx.invoiceItem.deleteMany({
-                where: { invoiceId }
-            });
-
-            // 4. Delete related payments
+            // Delete related payments first (if any)
             await tx.payment.deleteMany({
-                where: { invoiceId }
+                where: { invoiceId: invoiceId }
             });
 
-            // 5. Delete the invoice itself
+            // Delete invoice items
+            await tx.invoiceItem.deleteMany({
+                where: { invoiceId: invoiceId }
+            });
+
+            // Finally, delete the invoice itself
             await tx.invoice.delete({
                 where: { id: invoiceId }
             });
+
+            return { id: invoiceId, customerId: invoiceToDelete.customerId, invoiceNumber: invoiceToDelete.invoiceNumber }; // Return some info about the deleted invoice
         });
+
+        // Emit INVENTORY_LEVEL_UPDATED events
+        const io = getSocketIO();
+        if (io && inventoryUpdatesForEvent.length > 0) {
+            inventoryUpdatesForEvent.forEach(update => {
+                io.emit(WEBSOCKET_EVENTS.INVENTORY_LEVEL_UPDATED, {
+                    productId: update.productId,
+                    shopId: update.shopId, // May be undefined
+                    quantityChange: update.quantityChange, // Positive change (added back)
+                    source: 'sales_invoice_deletion' 
+                });
+            });
+            console.log(`Emitted ${inventoryUpdatesForEvent.length} INVENTORY_LEVEL_UPDATED events for deleted invoice ${invoiceId}`);
+        }
+        
+        // Also emit an INVOICE_DELETED event (if you have one defined and need it on client)
+        if (io && deletedInvoiceResult) {
+             io.emit(WEBSOCKET_EVENTS.INVOICE_DELETE, { id: deletedInvoiceResult.id }); // Assuming INVOICE_DELETE is defined
+             console.log(`Emitted INVOICE_DELETE event for invoice ${deletedInvoiceResult.id}`);
+        }
+
 
         return NextResponse.json({
             success: true,
-            message: 'Invoice deleted successfully and inventory restocked'
+            message: `Invoice ${deletedInvoiceResult?.invoiceNumber || invoiceId} deleted successfully`,
+            data: { id: deletedInvoiceResult?.id }
         });
+
     } catch (error) {
-        console.error('Error deleting invoice and restocking inventory:', error);
+        console.error('Error deleting invoice:', error);
+        const err = error as Error;
         return NextResponse.json(
-            {
-                success: false,
-                message: 'Error deleting invoice and restocking inventory',
-                error: error instanceof Error ? error.message : String(error)
-            },
+            { success: false, message: err.message || 'Error deleting invoice', error: err.stack }, 
             { status: 500 }
         );
     }
