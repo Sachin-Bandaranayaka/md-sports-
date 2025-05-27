@@ -1,190 +1,136 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 
-const ITEMS_PER_PAGE = 10;
-
-export async function GET(request: NextRequest) {
-    const searchParams = request.nextUrl.searchParams;
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || ITEMS_PER_PAGE.toString(), 10);
-    const search = searchParams.get('search') || '';
-    const dateFrom = searchParams.get('dateFrom') || '';
-    const dateTo = searchParams.get('dateTo') || '';
-    const sort = searchParams.get('sort') || 'createdAt';
-    const direction = searchParams.get('direction') || 'desc';
-
+// Get all receipts with pagination and optional filtering
+export async function GET(request: Request) {
     try {
-        // Build where clause based on search parameters
-        let whereClause: any = {};
+        const { searchParams } = new URL(request.url);
+        const page = Number(searchParams.get('page')) || 1;
+        const limit = Number(searchParams.get('limit')) || 10;
+        const search = searchParams.get('search') || '';
 
-        if (search) {
-            whereClause.OR = [
+        const skip = (page - 1) * limit;
+
+        // Build the where condition for search
+        const where = search ? {
+            OR: [
                 { receiptNumber: { contains: search, mode: 'insensitive' } },
-                { payment: { invoice: { invoiceNumber: { contains: search, mode: 'insensitive' } } } },
-                { payment: { customer: { name: { contains: search, mode: 'insensitive' } } } },
-            ];
-        }
+                { payment: { referenceNumber: { contains: search, mode: 'insensitive' } } },
+                { payment: { customer: { name: { contains: search, mode: 'insensitive' } } } }
+            ]
+        } : {};
 
-        // Add date filters
-        if (dateFrom || dateTo) {
-            whereClause.receiptDate = {};
-
-            if (dateFrom) {
-                whereClause.receiptDate.gte = new Date(dateFrom);
-            }
-
-            if (dateTo) {
-                // Set the time to end of day for the "to" date
-                const toDate = new Date(dateTo);
-                toDate.setHours(23, 59, 59, 999);
-                whereClause.receiptDate.lte = toDate;
-            }
-        }
-
-        // Determine sorting
-        let orderBy: any = {};
-
-        // Handle nested sorts
-        if (sort.includes('.')) {
-            const [parentField, childField] = sort.split('.');
-            orderBy[parentField] = { [childField]: direction };
-        } else {
-            orderBy[sort] = direction;
-        }
-
-        // Fetch receipts with pagination
+        // Get receipts with pagination
         const receipts = await prisma.receipt.findMany({
-            where: whereClause,
+            where,
             include: {
                 payment: {
                     include: {
-                        customer: {
-                            select: { name: true }
-                        },
-                        invoice: {
-                            select: { invoiceNumber: true }
-                        }
+                        customer: true,
+                        invoice: true
                     }
                 },
-                confirmedByUser: {
-                    select: { name: true }
-                }
+                confirmedByUser: true
             },
-            orderBy,
-            skip: (page - 1) * limit,
-            take: limit,
+            orderBy: { createdAt: 'desc' },
+            skip,
+            take: limit
         });
 
         // Get total count for pagination
-        const totalReceipts = await prisma.receipt.count({ where: whereClause });
+        const totalReceipts = await prisma.receipt.count({ where });
+        const totalPages = Math.ceil(totalReceipts / limit);
 
         return NextResponse.json({
             receipts,
-            totalPages: Math.ceil(totalReceipts / limit),
-            currentPage: page,
-            totalReceipts
+            pagination: {
+                totalReceipts,
+                totalPages,
+                currentPage: page,
+                perPage: limit
+            }
         });
     } catch (error) {
         console.error('Error fetching receipts:', error);
         return NextResponse.json(
-            {
-                success: false,
-                message: 'Error fetching receipts',
-                error: error instanceof Error ? error.message : String(error)
-            },
+            { error: 'Failed to fetch receipts' },
             { status: 500 }
         );
     }
 }
 
+// Create a new receipt
 export async function POST(request: Request) {
     try {
-        const session = await getServerSession(authOptions);
+        const receiptData = await request.json();
 
-        if (!session?.user) {
+        // Validate receipt data
+        if (!receiptData.paymentId) {
             return NextResponse.json(
-                { success: false, message: 'Unauthorized' },
-                { status: 401 }
-            );
-        }
-
-        const data = await request.json();
-
-        // Validate required fields
-        if (!data.paymentId || !data.receiptNumber || !data.receiptDate) {
-            return NextResponse.json(
-                { success: false, message: 'Missing required fields' },
+                { error: 'Payment ID is required' },
                 { status: 400 }
             );
         }
 
-        // Check if payment exists
-        const payment = await prisma.payment.findUnique({
-            where: { id: data.paymentId },
-            include: { invoice: true }
+        // Check if payment exists and doesn't already have a receipt
+        const existingPayment = await prisma.payment.findUnique({
+            where: { id: receiptData.paymentId },
+            include: { receipt: true }
         });
 
-        if (!payment) {
+        if (!existingPayment) {
             return NextResponse.json(
-                { success: false, message: 'Payment not found' },
+                { error: 'Payment not found' },
                 { status: 404 }
             );
         }
 
-        // Check if receipt number is unique
-        const existingReceipt = await prisma.receipt.findUnique({
-            where: { receiptNumber: data.receiptNumber }
-        });
-
-        if (existingReceipt) {
+        if (existingPayment.receipt) {
             return NextResponse.json(
-                { success: false, message: 'Receipt number already exists' },
-                { status: 400 }
+                { error: 'A receipt already exists for this payment' },
+                { status: 409 }
             );
         }
 
-        // Create receipt and update invoice status in a transaction
-        const receipt = await prisma.$transaction(async (tx) => {
-            // Create the receipt
-            const newReceipt = await tx.receipt.create({
-                data: {
-                    paymentId: data.paymentId,
-                    receiptNumber: data.receiptNumber,
-                    receiptDate: new Date(data.receiptDate),
-                    bankName: data.bankName || null,
-                    accountNumber: data.accountNumber || null,
-                    chequeNumber: data.chequeNumber || null,
-                    transactionId: data.transactionId || null,
-                    notes: data.notes || null,
-                    confirmedBy: session.user.id || null,
-                }
-            });
+        // Generate a unique receipt number
+        const receiptNumber = `REC-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-            // Update invoice status to Paid
-            await tx.invoice.update({
-                where: { id: payment.invoiceId },
-                data: { status: 'Paid' }
-            });
-
-            return newReceipt;
+        // Create receipt
+        const receipt = await prisma.receipt.create({
+            data: {
+                paymentId: receiptData.paymentId,
+                receiptNumber,
+                receiptDate: receiptData.receiptDate ? new Date(receiptData.receiptDate) : new Date(),
+                bankName: receiptData.bankName || null,
+                accountNumber: receiptData.accountNumber || null,
+                chequeNumber: receiptData.chequeNumber || null,
+                transactionId: receiptData.transactionId || null,
+                notes: receiptData.notes || null,
+                confirmedBy: receiptData.confirmedBy || null
+            },
+            include: {
+                payment: {
+                    include: {
+                        customer: true,
+                        invoice: true
+                    }
+                },
+                confirmedByUser: true
+            }
         });
 
-        return NextResponse.json({
-            success: true,
-            message: 'Receipt created successfully',
-            data: receipt
-        }, { status: 201 });
+        // Make sure the invoice is marked as paid
+        await prisma.invoice.update({
+            where: { id: existingPayment.invoiceId },
+            data: { status: 'Paid' }
+        });
+
+        return NextResponse.json(receipt, { status: 201 });
     } catch (error) {
         console.error('Error creating receipt:', error);
         return NextResponse.json(
-            {
-                success: false,
-                message: 'Error creating receipt',
-                error: error instanceof Error ? error.message : String(error)
-            },
+            { error: 'Failed to create receipt' },
             { status: 500 }
         );
     }
-} 
+}

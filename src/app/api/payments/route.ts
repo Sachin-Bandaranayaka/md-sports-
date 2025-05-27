@@ -38,7 +38,7 @@ export async function POST(request: Request) {
             }
         });
 
-        // Check if payment completes the invoice and update invoice status if needed
+        // Get the invoice information for reference
         const invoice = await prisma.invoice.findUnique({
             where: { id: paymentData.invoiceId },
             include: {
@@ -46,25 +46,9 @@ export async function POST(request: Request) {
             }
         });
 
-        if (invoice) {
-            // Calculate total paid amount
-            const totalPaid = invoice.payments.reduce((sum, p) => sum + p.amount, 0);
-
-            // If total paid equals or exceeds invoice total, mark as paid
-            if (totalPaid >= invoice.total) {
-                await prisma.invoice.update({
-                    where: { id: invoice.id },
-                    data: { status: 'Paid' }
-                });
-            }
-            // If partial payment made but still not fully paid
-            else if (totalPaid > 0 && invoice.status !== 'Paid' && invoice.status !== 'Pending') {
-                await prisma.invoice.update({
-                    where: { id: invoice.id },
-                    data: { status: 'Pending' }
-                });
-            }
-        }
+        // NOTE: We no longer automatically update the invoice status here
+        // The invoice status will only be updated when a receipt is created
+        // This ensures proper payment documentation before marking as paid
 
         return NextResponse.json(
             {

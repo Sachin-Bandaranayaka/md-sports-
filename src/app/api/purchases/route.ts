@@ -169,8 +169,8 @@ export async function POST(request: NextRequest) {
                                 purchaseInvoiceId: createdInvoice.id,
                                 productId: parseInt(item.productId),
                                 quantity: item.quantity,
-                                price: item.unitPrice || 0,
-                                total: (item.quantity * item.unitPrice) || 0
+                                price: item.price || 0,
+                                total: (item.quantity * item.price) || 0
                             }
                         });
 
@@ -188,7 +188,15 @@ export async function POST(request: NextRequest) {
                         const currentTotalQuantity = inventoryItems.reduce((sum, inv) => sum + inv.quantity, 0);
                         const newQuantity = item.quantity;
                         const currentCost = product?.weightedAverageCost || 0;
-                        const newCost = item.unitPrice;
+                        const newCost = item.price;
+
+                        // --- BEGIN DEBUG LOGS ---
+                        console.log(`[WAC_DEBUG] Product ID: ${item.productId}`);
+                        console.log(`[WAC_DEBUG] Current Total Quantity: ${currentTotalQuantity}, Type: ${typeof currentTotalQuantity}`);
+                        console.log(`[WAC_DEBUG] Current Cost (WAC from DB): ${currentCost}, Type: ${typeof currentCost}`);
+                        console.log(`[WAC_DEBUG] New Quantity (from invoice item): ${newQuantity}, Type: ${typeof newQuantity}`);
+                        console.log(`[WAC_DEBUG] New Cost (from invoice item): ${newCost}, Type: ${typeof newCost}`);
+                        // --- END DEBUG LOGS ---
 
                         // Calculate new weighted average cost
                         // (Current Quantity * Current WAC + New Quantity * New Cost) / (Current Quantity + New Quantity)
@@ -200,10 +208,14 @@ export async function POST(request: NextRequest) {
                                 (currentTotalQuantity + newQuantity);
                         }
 
+                        // --- BEGIN DEBUG LOGS ---
+                        console.log(`[WAC_DEBUG] Calculated newWeightedAverageCost (before guard): ${newWeightedAverageCost}, Type: ${typeof newWeightedAverageCost}`);
+                        // --- END DEBUG LOGS ---
+
                         // Update product with new weighted average cost
                         await tx.product.update({
                             where: { id: parseInt(item.productId) },
-                            data: { weightedAverageCost: newWeightedAverageCost }
+                            data: { weightedAverageCost: newWeightedAverageCost > 0 ? newWeightedAverageCost : 0 }
                         });
 
                         // Handle distribution across shops

@@ -103,29 +103,8 @@ export default function InvoiceClientWrapper({
         router.push(`/invoices?${params.toString()}`);
     };
 
-    const handleRecordPayment = async (invoiceId: string | number) => {
-        setLoading(true);
-        setError(null);
-        try {
-            const response = await fetch(`/api/invoices/${invoiceId}`,
-                {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: 'Paid' }),
-                }
-            );
-            if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.message || 'Failed to update invoice status');
-            }
-            // Trigger a refresh of server props by navigating to the current path
-            router.refresh();
-        } catch (err: any) {
-            console.error('Error recording payment:', err);
-            setError(err.message || 'Failed to record payment. Please try again.');
-        } finally {
-            setLoading(false);
-        }
+    const handleRecordPayment = (invoiceId: string | number) => {
+        router.push(`/payments/simple?invoiceId=${invoiceId}`);
     };
 
     const handleDeleteInvoice = async (invoiceId: string | number) => {

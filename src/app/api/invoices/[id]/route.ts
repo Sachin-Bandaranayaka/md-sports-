@@ -69,6 +69,33 @@ export async function PUT(
         console.log('Invoice update request data:', { invoiceId, ...requestData });
         const { sendSms, ...invoiceData } = requestData;
 
+        // Check if this is only a status update to "Paid"
+        // More specific check: make sure it only has the status field and it's being changed to 'Paid'
+        const isOnlyStatusUpdate =
+            Object.keys(invoiceData).length === 1 &&
+            invoiceData.status !== undefined &&
+            ['Paid', 'Pending'].includes(invoiceData.status);
+
+        // If it's only updating status, handle it without affecting inventory
+        if (isOnlyStatusUpdate) {
+            console.log(`Processing status-only update to ${invoiceData.status} for invoice ${invoiceId}`);
+            const updatedInvoice = await prisma.invoice.update({
+                where: { id: invoiceId },
+                data: { status: invoiceData.status },
+                include: {
+                    customer: true,
+                    items: {
+                        include: {
+                            product: true
+                        }
+                    },
+                    payments: true
+                }
+            });
+
+            return NextResponse.json(updatedInvoice);
+        }
+
         // Ensure invoiceData.items is an array, default to empty if not provided or not an array
         if (!Array.isArray(invoiceData.items)) {
             console.log('invoiceData.items was not an array, defaulting to [] for update.');
@@ -341,7 +368,7 @@ export async function DELETE(
         }
         const invoiceId = Number(params.id);
 
-        const inventoryUpdatesForEvent: Array<{productId: number, shopId?: number, quantityChange: number}> = [];
+        const inventoryUpdatesForEvent: Array<{ productId: number, shopId?: number, quantityChange: number }> = [];
 
         // Use Prisma transaction to ensure atomicity
         const deletedInvoiceResult = await prisma.$transaction(async (tx) => {
@@ -361,11 +388,11 @@ export async function DELETE(
                     // Similar to PUT, we need to determine the shopId if possible.
                     // If the invoice had a shopId, we assume items are returned to that shop's inventory.
                     let targetShopId: number | undefined = invoiceToDelete.shopId || undefined;
-                    
+
                     // If no shopId on invoice, this becomes a general increment for the product.
                     // For more precise shop-specific return, the original shop source of item would be needed.
                     await tx.inventoryItem.updateMany({
-                        where: { 
+                        where: {
                             productId: item.productId,
                             ...(targetShopId && { shopId: targetShopId }) // Conditionally add shopId to where clause
                         },
@@ -406,16 +433,16 @@ export async function DELETE(
                     productId: update.productId,
                     shopId: update.shopId, // May be undefined
                     quantityChange: update.quantityChange, // Positive change (added back)
-                    source: 'sales_invoice_deletion' 
+                    source: 'sales_invoice_deletion'
                 });
             });
             console.log(`Emitted ${inventoryUpdatesForEvent.length} INVENTORY_LEVEL_UPDATED events for deleted invoice ${invoiceId}`);
         }
-        
+
         // Also emit an INVOICE_DELETED event (if you have one defined and need it on client)
         if (io && deletedInvoiceResult) {
-             io.emit(WEBSOCKET_EVENTS.INVOICE_DELETE, { id: deletedInvoiceResult.id }); // Assuming INVOICE_DELETE is defined
-             console.log(`Emitted INVOICE_DELETE event for invoice ${deletedInvoiceResult.id}`);
+            io.emit(WEBSOCKET_EVENTS.INVOICE_DELETE, { id: deletedInvoiceResult.id }); // Assuming INVOICE_DELETE is defined
+            console.log(`Emitted INVOICE_DELETE event for invoice ${deletedInvoiceResult.id}`);
         }
 
 
@@ -428,8 +455,21 @@ export async function DELETE(
     } catch (error) {
         console.error('Error deleting invoice:', error);
         const err = error as Error;
+
+        // Check for foreign key constraint violation with receipts
+        if (err.message && err.message.includes('Receipt_paymentId_fkey')) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: 'Cannot delete invoice with associated receipts. Please delete the receipts first.',
+                    error: err.message
+                },
+                { status: 400 }
+            );
+        }
+
         return NextResponse.json(
-            { success: false, message: err.message || 'Error deleting invoice', error: err.stack }, 
+            { success: false, message: err.message || 'Error deleting invoice', error: err.stack },
             { status: 500 }
         );
     }

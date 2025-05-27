@@ -169,13 +169,19 @@ export default function InvoiceDetail() {
             });
 
             if (!response.ok) {
-                throw new Error(`Failed to delete invoice: ${response.statusText}`);
+                const errorData = await response.json();
+                // Check if the error is a foreign key constraint related to receipts
+                if (errorData.error && errorData.error.includes('Receipt_paymentId_fkey')) {
+                    throw new Error('This invoice has associated receipts. Please delete the receipts first before deleting this invoice.');
+                } else {
+                    throw new Error(`Failed to delete invoice: ${errorData.message || response.statusText}`);
+                }
             }
 
             router.push('/invoices');
         } catch (err) {
             console.error('Error deleting invoice:', err);
-            alert('Failed to delete invoice');
+            alert(err instanceof Error ? err.message : 'Failed to delete invoice');
         }
     };
 

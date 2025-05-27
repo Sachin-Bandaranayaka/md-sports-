@@ -52,6 +52,7 @@ const navItems: NavItem[] = [
     { icon: Store, href: '/shops', label: 'Shops', requiredPermission: 'inventory:view' },
     { icon: Users, href: '/customers', label: 'Customers', requiredPermission: 'sales:view' },
     { icon: FileText, href: '/invoices', label: 'Invoices', requiredPermission: 'sales:view' },
+    { icon: ReceiptIcon, href: '/receipts', label: 'Receipts' },
     { icon: WalletIcon, href: '/accounting', label: 'Accounting', requiredPermission: 'sales:manage' },
     { icon: BarChart2, href: '/reports', label: 'Reports', requiredPermission: 'reports:view' },
     { icon: Settings, href: '/settings', label: 'Settings', requiredPermission: 'settings:manage' },
