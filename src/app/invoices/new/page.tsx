@@ -593,18 +593,48 @@ export default function CreateInvoice() {
                                     <div className="md:col-span-3 relative">
                                         <input
                                             type="text"
+                                            id="productSearchInput"
                                             placeholder="Search for a product..."
                                             value={selectedProduct ? selectedProduct.name : productSearch}
                                             onChange={(e) => {
-                                                if (!selectedProduct) {
-                                                    setProductSearch(e.target.value);
-                                                    setShowProductDropdown(true);
+                                                const newSearchTerm = e.target.value;
+                                                if (selectedProduct && selectedProduct.name !== newSearchTerm) {
+                                                    setSelectedProduct(null);
+                                                    setProductStock(null);
                                                 }
+                                                setProductSearch(newSearchTerm);
+                                                setShowProductDropdown(true);
                                             }}
-                                            onFocus={() => setShowProductDropdown(true)}
-                                            className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
+                                            onFocus={() => {
+                                                setShowProductDropdown(true);
+                                            }}
+                                            className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900 pr-10"
                                         />
-                                        {showProductDropdown && !selectedProduct && (
+                                        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                                            {selectedProduct ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSelectedProduct(null);
+                                                        setProductStock(null);
+                                                        setProductSearch('');
+                                                        setShowProductDropdown(true);
+                                                    }}
+                                                    className="text-gray-400 hover:text-gray-500"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowProductDropdown(!showProductDropdown)}
+                                                    className="text-gray-400 hover:text-gray-500"
+                                                >
+                                                    {showProductDropdown ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                                </button>
+                                            )}
+                                        </div>
+                                        {showProductDropdown && (
                                             <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
                                                 {filteredProducts.length > 0 ? (
                                                     <ul className="py-1 text-sm text-gray-700">
