@@ -61,14 +61,14 @@ export async function GET(
                     }))
                 };
             },
-            getDefaultProduct(id),
-            `Failed to fetch product with ID ${id}`
+            getDefaultProduct(parseInt(params.id)),
+            `Failed to fetch product with ID ${params.id}`
         );
 
         if (!product) {
             return NextResponse.json({
                 success: false,
-                message: `Product with ID ${id} not found`
+                message: `Product with ID ${params.id} not found`
             }, { status: 404 });
         }
 
@@ -90,52 +90,66 @@ export async function PUT(
     { params }: { params: { id: string } }
 ) {
     try {
-        // Ensure params.id is properly awaited in Next.js 14+
         const id = parseInt(params.id);
-
         if (isNaN(id)) {
-            return NextResponse.json({
-                success: false,
-                message: 'Invalid product ID'
-            }, { status: 400 });
+            return NextResponse.json({ success: false, message: 'Invalid product ID' }, { status: 400 });
         }
 
         const productData = await req.json();
+        const userId = req.headers.get('x-user-id'); // Assuming you pass userId in headers
 
-        const updatedProduct = await safeQuery(
-            async () => {
-                // Check if product exists
-                const existingProduct = await prisma.product.findUnique({
-                    where: { id }
-                });
+        // Fetch existing product first to compare changes for audit log
+        const existingProduct = await prisma.product.findUnique({
+            where: { id }
+        });
 
-                if (!existingProduct) {
-                    return null;
-                }
+        if (!existingProduct) {
+            return NextResponse.json({ success: false, message: `Product with ID ${id} not found` }, { status: 404 });
+        }
 
-                // Update the product
-                return await prisma.product.update({
-                    where: { id },
+        // Prepare data for update, only including fields present in productData
+        const dataToUpdate: Prisma.ProductUpdateInput = {};
+        if (productData.name !== undefined) dataToUpdate.name = productData.name;
+        if (productData.sku !== undefined) dataToUpdate.sku = productData.sku;
+        if (productData.barcode !== undefined) dataToUpdate.barcode = productData.barcode || null;
+        if (productData.description !== undefined) dataToUpdate.description = productData.description || null;
+        if (productData.basePrice !== undefined) dataToUpdate.weightedAverageCost = productData.basePrice; // Assuming basePrice maps to WAC
+        if (productData.retailPrice !== undefined) dataToUpdate.price = productData.retailPrice;
+        if (productData.categoryId !== undefined) dataToUpdate.categoryId = productData.categoryId ? parseInt(productData.categoryId) : null;
+
+        const updatedProduct = await prisma.product.update({
+            where: { id },
+            data: dataToUpdate
+        });
+
+        // Audit Log Generation
+        const changes: Record<string, { old: any, new: any }> = {};
+        (Object.keys(dataToUpdate) as Array<keyof typeof dataToUpdate>).forEach(key => {
+            // Type assertion for existingProduct keys
+            const typedKey = key as keyof typeof existingProduct;
+            if (existingProduct[typedKey] !== updatedProduct[typedKey]) {
+                changes[typedKey] = {
+                    old: existingProduct[typedKey],
+                    new: updatedProduct[typedKey]
+                };
+            }
+        });
+
+        if (Object.keys(changes).length > 0) {
+            try {
+                await prisma.auditLog.create({
                     data: {
-                        name: productData.name,
-                        sku: productData.sku,
-                        barcode: productData.barcode || null,
-                        description: productData.description || null,
-                        weightedAverageCost: productData.basePrice || existingProduct.weightedAverageCost,
-                        price: productData.retailPrice || existingProduct.price,
-                        categoryId: productData.categoryId ? parseInt(productData.categoryId) : existingProduct.categoryId,
+                        userId: userId ? parseInt(userId) : null,
+                        action: 'UPDATE_PRODUCT',
+                        entity: 'Product',
+                        entityId: id,
+                        details: changes
                     }
                 });
-            },
-            null,
-            `Failed to update product with ID ${id}`
-        );
-
-        if (!updatedProduct) {
-            return NextResponse.json({
-                success: false,
-                message: `Product with ID ${id} not found`
-            }, { status: 404 });
+            } catch (auditError) {
+                console.error('Failed to create audit log for product update:', auditError);
+                // Do not fail the main operation if audit logging fails
+            }
         }
 
         return NextResponse.json({

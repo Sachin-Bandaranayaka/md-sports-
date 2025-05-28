@@ -13,7 +13,12 @@ import {
     ArrowLeft,
     TrendingUp,
     ChevronDown,
-    ChevronUp
+    ChevronUp,
+    Info,
+    ShoppingCart,
+    Tag,
+    Repeat,
+    Edit3
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import {
@@ -51,6 +56,19 @@ interface ProductSales {
     daily: number;
     weekly: number;
     monthly: number;
+}
+
+interface ProductHistoryEvent {
+    timestamp: string;
+    type: string;
+    description: string;
+    quantityChange?: number;
+    shopId?: number;
+    shopName?: string;
+    userId?: number;
+    userName?: string;
+    relatedDocumentId?: string;
+    details?: any;
 }
 
 interface ProductDetail {
@@ -232,7 +250,7 @@ const StatCard = ({
         <div className="flex justify-between items-start">
             <div>
                 <p className="text-sm text-black">{title}</p>
-                <p className="text-2xl font-semibold mt-1">{value}</p>
+                <p className="text-2xl font-semibold mt-1 text-black">{value}</p>
             </div>
             <div className="p-2 rounded-full bg-primary/10 text-primary">
                 {icon}
@@ -247,6 +265,8 @@ export default function ProductDetail() {
     const [product, setProduct] = useState<ProductDetail | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('details');
+    const [productHistory, setProductHistory] = useState<ProductHistoryEvent[]>([]);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
     // Group invoices by shop
     const invoicesByShop: Record<string, Invoice[]> = {};
@@ -282,6 +302,59 @@ export default function ProductDetail() {
 
         loadProductData();
     }, [params.productId]);
+
+    // useEffect to fetch product history when activeTab is 'history' or productId changes
+    useEffect(() => {
+        if (!params.productId || activeTab !== 'history') {
+            // Clear history if not on history tab or no product
+            // setProductHistory([]); // Optional: clear if you want fresh load every time tab is clicked
+            return;
+        }
+
+        const productIdStr = Array.isArray(params.productId) ? params.productId[0] : params.productId;
+
+        const fetchHistory = async () => {
+            setIsLoadingHistory(true);
+            try {
+                const response = await fetch(`/api/products/${productIdStr}/history`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch product history');
+                }
+                const historyData = await response.json();
+                if (historyData.success) {
+                    setProductHistory(historyData.data);
+                } else {
+                    console.error('Error in history API response:', historyData.message);
+                    setProductHistory([]);
+                }
+            } catch (error) {
+                console.error('Error fetching product history:', error);
+                setProductHistory([]);
+            } finally {
+                setIsLoadingHistory(false);
+                // If all initial data is loaded, set main loading to false
+                if (product) setIsLoading(false);
+            }
+        };
+
+        if (productIdStr) {
+            fetchHistory();
+        }
+
+    }, [params.productId, activeTab, product]); // Add product to dependency array to ensure setIsLoading(false) runs after product is set
+
+    // Helper to get an icon based on history event type
+    const getHistoryIcon = (type: string) => {
+        switch (type) {
+            case 'Purchase': return <ShoppingCart className="w-5 h-5 text-blue-500" />;
+            case 'Sale': return <Tag className="w-5 h-5 text-green-500" />;
+            case 'Transfer In':
+            case 'Transfer Out': return <Repeat className="w-5 h-5 text-purple-500" />;
+            case 'Product Update': return <Edit3 className="w-5 h-5 text-orange-500" />;
+            case 'Stock Added': return <ArrowLeft className="w-5 h-5 text-teal-500 transform rotate-45" />; // Example icon
+            default: return <Info className="w-5 h-5 text-gray-500" />;
+        }
+    };
 
     // Prepare data for charts
     const getSalesDataByLocation = () => {
@@ -420,6 +493,15 @@ export default function ProductDetail() {
                             onClick={() => setActiveTab('sales')}
                         >
                             Sales History
+                        </button>
+                        <button
+                            className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'history'
+                                ? 'border-primary text-primary'
+                                : 'border-transparent text-black hover:text-gray-700 hover:border-gray-300'
+                                }`}
+                            onClick={() => setActiveTab('history')}
+                        >
+                            Product History
                         </button>
                     </nav>
                 </div>
@@ -579,6 +661,46 @@ export default function ProductDetail() {
                             </div>
                         </div>
                     </>
+                )}
+
+                {activeTab === 'history' && (
+                    <div className="bg-white rounded-lg border shadow-sm p-6">
+                        <h2 className="font-semibold text-lg text-black mb-4">Product Event History</h2>
+                        {isLoadingHistory ? (
+                            <div className="text-center py-4">
+                                <div className="w-6 h-6 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+                                <p className="mt-2 text-black">Loading history...</p>
+                            </div>
+                        ) : productHistory.length > 0 ? (
+                            <ul className="space-y-4">
+                                {productHistory.map((event, index) => (
+                                    <li key={index} className="flex items-start space-x-3 p-3 border-b last:border-b-0">
+                                        <div className="flex-shrink-0 pt-1">
+                                            {getHistoryIcon(event.type)}
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-center">
+                                                <p className="text-sm font-semibold text-black">{event.type}</p>
+                                                <p className="text-xs text-gray-500">{new Date(event.timestamp).toLocaleString()}</p>
+                                            </div>
+                                            <p className="mt-1 text-sm text-black whitespace-pre-line">{event.description}</p>
+                                            {event.quantityChange !== undefined && (
+                                                <p className="text-xs mt-1 font-medium text-black">
+                                                    Quantity Change: <span className={event.quantityChange > 0 ? 'text-green-600' : 'text-red-600'}>{event.quantityChange > 0 ? '+' : ''}{event.quantityChange} units</span>
+                                                </p>
+                                            )}
+                                            {event.shopName && <p className="text-xs mt-1 text-gray-600">Shop: {event.shopName}</p>}
+                                            {event.userName && <p className="text-xs mt-1 text-gray-600">User: {event.userName}</p>}
+                                            {event.relatedDocumentId && <p className="text-xs mt-1 text-gray-600">Ref: {event.relatedDocumentId}</p>}
+                                            {/* Optionally, add a way to view raw event.details if needed */}
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="text-black text-center py-4">No history events found for this product.</p>
+                        )}
+                    </div>
                 )}
             </div>
         </MainLayout>
