@@ -76,6 +76,18 @@ export async function PUT(
         if (addressString && typeof addressString === 'string') {
             try {
                 addressDetails = JSON.parse(addressString);
+
+                // Check if mainAddress is a JSON string and parse it to prevent nesting
+                if (addressDetails.mainAddress && typeof addressDetails.mainAddress === 'string' &&
+                    addressDetails.mainAddress.startsWith('{')) {
+                    try {
+                        const nestedAddress = JSON.parse(addressDetails.mainAddress);
+                        // Replace the string with the actual value or null
+                        addressDetails.mainAddress = nestedAddress.mainAddress || null;
+                    } catch (nestedError) {
+                        console.warn('Nested address string is not valid JSON:', nestedError);
+                    }
+                }
             } catch (e) {
                 console.warn('Address string is not valid JSON, proceeding with direct assignment if available or an empty object:', e);
                 // If addressString is not JSON, it might be a simple string address or undefined.

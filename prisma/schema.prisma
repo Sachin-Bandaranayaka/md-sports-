@@ -183,6 +183,7 @@ model Customer {
   creditPeriod       Int?
   taxId              String?
   notes              String?
+  status             String?
   invoices           Invoice[]
   payments           Payment[]
   quotations         Quotation[]

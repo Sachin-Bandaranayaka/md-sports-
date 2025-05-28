@@ -60,8 +60,27 @@ export default function EditCustomer({ params }: { params: { id: string } }) {
                 // Parse the address field which might contain JSON data
                 let addressData = {};
                 try {
-                    if (data.address && typeof data.address === 'string' && data.address.includes('{')) {
-                        addressData = JSON.parse(data.address);
+                    if (data.address && typeof data.address === 'string') {
+                        const parsedAddress = JSON.parse(data.address);
+
+                        // Check if parsedAddress has a mainAddress that's also a JSON string
+                        if (parsedAddress.mainAddress && typeof parsedAddress.mainAddress === 'string' &&
+                            parsedAddress.mainAddress.startsWith('{')) {
+                            try {
+                                // Try to parse the nested JSON
+                                const nestedAddress = JSON.parse(parsedAddress.mainAddress);
+                                // Use the nested object's properties
+                                addressData = {
+                                    ...parsedAddress,
+                                    ...nestedAddress
+                                };
+                            } catch (nestedError) {
+                                console.error('Error parsing nested address data:', nestedError);
+                                addressData = parsedAddress;
+                            }
+                        } else {
+                            addressData = parsedAddress;
+                        }
                     }
                 } catch (e) {
                     console.error('Error parsing address data:', e);
@@ -72,7 +91,7 @@ export default function EditCustomer({ params }: { params: { id: string } }) {
                     name: data.name || '',
                     email: data.email || '',
                     phone: data.phone || '',
-                    address: addressData.mainAddress || addressData.address || data.address || '',
+                    address: typeof addressData.mainAddress === 'string' ? addressData.mainAddress : '',
                     city: addressData.city || data.city || '',
                     postalCode: addressData.postalCode || data.postalCode || '',
                     contactPerson: addressData.contactPerson || data.contactPerson || '',
@@ -164,8 +183,8 @@ export default function EditCustomer({ params }: { params: { id: string } }) {
                 {/* Header with actions */}
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Edit Customer</h1>
-                        <p className="text-gray-500">Update customer information</p>
+                        <h1 className="text-2xl font-bold text-primary">Edit Customer</h1>
+                        <p className="text-black/70">Update customer information</p>
                     </div>
                     <div className="flex gap-3">
                         <Button
@@ -187,14 +206,14 @@ export default function EditCustomer({ params }: { params: { id: string } }) {
 
                 {/* Customer form */}
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="bg-tertiary rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                         {/* Basic Information */}
-                        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                            <h2 className="text-lg font-medium text-gray-900">Basic Information</h2>
+                        <div className="px-6 py-4 border-b border-gray-200 bg-primary/5">
+                            <h2 className="text-lg font-medium text-primary">Basic Information</h2>
                         </div>
                         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="name" className="block text-sm font-medium text-black">
                                     Name <span className="text-red-500">*</span>
                                 </label>
                                 <input
@@ -202,45 +221,45 @@ export default function EditCustomer({ params }: { params: { id: string } }) {
                                     name="name"
                                     id="name"
                                     required
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
                                     value={formData.name}
                                     onChange={handleChange}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="email" className="block text-sm font-medium text-black">
                                     Email
                                 </label>
                                 <input
                                     type="email"
                                     name="email"
                                     id="email"
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
                                     value={formData.email}
                                     onChange={handleChange}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="phone" className="block text-sm font-medium text-black">
                                     Phone
                                 </label>
                                 <input
                                     type="text"
                                     name="phone"
                                     id="phone"
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
                                     value={formData.phone}
                                     onChange={handleChange}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label htmlFor="customerType" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="customerType" className="block text-sm font-medium text-black">
                                     Customer Type
                                 </label>
                                 <select
                                     name="customerType"
                                     id="customerType"
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
                                     value={formData.customerType}
                                     onChange={handleChange}
                                 >
@@ -250,143 +269,148 @@ export default function EditCustomer({ params }: { params: { id: string } }) {
                             </div>
                         </div>
 
-                        {/* Contact Information */}
-                        <div className="px-6 py-4 border-t border-b border-gray-200 bg-gray-50">
-                            <h2 className="text-lg font-medium text-gray-900">Contact Information</h2>
+                        {/* Address Details Section */}
+                        <div className="px-6 py-4 border-t border-gray-200 bg-primary/5">
+                            <h2 className="text-lg font-medium text-primary">Address Details</h2>
                         </div>
                         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <label htmlFor="contactPerson" className="block text-sm font-medium text-gray-700">
-                                    Contact Person
-                                </label>
-                                <input
-                                    type="text"
-                                    name="contactPerson"
-                                    id="contactPerson"
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
-                                    value={formData.contactPerson}
-                                    onChange={handleChange}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label htmlFor="contactPersonPhone" className="block text-sm font-medium text-gray-700">
-                                    Contact Phone
-                                </label>
-                                <input
-                                    type="text"
-                                    name="contactPersonPhone"
-                                    id="contactPersonPhone"
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
-                                    value={formData.contactPersonPhone}
-                                    onChange={handleChange}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+                            <div className="md:col-span-2 space-y-2">
+                                <label htmlFor="address" className="block text-sm font-medium text-black">
                                     Address
                                 </label>
-                                <input
-                                    type="text"
+                                <textarea
                                     name="address"
                                     id="address"
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                    rows={3}
+                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
                                     value={formData.address}
                                     onChange={handleChange}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label htmlFor="city" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="city" className="block text-sm font-medium text-black">
                                     City
                                 </label>
                                 <input
                                     type="text"
                                     name="city"
                                     id="city"
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
                                     value={formData.city}
                                     onChange={handleChange}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="postalCode" className="block text-sm font-medium text-black">
                                     Postal Code
                                 </label>
                                 <input
                                     type="text"
                                     name="postalCode"
                                     id="postalCode"
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
                                     value={formData.postalCode}
                                     onChange={handleChange}
                                 />
                             </div>
+                        </div>
+
+                        {/* Contact Information */}
+                        <div className="px-6 py-4 border-t border-gray-200 bg-primary/5">
+                            <h2 className="text-lg font-medium text-primary">Contact Information</h2>
+                        </div>
+                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <label htmlFor="taxId" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="contactPerson" className="block text-sm font-medium text-black">
+                                    Contact Person
+                                </label>
+                                <input
+                                    type="text"
+                                    name="contactPerson"
+                                    id="contactPerson"
+                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                    value={formData.contactPerson}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="contactPersonPhone" className="block text-sm font-medium text-black">
+                                    Contact Phone
+                                </label>
+                                <input
+                                    type="text"
+                                    name="contactPersonPhone"
+                                    id="contactPersonPhone"
+                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                    value={formData.contactPersonPhone}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="taxId" className="block text-sm font-medium text-black">
                                     Tax ID
                                 </label>
                                 <input
                                     type="text"
                                     name="taxId"
                                     id="taxId"
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
                                     value={formData.taxId}
                                     onChange={handleChange}
                                 />
                             </div>
                         </div>
 
-                        {/* Payment Information (now Credit Information and always shown) */}
-                        <>
-                            <div className="px-6 py-4 border-t border-b border-gray-200 bg-gray-50">
-                                <h2 className="text-lg font-medium text-gray-900">Credit Information</h2>
+                        {/* Credit Information */}
+                        <div className="px-6 py-4 border-t border-gray-200 bg-primary/5">
+                            <h2 className="text-lg font-medium text-primary">Credit Information</h2>
+                        </div>
+                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label htmlFor="creditLimit" className="block text-sm font-medium text-black">
+                                    Credit Limit (Rs.)
+                                </label>
+                                <input
+                                    type="number"
+                                    name="creditLimit"
+                                    id="creditLimit"
+                                    min="0"
+                                    step="0.01"
+                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                    value={formData.creditLimit}
+                                    onChange={handleChange}
+                                />
                             </div>
-                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <label htmlFor="creditLimit" className="block text-sm font-medium text-gray-700">
-                                        Credit Limit (Rs.)
-                                    </label>
-                                    <input
-                                        type="number"
-                                        name="creditLimit"
-                                        id="creditLimit"
-                                        min="0"
-                                        step="0.01"
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
-                                        value={formData.creditLimit}
-                                        onChange={handleChange}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label htmlFor="creditPeriod" className="block text-sm font-medium text-gray-700">
-                                        Credit Period (days)
-                                    </label>
-                                    <input
-                                        type="number"
-                                        name="creditPeriod"
-                                        id="creditPeriod"
-                                        min="0"
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
-                                        value={formData.creditPeriod}
-                                        onChange={handleChange}
-                                    />
-                                </div>
+                            <div className="space-y-2">
+                                <label htmlFor="creditPeriod" className="block text-sm font-medium text-black">
+                                    Credit Period (days)
+                                </label>
+                                <input
+                                    type="number"
+                                    name="creditPeriod"
+                                    id="creditPeriod"
+                                    min="0"
+                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                    value={formData.creditPeriod}
+                                    onChange={handleChange}
+                                />
                             </div>
-                        </>
+                        </div>
 
                         {/* Notes */}
-                        <div className="px-6 py-4 border-t border-b border-gray-200 bg-gray-50">
-                            <h2 className="text-lg font-medium text-gray-900">Additional Information</h2>
+                        <div className="px-6 py-4 border-t border-gray-200 bg-primary/5">
+                            <h2 className="text-lg font-medium text-primary">Additional Information</h2>
                         </div>
                         <div className="p-6 grid grid-cols-1 gap-6">
                             <div className="space-y-2">
-                                <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="notes" className="block text-sm font-medium text-black">
                                     Notes
                                 </label>
                                 <textarea
                                     name="notes"
                                     id="notes"
                                     rows={4}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
+                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-black"
                                     value={formData.notes}
                                     onChange={handleChange}
                                 ></textarea>
@@ -394,7 +418,7 @@ export default function EditCustomer({ params }: { params: { id: string } }) {
                         </div>
 
                         {/* Form actions */}
-                        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end">
+                        <div className="px-6 py-4 border-t border-gray-200 bg-primary/5 flex justify-end">
                             <Button
                                 type="submit"
                                 variant="primary"

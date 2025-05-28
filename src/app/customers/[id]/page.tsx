@@ -51,8 +51,27 @@ export default function CustomerDetails({ params }: { params: { id: string } }) 
                 // Parse the address field which contains JSON data
                 let addressData = {};
                 try {
-                    if (data.address) {
-                        addressData = JSON.parse(data.address);
+                    if (data.address && typeof data.address === 'string') {
+                        const parsedAddress = JSON.parse(data.address);
+
+                        // Check if parsedAddress has a mainAddress that's also a JSON string
+                        if (parsedAddress.mainAddress && typeof parsedAddress.mainAddress === 'string' &&
+                            parsedAddress.mainAddress.startsWith('{')) {
+                            try {
+                                // Try to parse the nested JSON
+                                const nestedAddress = JSON.parse(parsedAddress.mainAddress);
+                                // Use the nested object's properties
+                                addressData = {
+                                    ...parsedAddress,
+                                    ...nestedAddress
+                                };
+                            } catch (nestedError) {
+                                console.error('Error parsing nested address data:', nestedError);
+                                addressData = parsedAddress;
+                            }
+                        } else {
+                            addressData = parsedAddress;
+                        }
                     }
                 } catch (e) {
                     console.error('Error parsing address data:', e);
@@ -145,8 +164,8 @@ export default function CustomerDetails({ params }: { params: { id: string } }) 
                 {/* Header with actions */}
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Customer Details</h1>
-                        <p className="text-gray-500">View detailed information about this customer</p>
+                        <h1 className="text-2xl font-bold text-primary">Customer Details</h1>
+                        <p className="text-black/70">View detailed information about this customer</p>
                     </div>
                     <div className="flex gap-3">
                         <Button
@@ -182,84 +201,84 @@ export default function CustomerDetails({ params }: { params: { id: string } }) 
                 </div>
 
                 {/* Customer information */}
-                <div className="bg-tertiary rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                    <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                        <h2 className="text-lg font-medium text-gray-900">Basic Information</h2>
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-gray-200 bg-primary/5">
+                        <h2 className="text-lg font-medium text-primary">Basic Information</h2>
                     </div>
                     <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <h3 className="text-sm font-medium text-gray-500">Customer ID</h3>
-                            <p className="mt-1 text-sm text-gray-900">CUS-{String(customer.id).padStart(3, '0')}</p>
+                            <h3 className="text-sm font-medium text-black/70">Customer ID</h3>
+                            <p className="mt-1 text-sm text-black">CUS-{String(customer.id).padStart(3, '0')}</p>
                         </div>
                         <div>
-                            <h3 className="text-sm font-medium text-gray-500">Name</h3>
-                            <p className="mt-1 text-sm text-gray-900">{customer.name}</p>
+                            <h3 className="text-sm font-medium text-black/70">Name</h3>
+                            <p className="mt-1 text-sm text-black">{customer.name}</p>
                         </div>
                         <div>
-                            <h3 className="text-sm font-medium text-gray-500">Email</h3>
-                            <p className="mt-1 text-sm text-gray-900">{customer.email || '-'}</p>
+                            <h3 className="text-sm font-medium text-black/70">Email</h3>
+                            <p className="mt-1 text-sm text-black">{customer.email || '-'}</p>
                         </div>
                         <div>
-                            <h3 className="text-sm font-medium text-gray-500">Phone</h3>
-                            <p className="mt-1 text-sm text-gray-900">{customer.phone || '-'}</p>
+                            <h3 className="text-sm font-medium text-black/70">Phone</h3>
+                            <p className="mt-1 text-sm text-black">{customer.phone || '-'}</p>
                         </div>
                         <div>
-                            <h3 className="text-sm font-medium text-gray-500">Customer Type</h3>
-                            <p className="mt-1 text-sm text-gray-900">{customer.customerType || 'Retail'}</p>
+                            <h3 className="text-sm font-medium text-black/70">Customer Type</h3>
+                            <p className="mt-1 text-sm text-black">{customer.customerType || 'Retail'}</p>
                         </div>
                         <div>
-                            <h3 className="text-sm font-medium text-gray-500">Payment Type</h3>
-                            <p className="mt-1 text-sm text-gray-900">{customer.paymentType || 'Cash'}</p>
+                            <h3 className="text-sm font-medium text-black/70">Payment Type</h3>
+                            <p className="mt-1 text-sm text-black">{customer.paymentType || 'Cash'}</p>
                         </div>
                     </div>
 
                     {/* Contact Information */}
-                    <div className="px-6 py-4 border-b border-t border-gray-200 bg-gray-50">
-                        <h2 className="text-lg font-medium text-gray-900">Contact Information</h2>
+                    <div className="px-6 py-4 border-t border-gray-200 bg-primary/5">
+                        <h2 className="text-lg font-medium text-primary">Contact Information</h2>
                     </div>
                     <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <h3 className="text-sm font-medium text-gray-500">Contact Person</h3>
-                            <p className="mt-1 text-sm text-gray-900">{customer.contactPerson || customer.name}</p>
+                            <h3 className="text-sm font-medium text-black/70">Contact Person</h3>
+                            <p className="mt-1 text-sm text-black">{customer.contactPerson || customer.name}</p>
                         </div>
                         <div>
-                            <h3 className="text-sm font-medium text-gray-500">Contact Phone</h3>
-                            <p className="mt-1 text-sm text-gray-900">{customer.contactPersonPhone || customer.phone || '-'}</p>
+                            <h3 className="text-sm font-medium text-black/70">Contact Phone</h3>
+                            <p className="mt-1 text-sm text-black">{customer.contactPersonPhone || customer.phone || '-'}</p>
                         </div>
                         <div>
-                            <h3 className="text-sm font-medium text-gray-500">Address</h3>
-                            <p className="mt-1 text-sm text-gray-900">{customer.address || '-'}</p>
+                            <h3 className="text-sm font-medium text-black/70">Address</h3>
+                            <p className="mt-1 text-sm text-black">{customer.address || '-'}</p>
                         </div>
                         <div>
-                            <h3 className="text-sm font-medium text-gray-500">City</h3>
-                            <p className="mt-1 text-sm text-gray-900">{customer.city || '-'}</p>
+                            <h3 className="text-sm font-medium text-black/70">City</h3>
+                            <p className="mt-1 text-sm text-black">{customer.city || '-'}</p>
                         </div>
                         <div>
-                            <h3 className="text-sm font-medium text-gray-500">Postal Code</h3>
-                            <p className="mt-1 text-sm text-gray-900">{customer.postalCode || '-'}</p>
+                            <h3 className="text-sm font-medium text-black/70">Postal Code</h3>
+                            <p className="mt-1 text-sm text-black">{customer.postalCode || '-'}</p>
                         </div>
                         <div>
-                            <h3 className="text-sm font-medium text-gray-500">Tax ID</h3>
-                            <p className="mt-1 text-sm text-gray-900">{customer.taxId || '-'}</p>
+                            <h3 className="text-sm font-medium text-black/70">Tax ID</h3>
+                            <p className="mt-1 text-sm text-black">{customer.taxId || '-'}</p>
                         </div>
                     </div>
 
                     {/* Payment Information (only shown for credit customers) */}
                     {customer.paymentType === 'Credit' && (
                         <>
-                            <div className="px-6 py-4 border-b border-t border-gray-200 bg-gray-50">
-                                <h2 className="text-lg font-medium text-gray-900">Payment Information</h2>
+                            <div className="px-6 py-4 border-t border-gray-200 bg-primary/5">
+                                <h2 className="text-lg font-medium text-primary">Payment Information</h2>
                             </div>
                             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <h3 className="text-sm font-medium text-gray-500">Credit Limit</h3>
-                                    <p className="mt-1 text-sm text-gray-900">
+                                    <h3 className="text-sm font-medium text-black/70">Credit Limit</h3>
+                                    <p className="mt-1 text-sm text-black">
                                         {customer.creditLimit ? `Rs. ${customer.creditLimit.toLocaleString()}` : '-'}
                                     </p>
                                 </div>
                                 <div>
-                                    <h3 className="text-sm font-medium text-gray-500">Credit Period</h3>
-                                    <p className="mt-1 text-sm text-gray-900">
+                                    <h3 className="text-sm font-medium text-black/70">Credit Period</h3>
+                                    <p className="mt-1 text-sm text-black">
                                         {customer.creditPeriod ? `${customer.creditPeriod} days` : '-'}
                                     </p>
                                 </div>
@@ -268,12 +287,12 @@ export default function CustomerDetails({ params }: { params: { id: string } }) 
                     )}
 
                     {/* Notes */}
-                    <div className="px-6 py-4 border-b border-t border-gray-200 bg-gray-50">
-                        <h2 className="text-lg font-medium text-gray-900">Additional Information</h2>
+                    <div className="px-6 py-4 border-t border-gray-200 bg-primary/5">
+                        <h2 className="text-lg font-medium text-primary">Additional Information</h2>
                     </div>
                     <div className="p-6">
-                        <h3 className="text-sm font-medium text-gray-500">Notes</h3>
-                        <p className="mt-1 text-sm text-gray-900 whitespace-pre-line">
+                        <h3 className="text-sm font-medium text-black/70">Notes</h3>
+                        <p className="mt-1 text-sm text-black whitespace-pre-line">
                             {customer.notes || 'No additional notes'}
                         </p>
                     </div>
