@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
+import { emitInventoryLevelUpdated } from '@/lib/utils/websocket';
 
 // GET /api/purchases/[id] - Get a specific purchase invoice
 export async function GET(
@@ -13,7 +14,7 @@ export async function GET(
 
         if (isNaN(purchaseId)) {
             return NextResponse.json(
-                { error: 'Invalid purchase ID' },
+                { error: { message: 'Invalid purchase ID format' } },
                 { status: 400 }
             );
         }
@@ -34,7 +35,7 @@ export async function GET(
 
         if (!purchase) {
             return NextResponse.json(
-                { error: 'Purchase invoice not found' },
+                { error: { message: 'Purchase invoice not found' } },
                 { status: 404 }
             );
         }
@@ -42,8 +43,9 @@ export async function GET(
         return NextResponse.json(purchase);
     } catch (error) {
         console.error(`Error fetching purchase invoice ${id}:`, error);
+        const details = error instanceof Error ? error.message : 'An unknown error occurred';
         return NextResponse.json(
-            { error: 'Failed to fetch purchase invoice' },
+            { error: { message: 'Failed to fetch purchase invoice', details: details } },
             { status: 500 }
         );
     }
@@ -58,7 +60,9 @@ export async function PUT(
     try {
         const purchaseId = parseInt(id);
         if (isNaN(purchaseId)) {
-            return NextResponse.json({ error: 'Invalid purchase ID' }, { status: 400 });
+            return NextResponse.json(
+                { error: { message: 'Invalid purchase ID format' } },
+                { status: 400 });
         }
         const body = await request.json();
         const originalPurchase = await prisma.purchaseInvoice.findUnique({
@@ -66,7 +70,9 @@ export async function PUT(
             include: { items: { include: { product: true } } },
         });
         if (!originalPurchase) {
-            return NextResponse.json({ error: 'Purchase invoice not found' }, { status: 404 });
+            return NextResponse.json(
+                { error: { message: 'Purchase invoice not found to update' } },
+                { status: 404 });
         }
         const { items: newItemsData, distributions: newDistributionsData, ...invoiceData } = body;
         const { id: _, createdAt, updatedAt, supplier, notes, ...dirtyData } = invoiceData;
@@ -88,7 +94,7 @@ export async function PUT(
                 for (const oldItem of originalPurchase.items) {
                     const productToUpdate = await tx.product.findUnique({ where: { id: oldItem.productId } });
                     if (!productToUpdate) continue;
-                    
+
                     const oldItemDistribution = originalPurchase.distributions && Array.isArray(originalPurchase.distributions) && originalPurchase.distributions[originalPurchase.items.indexOf(oldItem)]
                         ? originalPurchase.distributions[originalPurchase.items.indexOf(oldItem)]
                         : (originalPurchase.distributions && typeof originalPurchase.distributions === 'object' && !Array.isArray(originalPurchase.distributions) ? originalPurchase.distributions : null);
@@ -106,8 +112,8 @@ export async function PUT(
                                 inventoryUpdates.push({ productId: oldItem.productId, shopId, newQuantity, oldQuantity: oldShopQuantity });
                             }
                         }
-                    } else { 
-                        const shopId = 1; 
+                    } else {
+                        const shopId = 1;
                         const inventory = await tx.inventoryItem.findFirst({ where: { productId: oldItem.productId, shopId: shopId } });
                         if (inventory) {
                             const oldShopQuantity = inventory.quantity;
@@ -116,16 +122,16 @@ export async function PUT(
                             inventoryUpdates.push({ productId: oldItem.productId, shopId, newQuantity, oldQuantity: oldShopQuantity });
                         }
                     }
-                    
+
                     let currentTotalProductQuantity = 0;
                     const allInventoryForProductAfterReversal = await tx.inventoryItem.findMany({ where: { productId: oldItem.productId } });
                     currentTotalProductQuantity = allInventoryForProductAfterReversal.reduce((sum, inv) => sum + inv.quantity, 0);
 
                     if (currentTotalProductQuantity > 0 && productToUpdate.weightedAverageCost !== null) {
                         const currentTotalValue = allInventoryForProductAfterReversal.reduce((sum, inv) => {
-                            const invProd = inv.productId === productToUpdate.id ? productToUpdate : null; 
+                            const invProd = inv.productId === productToUpdate.id ? productToUpdate : null;
                             return sum + (inv.quantity * (invProd?.weightedAverageCost || 0));
-                        },0); 
+                        }, 0);
                         const newWAC = currentTotalValue / currentTotalProductQuantity;
                         await tx.product.update({
                             where: { id: oldItem.productId },
@@ -156,7 +162,7 @@ export async function PUT(
                     });
                     const productToUpdate = await tx.product.findUnique({ where: { id: Number(newItem.productId) } });
                     if (!productToUpdate) continue;
-                    
+
                     const newItemDistribution = newDistributionsData && Array.isArray(newDistributionsData) && newDistributionsData[i]
                         ? newDistributionsData[i]
                         : (newDistributionsData && typeof newDistributionsData === 'object' && !Array.isArray(newDistributionsData) ? newDistributionsData : null);
@@ -180,8 +186,8 @@ export async function PUT(
                             }
                             inventoryUpdates.push({ productId: Number(newItem.productId), shopId, newQuantity: finalQuantity, oldQuantity: oldInvQty });
                         }
-                    } else { 
-                        const shopId = 1; 
+                    } else {
+                        const shopId = 1;
                         const inventory = await tx.inventoryItem.findFirst({ where: { productId: Number(newItem.productId), shopId: shopId } });
                         let finalQuantity = 0;
                         const oldInvQty = inventory?.quantity || 0;
@@ -192,28 +198,28 @@ export async function PUT(
                             finalQuantity = itemQuantityTotal;
                             await tx.inventoryItem.create({ data: { productId: Number(newItem.productId), shopId: shopId, quantity: finalQuantity } });
                         }
-                         inventoryUpdates.push({ productId: Number(newItem.productId), shopId, newQuantity: finalQuantity, oldQuantity: oldInvQty });
+                        inventoryUpdates.push({ productId: Number(newItem.productId), shopId, newQuantity: finalQuantity, oldQuantity: oldInvQty });
                     }
-                     
+
                     let currentTotalProductQuantityBeforeNewItem = 0;
                     const allInventoryForProductAfterNewItem = await tx.inventoryItem.findMany({ where: { productId: Number(newItem.productId) } });
-                    currentTotalProductQuantityBeforeNewItem = allInventoryForProductAfterNewItem.reduce((sum, inv) => sum + inv.quantity, 0) - itemQuantityTotal; 
+                    currentTotalProductQuantityBeforeNewItem = allInventoryForProductAfterNewItem.reduce((sum, inv) => sum + inv.quantity, 0) - itemQuantityTotal;
 
-                    const currentWAC = productToUpdate.weightedAverageCost || 0; 
+                    const currentWAC = productToUpdate.weightedAverageCost || 0;
                     const newItemCost = Number(newItem.price);
 
                     let newWeightedAverageCost = newItemCost;
-                     if (currentTotalProductQuantityBeforeNewItem > 0) {
-                         newWeightedAverageCost =
-                             ((currentTotalProductQuantityBeforeNewItem * currentWAC) + (itemQuantityTotal * newItemCost)) /
-                             (currentTotalProductQuantityBeforeNewItem + itemQuantityTotal);
-                     } else if (itemQuantityTotal > 0) {
-                         newWeightedAverageCost = newItemCost;
-                     }
-                     await tx.product.update({
-                         where: { id: Number(newItem.productId) },
-                         data: { weightedAverageCost: newWeightedAverageCost }
-                     });
+                    if (currentTotalProductQuantityBeforeNewItem > 0) {
+                        newWeightedAverageCost =
+                            ((currentTotalProductQuantityBeforeNewItem * currentWAC) + (itemQuantityTotal * newItemCost)) /
+                            (currentTotalProductQuantityBeforeNewItem + itemQuantityTotal);
+                    } else if (itemQuantityTotal > 0) {
+                        newWeightedAverageCost = newItemCost;
+                    }
+                    await tx.product.update({
+                        where: { id: Number(newItem.productId) },
+                        data: { weightedAverageCost: newWeightedAverageCost }
+                    });
                 }
             }
             const fullUpdatedInvoice = await tx.purchaseInvoice.findUnique({
@@ -227,9 +233,10 @@ export async function PUT(
         if (io && result && result.fullUpdatedInvoice) {
             io.emit(WEBSOCKET_EVENTS.PURCHASE_INVOICE_UPDATED, result.fullUpdatedInvoice);
             result.inventoryUpdates.forEach(upd => {
-                io.emit(WEBSOCKET_EVENTS.INVENTORY_LEVEL_UPDATED, {
-                    productId: upd.productId, shopId: upd.shopId,
-                    newQuantity: upd.newQuantity, oldQuantity: upd.oldQuantity,
+                emitInventoryLevelUpdated(upd.productId, {
+                    shopId: upd.shopId,
+                    newQuantity: upd.newQuantity,
+                    oldQuantity: upd.oldQuantity,
                     source: 'purchase_update'
                 });
             });
@@ -238,9 +245,10 @@ export async function PUT(
         return NextResponse.json(result.fullUpdatedInvoice);
     } catch (error) {
         console.error(`Error updating purchase invoice ${id}:`, error);
-        let errorMessage = 'Failed to update purchase invoice';
-        if (error instanceof Error) errorMessage = error.message;
-        return NextResponse.json({ error: errorMessage, details: error instanceof Error ? error.stack : String(error) }, { status: 500 });
+        const details = error instanceof Error ? error.message : String(error);
+        return NextResponse.json(
+            { error: { message: 'Failed to update purchase invoice', details: details } },
+            { status: 500 });
     }
 }
 
@@ -253,7 +261,9 @@ export async function DELETE(
     try {
         const purchaseId = parseInt(purchaseIdStr);
         if (isNaN(purchaseId)) {
-            return NextResponse.json({ error: 'Invalid purchase ID' }, { status: 400 });
+            return NextResponse.json(
+                { error: { message: 'Invalid purchase ID format' } },
+                { status: 400 });
         }
 
         const purchaseToDelete = await prisma.purchaseInvoice.findUnique({
@@ -265,12 +275,14 @@ export async function DELETE(
         });
 
         if (!purchaseToDelete) {
-            return NextResponse.json({ error: 'Purchase invoice not found' }, { status: 404 });
+            return NextResponse.json(
+                { error: { message: 'Purchase invoice not found to delete' } },
+                { status: 404 });
         }
 
         const result = await prisma.$transaction(async (tx) => {
-            const inventoryUpdates: Array<{productId: number, shopId: number, newQuantity: number, oldQuantity: number}> = [];
-            
+            const inventoryUpdates: Array<{ productId: number, shopId: number, newQuantity: number, oldQuantity: number }> = [];
+
             if (purchaseToDelete.items && purchaseToDelete.items.length > 0) {
                 for (const item of purchaseToDelete.items) {
                     if (!item.product) {
@@ -357,37 +369,74 @@ export async function DELETE(
                             console.error(`  - FALLBACK FAILED: Inventory item not found for product ${productId} in fallback shop ${FALLBACK_SHOP_ID}.`);
                         }
                     }
+
+                    // ---- BEGIN WAC Recalculation for the deleted item ----
+                    const productToUpdate = await tx.product.findUnique({ where: { id: productId } });
+                    if (productToUpdate) {
+                        const allInventoryForProduct = await tx.inventoryItem.findMany({
+                            where: { productId: productId }
+                        });
+                        const newTotalProductQuantity = allInventoryForProduct.reduce((sum, inv) => sum + inv.quantity, 0);
+
+                        let newCalculatedWAC = 0;
+                        if (newTotalProductQuantity > 0) {
+                            const originalTotalQuantityBeforeThisDeletion = newTotalProductQuantity + quantityToRemoveForItem;
+                            if (originalTotalQuantityBeforeThisDeletion > 0) { // Avoid division by zero if somehow original was 0
+                                const originalTotalValue = (productToUpdate.weightedAverageCost || 0) * originalTotalQuantityBeforeThisDeletion;
+                                const valueOfItemsRemoved = (item.price || 0) * quantityToRemoveForItem;
+
+                                newCalculatedWAC = (originalTotalValue - valueOfItemsRemoved) / newTotalProductQuantity;
+                            }
+                        } else {
+                            newCalculatedWAC = 0; // If no stock left, WAC is 0
+                        }
+
+                        await tx.product.update({
+                            where: { id: productId },
+                            data: { weightedAverageCost: newCalculatedWAC >= 0 ? newCalculatedWAC : 0 } // Ensure WAC is not negative
+                        });
+                    }
+                    // ---- END WAC Recalculation ----
                 }
             }
 
-            // Payment deletion was commented out, keeping it that way
-            /* await tx.payment.deleteMany({ where: { purchaseInvoiceId: purchaseId } }); */
+            // Payment deletion - uncommented to delete associated payments
+            await tx.payment.deleteMany({ where: { purchaseInvoiceId: purchaseId } });
 
             await tx.purchaseInvoiceItem.deleteMany({ where: { purchaseInvoiceId: purchaseId } });
             console.log(`Deleted items for purchase invoice ${purchaseId}`);
 
             await tx.purchaseInvoice.delete({ where: { id: purchaseId } });
             console.log(`Deleted purchase invoice ${purchaseId}`);
-            
+
             return { deletedInvoiceId: purchaseId, inventoryUpdates };
-        }); 
+        });
 
         const io = getSocketIO();
-        if (io && result) {
-            io.emit(WEBSOCKET_EVENTS.PURCHASE_INVOICE_DELETED, { id: result.deletedInvoiceId });
-            result.inventoryUpdates.forEach(upd => {
-                 io.emit(WEBSOCKET_EVENTS.INVENTORY_LEVEL_UPDATED, {
-                    productId: upd.productId, shopId: upd.shopId,
-                    newQuantity: upd.newQuantity, oldQuantity: upd.oldQuantity, 
-                    source: 'purchase_deletion'
+        if (io) {
+            io.emit(WEBSOCKET_EVENTS.PURCHASE_INVOICE_DELETED, { id: purchaseId });
+
+            // Emit inventory updates
+            if (result.inventoryUpdates && result.inventoryUpdates.length > 0) {
+                result.inventoryUpdates.forEach(update => {
+                    emitInventoryLevelUpdated(update.productId, {
+                        shopId: update.shopId,
+                        newQuantity: update.newQuantity,
+                        oldQuantity: update.oldQuantity,
+                        source: 'purchase_delete'
+                    });
                 });
-            });
-            console.log('Emitted PURCHASE_INVOICE_DELETED and INVENTORY_LEVEL_UPDATED events');
+            }
+
+            console.log(`Emitted WebSocket events for purchase invoice deletion ${purchaseId}`);
         }
         return NextResponse.json({ message: 'Purchase invoice deleted successfully' });
 
     } catch (error) {
         console.error(`Error deleting purchase invoice ${purchaseIdStr}:`, error);
-        return NextResponse.json({ error: 'Failed to delete purchase invoice. Check server logs for details.' }, { status: 500 });
+        const details = error instanceof Error ? error.message : 'An unknown error occurred';
+        return NextResponse.json(
+            { error: { message: 'Failed to delete purchase invoice', details: details } },
+            { status: 500 });
     }
 } 

@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Filter, ArrowUpDown, ShoppingBag, PlusCircle, Package, Store, Download, Upload, Loader2 } from 'lucide-react';
+import { Filter, ArrowUpDown, ShoppingBag, PlusCircle, Package, Store, Download, Upload, Loader2, RefreshCw, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import AddInventoryModal from '@/components/inventory/AddInventoryModal';
 import React from 'react';
+import { useSocket } from '@/context/SocketContext';
 
 export default function InventoryHeaderActions() {
     const router = useRouter();
@@ -14,6 +15,9 @@ export default function InventoryHeaderActions() {
     const [isUploading, setIsUploading] = useState(false);
     const [uploadError, setUploadError] = useState<string | null>(null);
     const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+    const [isReconnecting, setIsReconnecting] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const { reconnect, isConnected } = useSocket();
 
     const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -43,6 +47,31 @@ export default function InventoryHeaderActions() {
     const handleImportButtonClick = () => {
         if (fileInputRef.current) {
             fileInputRef.current.click(); // Trigger click on hidden file input
+        }
+    };
+
+    // Handle manual WebSocket reconnection
+    const handleReconnect = async () => {
+        setIsReconnecting(true);
+        try {
+            reconnect();
+            // Add a small delay to show the reconnecting state
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        } finally {
+            setIsReconnecting(false);
+        }
+    };
+
+    // Handle manual data refresh
+    const handleRefreshData = async () => {
+        setIsRefreshing(true);
+        try {
+            // Dispatch custom event to trigger inventory refresh
+            window.dispatchEvent(new CustomEvent('refresh-inventory'));
+            // Add a small delay to show the refreshing state
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        } finally {
+            setIsRefreshing(false);
         }
     };
 
@@ -112,9 +141,34 @@ export default function InventoryHeaderActions() {
                     variant="outline"
                     size="sm"
                     onClick={toggleFilterPanel}
+                    className="flex items-center gap-1"
                 >
-                    <Filter className="w-4 h-4 mr-2" />
-                    Filter
+                    <Filter className="w-4 h-4" />
+                    <span className="hidden sm:inline">Filter</span>
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleReconnect}
+                    disabled={isReconnecting}
+                    className={`flex items-center gap-1 ${!isConnected ? 'border-red-500 text-red-500 hover:bg-red-50' : ''}`}
+                >
+                    <RefreshCw className={`w-4 h-4 ${isReconnecting ? 'animate-spin' : ''}`} />
+                    <span className="hidden sm:inline">
+                        {isReconnecting ? 'Reconnecting...' : isConnected ? 'Connected' : 'Reconnect'}
+                    </span>
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRefreshData}
+                    disabled={isRefreshing}
+                    className="flex items-center gap-1"
+                >
+                    <RotateCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    <span className="hidden sm:inline">
+                        {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
+                    </span>
                 </Button>
                 <Button
                     variant="secondary"

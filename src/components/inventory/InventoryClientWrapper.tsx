@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Search, X, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -88,11 +88,68 @@ export default function InventoryClientWrapper({
     const [selectedProduct, setSelectedProduct] = useState<{ id: number, name: string } | null>(null);
     const [isWebSocketUpdate, setIsWebSocketUpdate] = useState(false);
 
+    // Auto-refresh settings
+    const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
+    const [autoRefreshInterval, setAutoRefreshInterval] = useState(30); // seconds
+    const autoRefreshTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+
+    // Debounce mechanism for WebSocket updates
+    const pendingUpdatesRef = useRef<Map<number, any>>(new Map());
+    const updateTimerRef = useRef<NodeJS.Timeout | null>(null);
+
     // Pagination state
     const [currentPage, setCurrentPage] = useState(initialPagination.page);
     const [totalPages, setTotalPages] = useState(initialPagination.totalPages);
     const [totalItems, setTotalItems] = useState(initialPagination.total);
     const [itemsPerPage, setItemsPerPage] = useState(initialPagination.limit);
+
+    // Process pending updates with debounce
+    const processPendingUpdates = useCallback(() => {
+        if (pendingUpdatesRef.current.size === 0) return;
+
+        console.log(`Processing ${pendingUpdatesRef.current.size} pending inventory updates`);
+
+        setInventoryItems(prevItems => {
+            return prevItems.map(item => {
+                const pendingUpdate = pendingUpdatesRef.current.get(item.id);
+                if (pendingUpdate) {
+                    // Apply the pending update
+                    return {
+                        ...item,
+                        ...pendingUpdate,
+                        status: pendingUpdate.stock > 0
+                            ? (pendingUpdate.stock < 10 ? 'Low Stock' : 'In Stock')
+                            : 'Out of Stock'
+                    };
+                }
+                return item;
+            });
+        });
+
+        // Clear pending updates after processing
+        pendingUpdatesRef.current.clear();
+    }, []);
+
+    // Set up debounce effect
+    useEffect(() => {
+        if (updateTimerRef.current) {
+            clearTimeout(updateTimerRef.current);
+        }
+
+        if (pendingUpdatesRef.current.size > 0) {
+            updateTimerRef.current = setTimeout(() => {
+                processPendingUpdates();
+                updateTimerRef.current = null;
+            }, 300); // 300ms debounce delay
+        }
+
+        return () => {
+            if (updateTimerRef.current) {
+                clearTimeout(updateTimerRef.current);
+            }
+        };
+    }, [processPendingUpdates, pendingUpdatesRef.current.size]);
 
     // Memoized callback for WebSocket updates
     const handleInventoryUpdate = useCallback((eventData: any) => {
@@ -102,16 +159,19 @@ export default function InventoryClientWrapper({
         const { type, ...payload } = eventData;
 
         if (type === WEBSOCKET_EVENTS.INVENTORY_UPDATE && payload.items) {
+            // Full inventory update - no debounce needed
             setInventoryItems(payload.items);
             if (payload.pagination) {
                 setTotalPages(payload.pagination.totalPages);
                 setTotalItems(payload.pagination.total);
             }
         } else if (type === WEBSOCKET_EVENTS.INVENTORY_ITEM_UPDATE && payload.item) {
+            // Single item update - no debounce needed for complete item replacement
             setInventoryItems(prev =>
                 prev.map(item => item.id === payload.item.id ? payload.item : item)
             );
         } else if (type === WEBSOCKET_EVENTS.INVENTORY_ITEM_CREATE && payload.item) {
+            // Item creation - no debounce needed
             setInventoryItems(prevItems => {
                 // Add to the beginning if on the first page and not exceeding itemsPerPage
                 const newItems = [payload.item, ...prevItems];
@@ -123,49 +183,63 @@ export default function InventoryClientWrapper({
             setTotalItems(prev => prev + 1);
             // Recalculate totalPages based on new totalItems and itemsPerPage
             setTotalPages(Math.ceil((totalItems + 1) / itemsPerPage));
-
         } else if (type === WEBSOCKET_EVENTS.INVENTORY_ITEM_DELETE && payload.itemId) {
+            // Item deletion - no debounce needed
             setInventoryItems(prev => prev.filter(item => item.id !== payload.itemId));
             setTotalItems(prev => prev - 1);
             setTotalPages(Math.ceil((totalItems - 1) / itemsPerPage));
         } else if (type === WEBSOCKET_EVENTS.INVENTORY_LEVEL_UPDATED && payload.productId) {
             console.log('Handling INVENTORY_LEVEL_UPDATED (memoized):', payload);
-            setInventoryItems(prevItems => {
-                return prevItems.map(item => {
-                    if (item.id === payload.productId) {
-                        let newTotalStock = item.stock;
-                        let updatedBranchStock = [...item.branchStock]; // Create a new array
 
-                        if (payload.shopId !== undefined && payload.newQuantity !== undefined) {
-                            const branchIndex = updatedBranchStock.findIndex(bs => bs.shopId === payload.shopId);
-                            if (branchIndex !== -1) {
-                                updatedBranchStock[branchIndex] = { ...updatedBranchStock[branchIndex], quantity: payload.newQuantity };
-                            } else {
-                                console.warn(`Shop ID ${payload.shopId} not found in branchStock for product ${payload.productId}. Adding with new quantity.`);
-                                updatedBranchStock.push({ shopId: payload.shopId, shopName: `Shop ${payload.shopId}`, quantity: payload.newQuantity });
-                            }
-                            newTotalStock = updatedBranchStock.reduce((sum, bs) => sum + bs.quantity, 0);
-                        } else if (payload.newTotalStock !== undefined) {
-                            newTotalStock = payload.newTotalStock;
-                            // Potentially adjust branchStock if needed, or assume it's implicitly handled
-                        } else {
-                            console.warn('INVENTORY_LEVEL_UPDATED event missing shopId/newQuantity or newTotalStock.', payload);
-                        }
+            // Find the current item to update
+            const currentItem = inventoryItems.find(item => item.id === payload.productId);
+            if (!currentItem) {
+                console.warn(`Item with ID ${payload.productId} not found in current inventory items.`);
+                return;
+            }
 
-                        return {
-                            ...item,
-                            branchStock: updatedBranchStock,
-                            stock: newTotalStock,
-                            status: newTotalStock > 0 ? (newTotalStock < 10 ? 'Low Stock' : 'In Stock') : 'Out of Stock'
-                        };
-                    }
-                    return item;
-                });
-            });
+            // Get or create pending update for this product
+            const existingUpdate = pendingUpdatesRef.current.get(payload.productId) || {
+                ...currentItem,
+                branchStock: [...currentItem.branchStock]
+            };
+
+            // Update the pending update with new data
+            if (payload.shopId !== undefined && payload.newQuantity !== undefined) {
+                const branchIndex = existingUpdate.branchStock.findIndex(
+                    (bs: any) => bs.shopId === payload.shopId
+                );
+
+                if (branchIndex !== -1) {
+                    existingUpdate.branchStock[branchIndex] = {
+                        ...existingUpdate.branchStock[branchIndex],
+                        quantity: payload.newQuantity
+                    };
+                } else {
+                    existingUpdate.branchStock.push({
+                        shopId: payload.shopId,
+                        shopName: `Shop ${payload.shopId}`,
+                        quantity: payload.newQuantity
+                    });
+                }
+
+                // Recalculate total stock
+                existingUpdate.stock = existingUpdate.branchStock.reduce(
+                    (sum: number, bs: any) => sum + bs.quantity, 0
+                );
+            } else if (payload.newTotalStock !== undefined) {
+                existingUpdate.stock = payload.newTotalStock;
+            } else if (payload.quantityChange !== undefined) {
+                existingUpdate.stock = existingUpdate.stock + payload.quantityChange;
+            }
+
+            // Store the pending update
+            pendingUpdatesRef.current.set(payload.productId, existingUpdate);
+
         } else {
             console.log('Received unhandled WebSocket event type or payload (memoized):', type, payload);
         }
-    }, [currentPage, itemsPerPage, totalItems, WEBSOCKET_EVENTS]);
+    }, [currentPage, itemsPerPage, totalItems, inventoryItems, WEBSOCKET_EVENTS]);
 
     // Subscribe to inventory updates via WebSocket
     useInventoryUpdates(handleInventoryUpdate);
@@ -223,7 +297,10 @@ export default function InventoryClientWrapper({
 
         // Update the URL without refreshing the page
         router.push(`${pathname}?${params.toString()}`);
-    }, [currentPage, itemsPerPage, searchTerm, categoryFilter, statusFilter, pathname, router, searchParams]);
+
+        // Trigger a data refresh when pagination or filters change
+        refreshInventory();
+    }, [currentPage, itemsPerPage, searchTerm, categoryFilter, statusFilter, pathname, router, searchParams, refreshInventory]);
 
     // Listen for filter panel toggle event from header actions
     useEffect(() => {
@@ -292,6 +369,112 @@ export default function InventoryClientWrapper({
         router.refresh(); // Refresh the page to get updated data
     };
 
+    // Function to manually refresh inventory data
+    const refreshInventory = useCallback(async () => {
+        try {
+            setError(null);
+
+            // Build query parameters
+            const params = new URLSearchParams();
+            params.set('page', currentPage.toString());
+            params.set('limit', itemsPerPage.toString());
+            if (searchTerm) params.set('search', searchTerm);
+            if (categoryFilter) params.set('category', categoryFilter);
+            if (statusFilter) params.set('status', statusFilter);
+
+            // Add a timestamp to bust cache
+            params.set('_t', Date.now().toString());
+
+            console.log('Manually refreshing inventory data...', {
+                page: currentPage,
+                limit: itemsPerPage,
+                search: searchTerm,
+                category: categoryFilter,
+                status: statusFilter,
+                queryParams: params.toString()
+            });
+
+            const response = await fetch(`/api/inventory/summary?${params.toString()}`);
+
+            if (!response.ok) {
+                throw new Error(`Failed to refresh inventory: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+                console.log('Inventory refresh successful:', {
+                    itemCount: data.data.length,
+                    pagination: data.pagination
+                });
+
+                setInventoryItems(data.data);
+                if (data.pagination) {
+                    setTotalPages(data.pagination.totalPages);
+                    setTotalItems(data.pagination.total);
+                }
+
+                // Update last refreshed timestamp
+                setLastRefreshed(new Date());
+            } else {
+                throw new Error(data.message || 'Failed to refresh inventory');
+            }
+        } catch (err) {
+            console.error('Error refreshing inventory:', err);
+            setError(err instanceof Error ? err.message : 'Failed to refresh inventory');
+        }
+    }, [currentPage, itemsPerPage, searchTerm, categoryFilter, statusFilter]);
+
+    // Setup auto-refresh timer
+    useEffect(() => {
+        // Clear any existing timer
+        if (autoRefreshTimerRef.current) {
+            clearInterval(autoRefreshTimerRef.current);
+            autoRefreshTimerRef.current = null;
+        }
+
+        // Set up new timer if enabled
+        if (autoRefreshEnabled) {
+            console.log(`Setting up auto-refresh every ${autoRefreshInterval} seconds`);
+
+            // Perform an immediate refresh when auto-refresh is enabled
+            refreshInventory();
+
+            autoRefreshTimerRef.current = setInterval(() => {
+                console.log('Auto-refreshing inventory data...');
+                refreshInventory();
+            }, autoRefreshInterval * 1000);
+        }
+
+        // Cleanup on unmount
+        return () => {
+            if (autoRefreshTimerRef.current) {
+                clearInterval(autoRefreshTimerRef.current);
+                autoRefreshTimerRef.current = null;
+            }
+        };
+    }, [autoRefreshEnabled, autoRefreshInterval, refreshInventory]);
+
+    // Expose the refresh function to parent components
+    useEffect(() => {
+        // Create a custom event listener for inventory refresh
+        const handleRefreshRequest = () => {
+            refreshInventory();
+        };
+
+        window.addEventListener('refresh-inventory', handleRefreshRequest);
+
+        return () => {
+            window.removeEventListener('refresh-inventory', handleRefreshRequest);
+        };
+    }, [refreshInventory]);
+
+    // Initial data refresh when component mounts
+    useEffect(() => {
+        console.log('Component mounted, performing initial data refresh');
+        refreshInventory();
+    }, []);
+
     return (
         <>
             {error && (
@@ -299,6 +482,47 @@ export default function InventoryClientWrapper({
                     {error}
                 </div>
             )}
+
+            {/* Auto-refresh controls */}
+            <div className="bg-tertiary p-4 rounded-lg shadow-sm border border-gray-200 mb-4">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                        <label className="flex items-center">
+                            <input
+                                type="checkbox"
+                                checked={autoRefreshEnabled}
+                                onChange={(e) => setAutoRefreshEnabled(e.target.checked)}
+                                className="rounded border-gray-300 text-primary focus:ring-primary mr-2"
+                            />
+                            <span className="text-sm font-medium text-gray-700">Auto-refresh</span>
+                        </label>
+                        <select
+                            value={autoRefreshInterval}
+                            onChange={(e) => setAutoRefreshInterval(parseInt(e.target.value))}
+                            disabled={!autoRefreshEnabled}
+                            className="bg-white border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-primary focus:border-primary p-1"
+                        >
+                            <option value="10">Every 10 seconds</option>
+                            <option value="30">Every 30 seconds</option>
+                            <option value="60">Every minute</option>
+                            <option value="300">Every 5 minutes</option>
+                        </select>
+                    </div>
+                    <div className="flex items-center">
+                        <div className={`w-2 h-2 rounded-full mr-2 ${autoRefreshEnabled ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
+                        <div className="text-xs text-gray-500">
+                            {autoRefreshEnabled ?
+                                `Auto-refreshing every ${autoRefreshInterval} seconds` :
+                                'Auto-refresh is disabled'}
+                            {lastRefreshed && (
+                                <span className="ml-2">
+                                    · Last refreshed: {lastRefreshed.toLocaleTimeString()}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             {/* Expanded Filter Panel */}
             {showFilterPanel && (
@@ -506,7 +730,10 @@ export default function InventoryClientWrapper({
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                            onClick={() => {
+                                setCurrentPage(prev => Math.max(prev - 1, 1));
+                                setTimeout(() => refreshInventory(), 100);
+                            }}
                             disabled={currentPage <= 1}
                         >
                             Previous
@@ -514,7 +741,10 @@ export default function InventoryClientWrapper({
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                            onClick={() => {
+                                setCurrentPage(prev => Math.min(prev + 1, totalPages));
+                                setTimeout(() => refreshInventory(), 100);
+                            }}
                             disabled={currentPage >= totalPages}
                         >
                             Next
@@ -536,8 +766,25 @@ export default function InventoryClientWrapper({
                                     className="bg-white border border-gray-300 text-black text-sm rounded-lg focus:ring-primary focus:border-primary p-1"
                                     value={itemsPerPage}
                                     onChange={(e) => {
-                                        setItemsPerPage(parseInt(e.target.value));
+                                        const newItemsPerPage = parseInt(e.target.value);
+                                        setItemsPerPage(newItemsPerPage);
                                         setCurrentPage(1); // Reset to first page when changing items per page
+
+                                        // Update URL and trigger refresh immediately
+                                        const params = new URLSearchParams(searchParams);
+                                        params.set('page', '1'); // Reset to page 1
+                                        params.set('limit', newItemsPerPage.toString());
+                                        if (searchTerm) params.set('search', searchTerm);
+                                        if (categoryFilter) params.set('category', categoryFilter);
+                                        if (statusFilter) params.set('status', statusFilter);
+
+                                        // Update URL and refresh data
+                                        router.push(`${pathname}?${params.toString()}`);
+
+                                        // Add a small delay to ensure state is updated before refresh
+                                        setTimeout(() => {
+                                            refreshInventory();
+                                        }, 100);
                                     }}
                                 >
                                     <option value="5">5</option>
@@ -553,7 +800,10 @@ export default function InventoryClientWrapper({
                                     variant="outline"
                                     size="sm"
                                     className="rounded-l-md"
-                                    onClick={() => setCurrentPage(1)}
+                                    onClick={() => {
+                                        setCurrentPage(1);
+                                        setTimeout(() => refreshInventory(), 100);
+                                    }}
                                     disabled={currentPage <= 1}
                                 >
                                     First
@@ -561,7 +811,10 @@ export default function InventoryClientWrapper({
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                    onClick={() => {
+                                        setCurrentPage(prev => Math.max(prev - 1, 1));
+                                        setTimeout(() => refreshInventory(), 100);
+                                    }}
                                     disabled={currentPage <= 1}
                                 >
                                     Previous
@@ -587,7 +840,10 @@ export default function InventoryClientWrapper({
                                                 key={pageNum}
                                                 variant={currentPage === pageNum ? "default" : "outline"}
                                                 size="sm"
-                                                onClick={() => setCurrentPage(pageNum)}
+                                                onClick={() => {
+                                                    setCurrentPage(pageNum);
+                                                    setTimeout(() => refreshInventory(), 100);
+                                                }}
                                                 className="mx-1"
                                             >
                                                 {pageNum}
@@ -599,7 +855,10 @@ export default function InventoryClientWrapper({
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                    onClick={() => {
+                                        setCurrentPage(prev => Math.min(prev + 1, totalPages));
+                                        setTimeout(() => refreshInventory(), 100);
+                                    }}
                                     disabled={currentPage >= totalPages}
                                 >
                                     Next
@@ -608,7 +867,10 @@ export default function InventoryClientWrapper({
                                     variant="outline"
                                     size="sm"
                                     className="rounded-r-md"
-                                    onClick={() => setCurrentPage(totalPages)}
+                                    onClick={() => {
+                                        setCurrentPage(totalPages);
+                                        setTimeout(() => refreshInventory(), 100);
+                                    }}
                                     disabled={currentPage >= totalPages}
                                 >
                                     Last

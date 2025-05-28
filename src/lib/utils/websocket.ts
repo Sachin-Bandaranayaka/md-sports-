@@ -155,4 +155,35 @@ export function emitPurchaseUpdate(data: any) {
     } else {
         console.log('Socket.IO not initialized, skipping purchase update');
     }
+}
+
+/**
+ * Emits an inventory level updated event with consistent payload structure
+ * @param productId The ID of the product being updated
+ * @param options Additional options for the update
+ */
+export function emitInventoryLevelUpdated(
+    productId: number,
+    options: {
+        shopId?: number;
+        newQuantity?: number;
+        newTotalStock?: number;
+        quantityChange?: number;
+        source?: string;
+    }
+) {
+    const io = getSocketIO();
+    if (io) {
+        // Ensure we have a consistent payload structure
+        const payload = {
+            productId,
+            timestamp: Date.now(),
+            ...options
+        };
+
+        io.emit(WEBSOCKET_EVENTS.INVENTORY_LEVEL_UPDATED, payload);
+        console.log(`Emitted inventory level updated event for product ID ${productId}`, payload);
+    } else {
+        console.log('Socket.IO not initialized, skipping inventory level update');
+    }
 } 

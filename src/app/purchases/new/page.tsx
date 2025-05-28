@@ -5,9 +5,15 @@ import NewPurchaseInvoiceForm from '@/components/purchases/NewPurchaseInvoiceFor
 import { Supplier, Product, Category, Shop } from '@/types'; // Ensure types are available
 import { Loader2, ArrowLeft } from 'lucide-react'; // Added ArrowLeft for potential use
 
+// Preload data for faster rendering
+export const dynamic = 'force-dynamic';
+
 async function fetchSuppliers(baseUrl: string): Promise<Supplier[]> {
     try {
-        const response = await fetch(`${baseUrl}/api/suppliers`, { next: { revalidate: 3600 } }); // Cache for 1 hour
+        const response = await fetch(`${baseUrl}/api/suppliers`, {
+            next: { revalidate: 3600 },  // Cache for 1 hour
+            cache: 'force-cache'         // Use cache when available
+        });
         if (!response.ok) {
             console.error(`Failed to fetch suppliers: ${response.status} ${await response.text()}`);
             return [];
@@ -22,7 +28,10 @@ async function fetchSuppliers(baseUrl: string): Promise<Supplier[]> {
 
 async function fetchProducts(baseUrl: string): Promise<Product[]> {
     try {
-        const response = await fetch(`${baseUrl}/api/products`, { cache: 'no-store' });
+        // Use incremental static regeneration for products with a 5-minute cache
+        const response = await fetch(`${baseUrl}/api/products`, {
+            next: { revalidate: 300 }  // Cache for 5 minutes
+        });
         if (!response.ok) {
             console.error(`Failed to fetch products: ${response.status} ${await response.text()}`);
             return [];
@@ -41,8 +50,11 @@ async function fetchProducts(baseUrl: string): Promise<Product[]> {
 
 async function fetchCategories(baseUrl: string): Promise<Category[]> {
     try {
-        const response = await fetch(`${baseUrl}/api/products/categories`, { next: { revalidate: 3600 } });
-            if (!response.ok) {
+        const response = await fetch(`${baseUrl}/api/products/categories`, {
+            next: { revalidate: 3600 },  // Cache for 1 hour
+            cache: 'force-cache'         // Use cache when available
+        });
+        if (!response.ok) {
             console.error(`Failed to fetch categories: ${response.status} ${await response.text()}`);
             return [];
         }
@@ -56,8 +68,11 @@ async function fetchCategories(baseUrl: string): Promise<Category[]> {
 
 async function fetchShops(baseUrl: string): Promise<Shop[]> {
     try {
-        const response = await fetch(`${baseUrl}/api/shops`, { next: { revalidate: 3600 } });
-            if (!response.ok) {
+        const response = await fetch(`${baseUrl}/api/shops`, {
+            next: { revalidate: 3600 },  // Cache for 1 hour
+            cache: 'force-cache'         // Use cache when available
+        });
+        if (!response.ok) {
             console.error(`Failed to fetch shops: ${response.status} ${await response.text()}`);
             return [];
         }
@@ -91,7 +106,7 @@ export default async function NewPurchaseInvoicePage() {
                         <ArrowLeft className="w-5 h-5 text-gray-600" />
                     </Link> */}
                     <h1 className="text-2xl font-bold text-gray-800">Create New Purchase Invoice</h1>
-                    </div>
+                </div>
                 <Suspense fallback={
                     <div className="flex flex-col justify-center items-center h-64">
                         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -105,7 +120,7 @@ export default async function NewPurchaseInvoicePage() {
                         initialShops={shops}
                     />
                 </Suspense>
-                </div>
+            </div>
         </MainLayout>
     );
 } 

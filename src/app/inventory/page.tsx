@@ -7,8 +7,8 @@ import InventoryClientWrapper from '@/components/inventory/InventoryClientWrappe
 import InventoryHeaderActions from '@/components/inventory/InventoryHeaderActions';
 // import { prisma } from '@/lib/prisma'; // Prisma direct call removed for categories
 
-// Add revalidation - cache inventory page for 60 seconds
-export const revalidate = 60;
+// Add revalidation - cache inventory page for 10 seconds (reduced from 60)
+export const revalidate = 10;
 
 // Define proper types for our data
 interface BranchStock {
@@ -83,7 +83,7 @@ export default async function Inventory({
     // Fetch inventory data with pagination and filters
     const inventoryResponse = await fetch(
         `${baseUrl}/api/inventory/summary?${queryParams.toString()}`,
-        { next: { revalidate: 60 } } // Revalidate every 60 seconds
+        { next: { revalidate: 10 } } // Revalidate every 10 seconds to match page revalidation time
     );
 
     let inventoryItems: InventoryItem[] = [];

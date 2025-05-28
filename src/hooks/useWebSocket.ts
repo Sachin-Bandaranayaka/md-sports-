@@ -19,6 +19,7 @@ export interface UseWebSocketResult {
     disconnect: () => void;
     subscribe: (event: string, callback: (data: any) => void) => () => void;
     emit: (event: string, data: any) => void;
+    reconnect: () => void;
 }
 
 export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketResult {
@@ -40,6 +41,78 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRes
 
     const callbacksRef = useRef<Map<string, Set<(data: any) => void>>>(new Map());
     const ownSocketRef = useRef<Socket | null>(null);
+    const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const reconnectAttemptsRef = useRef(0);
+    const maxReconnectAttempts = 10;
+
+    // Create own socket instance if needed
+    const createOwnSocketInstance = useCallback(() => {
+        console.log('useWebSocket: Creating new own socket instance');
+
+        // Clear any existing reconnect timer
+        if (reconnectTimerRef.current) {
+            clearTimeout(reconnectTimerRef.current);
+            reconnectTimerRef.current = null;
+        }
+
+        const socketInstance = io({
+            path: '/api/socketio',
+            reconnectionAttempts,
+            reconnectionDelay,
+            autoConnect: true,
+            transports: ['websocket', 'polling'],
+        });
+
+        ownSocketRef.current = socketInstance;
+        setSocketState(socketInstance);
+
+        // Set up event listeners
+        socketInstance.on('connect', () => {
+            console.log('useWebSocket: Own socket connected', socketInstance.id);
+            setIsConnected(true);
+            reconnectAttemptsRef.current = 0;
+        });
+
+        socketInstance.on('disconnect', (reason) => {
+            console.log(`useWebSocket: Own socket disconnected: ${reason}`, socketInstance.id);
+            setIsConnected(false);
+
+            // Try to reconnect for certain disconnect reasons
+            if (reason === 'io server disconnect' || reason === 'transport close') {
+                attemptReconnect();
+            }
+        });
+
+        socketInstance.on('connect_error', (error) => {
+            console.error('useWebSocket: Own socket connection error:', error);
+            setIsConnected(false);
+            attemptReconnect();
+        });
+
+        return socketInstance;
+    }, [reconnectionAttempts, reconnectionDelay]);
+
+    // Attempt reconnection with exponential backoff
+    const attemptReconnect = useCallback(() => {
+        if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
+            console.log('useWebSocket: Maximum reconnection attempts reached. Giving up.');
+            return;
+        }
+
+        reconnectAttemptsRef.current += 1;
+        const delay = Math.min(30000, reconnectionDelay * Math.pow(1.5, reconnectAttemptsRef.current));
+
+        console.log(`useWebSocket: Attempting to reconnect in ${delay}ms (attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts})...`);
+
+        reconnectTimerRef.current = setTimeout(() => {
+            console.log('useWebSocket: Reconnecting own socket now...');
+            if (ownSocketRef.current) {
+                ownSocketRef.current.close();
+                ownSocketRef.current = null;
+            }
+            createOwnSocketInstance();
+        }, delay);
+    }, [createOwnSocketInstance, reconnectionDelay]);
 
     useEffect(() => {
         if (shouldUseContextSocket) {
@@ -50,25 +123,21 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRes
 
         if (!autoConnect && !forceOwnConnection) return;
 
-        console.log('useWebSocket: Creating new own socket instance');
-        const socketInstance = io({
-            path: '/api/socketio',
-            reconnectionAttempts,
-            reconnectionDelay,
-            autoConnect: true,
-        });
-
-        ownSocketRef.current = socketInstance;
-        setSocketState(socketInstance);
+        const socketInstance = createOwnSocketInstance();
 
         return () => {
+            if (reconnectTimerRef.current) {
+                clearTimeout(reconnectTimerRef.current);
+                reconnectTimerRef.current = null;
+            }
+
             if (ownSocketRef.current) {
                 console.log('useWebSocket: Disconnecting own socket instance');
                 ownSocketRef.current.disconnect();
                 ownSocketRef.current = null;
             }
         };
-    }, [autoConnect, reconnectionAttempts, reconnectionDelay, forceOwnConnection, shouldUseContextSocket, contextSocket?.socket, contextSocket?.isConnected]);
+    }, [autoConnect, forceOwnConnection, shouldUseContextSocket, contextSocket?.socket, contextSocket?.isConnected, createOwnSocketInstance]);
 
     useEffect(() => {
         if (shouldUseContextSocket) {
@@ -201,6 +270,21 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRes
         }
     }, [shouldUseContextSocket]);
 
+    const reconnect = useCallback(() => {
+        if (shouldUseContextSocket) {
+            console.log('useWebSocket: Reconnecting via context socket');
+            contextSocket.reconnect();
+        } else if (ownSocketRef.current) {
+            console.log('useWebSocket: Reconnecting own socket');
+            reconnectAttemptsRef.current = 0;
+            if (ownSocketRef.current) {
+                ownSocketRef.current.close();
+                ownSocketRef.current = null;
+            }
+            createOwnSocketInstance();
+        }
+    }, [shouldUseContextSocket, contextSocket, createOwnSocketInstance]);
+
     const emit = useCallback((event: string, data: any) => {
         const currentSocket = socketState;
         if (currentSocket && isConnected) {
@@ -218,6 +302,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRes
         disconnect,
         subscribe,
         emit,
+        reconnect,
     };
 }
 

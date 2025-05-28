@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { smsService } from '@/services/smsService';
 import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
+import { emitInventoryLevelUpdated } from '@/lib/utils/websocket';
 
 export async function GET(
     request: Request,
@@ -304,12 +305,10 @@ export async function PUT(
         const io = getSocketIO();
         if (io && inventoryUpdatesForEvent.length > 0) {
             inventoryUpdatesForEvent.forEach(update => {
-                // If shopId is not defined here, the client needs to handle this as a general product update
-                io.emit(WEBSOCKET_EVENTS.INVENTORY_LEVEL_UPDATED, {
-                    productId: update.productId,
-                    shopId: update.shopId, // This may be undefined
-                    quantityChange: update.quantityChange, // Sending the delta
-                    // newQuantity/oldQuantity for specific shop is hard to get without full inventory query here
+                // Use the new consistent function for inventory updates
+                emitInventoryLevelUpdated(update.productId, {
+                    shopId: update.shopId,
+                    quantityChange: update.quantityChange,
                     source: 'sales_invoice_update'
                 });
             });

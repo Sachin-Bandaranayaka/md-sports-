@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
-import { Search, Plus, Edit, Trash, FileText, ExternalLink, Calendar, DollarSign, X } from 'lucide-react';
+import { Search, Plus, Edit, Trash, FileText, ExternalLink, Calendar, DollarSign, X, RefreshCw } from 'lucide-react';
 import { PurchaseInvoice, Supplier } from '@/types';
-import MainLayout from '@/components/layout/MainLayout'; // Keep MainLayout here for now, or move to parent Server Component
+import { usePurchaseUpdates } from '@/hooks/useWebSocket';
+import { WEBSOCKET_EVENTS } from '@/lib/websocket';
 
 // Status badge colors (can be utility)
 const getStatusBadgeClass = (status: string) => {
@@ -42,6 +43,9 @@ export default function PurchaseListClient({
     const [suppliers, setSuppliers] = useState<Supplier[]>(initialSuppliers);
     const [loading, setLoading] = useState<boolean>(false); // Initial load handled by server
     const [error, setError] = useState<string | null>(null);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [isWebSocketUpdate, setIsWebSocketUpdate] = useState(false);
+    const [lastRefreshed, setLastRefreshed] = useState<Date | null>(new Date());
 
     const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
     const [currentPage, setCurrentPage] = useState(initialCurrentPage);
@@ -69,12 +73,94 @@ export default function PurchaseListClient({
 
     // Update state if initial props change (e.g. due to navigation)
     useEffect(() => {
-        setPurchaseInvoices(initialPurchaseInvoices);
-        setSuppliers(initialSuppliers);
-        setTotalPages(initialTotalPages);
-        setCurrentPage(initialCurrentPage);
-        setSearchTerm(searchParams.get('search') || '');
-    }, [initialPurchaseInvoices, initialSuppliers, initialTotalPages, initialCurrentPage, searchParams]);
+        if (!isWebSocketUpdate) {
+            setPurchaseInvoices(initialPurchaseInvoices);
+            setSuppliers(initialSuppliers);
+            setTotalPages(initialTotalPages);
+            setCurrentPage(initialCurrentPage);
+            setSearchTerm(searchParams.get('search') || '');
+            setLastRefreshed(new Date());
+        }
+        setIsWebSocketUpdate(false);
+    }, [initialPurchaseInvoices, initialSuppliers, initialTotalPages, initialCurrentPage, searchParams, isWebSocketUpdate]);
+
+    // WebSocket handler for purchase updates
+    const handlePurchaseUpdate = useCallback((eventData: any) => {
+        console.log('Received purchase update via WebSocket:', eventData);
+        setIsWebSocketUpdate(true);
+
+        const { type, ...payload } = eventData;
+
+        if (type === WEBSOCKET_EVENTS.PURCHASE_INVOICE_CREATED && payload.invoice) {
+            console.log('Adding new purchase invoice to list:', payload.invoice);
+            setPurchaseInvoices(prev => {
+                // Add to beginning of list if on first page
+                if (currentPage === 1) {
+                    return [payload.invoice, ...prev];
+                }
+                return prev;
+            });
+            setLastRefreshed(new Date());
+        } else if (type === WEBSOCKET_EVENTS.PURCHASE_INVOICE_UPDATED && payload.invoice) {
+            console.log('Updating purchase invoice in list:', payload.invoice);
+            setPurchaseInvoices(prev =>
+                prev.map(invoice => invoice.id === payload.invoice.id ? payload.invoice : invoice)
+            );
+            setLastRefreshed(new Date());
+        } else if (type === WEBSOCKET_EVENTS.PURCHASE_INVOICE_DELETED && payload.id) {
+            console.log('Removing purchase invoice from list:', payload.id);
+            setPurchaseInvoices(prev => prev.filter(invoice => invoice.id !== payload.id));
+            setLastRefreshed(new Date());
+        }
+    }, [currentPage]);
+
+    // Subscribe to purchase updates via WebSocket
+    usePurchaseUpdates(handlePurchaseUpdate);
+
+    // Function to manually refresh data
+    const refreshData = useCallback(async () => {
+        try {
+            setIsRefreshing(true);
+            setError(null);
+
+            // Build query parameters
+            const params = new URLSearchParams(searchParams);
+            params.set('_t', Date.now().toString()); // Add timestamp to bust cache
+
+            console.log('Manually refreshing purchase invoices...');
+
+            const response = await fetch(`/api/purchases?${params.toString()}`);
+
+            if (!response.ok) {
+                throw new Error(`Failed to refresh: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.data) {
+                setPurchaseInvoices(data.data || []);
+                if (data.pagination) {
+                    setTotalPages(data.pagination.totalPages);
+                    setCurrentPage(data.pagination.page);
+                }
+                setLastRefreshed(new Date());
+            } else if (data.error && data.error.message) {
+                throw new Error(data.error.message);
+            } else {
+                throw new Error('Failed to refresh data due to an unknown error structure');
+            }
+        } catch (err) {
+            console.error('Error refreshing data:', err);
+            setError(err instanceof Error ? err.message : 'Failed to refresh data');
+        } finally {
+            setIsRefreshing(false);
+        }
+    }, [searchParams]);
+
+    // Auto-refresh when page loads - REMOVED as initial props should be sufficient
+    // useEffect(() => {
+    //     refreshData();
+    // }, []);
 
     const handlePageChange = (newPage: number) => {
         const params = new URLSearchParams(searchParams);
@@ -103,7 +189,9 @@ export default function PurchaseListClient({
 
                 if (!response.ok) {
                     const errorData = await response.json();
-                    throw new Error(errorData.message || 'Failed to delete purchase invoice');
+                    // Expect standardized error: { error: { message: "..." } }
+                    const message = errorData.error?.message || 'Failed to delete purchase invoice';
+                    throw new Error(message);
                 }
                 // Refetch or update list
                 // For simplicity, we can router.refresh() or fetch current page data again
@@ -136,7 +224,9 @@ export default function PurchaseListClient({
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to save invoice');
+                // Expect standardized error: { error: { message: "..." } }
+                const message = errorData.error?.message || 'Failed to save invoice';
+                throw new Error(message);
             }
 
             const savedInvoice = await response.json();
@@ -217,12 +307,29 @@ export default function PurchaseListClient({
                     <p className="text-gray-500">Manage your purchase invoices and supplier orders</p>
                 </div>
                 <div className="flex gap-3">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={refreshData}
+                        disabled={isRefreshing}
+                    >
+                        <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                        {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                    </Button>
                     <Button variant="primary" size="sm" onClick={handleAddInvoice}>
                         <Plus className="w-4 h-4 mr-2" />
                         New Purchase Invoice
                     </Button>
                 </div>
             </div>
+
+            {/* Last refreshed indicator */}
+            {lastRefreshed && (
+                <div className="text-xs text-gray-500 mb-2 flex items-center">
+                    <div className={`w-2 h-2 rounded-full mr-2 bg-green-500`}></div>
+                    Last refreshed: {lastRefreshed.toLocaleTimeString()}
+                </div>
+            )}
 
             {/* Search bar */}
             <div className="bg-tertiary p-4 rounded-lg shadow-sm border border-gray-200 mb-6">

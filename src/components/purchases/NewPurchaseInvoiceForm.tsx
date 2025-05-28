@@ -208,55 +208,80 @@ export default function NewPurchaseInvoiceForm({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError(null);
+
         if (!formData.supplierId) {
-            setError("Please select a supplier.");
+            setError('Please select a supplier.');
             return;
         }
+
         if (!formData.items || formData.items.length === 0) {
-            setError("Please add at least one item to the invoice.");
+            setError('Please add at least one item to the invoice.');
             return;
         }
-        for (let i = 0; i < formData.items.length; i++) {
-            const item = formData.items[i];
-            if (!item.productId || Number(item.quantity) <= 0 || Number(item.price) < 0) {
-                setError(`Please ensure all fields for item #${i + 1} (Product, valid Quantity, valid Price) are correctly filled.`);
-                return;
-            }
-            const distributedAmount = getTotalDistributedForItem(i);
-            if (distributedAmount > Number(item.quantity)) {
-                setError(`Distributed quantity for ${item.productName || `item #${i + 1}`} (${distributedAmount}) exceeds item quantity (${item.quantity}).`);
-                return;
-            }
+
+        // Validate all items have valid products and quantities
+        const invalidItems = (formData.items || []).filter(item =>
+            !item.productId || !item.quantity || item.quantity <= 0 || !item.price || item.price <= 0
+        );
+
+        if (invalidItems.length > 0) {
+            setError('Please ensure all items have a product, quantity, and price.');
+            return;
         }
 
         setSubmitting(true);
-        const submissionData = {
-            ...formData,
-            items: formData.items.map(item => ({
-                productId: item.productId,
-                quantity: Number(item.quantity),
-                price: Number(item.price)
-            })),
-            distributions: itemDistributions,
-            totalAmount: formData.totalAmount || 0,
-            paidAmount: formData.paidAmount || 0,
-        };
+        setError(null);
 
         try {
+            // Prepare the data with proper types
+            const preparedData = {
+                ...formData,
+                items: formData.items?.map(item => ({
+                    ...item,
+                    quantity: Number(item.quantity),
+                    price: Number(item.price),
+                })),
+                totalAmount: Number(formData.totalAmount),
+                paidAmount: Number(formData.paidAmount || 0),
+            };
+
+            // Add distribution data if available
+            const itemDistributions: Record<string, Record<string, number>> = {};
+            formData.items?.forEach((item, index) => {
+                if (item.productId && itemDistributions[index]) {
+                    itemDistributions[item.productId] = itemDistributions[index];
+                }
+            });
+
+            if (Object.keys(itemDistributions).length > 0) {
+                // @ts-ignore
+                preparedData.itemDistributions = itemDistributions;
+            }
+
+            console.log('Submitting purchase invoice:', preparedData);
+
             const response = await fetch('/api/purchases', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(submissionData)
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(preparedData),
             });
+
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error || errorData.message || 'Failed to create purchase invoice');
+                throw new Error(errorData.message || errorData.error || 'Failed to create purchase invoice');
             }
-            // alert('Purchase invoice created successfully!'); // Consider using a less disruptive notification
-            router.push('/purchases?status=success&action=create');
-        } catch (err: any) {
-            setError(err.message || 'An unexpected error occurred.');
+
+            const createdInvoice = await response.json();
+            console.log('Purchase invoice created:', createdInvoice);
+
+            // Redirect to the purchase invoices list with a success parameter
+            router.push('/purchases?success=true&action=created&id=' + createdInvoice.id);
+
+        } catch (err) {
+            console.error('Error creating purchase invoice:', err);
+            setError(err instanceof Error ? err.message : 'An unexpected error occurred');
         } finally {
             setSubmitting(false);
         }

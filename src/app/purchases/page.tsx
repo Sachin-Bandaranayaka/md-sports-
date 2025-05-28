@@ -4,8 +4,8 @@ import MainLayout from '@/components/layout/MainLayout';
 import PurchaseListClient from '@/components/purchases/PurchaseListClient';
 import { PurchaseInvoice, Supplier } from '@/types'; // Ensure types are available
 
-// Add revalidation - cache purchases page for 60 seconds
-export const revalidate = 60;
+// Reduce revalidation time from 60 to 10 seconds for faster updates
+export const revalidate = 10;
 
 const ITEMS_PER_PAGE = 10; // Define how many items per page
 
@@ -21,8 +21,12 @@ async function fetchPurchaseInvoices(baseUrl: string, page: number, limit: numbe
     if (endDate) queryParams.append('endDate', endDate);
 
     try {
+        // Add timestamp to bust cache and ensure fresh data
+        queryParams.append('_t', Date.now().toString());
+
         const response = await fetch(`${baseUrl}/api/purchases?${queryParams.toString()}`, {
-            cache: 'no-store',
+            cache: 'no-store', // Never cache this request
+            next: { revalidate: 0 } // Force revalidation on each request
         });
 
         if (!response.ok) {

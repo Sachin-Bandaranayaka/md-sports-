@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
+import { emitInventoryLevelUpdated } from '@/lib/utils/websocket';
 
 // GET /api/purchases - Get all purchase invoices
 export async function GET(request: NextRequest) {
@@ -108,8 +109,9 @@ export async function GET(request: NextRequest) {
         });
     } catch (error) {
         console.error('Error fetching purchase invoices:', error);
+        const message = error instanceof Error ? error.message : 'An unknown error occurred';
         return NextResponse.json(
-            { error: 'Failed to fetch purchase invoices' },
+            { error: { message: 'Failed to fetch purchase invoices', details: message } },
             { status: 500 }
         );
     }
@@ -349,17 +351,14 @@ export async function POST(request: NextRequest) {
                 where: { id: purchase.createdInvoice.id },
                 include: { supplier: true, items: { include: { product: true } } }
             });
-            io.emit(WEBSOCKET_EVENTS.PURCHASE_INVOICE_CREATED, fullPurchaseInvoice);
+            io.emit(WEBSOCKET_EVENTS.PURCHASE_INVOICE_CREATED, { invoice: fullPurchaseInvoice });
 
             // Emit inventory level updates
             if (purchase.inventoryUpdates && purchase.inventoryUpdates.length > 0) {
                 purchase.inventoryUpdates.forEach(update => {
-                    io.emit(WEBSOCKET_EVENTS.INVENTORY_LEVEL_UPDATED, {
-                        productId: update.productId,
+                    emitInventoryLevelUpdated(update.productId, {
                         shopId: update.shopId,
-                        // You might want to send the absolute new quantity or the change
-                        // Sending absolute new quantity is often simpler for client to update state
-                        newQuantity: update.newQuantity, // Assuming this is the final new quantity
+                        newQuantity: update.newQuantity,
                         source: 'purchase_creation'
                     });
                 });
@@ -367,12 +366,17 @@ export async function POST(request: NextRequest) {
             console.log('Emitted PURCHASE_INVOICE_CREATED and INVENTORY_LEVEL_UPDATED events');
         }
 
-        return NextResponse.json(purchase.createdInvoice, { status: 201 });
+        return NextResponse.json({
+            success: true,
+            message: 'Purchase invoice created successfully',
+            data: purchase.createdInvoice,
+            id: purchase.createdInvoice.id
+        }, { status: 201 });
     } catch (error) {
         console.error('Error creating purchase invoice:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const details = error instanceof Error ? error.message : 'An unknown error occurred';
         return NextResponse.json(
-            { error: 'Failed to create purchase invoice', details: errorMessage },
+            { error: { message: 'Failed to create purchase invoice', details: details } },
             { status: 500 }
         );
     }
