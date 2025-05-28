@@ -431,16 +431,16 @@ export default function ProductDetail() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                                 <h3 className="text-sm font-medium text-black">Retail Price</h3>
-                                <p className="text-2xl font-bold mt-1">Rs. {product.retailPrice.toLocaleString()}</p>
+                                <p className="text-2xl font-bold mt-1 text-black">Rs. {product.retailPrice.toLocaleString()}</p>
                             </div>
                             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                                 <h3 className="text-sm font-medium text-black">Weighted Average Cost</h3>
-                                <p className="text-2xl font-bold mt-1">Rs. {product.weightedAverageCost.toLocaleString()}</p>
-                                <div className="mt-2 text-sm text-black">Margin: {Math.round((product.retailPrice - product.weightedAverageCost) / product.weightedAverageCost * 100)}%</div>
+                                <p className="text-2xl font-bold mt-1 text-black">Rs. {product.weightedAverageCost.toLocaleString()}</p>
+                                <div className="mt-2 text-sm text-black">Margin: {product.weightedAverageCost > 0 ? Math.round(((product.retailPrice - product.weightedAverageCost) / product.weightedAverageCost) * 100) : 'N/A'}%</div>
                             </div>
                             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                                 <h3 className="text-sm font-medium text-black">Total Stock</h3>
-                                <p className="text-2xl font-bold mt-1">{product.stock} units</p>
+                                <p className="text-2xl font-bold mt-1 text-black">{product.stock} units</p>
                                 <div className="mt-2 text-sm text-black">Across {product.branchStock.length} locations</div>
                             </div>
                         </div>
