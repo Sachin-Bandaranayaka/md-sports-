@@ -1,11 +1,8 @@
 import { Suspense } from 'react';
 import { headers } from 'next/headers';
 import MainLayout from '@/components/layout/MainLayout';
-// import { Package, Filter, Store, ArrowUpDown, PlusCircle, ShoppingBag } from 'lucide-react'; // Icons seem unused directly here
-// import { Button } from '@/components/ui/Button'; // Button seem unused directly here
 import InventoryClientWrapper from '@/components/inventory/InventoryClientWrapper';
 import InventoryHeaderActions from '@/components/inventory/InventoryHeaderActions';
-// import { prisma } from '@/lib/prisma'; // Prisma direct call removed for categories
 
 // Add revalidation - cache inventory page for 10 seconds (reduced from 60)
 export const revalidate = 10;
@@ -34,6 +31,14 @@ interface Category {
     name: string;
 }
 
+interface InventorySearchParams {
+    page?: string;
+    limit?: string;
+    search?: string;
+    category?: string;
+    status?: string;
+}
+
 async function fetchCategories(baseUrl: string) {
     try {
         const categoriesResponse = await fetch(`${baseUrl}/api/categories`, {
@@ -54,7 +59,7 @@ async function fetchCategories(baseUrl: string) {
 export default async function Inventory({
     searchParams: passedSearchParams
 }: {
-    searchParams: any
+    searchParams: InventorySearchParams
 }) {
     const headersList = await headers();
     const host = headersList.get('host') || 'localhost:3000';

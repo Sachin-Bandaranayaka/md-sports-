@@ -401,7 +401,7 @@ export async function DELETE(
             }
 
             // Payment deletion - uncommented to delete associated payments
-            await tx.payment.deleteMany({ where: { purchaseInvoiceId: purchaseId } });
+            // await tx.payment.deleteMany({ where: { purchaseInvoiceId: purchaseId } });
 
             await tx.purchaseInvoiceItem.deleteMany({ where: { purchaseInvoiceId: purchaseId } });
             console.log(`Deleted items for purchase invoice ${purchaseId}`);

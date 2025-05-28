@@ -7,6 +7,7 @@ import { Search, Plus, Edit, Trash, FileText, ExternalLink, Calendar, DollarSign
 import { PurchaseInvoice, Supplier } from '@/types';
 import { usePurchaseUpdates } from '@/hooks/useWebSocket';
 import { WEBSOCKET_EVENTS } from '@/lib/websocket';
+import { toast } from 'sonner';
 
 // Status badge colors (can be utility)
 const getStatusBadgeClass = (status: string) => {
@@ -51,6 +52,12 @@ export default function PurchaseListClient({
     const [currentPage, setCurrentPage] = useState(initialCurrentPage);
     const [totalPages, setTotalPages] = useState(initialTotalPages);
 
+    // New filter states
+    const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
+    const [supplierFilter, setSupplierFilter] = useState(searchParams.get('supplierId') || '');
+    const [startDateFilter, setStartDateFilter] = useState(searchParams.get('startDate') || '');
+    const [endDateFilter, setEndDateFilter] = useState(searchParams.get('endDate') || '');
+
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [showAddEditModal, setShowAddEditModal] = useState(false);
     const [selectedInvoice, setSelectedInvoice] = useState<PurchaseInvoice | null>(null);
@@ -71,6 +78,23 @@ export default function PurchaseListClient({
         return () => clearTimeout(handler);
     }, [searchTerm, router, pathname, searchParams]);
 
+    // useEffect to update URL when filters change
+    useEffect(() => {
+        const params = new URLSearchParams(searchParams);
+        if (statusFilter) params.set('status', statusFilter); else params.delete('status');
+        if (supplierFilter) params.set('supplierId', supplierFilter); else params.delete('supplierId');
+        if (startDateFilter) params.set('startDate', startDateFilter); else params.delete('startDate');
+        if (endDateFilter) params.set('endDate', endDateFilter); else params.delete('endDate');
+
+        // Reset to page 1 when filters change, except for initial load or if only page changes
+        const currentPathQuery = `?${params.toString()}`;
+        if (pathname + currentPathQuery !== window.location.pathname + window.location.search) {
+            params.set('page', '1');
+        }
+
+        router.replace(`${pathname}?${params.toString()}`);
+    }, [statusFilter, supplierFilter, startDateFilter, endDateFilter, router, pathname, searchParams]);
+
     // Update state if initial props change (e.g. due to navigation)
     useEffect(() => {
         if (!isWebSocketUpdate) {
@@ -79,6 +103,11 @@ export default function PurchaseListClient({
             setTotalPages(initialTotalPages);
             setCurrentPage(initialCurrentPage);
             setSearchTerm(searchParams.get('search') || '');
+            // Initialize new filters from searchParams as well
+            setStatusFilter(searchParams.get('status') || '');
+            setSupplierFilter(searchParams.get('supplierId') || '');
+            setStartDateFilter(searchParams.get('startDate') || '');
+            setEndDateFilter(searchParams.get('endDate') || '');
             setLastRefreshed(new Date());
         }
         setIsWebSocketUpdate(false);
@@ -197,7 +226,7 @@ export default function PurchaseListClient({
                 // For simplicity, we can router.refresh() or fetch current page data again
                 // Or, filter out locally if no server-side changes are expected to affect current view significantly
                 setPurchaseInvoices(purchaseInvoices.filter(invoice => invoice.id !== id));
-                alert('Invoice deleted successfully.');
+                toast.success('Invoice deleted successfully.');
             } catch (err: any) {
                 console.error('Error deleting purchase invoice:', err);
                 setError(err.message || 'Failed to delete purchase invoice. Please try again.');
@@ -240,7 +269,7 @@ export default function PurchaseListClient({
             setShowAddEditModal(false);
             setIsEditMode(false);
             setSelectedInvoice(null);
-            alert(`Invoice ${isEditMode ? 'updated' : 'created'} successfully.`);
+            toast.success(`Invoice ${isEditMode ? 'updated' : 'created'} successfully.`);
 
         } catch (err: any) {
             console.error('Error saving invoice:', err);
@@ -343,6 +372,60 @@ export default function PurchaseListClient({
                         placeholder="Search invoices by number, supplier or status..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+            </div>
+
+            {/* Filter Controls */}
+            <div className="bg-tertiary p-4 rounded-lg shadow-sm border border-gray-200 mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                    <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select
+                        id="status-filter"
+                        className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                    >
+                        <option value="">All Statuses</option>
+                        <option value="paid">Paid</option>
+                        <option value="partial">Partial</option>
+                        <option value="unpaid">Unpaid</option>
+                        <option value="overdue">Overdue</option>
+                        {/* Add other statuses if they exist */}
+                    </select>
+                </div>
+                <div>
+                    <label htmlFor="supplier-filter" className="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
+                    <select
+                        id="supplier-filter"
+                        className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                        value={supplierFilter}
+                        onChange={(e) => setSupplierFilter(e.target.value)}
+                    >
+                        <option value="">All Suppliers</option>
+                        {suppliers.map(supplier => (
+                            <option key={supplier.id} value={supplier.id!.toString()}>{supplier.name}</option>
+                        ))}
+                    </select>
+                </div>
+                <div>
+                    <label htmlFor="start-date-filter" className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                    <input
+                        type="date"
+                        id="start-date-filter"
+                        className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                        value={startDateFilter}
+                        onChange={(e) => setStartDateFilter(e.target.value)}
+                    />
+                </div>
+                <div>
+                    <label htmlFor="end-date-filter" className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                    <input
+                        type="date"
+                        id="end-date-filter"
+                        className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                        value={endDateFilter}
+                        onChange={(e) => setEndDateFilter(e.target.value)}
                     />
                 </div>
             </div>

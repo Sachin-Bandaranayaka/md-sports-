@@ -28,10 +28,11 @@ export default function LoginPage() {
         const formData = new FormData(e.currentTarget);
         const email = formData.get('email') as string;
         const password = formData.get('password') as string;
+        const rememberMe = formData.get('remember-me') === 'on';
 
         // Try the auth login using the useAuth hook
         try {
-            const success = await login(email, password);
+            const success = await login(email, password, rememberMe);
             if (success) {
                 router.push('/dashboard');
             } else {

@@ -20,7 +20,7 @@ interface AuthContextType {
     user: User | null;
     loading: boolean;
     error: string | null;
-    login: (email: string, password: string) => Promise<void>;
+    login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
     logout: () => void;
 }
 
@@ -43,7 +43,11 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                const token = localStorage.getItem('authToken');
+                let token = localStorage.getItem('authToken');
+                if (!token) {
+                    token = sessionStorage.getItem('authToken');
+                }
+
                 if (!token) {
                     // No token found, user is not authenticated
                     setUser(null);
@@ -60,6 +64,7 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
                 } else {
                     // Invalid token
                     localStorage.removeItem('authToken');
+                    sessionStorage.removeItem('authToken');
                     setUser(null);
                 }
             } catch (err) {
@@ -73,7 +78,7 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
         checkAuth();
     }, []);
 
-    const login = async (email: string, password: string) => {
+    const login = async (email: string, password: string, rememberMe: boolean = false) => {
         setLoading(true);
         setError(null);
         try {
@@ -81,7 +86,11 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
 
             const data = await response.json();
             if (data.success && data.token) {
-                localStorage.setItem('authToken', data.token);
+                if (rememberMe) {
+                    localStorage.setItem('authToken', data.token);
+                } else {
+                    sessionStorage.setItem('authToken', data.token);
+                }
                 setUser(data.user);
                 router.push('/dashboard');
             } else {
@@ -96,6 +105,7 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
 
     const logout = () => {
         localStorage.removeItem('authToken');
+        sessionStorage.removeItem('authToken');
         setUser(null);
         router.push('/login');
     };

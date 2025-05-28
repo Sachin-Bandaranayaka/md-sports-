@@ -5,6 +5,8 @@ import { AuthProvider } from '@/hooks/useAuth';
 import ApiInitializer from '@/components/ApiInitializer';
 import DevTools from '@/components/DevTools';
 import { ChatbotWrapper } from '@/components/chatbot/ChatbotWrapper';
+import { Toaster } from 'sonner';
+import { ThemeProvider } from 'next-themes';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -21,10 +23,13 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <AuthProvider>
-          <ApiInitializer />
-          {children}
-          <ChatbotWrapper />
-          <DevTools />
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            <Toaster />
+            <ApiInitializer />
+            {children}
+            <ChatbotWrapper />
+            <DevTools />
+          </ThemeProvider>
         </AuthProvider>
       </body>
     </html>

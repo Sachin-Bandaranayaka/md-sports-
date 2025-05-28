@@ -191,55 +191,60 @@ export default function InventoryClientWrapper({
         } else if (type === WEBSOCKET_EVENTS.INVENTORY_LEVEL_UPDATED && payload.productId) {
             console.log('Handling INVENTORY_LEVEL_UPDATED (memoized):', payload);
 
-            // Find the current item to update
-            const currentItem = inventoryItems.find(item => item.id === payload.productId);
-            if (!currentItem) {
-                console.warn(`Item with ID ${payload.productId} not found in current inventory items.`);
-                return;
-            }
-
-            // Get or create pending update for this product
-            const existingUpdate = pendingUpdatesRef.current.get(payload.productId) || {
-                ...currentItem,
-                branchStock: [...currentItem.branchStock]
-            };
-
-            // Update the pending update with new data
-            if (payload.shopId !== undefined && payload.newQuantity !== undefined) {
-                const branchIndex = existingUpdate.branchStock.findIndex(
-                    (bs: any) => bs.shopId === payload.shopId
-                );
-
-                if (branchIndex !== -1) {
-                    existingUpdate.branchStock[branchIndex] = {
-                        ...existingUpdate.branchStock[branchIndex],
-                        quantity: payload.newQuantity
-                    };
-                } else {
-                    existingUpdate.branchStock.push({
-                        shopId: payload.shopId,
-                        shopName: `Shop ${payload.shopId}`,
-                        quantity: payload.newQuantity
-                    });
+            // Use the updater function for setInventoryItems to access the latest inventoryItems
+            setInventoryItems(prevInventoryItems => {
+                const currentItem = prevInventoryItems.find(item => item.id === payload.productId);
+                if (!currentItem) {
+                    console.warn(`Item with ID ${payload.productId} not found in current inventory items.`);
+                    return prevInventoryItems; // Return previous state if item not found
                 }
 
-                // Recalculate total stock
-                existingUpdate.stock = existingUpdate.branchStock.reduce(
-                    (sum: number, bs: any) => sum + bs.quantity, 0
-                );
-            } else if (payload.newTotalStock !== undefined) {
-                existingUpdate.stock = payload.newTotalStock;
-            } else if (payload.quantityChange !== undefined) {
-                existingUpdate.stock = existingUpdate.stock + payload.quantityChange;
-            }
+                // Get or create pending update for this product
+                // Note: pendingUpdatesRef.current still refers to the ref, which is stable.
+                const existingUpdate = pendingUpdatesRef.current.get(payload.productId) || {
+                    ...currentItem,
+                    branchStock: [...currentItem.branchStock]
+                };
 
-            // Store the pending update
-            pendingUpdatesRef.current.set(payload.productId, existingUpdate);
+                // Update the pending update with new data
+                if (payload.shopId !== undefined && payload.newQuantity !== undefined) {
+                    const branchIndex = existingUpdate.branchStock.findIndex(
+                        (bs: any) => bs.shopId === payload.shopId
+                    );
+
+                    if (branchIndex !== -1) {
+                        existingUpdate.branchStock[branchIndex] = {
+                            ...existingUpdate.branchStock[branchIndex],
+                            quantity: payload.newQuantity
+                        };
+                    } else {
+                        existingUpdate.branchStock.push({
+                            shopId: payload.shopId,
+                            shopName: `Shop ${payload.shopId}`, // Consider fetching actual shop name if available
+                            quantity: payload.newQuantity
+                        });
+                    }
+
+                    // Recalculate total stock
+                    existingUpdate.stock = existingUpdate.branchStock.reduce(
+                        (sum: number, bs: any) => sum + bs.quantity, 0
+                    );
+                } else if (payload.newTotalStock !== undefined) {
+                    existingUpdate.stock = payload.newTotalStock;
+                } else if (payload.quantityChange !== undefined) {
+                    // Ensure stock does not go below zero due to quantityChange
+                    existingUpdate.stock = Math.max(0, existingUpdate.stock + payload.quantityChange);
+                }
+
+                // Store the pending update
+                pendingUpdatesRef.current.set(payload.productId, existingUpdate);
+                return prevInventoryItems; // Return previous state, debounce will handle the actual update
+            });
 
         } else {
             console.log('Received unhandled WebSocket event type or payload (memoized):', type, payload);
         }
-    }, [currentPage, itemsPerPage, totalItems, inventoryItems, WEBSOCKET_EVENTS]);
+    }, [currentPage, itemsPerPage, totalItems, WEBSOCKET_EVENTS, processPendingUpdates]); // Removed inventoryItems, added processPendingUpdates
 
     // Subscribe to inventory updates via WebSocket
     useInventoryUpdates(handleInventoryUpdate);
@@ -300,7 +305,7 @@ export default function InventoryClientWrapper({
 
         // Trigger a data refresh when pagination or filters change
         refreshInventory();
-    }, [currentPage, itemsPerPage, searchTerm, categoryFilter, statusFilter, pathname, router, searchParams, refreshInventory]);
+    }, [currentPage, itemsPerPage, searchTerm, categoryFilter, statusFilter, pathname, router, searchParams]);
 
     // Listen for filter panel toggle event from header actions
     useEffect(() => {
