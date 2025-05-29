@@ -97,29 +97,54 @@ export default function MainLayout({ children }: MainLayoutProps) {
     // Check if user has the required permission for a menu item
     const hasPermission = (requiredPermission?: string): boolean => {
         if (!requiredPermission) return true; // No permission required
-        if (!user?.permissions) return false; // No permissions available
 
-        return user.permissions.includes(requiredPermission);
+        // --- Start of new logging ---
+        console.log(
+            '[MainLayout] Checking permission. Required:',
+            requiredPermission,
+            'User object:',
+            JSON.parse(JSON.stringify(user || null)), // Deep copy for better logging
+            'User permissions array:',
+            user?.permissions
+        );
+        // --- End of new logging ---
+
+        if (!user?.permissions) {
+            console.log('[MainLayout] User has no permissions array or user is null.');
+            return false; // No permissions available
+        }
+
+        const hasPerm = user.permissions.includes(requiredPermission);
+        console.log('[MainLayout] Permission check result for ', requiredPermission, ':', hasPerm);
+        return hasPerm;
     };
 
     // Filter navigation items based on user permissions
     const getAuthorizedNavItems = () => {
-        return navItems.filter(item => {
+        return navItems.map(item => {
+            // ---- START TEST ----
+            if (item.href === '/settings') {
+                console.log("[MainLayout] TEST: Forcing Settings to be included");
+                return item; // Always include settings for this test
+            }
+            // ---- END TEST ----
+
             const itemAccess = hasPermission(item.requiredPermission);
 
             // Handle items with children
             if (item.children) {
-                // Filter child items that user has permission to access
                 const authorizedChildren = item.children.filter(child =>
                     hasPermission(child.requiredPermission)
                 );
-
-                // Only show parent if there are accessible children or parent itself is accessible
-                return authorizedChildren.length > 0 && itemAccess;
+                // Only show parent if there are accessible children AND parent itself is accessible
+                if (authorizedChildren.length > 0 && itemAccess) {
+                    return { ...item, children: authorizedChildren };
+                }
+                return null; // Don't include parent if it's not accessible or no children are
             }
 
-            return itemAccess;
-        });
+            return itemAccess ? item : null;
+        }).filter(Boolean as any); // Filter out null values
     };
 
     const authorizedNavItems = getAuthorizedNavItems();

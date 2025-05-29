@@ -171,7 +171,11 @@ export const getUserFromDecodedPayload = async (payload: TokenPayload | null) =>
             },
             include: {
                 role: {
-                    select: { name: true }
+                    include: {
+                        permissions: {
+                            select: { name: true }
+                        }
+                    }
                 }
             }
         });
@@ -186,7 +190,7 @@ export const getUserFromDecodedPayload = async (payload: TokenPayload | null) =>
         return {
             ...user,
             roleName: user.role.name,
-            permissions: payload.permissions || []
+            permissions: user.role.permissions.map(p => p.name)
         };
     } catch (error) {
         console.error('Error getting user from decoded payload:', error);
