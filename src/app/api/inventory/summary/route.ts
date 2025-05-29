@@ -1,182 +1,208 @@
-import { NextResponse } from 'next/server';
-import { prisma, safeQuery } from '@/lib/prisma';
-import { getShopId } from '@/lib/utils/middleware';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { verifyToken } from '@/lib/auth';
+import { cacheService, CACHE_CONFIG } from '@/lib/cache';
+import { measureAsync } from '@/lib/performance';
+
+// Cache for 30 seconds
+const CACHE_DURATION = 30;
 
 export async function GET(request: NextRequest) {
+  return measureAsync('inventory-summary-api', async () => {
     try {
-        // Get shop ID from token if user is restricted to a specific shop
-        const shopId = getShopId(request);
+      const token = request.headers.get('authorization')?.replace('Bearer ', '');
+      if (!token) {
+        return NextResponse.json({ error: 'No token provided' }, { status: 401 });
+      }
 
-        // Parse pagination parameters
-        const searchParams = request.nextUrl.searchParams;
-        const page = parseInt(searchParams.get('page') || '1');
-        const limit = parseInt(searchParams.get('limit') || '10');
-        const skip = (page - 1) * limit;
+      const decoded = verifyToken(token);
+      if (!decoded) {
+        return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      }
 
-        // Parse filter parameters
-        const search = searchParams.get('search') || '';
-        const categoryNameFilter = searchParams.get('category') || '';
-        const statusFilter = searchParams.get('status') || '';
+      const { searchParams } = new URL(request.url);
+      const page = parseInt(searchParams.get('page') || '1');
+      const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50); // Cap at 50
+      const search = searchParams.get('search') || '';
+      const category = searchParams.get('category') || '';
+      const status = searchParams.get('status') || '';
+      const shopId = searchParams.get('shopId');
 
-        // Fetch products with inventory in a single efficient query
-        const [productsToReturn, totalCountForPagination] = await safeQuery(
-            async () => {
-                // Build the base where clause for product fetching (without status)
-                let productWhereClause: any = {};
-                if (shopId) {
-                    productWhereClause.inventoryItems = {
-                        some: {
-                            shopId: parseInt(shopId)
-                        }
-                    };
-                }
-                if (search) {
-                    productWhereClause.OR = [
-                        { name: { contains: search, mode: 'insensitive' } },
-                        { sku: { contains: search, mode: 'insensitive' } },
-                        // { description: { contains: search, mode: 'insensitive' } } // Description search can be slow, consider if essential
-                    ];
-                }
-                if (categoryNameFilter) {
-                    productWhereClause.category = {
-                        name: categoryNameFilter
-                    };
-                }
+      // Generate cache key
+      const cacheKey = cacheService.generateKey(CACHE_CONFIG.KEYS.INVENTORY_SUMMARY, {
+        page,
+        limit,
+        search,
+        category,
+        status,
+        shopId
+      });
 
-                let finalProductOutput = [];
-                let countForPaginationQuery = 0;
+      // Try to get from cache first
+      const cachedData = await cacheService.get(cacheKey);
+      if (cachedData) {
+        const response = NextResponse.json(cachedData);
+        response.headers.set('X-Cache', 'HIT');
+        response.headers.set('Cache-Control', `public, s-maxage=${CACHE_DURATION}, stale-while-revalidate=60`);
+        return response;
+      }
 
-                if (statusFilter) {
-                    // Step 1: Fetch products matching non-status filters, but only data needed for status calculation + IDs
-                    const candidateProducts = await prisma.product.findMany({
-                        where: productWhereClause,
-                        select: {
-                            id: true,
-                            // Only include inventoryItems for stock calculation, not full product data yet
-                            inventoryItems: {
-                                select: { quantity: true, shopId: true } // shopId might be useful if low stock is per shop
-                            },
-                            // We will fetch other details (name, sku, category, price) in a second query for only the filtered & paginated IDs
-                        },
-                        orderBy: { name: 'asc' } // Consistent ordering for potential later slicing if needed before final fetch
-                    });
+      const offset = (page - 1) * limit;
 
-                    // Step 2: Calculate status in JS and filter by status, collecting IDs
-                    const productsMeetingStatusCriteria: Array<{ id: number; calculatedStatus: string; totalStock: number; }> = [];
-                    candidateProducts.forEach(product => {
-                        let totalStock = 0;
-                        product.inventoryItems.forEach(item => { totalStock += item.quantity; });
+      // Build dynamic WHERE conditions
+      const whereConditions: string[] = ['1=1']; // Always true base condition
+      const queryParams: any[] = [];
+      let paramIndex = 1;
 
-                        let currentProductStatus = 'Out of Stock';
-                        if (totalStock > 0) {
-                            // Customize low stock definition, e.g., based on a threshold or specific shop conditions
-                            const lowStockThreshold = 5; // Example threshold
-                            const hasLowStock = product.inventoryItems.some(inv => inv.quantity > 0 && inv.quantity <= lowStockThreshold);
-                            currentProductStatus = hasLowStock ? 'Low Stock' : 'In Stock';
-                        }
+      // Search filter
+      if (search) {
+        whereConditions.push(`(p.name ILIKE $${paramIndex} OR p.sku ILIKE $${paramIndex + 1})`);
+        queryParams.push(`%${search}%`, `%${search}%`);
+        paramIndex += 2;
+      }
 
-                        if (currentProductStatus === statusFilter) {
-                            productsMeetingStatusCriteria.push({ id: product.id, calculatedStatus: currentProductStatus, totalStock });
-                        }
-                    });
+      // Category filter
+      if (category) {
+        whereConditions.push(`c.name = $${paramIndex}`);
+        queryParams.push(category);
+        paramIndex++;
+      }
 
-                    countForPaginationQuery = productsMeetingStatusCriteria.length;
-                    const paginatedProductIdsAndInfo = productsMeetingStatusCriteria.slice(skip, skip + limit);
-                    const paginatedProductIds = paginatedProductIdsAndInfo.map(p => p.id);
+      // Shop filter
+      if (shopId) {
+        whereConditions.push(`ii."shopId" = $${paramIndex}`);
+        queryParams.push(parseInt(shopId));
+        paramIndex++;
+      }
 
-                    if (paginatedProductIds.length > 0) {
-                        // Step 3: Fetch full data for the filtered and paginated product IDs
-                        const fullProductsData = await prisma.product.findMany({
-                            where: { id: { in: paginatedProductIds } },
-                            include: {
-                                category: { select: { name: true } }, // Select only name
-                                inventoryItems: {
-                                    include: {
-                                        shop: { select: { id: true, name: true } }
-                                    }
-                                },
-                                // Add other necessary includes for the final output
-                            },
-                            orderBy: { name: 'asc' } // Ensure consistent order with ID selection if any implicit ordering matters
-                        });
+      const whereClause = whereConditions.join(' AND ');
 
-                        // Map to final structure, using pre-calculated status and stock
-                        // Need to merge fullProductsData with paginatedProductIdsAndInfo for status and totalStock
-                        const infoMap = new Map(paginatedProductIdsAndInfo.map(p => [p.id, { status: p.calculatedStatus, stock: p.totalStock }]));
+      // Execute queries in parallel
+      const [inventoryData, countResult] = await Promise.all([
+        measureAsync('inventory-main-query', async () => {
+          // Main query with aggregation and status calculation
+          let inventoryQuery = `
+            WITH inventory_summary AS (
+              SELECT 
+                p.id,
+                p.name,
+                p.sku,
+                p.price as "retailPrice",
+                p.weightedaveragecost as "costPrice",
+                c.name as category,
+                COALESCE(SUM(ii.quantity), 0) as total_quantity,
+                COALESCE(p.weightedaveragecost, 0) as weighted_avg_cost,
+                COUNT(DISTINCT ii."shopId") as shop_count
+              FROM "Product" p
+              LEFT JOIN "Category" c ON p."categoryId" = c.id
+              LEFT JOIN "InventoryItem" ii ON p.id = ii."productId"
+              WHERE ${whereClause}
+              GROUP BY p.id, p.name, p.sku, p.price, p.weightedaveragecost, c.name
+            ),
+            status_calculation AS (
+              SELECT *,
+                CASE 
+                  WHEN total_quantity = 0 THEN 'Out of Stock'
+                  WHEN total_quantity <= 10 THEN 'Low Stock'
+                  ELSE 'In Stock'
+                END as status
+              FROM inventory_summary
+            )
+            SELECT * FROM status_calculation
+          `;
 
-                        finalProductOutput = fullProductsData.map(product => ({
-                            id: product.id,
-                            sku: product.sku,
-                            name: product.name,
-                            category: product.category?.name || 'Uncategorized',
-                            stock: infoMap.get(product.id)?.stock ?? 0, // Use pre-calculated stock
-                            retailPrice: product.price,
-                            weightedAverageCost: product.weightedAverageCost,
-                            status: infoMap.get(product.id)?.status ?? 'Error', // Use pre-calculated status
-                        }));
-                    }
-                } else {
-                    // Original logic for no status filter (seems okay, but ensure includes are minimal)
-                    countForPaginationQuery = await prisma.product.count({ where: productWhereClause });
-                    const paginatedProducts = await prisma.product.findMany({
-                        where: productWhereClause,
-                        include: {
-                            category: { select: { name: true } },
-                            inventoryItems: {
-                                include: {
-                                    shop: { select: { id: true, name: true } }
-                                }
-                            },
-                        },
-                        orderBy: { name: 'asc' },
-                        skip,
-                        take: limit
-                    });
+          let mainQueryParams = [...queryParams];
+          let mainParamIndex = paramIndex;
 
-                    finalProductOutput = paginatedProducts.map(product => {
-                        let totalStock = 0;
-                        product.inventoryItems.forEach(item => { totalStock += item.quantity; });
-                        let productStatus = 'Out of Stock';
-                        if (totalStock > 0) {
-                            const lowStockThreshold = 5; // Example threshold
-                            const hasLowStock = product.inventoryItems.some(inv => inv.quantity > 0 && inv.quantity <= lowStockThreshold);
-                            productStatus = hasLowStock ? 'Low Stock' : 'In Stock';
-                        }
-                        return {
-                            id: product.id,
-                            sku: product.sku,
-                            name: product.name,
-                            category: product.category?.name || 'Uncategorized',
-                            stock: totalStock,
-                            retailPrice: product.price,
-                            weightedAverageCost: product.weightedAverageCost,
-                            status: productStatus,
-                        };
-                    });
-                }
-                return [finalProductOutput, countForPaginationQuery];
-            },
-            [[], 0],
-            'Failed to fetch inventory summary'
-        );
+          // Add status filter if specified
+          if (status) {
+            inventoryQuery += ` WHERE status = $${mainParamIndex}`;
+            mainQueryParams.push(status);
+            mainParamIndex++;
+          }
 
-        return NextResponse.json({
-            success: true,
-            data: productsToReturn,
-            pagination: {
-                total: totalCountForPagination,
-                page,
-                limit,
-                totalPages: Math.ceil(totalCountForPagination / limit)
-            }
-        });
+          // Add ordering and pagination
+          inventoryQuery += ` ORDER BY name ASC LIMIT $${mainParamIndex} OFFSET $${mainParamIndex + 1}`;
+          mainQueryParams.push(limit, offset);
+
+          return prisma.$queryRawUnsafe(inventoryQuery, ...mainQueryParams);
+        }),
+
+        measureAsync('inventory-count-query', async () => {
+          // Count query for pagination
+          let countQuery = `
+            WITH inventory_summary AS (
+              SELECT 
+                p.id,
+                COALESCE(SUM(ii.quantity), 0) as total_quantity
+              FROM "Product" p
+              LEFT JOIN "Category" c ON p."categoryId" = c.id
+              LEFT JOIN "InventoryItem" ii ON p.id = ii."productId"
+              WHERE ${whereClause}
+              GROUP BY p.id
+            ),
+            status_calculation AS (
+              SELECT *,
+                CASE 
+                  WHEN total_quantity = 0 THEN 'Out of Stock'
+                  WHEN total_quantity <= 10 THEN 'Low Stock'
+                  ELSE 'In Stock'
+                END as status
+              FROM inventory_summary
+            )
+            SELECT COUNT(*) as total FROM status_calculation
+          `;
+
+          let countParams = [...queryParams];
+          if (status) {
+            countQuery += ` WHERE status = $${paramIndex}`;
+            countParams.push(status);
+          }
+
+          return prisma.$queryRawUnsafe(countQuery, ...countParams) as Promise<any[]>;
+        })
+      ]);
+
+      const total = parseInt(countResult[0]?.total || '0');
+
+      // Format the response
+      const formattedData = (inventoryData as any[]).map(item => ({
+        id: item.id,
+        name: item.name,
+        sku: item.sku,
+        category: item.category || 'Uncategorized',
+        quantity: parseInt(item.total_quantity),
+        retailPrice: parseFloat(item.retailPrice || '0'),
+        weightedAverageCost: parseFloat(item.weighted_avg_cost || '0'),
+        status: item.status,
+        shopCount: parseInt(item.shop_count || '0')
+      }));
+
+      const responseData = {
+        data: formattedData,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit)
+        }
+      };
+
+      // Cache the response
+      await cacheService.set(cacheKey, responseData, CACHE_CONFIG.TTL.INVENTORY);
+
+      const response = NextResponse.json(responseData);
+      response.headers.set('X-Cache', 'MISS');
+      response.headers.set('Cache-Control', `public, s-maxage=${CACHE_DURATION}, stale-while-revalidate=60`);
+
+      return response;
+
     } catch (error) {
-        console.error('Error fetching inventory summary:', error);
-        return NextResponse.json({
-            success: false,
-            message: 'Failed to fetch inventory summary',
-            error: error instanceof Error ? error.message : String(error)
-        }, { status: 500 });
+      console.error('Error fetching inventory summary:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch inventory summary' },
+        { status: 500 }
+      );
     }
-} 
+  }, { endpoint: 'inventory-summary' });
+}

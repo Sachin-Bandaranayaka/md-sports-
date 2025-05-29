@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Search, X, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { authDelete } from '@/utils/api';
+import { authDelete, authFetch } from '@/utils/api';
 import AddInventoryModal from '@/components/inventory/AddInventoryModal';
 import { useInventoryUpdates } from '@/hooks/useWebSocket';
 import { WEBSOCKET_EVENTS } from '@/lib/websocket';
+import { debounce } from '@/lib/utils';
 
 // Define proper types for our data
 interface BranchStock {
@@ -87,6 +88,34 @@ export default function InventoryClientWrapper({
     const [showAddInventoryModal, setShowAddInventoryModal] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<{ id: number, name: string } | null>(null);
     const [isWebSocketUpdate, setIsWebSocketUpdate] = useState(false);
+
+    // Memoize formatted inventory data
+    const formattedInventoryData = useMemo(() => {
+        return inventoryItems.map(item => ({
+            ...item,
+            statusColor: item.status === 'In Stock' ? 'text-green-600' :
+                item.status === 'Low Stock' ? 'text-yellow-600' : 'text-red-600',
+            formattedRetailPrice: new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(item.retailPrice || 0),
+            formattedWeightedCost: new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(item.weightedAverageCost || 0)
+        }));
+    }, [inventoryItems]);
+
+    // Memoize filter options
+    const filterOptions = useMemo(() => ({
+        categories: categories.map(cat => ({ value: cat.name, label: cat.name })),
+        statuses: [
+            { value: '', label: 'All Status' },
+            { value: 'In Stock', label: 'In Stock' },
+            { value: 'Low Stock', label: 'Low Stock' },
+            { value: 'Out of Stock', label: 'Out of Stock' }
+        ]
+    }), [categories]);
 
     // Auto-refresh settings
     const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
@@ -374,6 +403,32 @@ export default function InventoryClientWrapper({
         router.refresh(); // Refresh the page to get updated data
     };
 
+    // Debounced search function
+    const debouncedSearch = useCallback(
+        debounce((searchValue: string) => {
+            setCurrentPage(1);
+            // Trigger refresh with new search term
+            const params = new URLSearchParams(searchParams);
+            params.set('page', '1');
+            params.set('limit', itemsPerPage.toString());
+            if (searchValue) {
+                params.set('search', searchValue);
+            } else {
+                params.delete('search');
+            }
+            if (categoryFilter) params.set('category', categoryFilter);
+            if (statusFilter) params.set('status', statusFilter);
+            router.push(`${pathname}?${params.toString()}`);
+        }, 300),
+        [categoryFilter, statusFilter, itemsPerPage, pathname, router, searchParams]
+    );
+
+    // Optimized search handler
+    const handleSearchChange = useCallback((value: string) => {
+        setSearchTerm(value);
+        debouncedSearch(value);
+    }, [debouncedSearch]);
+
     // Function to manually refresh inventory data
     const refreshInventory = useCallback(async () => {
         try {
@@ -399,7 +454,7 @@ export default function InventoryClientWrapper({
                 queryParams: params.toString()
             });
 
-            const response = await fetch(`/api/inventory/summary?${params.toString()}`);
+            const response = await authFetch(`/api/inventory/summary?${params.toString()}`);
 
             if (!response.ok) {
                 throw new Error(`Failed to refresh inventory: ${response.status}`);
@@ -430,31 +485,52 @@ export default function InventoryClientWrapper({
         }
     }, [currentPage, itemsPerPage, searchTerm, categoryFilter, statusFilter]);
 
-    // Setup auto-refresh timer
+    // Optimized auto-refresh with exponential backoff
     useEffect(() => {
-        // Clear any existing timer
-        if (autoRefreshTimerRef.current) {
-            clearInterval(autoRefreshTimerRef.current);
-            autoRefreshTimerRef.current = null;
-        }
+        if (!autoRefreshEnabled) return;
 
-        // Set up new timer if enabled
-        if (autoRefreshEnabled) {
-            console.log(`Setting up auto-refresh every ${autoRefreshInterval} seconds`);
+        let retryCount = 0;
+        const maxRetries = 3;
+        const baseInterval = autoRefreshInterval * 1000;
 
-            // Perform an immediate refresh when auto-refresh is enabled
-            refreshInventory();
+        const scheduleRefresh = () => {
+            const interval = baseInterval * Math.pow(2, Math.min(retryCount, 2));
 
-            autoRefreshTimerRef.current = setInterval(() => {
-                console.log('Auto-refreshing inventory data...');
-                refreshInventory();
-            }, autoRefreshInterval * 1000);
-        }
+            const timeoutId = setTimeout(async () => {
+                try {
+                    console.log('Auto-refreshing inventory data...');
+                    await refreshInventory();
+                    retryCount = 0; // Reset on success
+                    scheduleRefresh();
+                } catch (error) {
+                    console.error('Auto-refresh failed:', error);
+                    retryCount = Math.min(retryCount + 1, maxRetries);
+                    if (retryCount < maxRetries) {
+                        console.log(`Retrying auto-refresh in ${interval * Math.pow(2, retryCount) / 1000} seconds...`);
+                        scheduleRefresh();
+                    } else {
+                        console.error('Auto-refresh disabled after max retries');
+                        setAutoRefreshEnabled(false);
+                    }
+                }
+            }, interval);
+
+            autoRefreshTimerRef.current = timeoutId;
+            return timeoutId;
+        };
+
+        // Perform an immediate refresh when auto-refresh is enabled
+        refreshInventory().then(() => {
+            scheduleRefresh();
+        }).catch(() => {
+            retryCount = 1;
+            scheduleRefresh();
+        });
 
         // Cleanup on unmount
         return () => {
             if (autoRefreshTimerRef.current) {
-                clearInterval(autoRefreshTimerRef.current);
+                clearTimeout(autoRefreshTimerRef.current);
                 autoRefreshTimerRef.current = null;
             }
         };
@@ -610,10 +686,7 @@ export default function InventoryClientWrapper({
                             className="bg-white border border-gray-300 text-black text-sm rounded-lg focus:ring-primary focus:border-primary block w-full pl-10 p-2.5"
                             placeholder="Search inventory..."
                             value={searchTerm}
-                            onChange={(e) => {
-                                setSearchTerm(e.target.value);
-                                setCurrentPage(1); // Reset to first page when searching
-                            }}
+                            onChange={(e) => handleSearchChange(e.target.value)}
                         />
                     </div>
                     <div className="flex gap-2">
@@ -626,9 +699,9 @@ export default function InventoryClientWrapper({
                             }}
                         >
                             <option value="">All Categories</option>
-                            {categories.map((category) => (
-                                <option key={category.id} value={category.name}>
-                                    {category.name}
+                            {filterOptions.categories.map((category) => (
+                                <option key={category.value} value={category.value}>
+                                    {category.label}
                                 </option>
                             ))}
                         </select>
@@ -640,10 +713,11 @@ export default function InventoryClientWrapper({
                                 setCurrentPage(1); // Reset to first page when filtering
                             }}
                         >
-                            <option value="">All Status</option>
-                            <option value="In Stock">In Stock</option>
-                            <option value="Low Stock">Low Stock</option>
-                            <option value="Out of Stock">Out of Stock</option>
+                            {filterOptions.statuses.map((status) => (
+                                <option key={status.value} value={status.value}>
+                                    {status.label}
+                                </option>
+                            ))}
                         </select>
                     </div>
                 </div>
@@ -666,8 +740,8 @@ export default function InventoryClientWrapper({
                             </tr>
                         </thead>
                         <tbody>
-                            {inventoryItems.length > 0 ? (
-                                inventoryItems.map((item) => (
+                            {formattedInventoryData.length > 0 ? (
+                                formattedInventoryData.map((item) => (
                                     <tr
                                         key={item.id}
                                         className="border-b hover:bg-gray-50 cursor-pointer"
@@ -895,4 +969,4 @@ export default function InventoryClientWrapper({
             />
         </>
     );
-} 
+}

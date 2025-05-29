@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 // Simple client-only redirect component to avoid hydration errors
-export default function RedirectToSimplePayment() {
+function RedirectToSimplePayment() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const invoiceId = searchParams.get('invoiceId');
@@ -24,5 +24,13 @@ export default function RedirectToSimplePayment() {
             <div className="w-16 h-16 border-t-4 border-blue-500 border-solid rounded-full animate-spin"></div>
             <p className="mt-4 text-lg text-gray-600">Redirecting...</p>
         </div>
+    );
+}
+
+export default function Page() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <RedirectToSimplePayment />
+        </Suspense>
     );
 } 

@@ -385,7 +385,7 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                             id="customerType"
                             value={selectedType}
                             onChange={handleTypeChange}
-                            className="w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className={`w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${selectedType === '' ? 'text-black' : ''}`}
                         >
                             <option value="">All Types</option>
                             <option value="wholesale">Wholesale</option>
@@ -406,7 +406,7 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                                 queryParams.set('page', '1');
                                 router.push(`/customers?${queryParams.toString()}`);
                             }}
-                            className="w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className={`w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${selectedStatus === '' ? 'text-black' : ''}`}
                         >
                             <option value="">All Statuses</option>
                             <option value="Active">Active (Customer)</option>
