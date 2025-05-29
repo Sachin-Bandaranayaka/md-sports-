@@ -268,6 +268,11 @@ export default function ProductDetail() {
     const [productHistory, setProductHistory] = useState<ProductHistoryEvent[]>([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
+    // New filter states for Product History
+    const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>([]);
+    const [historyStartDate, setHistoryStartDate] = useState<string>('');
+    const [historyEndDate, setHistoryEndDate] = useState<string>('');
+
     // Group invoices by shop
     const invoicesByShop: Record<string, Invoice[]> = {};
 
@@ -315,8 +320,19 @@ export default function ProductDetail() {
 
         const fetchHistory = async () => {
             setIsLoadingHistory(true);
+            const queryParams = new URLSearchParams();
+            if (selectedEventTypes.length > 0) {
+                queryParams.append('eventTypes', selectedEventTypes.join(','));
+            }
+            if (historyStartDate) {
+                queryParams.append('startDate', historyStartDate);
+            }
+            if (historyEndDate) {
+                queryParams.append('endDate', historyEndDate);
+            }
+
             try {
-                const response = await fetch(`/api/products/${productIdStr}/history`);
+                const response = await fetch(`/api/products/${productIdStr}/history?${queryParams.toString()}`);
                 if (!response.ok) {
                     throw new Error('Failed to fetch product history');
                 }
@@ -341,7 +357,7 @@ export default function ProductDetail() {
             fetchHistory();
         }
 
-    }, [params.productId, activeTab, product]); // Add product to dependency array to ensure setIsLoading(false) runs after product is set
+    }, [params.productId, activeTab, product, selectedEventTypes, historyStartDate, historyEndDate]); // Add filter states to dependency array
 
     // Helper to get an icon based on history event type
     const getHistoryIcon = (type: string) => {
@@ -666,6 +682,49 @@ export default function ProductDetail() {
                 {activeTab === 'history' && (
                     <div className="bg-white rounded-lg border shadow-sm p-6">
                         <h2 className="font-semibold text-lg text-black mb-4">Product Event History</h2>
+
+                        {/* Filter Controls */}
+                        <div className="mb-6 p-4 border rounded-md bg-gray-50 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                            <div>
+                                <label htmlFor="event-type-filter" className="block text-sm font-medium text-gray-700 mb-1">Event Type(s)</label>
+                                <select
+                                    id="event-type-filter"
+                                    multiple
+                                    className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5 h-32"
+                                    value={selectedEventTypes}
+                                    onChange={(e) => setSelectedEventTypes(Array.from(e.target.selectedOptions, option => option.value))}
+                                >
+                                    <option value="Purchase">Purchase</option>
+                                    <option value="Sale">Sale</option>
+                                    <option value="Transfer In">Transfer In</option>
+                                    <option value="Transfer Out">Transfer Out</option>
+                                    <option value="Product Update">Product Update</option>
+                                    <option value="Stock Added">Stock Added</option>
+                                </select>
+                                <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple.</p>
+                            </div>
+                            <div>
+                                <label htmlFor="history-start-date" className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                                <input
+                                    type="date"
+                                    id="history-start-date"
+                                    className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                                    value={historyStartDate}
+                                    onChange={(e) => setHistoryStartDate(e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="history-end-date" className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                                <input
+                                    type="date"
+                                    id="history-end-date"
+                                    className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                                    value={historyEndDate}
+                                    onChange={(e) => setHistoryEndDate(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
                         {isLoadingHistory ? (
                             <div className="text-center py-4">
                                 <div className="w-6 h-6 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>

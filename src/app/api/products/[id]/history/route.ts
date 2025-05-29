@@ -24,11 +24,35 @@ export async function GET(
             return NextResponse.json({ success: false, message: 'Invalid product ID' }, { status: 400 });
         }
 
+        const { searchParams } = new URL(request.url);
+        const eventTypesParam = searchParams.get('eventTypes');
+        const startDateParam = searchParams.get('startDate');
+        const endDateParam = searchParams.get('endDate');
+
+        const filterEventTypes = eventTypesParam ? eventTypesParam.split(',') : [];
+        const startDate = startDateParam ? new Date(startDateParam) : null;
+        const endDate = endDateParam ? new Date(endDateParam) : null;
+
+        // Construct date filter for Prisma
+        const dateFilter: any = {};
+        if (startDate) dateFilter.gte = startDate;
+        if (endDate) {
+            // Adjust endDate to include the whole day
+            const adjustedEndDate = new Date(endDate);
+            adjustedEndDate.setHours(23, 59, 59, 999);
+            dateFilter.lte = adjustedEndDate;
+        }
+
         const allEvents: ProductHistoryEvent[] = [];
 
         // 1. Fetch Purchases
         const purchases = await prisma.purchaseInvoiceItem.findMany({
-            where: { productId },
+            where: {
+                productId,
+                purchaseInvoice: {
+                    createdAt: Object.keys(dateFilter).length > 0 ? dateFilter : undefined
+                }
+            },
             include: {
                 purchaseInvoice: { include: { supplier: true } },
                 product: true // To get product name if needed for description, though we have productId
@@ -57,7 +81,12 @@ export async function GET(
 
         // 2. Fetch Sales
         const sales = await prisma.invoiceItem.findMany({
-            where: { productId },
+            where: {
+                productId,
+                invoice: {
+                    createdAt: Object.keys(dateFilter).length > 0 ? dateFilter : undefined
+                }
+            },
             include: {
                 invoice: { include: { customer: true, shop: true } }, // Assuming Invoice has shop
                 product: true
@@ -88,7 +117,12 @@ export async function GET(
 
         // 3. Fetch Transfers
         const transfers = await prisma.transferItem.findMany({
-            where: { productId },
+            where: {
+                productId,
+                transfer: {
+                    createdAt: Object.keys(dateFilter).length > 0 ? dateFilter : undefined
+                }
+            },
             include: {
                 transfer: { include: { fromShop: true, toShop: true, fromUser: true, toUser: true } },
                 product: true
@@ -139,7 +173,8 @@ export async function GET(
                     { entity: 'Product', entityId: productId, action: 'UPDATE_PRODUCT' },
                     { entity: 'InventoryItem', details: { path: ['productId'], equals: productId }, action: 'ADD_INVENTORY' },
                     // Add more specific audit actions if needed, e.g., for manual adjustments
-                ]
+                ],
+                createdAt: Object.keys(dateFilter).length > 0 ? dateFilter : undefined
             },
             // include: { user: true }, // Temporarily removed due to missing explicit relation
             orderBy: { createdAt: 'desc' }
@@ -180,10 +215,15 @@ export async function GET(
             });
         });
 
-        // Sort all collected events by timestamp, most recent first
-        allEvents.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+        // Filter by event types if provided
+        const filteredEvents = filterEventTypes.length > 0
+            ? allEvents.filter(event => filterEventTypes.includes(event.type))
+            : allEvents;
 
-        return NextResponse.json({ success: true, data: allEvents });
+        // Sort all collected events by timestamp in descending order
+        filteredEvents.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+
+        return NextResponse.json({ success: true, data: filteredEvents });
 
     } catch (error) {
         console.error(`Error fetching product history for product ID ${params.id}:`, error);
