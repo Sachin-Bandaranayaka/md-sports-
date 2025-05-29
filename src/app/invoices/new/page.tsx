@@ -12,7 +12,7 @@ interface Customer {
     name: string;
     email?: string | null;
     phone?: string | null;
-    type: 'wholesale' | 'retail'; // Changed from paymentType
+    customerType: 'wholesale' | 'retail'; // Changed from type to customerType
     creditLimit?: number | null;
     creditPeriod?: number | null;
 }
@@ -146,9 +146,9 @@ export default function CreateInvoice() {
             } catch (error) {
                 console.error('Error fetching data:', error);
                 setCustomers([
-                    { id: 1, name: 'Colombo Cricket Club', email: 'info@colombocricket.lk', phone: '+94 112 345 123', type: 'wholesale', creditPeriod: 30 },
-                    { id: 2, name: 'Kandy Sports Association', email: 'info@kandysports.lk', phone: '+94 812 345 456', type: 'retail', creditPeriod: null },
-                    { id: 3, name: 'Galle School District', email: 'sports@galleschools.lk', phone: '+94 912 345 789', type: 'wholesale', creditPeriod: 15 },
+                    { id: 1, name: 'Colombo Cricket Club', email: 'info@colombocricket.lk', phone: '+94 112 345 123', customerType: 'wholesale', creditPeriod: 30 },
+                    { id: 2, name: 'Kandy Sports Association', email: 'info@kandysports.lk', phone: '+94 812 345 456', customerType: 'retail', creditPeriod: null },
+                    { id: 3, name: 'Galle School District', email: 'sports@galleschools.lk', phone: '+94 912 345 789', customerType: 'wholesale', creditPeriod: 15 },
                 ]);
                 setShops([]); // Also set shops to empty on general catch
             }
@@ -197,7 +197,7 @@ export default function CreateInvoice() {
         const invoiceDate = today.toISOString().split('T')[0];
         let dueDate = invoiceDate; // Default due date
 
-        if (customer.type === 'wholesale' && customer.creditPeriod) {
+        if (customer.customerType === 'wholesale' && customer.creditPeriod) {
             const dueDateObj = new Date(today);
             dueDateObj.setDate(today.getDate() + customer.creditPeriod);
             dueDate = dueDateObj.toISOString().split('T')[0];
@@ -252,10 +252,10 @@ export default function CreateInvoice() {
         const newItemTotal = selectedProduct.price * quantity;
 
         // Check credit limit for wholesale customers
-        if (selectedCustomer && selectedCustomer.type === 'wholesale' && selectedCustomer.creditLimit) {
+        if (selectedCustomer && selectedCustomer.customerType === 'wholesale' && selectedCustomer.creditLimit) {
             const currentTotal = formData.items.reduce((sum, item) => sum + item.total, 0);
             if (currentTotal + newItemTotal > selectedCustomer.creditLimit) {
-                alert(`Adding this item exceeds the customer's credit limit of ${selectedCustomer.creditLimit}.`);
+                alert(`Adding this item exceeds the customer\'s credit limit of ${selectedCustomer.creditLimit}.`);
                 return;
             }
         }
@@ -293,10 +293,10 @@ export default function CreateInvoice() {
         e.preventDefault();
 
         // Final credit limit check for wholesale customers
-        if (selectedCustomer && selectedCustomer.type === 'wholesale' && selectedCustomer.creditLimit) {
+        if (selectedCustomer && selectedCustomer.customerType === 'wholesale' && selectedCustomer.creditLimit) {
             const finalTotal = formData.items.reduce((sum, item) => sum + item.total, 0);
             if (finalTotal > selectedCustomer.creditLimit) {
-                alert(`The total invoice amount of ${finalTotal} exceeds the customer's credit limit of ${selectedCustomer.creditLimit}. Please remove items or save as draft.`);
+                alert(`The total invoice amount of ${finalTotal} exceeds the customer\'s credit limit of ${selectedCustomer.creditLimit}. Please remove items or save as draft.`);
                 // Optionally, allow saving as draft or prevent submission entirely
                 // For now, we prevent submission by returning.
                 return;
@@ -547,8 +547,8 @@ export default function CreateInvoice() {
                                         <div className="bg-blue-50 p-3 rounded-md border border-blue-100">
                                             <h3 className="font-medium text-sm text-blue-700">Customer Details</h3>
                                             <div className="text-xs text-blue-600 mt-1">
-                                                <p>Payment Type: {selectedCustomer.type === 'wholesale' ? 'Wholesale' : 'Retail'}</p>
-                                                {selectedCustomer.type === 'wholesale' && (
+                                                <p>Customer Type: {selectedCustomer.customerType === 'wholesale' ? 'Wholesale' : 'Retail'}</p>
+                                                {selectedCustomer.customerType === 'wholesale' && (
                                                     <p>Credit Period: {selectedCustomer.creditPeriod || 0} days</p>
                                                 )}
                                             </div>
