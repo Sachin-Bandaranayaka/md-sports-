@@ -8,6 +8,7 @@ import { PurchaseInvoice, Supplier } from '@/types';
 import { usePurchaseUpdates } from '@/hooks/useWebSocket';
 import { WEBSOCKET_EVENTS } from '@/lib/websocket';
 import { toast } from 'sonner';
+// InvoiceFormModal import removed - using separate pages for forms
 
 // Status badge colors (can be utility)
 const getStatusBadgeClass = (status: string) => {
@@ -58,10 +59,7 @@ export default function PurchaseListClient({
     const [startDateFilter, setStartDateFilter] = useState(searchParams.get('startDate') || '');
     const [endDateFilter, setEndDateFilter] = useState(searchParams.get('endDate') || '');
 
-    const [showDetailModal, setShowDetailModal] = useState(false);
-    const [showAddEditModal, setShowAddEditModal] = useState(false);
-    const [selectedInvoice, setSelectedInvoice] = useState<PurchaseInvoice | null>(null);
-    const [isEditMode, setIsEditMode] = useState(false);
+    // Modal states removed - using separate pages for detail and edit views
 
     // Debounce search
     useEffect(() => {
@@ -204,8 +202,7 @@ export default function PurchaseListClient({
     };
 
     const handleViewInvoice = (invoice: PurchaseInvoice) => {
-        setSelectedInvoice(invoice);
-        setShowDetailModal(true);
+        router.push(`/purchases/${invoice.id}`);
     };
 
     const handleDeleteInvoice = async (id: string) => {
@@ -236,48 +233,7 @@ export default function PurchaseListClient({
         }
     };
 
-    // handleSaveInvoice is for the modal, if modal is part of this component or separate.
-    // If InvoiceFormModal is separate, it will handle its own submission.
-    // For now, assume it might be used if the modal was simple and inline.
-    const handleSaveInvoice = async (invoiceData: PurchaseInvoice) => {
-        setLoading(true);
-        const method = isEditMode ? 'PUT' : 'POST';
-        const url = isEditMode ? `/api/purchases/${invoiceData.id}` : '/api/purchases';
-
-        try {
-            const response = await fetch(url, {
-                method: method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(invoiceData),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                // Expect standardized error: { error: { message: "..." } }
-                const message = errorData.error?.message || 'Failed to save invoice';
-                throw new Error(message);
-            }
-
-            const savedInvoice = await response.json();
-
-            if (isEditMode) {
-                setPurchaseInvoices(purchaseInvoices.map(inv => inv.id === savedInvoice.id ? savedInvoice : inv));
-            } else {
-                // Navigate to the main page or refresh to see the new invoice at the top (if sorted by date)
-                router.push('/purchases?refresh=' + new Date().getTime()); // force refresh if needed
-            }
-            setShowAddEditModal(false);
-            setIsEditMode(false);
-            setSelectedInvoice(null);
-            toast.success(`Invoice ${isEditMode ? 'updated' : 'created'} successfully.`);
-
-        } catch (err: any) {
-            console.error('Error saving invoice:', err);
-            setError(err.message || 'Failed to save invoice. Please try again later.');
-        } finally {
-            setLoading(false);
-        }
-    };
+    // Modal handlers removed - using separate pages for detail and edit views
 
 
     // Placeholder for modals - these should be imported or defined
@@ -522,35 +478,7 @@ export default function PurchaseListClient({
                 </div>
             )}
 
-            {/* Invoice Detail Modal */}
-            {showDetailModal && selectedInvoice && (
-                <InvoiceDetailModal
-                    invoice={selectedInvoice}
-                    onClose={() => setShowDetailModal(false)}
-                    onEdit={(inv) => {
-                        setSelectedInvoice(inv);
-                        setIsEditMode(true);
-                        setShowAddEditModal(true);
-                        setShowDetailModal(false);
-                    }}
-                />
-            )}
-
-            {/* Add/Edit Invoice Modal Placeholder - This would typically be a separate, more complex component */}
-            {showAddEditModal && (
-                <InvoiceFormModal
-                    open={showAddEditModal}
-                    onClose={() => {
-                        setShowAddEditModal(false);
-                        setSelectedInvoice(null);
-                        setIsEditMode(false);
-                    }}
-                    onSave={handleSaveInvoice} // handleSave defined above for demo
-                    suppliers={suppliers} // Pass suppliers list
-                    initialData={isEditMode ? selectedInvoice : null} // Pass current invoice data if editing
-                    isEditMode={isEditMode}
-                />
-            )}
+            {/* Modals removed - using separate pages for detail and edit views */}
         </>
     );
-} 
+}
