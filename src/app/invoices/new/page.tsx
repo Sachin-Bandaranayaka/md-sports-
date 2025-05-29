@@ -8,11 +8,12 @@ import { ArrowLeft, Save, Plus, Trash2, ChevronDown, ChevronUp, Search, Bell } f
 
 // Interface for Customer in dropdown
 interface Customer {
-    id: number;
+    id: number; // Changed to number
     name: string;
     email?: string | null;
     phone?: string | null;
-    paymentType?: string | null;
+    type: 'wholesale' | 'retail'; // Changed from paymentType
+    creditLimit?: number | null;
     creditPeriod?: number | null;
 }
 
@@ -44,7 +45,7 @@ interface InvoiceItem {
 
 // Interface for Invoice Form Data
 interface InvoiceFormData {
-    customerId: number;
+    customerId: number; // Changed to number
     customerName: string;
     invoiceDate: string;
     dueDate: string;
@@ -71,7 +72,7 @@ export default function CreateInvoice() {
     const [productStock, setProductStock] = useState<number | null>(null);
 
     const [formData, setFormData] = useState<InvoiceFormData>({
-        customerId: 0,
+        customerId: 0, // Changed to 0 (number)
         customerName: '',
         invoiceDate: new Date().toISOString().split('T')[0],
         dueDate: '', // Will be calculated based on customer
@@ -101,8 +102,11 @@ export default function CreateInvoice() {
                 const customerResponse = await fetch('/api/customers');
                 if (customerResponse.ok) {
                     const customerData = await customerResponse.json();
-                    setCustomers(Array.isArray(customerData) ? customerData :
-                        (customerData.data && Array.isArray(customerData.data) ? customerData.data : []));
+                    // Assuming customerData is the array of customers directly from the API
+                    setCustomers(Array.isArray(customerData) ? customerData : []);
+                } else {
+                    console.error('Failed to fetch customers:', await customerResponse.text());
+                    setCustomers([]); // Set to empty array on failure
                 }
 
                 // Fetch products
@@ -142,9 +146,9 @@ export default function CreateInvoice() {
             } catch (error) {
                 console.error('Error fetching data:', error);
                 setCustomers([
-                    { id: 1, name: 'Colombo Cricket Club', email: 'info@colombocricket.lk', phone: '+94 112 345 123', paymentType: 'Credit', creditPeriod: 30 },
-                    { id: 2, name: 'Kandy Sports Association', email: 'info@kandysports.lk', phone: '+94 812 345 456', paymentType: 'Cash', creditPeriod: null },
-                    { id: 3, name: 'Galle School District', email: 'sports@galleschools.lk', phone: '+94 912 345 789', paymentType: 'Credit', creditPeriod: 15 },
+                    { id: 1, name: 'Colombo Cricket Club', email: 'info@colombocricket.lk', phone: '+94 112 345 123', type: 'wholesale', creditPeriod: 30 },
+                    { id: 2, name: 'Kandy Sports Association', email: 'info@kandysports.lk', phone: '+94 812 345 456', type: 'retail', creditPeriod: null },
+                    { id: 3, name: 'Galle School District', email: 'sports@galleschools.lk', phone: '+94 912 345 789', type: 'wholesale', creditPeriod: 15 },
                 ]);
                 setShops([]); // Also set shops to empty on general catch
             }
@@ -186,55 +190,26 @@ export default function CreateInvoice() {
     };
 
     // Handle customer selection
-    const handleSelectCustomer = async (customer: Customer) => {
+    const handleSelectCustomer = (customer: Customer) => {
         setSelectedCustomer(customer);
 
-        // Get today's date
         const today = new Date();
         const invoiceDate = today.toISOString().split('T')[0];
+        let dueDate = invoiceDate; // Default due date
 
-        // Calculate due date based on customer's credit period
-        let dueDate = invoiceDate;
-
-        // If customer has a credit period, calculate due date
-        if (customer.creditPeriod) {
+        if (customer.type === 'wholesale' && customer.creditPeriod) {
             const dueDateObj = new Date(today);
             dueDateObj.setDate(today.getDate() + customer.creditPeriod);
             dueDate = dueDateObj.toISOString().split('T')[0];
         }
 
-        // Fetch detailed customer info if needed
-        try {
-            const customerResponse = await fetch(`/api/customers/${customer.id}`);
-            if (customerResponse.ok) {
-                const customerData = await customerResponse.json();
-                // Update customer with additional details if available
-                if (customerData.creditPeriod) {
-                    customer = {
-                        ...customer,
-                        creditPeriod: customerData.creditPeriod || customer.creditPeriod
-                    };
-
-                    // Recalculate due date with updated information
-                    if (customer.creditPeriod) {
-                        const dueDateObj = new Date(today);
-                        dueDateObj.setDate(today.getDate() + customer.creditPeriod);
-                        dueDate = dueDateObj.toISOString().split('T')[0];
-                    }
-                }
-            }
-        } catch (error) {
-            console.error('Error fetching customer details:', error);
-        }
-
-        // Update form data with customer info and calculated dates/status
         setFormData({
             ...formData,
-            customerId: customer.id,
+            customerId: customer.id, // customer.id is now number
             customerName: customer.name,
             invoiceDate: invoiceDate,
             dueDate: dueDate,
-            status: 'Pending' // Always set to Pending
+            status: 'Pending' // Or determine based on type/credit status
         });
 
         setCustomerSearch('');
@@ -267,29 +242,36 @@ export default function CreateInvoice() {
         }
     };
 
-    // Add line item to invoice
+    // Handle adding a line item to the invoice
     const handleAddLineItem = () => {
-        if (!selectedProduct) return;
-
-        // Validate that quantity is greater than 0
-        if (quantity <= 0) {
-            // Set to 1 if it's 0 or negative
-            setQuantity(1);
+        if (!selectedProduct || quantity <= 0) {
+            alert('Please select a product and enter a valid quantity.');
             return;
         }
 
-        const newItem: InvoiceItem = {
+        const newItemTotal = selectedProduct.price * quantity;
+
+        // Check credit limit for wholesale customers
+        if (selectedCustomer && selectedCustomer.type === 'wholesale' && selectedCustomer.creditLimit) {
+            const currentTotal = formData.items.reduce((sum, item) => sum + item.total, 0);
+            if (currentTotal + newItemTotal > selectedCustomer.creditLimit) {
+                alert(`Adding this item exceeds the customer's credit limit of ${selectedCustomer.creditLimit}.`);
+                return;
+            }
+        }
+
+        const newLineItem: InvoiceItem = {
             id: Date.now().toString(), // Temporary ID for UI
             productId: selectedProduct.id,
             productName: selectedProduct.name,
             quantity: quantity,
             price: selectedProduct.price,
-            total: selectedProduct.price * quantity
+            total: newItemTotal
         };
 
         setFormData({
             ...formData,
-            items: [...formData.items, newItem]
+            items: [...formData.items, newLineItem]
         });
 
         // Reset selection
@@ -309,6 +291,18 @@ export default function CreateInvoice() {
     // Handle form submission
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Final credit limit check for wholesale customers
+        if (selectedCustomer && selectedCustomer.type === 'wholesale' && selectedCustomer.creditLimit) {
+            const finalTotal = formData.items.reduce((sum, item) => sum + item.total, 0);
+            if (finalTotal > selectedCustomer.creditLimit) {
+                alert(`The total invoice amount of ${finalTotal} exceeds the customer's credit limit of ${selectedCustomer.creditLimit}. Please remove items or save as draft.`);
+                // Optionally, allow saving as draft or prevent submission entirely
+                // For now, we prevent submission by returning.
+                return;
+            }
+        }
+
         setIsSubmitting(true);
 
         try {
@@ -502,7 +496,7 @@ export default function CreateInvoice() {
                                                         onClick={() => {
                                                             setFormData({
                                                                 ...formData,
-                                                                customerId: 0,
+                                                                customerId: 0, // Reset to 0 (number)
                                                                 customerName: '',
                                                                 status: 'Pending', // Reset status
                                                                 dueDate: '' // Reset due date
@@ -553,8 +547,8 @@ export default function CreateInvoice() {
                                         <div className="bg-blue-50 p-3 rounded-md border border-blue-100">
                                             <h3 className="font-medium text-sm text-blue-700">Customer Details</h3>
                                             <div className="text-xs text-blue-600 mt-1">
-                                                <p>Payment Type: {selectedCustomer.paymentType || 'Cash'}</p>
-                                                {selectedCustomer.paymentType === 'Credit' && (
+                                                <p>Payment Type: {selectedCustomer.type === 'wholesale' ? 'Wholesale' : 'Retail'}</p>
+                                                {selectedCustomer.type === 'wholesale' && (
                                                     <p>Credit Period: {selectedCustomer.creditPeriod || 0} days</p>
                                                 )}
                                             </div>

@@ -8,29 +8,47 @@ import { authDelete } from '@/utils/api';
 
 // Interface for Customer
 interface Customer {
-    id: string | number;
+    id: number;
     name: string;
     email?: string | null;
     phone?: string | null;
     address?: string | null;
+    customerType: 'wholesale' | 'retail';
+    creditLimit?: number | null;
+    creditPeriod?: number | null;
+    isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
     lastPurchaseDate?: Date | null;
-    // Custom fields for UI
-    type?: 'Credit' | 'Cash';
+    latestInvoicePaymentStatus?: string | null;
     balance?: number;
-    lastPurchase?: string | null;
-    status?: 'Active' | 'Inactive';
     contactPerson?: string;
 }
 
-// Status badge colors
-const getStatusBadgeClass = (status: string) => {
-    return status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+// Status badge colors for customer isActive
+const getCustomerActivityBadgeClass = (isActive: boolean) => {
+    return isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
 };
 
-const getCustomerTypeClass = (type: string) => {
-    return type === 'Credit' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800';
+// Badge colors for invoice payment status
+const getInvoicePaymentStatusBadgeClass = (status?: string | null): string => {
+    if (!status) return 'bg-gray-100 text-gray-800'; // Default for N/A or null
+    switch (status.toLowerCase()) {
+        case 'paid':
+            return 'bg-green-100 text-green-800';
+        case 'pending':
+            return 'bg-yellow-100 text-yellow-800';
+        case 'unpaid':
+            return 'bg-red-100 text-red-800';
+        case 'partial':
+            return 'bg-blue-100 text-blue-800';
+        default:
+            return 'bg-gray-100 text-gray-800';
+    }
+};
+
+const getCustomerTypeClass = (customerType: 'wholesale' | 'retail') => {
+    return customerType === 'wholesale' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800';
 };
 
 interface CustomerClientWrapperProps {
@@ -173,7 +191,7 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
         if (type) {
             const lowerCaseType = type.toLowerCase();
             filteredCustomers = filteredCustomers.filter(customer =>
-                customer.type && customer.type.toLowerCase() === lowerCaseType
+                customer.customerType && customer.customerType.toLowerCase() === lowerCaseType
             );
         }
 
@@ -181,7 +199,7 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
         if (status) {
             const lowerCaseStatus = status.toLowerCase();
             filteredCustomers = filteredCustomers.filter(customer =>
-                customer.status && customer.status.toLowerCase() === lowerCaseStatus
+                customer.isActive && customer.isActive.toString().toLowerCase() === lowerCaseStatus
             );
         }
         // This function should ideally not set state directly if pagination/filtering is server-side
@@ -370,8 +388,8 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                             className="w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                         >
                             <option value="">All Types</option>
-                            <option value="Credit">Credit</option>
-                            <option value="Cash">Cash</option>
+                            <option value="wholesale">Wholesale</option>
+                            <option value="retail">Retail</option>
                         </select>
                     </div>
                     <div>
@@ -379,12 +397,24 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                         <select
                             id="customerStatus"
                             value={selectedStatus}
-                            onChange={handleStatusChange}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                setSelectedStatus(value);
+                                setFilterOptions(prev => ({ ...prev, customerStatus: value }));
+                                const queryParams = new URLSearchParams(window.location.search);
+                                queryParams.set('status', value);
+                                queryParams.set('page', '1');
+                                router.push(`/customers?${queryParams.toString()}`);
+                            }}
                             className="w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                         >
                             <option value="">All Statuses</option>
-                            <option value="Active">Active</option>
-                            <option value="Inactive">Inactive</option>
+                            <option value="Active">Active (Customer)</option>
+                            <option value="Inactive">Inactive (Customer)</option>
+                            <option value="paid">Paid (Invoice)</option>
+                            <option value="pending">Pending (Invoice)</option>
+                            <option value="unpaid">Unpaid (Invoice)</option>
+                            <option value="partial">Partial (Invoice)</option>
                         </select>
                     </div>
                 </div>
@@ -411,12 +441,12 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                                     className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                                 >
                                     <option value="">Any</option>
-                                    <option value="Credit">Credit</option>
-                                    <option value="Cash">Cash</option>
+                                    <option value="wholesale">Wholesale</option>
+                                    <option value="retail">Retail</option>
                                 </select>
                             </div>
                             <div>
-                                <label htmlFor="filterCustomerStatus" className="block text-sm font-medium text-gray-700">Customer Status</label>
+                                <label htmlFor="filterCustomerStatus" className="block text-sm font-medium text-gray-700">Customer/Invoice Status</label>
                                 <select
                                     id="filterCustomerStatus"
                                     name="customerStatus"
@@ -425,8 +455,12 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                                     className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                                 >
                                     <option value="">Any</option>
-                                    <option value="Active">Active</option>
-                                    <option value="Inactive">Inactive</option>
+                                    <option value="Active">Active (Customer)</option>
+                                    <option value="Inactive">Inactive (Customer)</option>
+                                    <option value="paid">Paid (Invoice)</option>
+                                    <option value="pending">Pending (Invoice)</option>
+                                    <option value="unpaid">Unpaid (Invoice)</option>
+                                    <option value="partial">Partial (Invoice)</option>
                                 </select>
                             </div>
                             <div>
@@ -508,43 +542,41 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer ID</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Contact Person</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Email</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Address</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Balance</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Last Purchase</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer ID</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Person</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Purchase</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice Status</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {customers.map((customer) => (
                                 <tr key={customer.id} className="hover:bg-gray-50 transition-colors duration-150">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{`cus-${String(customer.id).padStart(3, '0')}`}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{customer.name}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">{customer.contactPerson || 'N/A'}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">{customer.email || 'N/A'}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.phone || 'N/A'}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell truncate max-w-xs" title={customer.address || undefined}>{customer.address || 'N/A'}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getCustomerTypeClass(customer.type || 'Cash')}`}>
-                                            {customer.type || 'Cash'}
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{customer.id}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                        <button onClick={() => router.push(`/customers/${customer.id}`)} className="text-indigo-600 hover:text-indigo-900 hover:underline">
+                                            {customer.name}
+                                        </button>
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{customer.contactPerson || 'N/A'}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{customer.phone || 'N/A'}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{customer.address || 'N/A'}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                        {customer.customerType === 'wholesale' && customer.balance !== undefined ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(customer.balance) : 'N/A'}
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                        {customer.lastPurchaseDate ? new Date(customer.lastPurchaseDate).toLocaleDateString() : 'N/A'}
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getInvoicePaymentStatusBadgeClass(customer.latestInvoicePaymentStatus)}`}>
+                                            {customer.latestInvoicePaymentStatus ? customer.latestInvoicePaymentStatus.charAt(0).toUpperCase() + customer.latestInvoicePaymentStatus.slice(1) : 'N/A'}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
-                                        {customer.type === 'Credit' ? `$${(customer.balance || 0).toFixed(2)}` : 'N/A'}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell">{customer.lastPurchase || 'N/A'}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(customer.status || 'Inactive')}`}>
-                                            {customer.status || 'Inactive'}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
                                         <div className="flex items-center space-x-2">
                                             <Button variant="link" size="sm" onClick={() => router.push(`/customers/${customer.id}`)} className="text-indigo-600 hover:text-indigo-900">
                                                 View

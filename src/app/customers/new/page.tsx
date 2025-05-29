@@ -5,21 +5,16 @@ import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft, Save } from 'lucide-react';
+import { toast } from 'sonner';
 
 // Interface for customer form data
 interface CustomerFormData {
     name: string;
-    email: string;
     phone: string;
     address: string;
-    city: string;
-    postalCode: string;
-    contactPerson: string;
-    contactPersonPhone: string;
     customerType: 'Retail' | 'Wholesale';
-    creditLimit: number;
-    creditPeriod: number;
-    taxId: string;
+    creditLimit?: number;
+    creditPeriod?: number;
     notes: string;
 }
 
@@ -28,17 +23,9 @@ export default function NewCustomer() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState<CustomerFormData>({
         name: '',
-        email: '',
         phone: '',
         address: '',
-        city: '',
-        postalCode: '',
-        contactPerson: '',
-        contactPersonPhone: '',
         customerType: 'Retail',
-        creditLimit: 0,
-        creditPeriod: 30,
-        taxId: '',
         notes: '',
     });
 
@@ -75,15 +62,18 @@ export default function NewCustomer() {
             });
 
             if (!response.ok) {
-                throw new Error('Failed to create customer');
+                const errorData = await response.json().catch(() => ({ message: 'Failed to create customer' }));
+                throw new Error(errorData.message || 'Failed to create customer. Please check server logs.');
             }
 
+            toast.success('Customer created successfully!');
             // Redirect to customers list page
             router.push('/customers');
             router.refresh();
         } catch (error) {
             console.error('Error creating customer:', error);
-            alert('Failed to create customer. Please try again.');
+            const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+            toast.error(errorMessage);
         } finally {
             setIsSubmitting(false);
         }
@@ -132,36 +122,12 @@ export default function NewCustomer() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Email
-                                    </label>
-                                    <input
-                                        type="email"
-                                        name="email"
-                                        value={formData.email}
-                                        onChange={handleInputChange}
-                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Phone
                                     </label>
                                     <input
                                         type="tel"
                                         name="phone"
                                         value={formData.phone}
-                                        onChange={handleInputChange}
-                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Tax ID
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="taxId"
-                                        value={formData.taxId}
                                         onChange={handleInputChange}
                                         className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
                                     />
@@ -185,61 +151,6 @@ export default function NewCustomer() {
                                         className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        City
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="city"
-                                        value={formData.city}
-                                        onChange={handleInputChange}
-                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Postal Code
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="postalCode"
-                                        value={formData.postalCode}
-                                        onChange={handleInputChange}
-                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Contact Person */}
-                        <div>
-                            <h2 className="text-lg font-semibold mb-4 text-gray-900 border-b pb-2">Contact Person</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Contact Person Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="contactPerson"
-                                        value={formData.contactPerson}
-                                        onChange={handleInputChange}
-                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Contact Person Phone
-                                    </label>
-                                    <input
-                                        type="tel"
-                                        name="contactPersonPhone"
-                                        value={formData.contactPersonPhone}
-                                        onChange={handleInputChange}
-                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
-                                    />
-                                </div>
                             </div>
                         </div>
 
@@ -251,70 +162,48 @@ export default function NewCustomer() {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Customer Type <span className="text-red-500">*</span>
                                     </label>
-                                    <div className="flex gap-4 mt-2">
-                                        <div className="flex items-center">
-                                            <input
-                                                type="radio"
-                                                id="retail"
-                                                name="customerType"
-                                                value="Retail"
-                                                checked={formData.customerType === 'Retail'}
-                                                onChange={handleInputChange}
-                                                className="w-4 h-4 text-primary focus:ring-primary"
-                                            />
-                                            <label htmlFor="retail" className="ml-2 text-sm font-medium text-gray-700">
-                                                Retail
-                                            </label>
-                                        </div>
-                                        <div className="flex items-center">
-                                            <input
-                                                type="radio"
-                                                id="wholesale"
-                                                name="customerType"
-                                                value="Wholesale"
-                                                checked={formData.customerType === 'Wholesale'}
-                                                onChange={handleInputChange}
-                                                className="w-4 h-4 text-primary focus:ring-primary"
-                                            />
-                                            <label htmlFor="wholesale" className="ml-2 text-sm font-medium text-gray-700">
-                                                Wholesale
-                                            </label>
-                                        </div>
-                                    </div>
+                                    <select
+                                        name="customerType"
+                                        value={formData.customerType}
+                                        onChange={handleInputChange}
+                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
+                                        required
+                                    >
+                                        <option value="Retail">Retail</option>
+                                        <option value="Wholesale">Wholesale</option>
+                                    </select>
                                 </div>
-                            </div>
-                        </div>
 
-                        {/* Credit Information */}
-                        <div>
-                            <h2 className="text-lg font-semibold mb-4 text-gray-900 border-b pb-2">Credit Information</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Credit Limit (Rs.)
-                                    </label>
-                                    <input
-                                        type="number"
-                                        name="creditLimit"
-                                        value={formData.creditLimit}
-                                        onChange={handleInputChange}
-                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
-                                        min="0"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Credit Period (Days)
-                                    </label>
-                                    <input
-                                        type="number"
-                                        name="creditPeriod"
-                                        value={formData.creditPeriod}
-                                        onChange={handleInputChange}
-                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
-                                        min="0"
-                                    />
-                                </div>
+                                {formData.customerType === 'Wholesale' && (
+                                    <>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Credit Limit
+                                            </label>
+                                            <input
+                                                type="number"
+                                                name="creditLimit"
+                                                value={formData.creditLimit || ''}
+                                                onChange={handleInputChange}
+                                                className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
+                                                min="0"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Credit Period (days)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                name="creditPeriod"
+                                                value={formData.creditPeriod || ''}
+                                                onChange={handleInputChange}
+                                                className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
+                                                min="0"
+                                            />
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
 

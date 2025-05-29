@@ -3,29 +3,31 @@ import sequelize from '../db';
 
 // Define attributes interface
 interface CustomerAttributes {
-    id: string;
+    id: number;
     name: string;
     email?: string;
     phone?: string;
     address?: string;
-    type: 'cash' | 'credit';
-    creditLimit: number;
+    type: 'wholesale' | 'retail';
+    creditLimit?: number;
+    creditPeriod?: number;
     isActive: boolean;
     createdAt?: Date;
     updatedAt?: Date;
 }
 
 // Define creation attributes (making id optional as it has a default)
-interface CustomerCreationAttributes extends Optional<CustomerAttributes, 'id' | 'createdAt' | 'updatedAt' | 'email' | 'phone' | 'address'> { }
+interface CustomerCreationAttributes extends Optional<CustomerAttributes, 'id' | 'createdAt' | 'updatedAt' | 'email' | 'phone' | 'address' | 'creditLimit' | 'creditPeriod'> { }
 
 class Customer extends Model<CustomerAttributes, CustomerCreationAttributes> implements CustomerAttributes {
-    public id!: string;
+    public id!: number;
     public name!: string;
     public email!: string;
     public phone!: string;
     public address!: string;
-    public type!: 'cash' | 'credit';
+    public type!: 'wholesale' | 'retail';
     public creditLimit!: number;
+    public creditPeriod!: number;
     public isActive!: boolean;
     public readonly createdAt!: Date;
     public readonly updatedAt!: Date;
@@ -61,9 +63,9 @@ class Customer extends Model<CustomerAttributes, CustomerCreationAttributes> imp
 
 Customer.init({
     id: {
-        type: DataTypes.UUID,
+        type: DataTypes.INTEGER,
         primaryKey: true,
-        defaultValue: DataTypes.UUIDV4
+        autoIncrement: true
     },
     name: {
         type: DataTypes.STRING(100),
@@ -91,15 +93,22 @@ Customer.init({
     type: {
         type: DataTypes.STRING(10),
         allowNull: false,
-        defaultValue: 'cash',
+        defaultValue: 'retail',
         validate: {
-            isIn: [['cash', 'credit']]
+            isIn: [['wholesale', 'retail']]
         }
     },
     creditLimit: {
         type: DataTypes.DECIMAL(10, 2),
-        allowNull: false,
+        allowNull: true,
         defaultValue: 0.00,
+        validate: {
+            min: 0
+        }
+    },
+    creditPeriod: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
         validate: {
             min: 0
         }

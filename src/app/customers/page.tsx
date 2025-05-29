@@ -9,19 +9,20 @@ export const revalidate = 60;
 
 // Interface for Customer (can be shared or defined in a common types file)
 interface Customer {
-    id: string | number;
+    id: number;
     name: string;
     email?: string | null;
     phone?: string | null;
-    address?: string | null; // This will now be the formatted display address
+    address?: string | null;
+    customerType: 'wholesale' | 'retail';
+    creditLimit?: number | null;
+    creditPeriod?: number | null;
+    isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
     lastPurchaseDate?: Date | null;
-    // Custom fields for UI, derived from address or other logic
-    type?: 'Credit' | 'Cash';
-    balance?: number; // Only for Credit customers
-    lastPurchase?: string | null; // Formatted date string
-    status?: 'Active' | 'Inactive'; // Example: derived or default
+    latestInvoicePaymentStatus?: string | null;
+    balance?: number;
     contactPerson?: string;
 }
 
@@ -67,6 +68,18 @@ async function fetchCustomersData(
     try {
         const customersFromDB = await prisma.customer.findMany({
             where: whereClause,
+            include: {
+                invoices: {
+                    orderBy: {
+                        createdAt: 'desc'
+                    },
+                    take: 1,
+                    select: {
+                        createdAt: true,
+                        status: true
+                    }
+                }
+            },
             orderBy: { createdAt: 'desc' },
             skip: (page - 1) * ITEMS_PER_PAGE,
             take: ITEMS_PER_PAGE,
@@ -75,61 +88,74 @@ async function fetchCustomersData(
         const totalCustomers = await prisma.customer.count({ where: whereClause });
 
         const formattedCustomers = customersFromDB.map(customer => {
-            let addressData: any = {};
-            try {
-                if (customer.address) {
-                    addressData = JSON.parse(customer.address);
-                }
-            } catch (e) {
-                console.error('Error parsing customer address data for customer ID ', customer.id, e);
-                addressData = { paymentType: 'Cash', creditLimit: 0, contactPerson: null, mainAddress: null, city: null };
-            }
-
             let displayAddress = 'N/A';
-            const mainAddr = addressData.mainAddress || (addressData.address && typeof addressData.address === 'string' ? addressData.address : null); // Compatibility with potential 'address' field in JSON
-            const cityAddr = addressData.city;
-
-            if (mainAddr && cityAddr) {
-                displayAddress = `${mainAddr}, ${cityAddr}`;
-            } else if (mainAddr) {
-                displayAddress = mainAddr;
-            } else if (cityAddr) {
-                displayAddress = cityAddr;
+            if (customer.address) {
+                try {
+                    const parsedAddress = JSON.parse(customer.address);
+                    // Check if it's the old structure with mainAddress
+                    if (parsedAddress && typeof parsedAddress === 'object' && parsedAddress.mainAddress) {
+                        displayAddress = parsedAddress.mainAddress;
+                        if (parsedAddress.city) {
+                            displayAddress += `, ${parsedAddress.city}`;
+                        }
+                    } else if (typeof parsedAddress === 'string') {
+                        // If parsing results in a string, use that (e.g. if db stores "'Some Address String'" including quotes)
+                        displayAddress = parsedAddress;
+                    } else {
+                        // It was parsable JSON but not the expected old structure, and not a simple string post-parsing.
+                        // Fallback to the raw string if it doesn't look like typical JSON, otherwise mark as needing review or use a generic placeholder.
+                        displayAddress = customer.address.trim().startsWith('{') && customer.address.trim().endsWith('}') ? 'Address data needs review' : customer.address;
+                    }
+                } catch (e) {
+                    // Parsing failed, assume it's a plain text address (new records or already migrated)
+                    displayAddress = customer.address;
+                }
             }
-            // If customer.address was just an empty JSON string like '{}' or 'null', displayAddress remains 'N/A'
-            // If it was non-empty JSON but mainAddress and city are null/undefined, it also remains 'N/A'
+
+            const latestInvoice = customer.invoices && customer.invoices[0];
 
             const uiCustomer: Customer = {
-                ...customer, // original db fields
-                id: customer.id.toString(),
-                type: addressData.paymentType || 'Cash',
-                balance: addressData.paymentType === 'Credit' ? (addressData.creditLimit || 0) : 0,
-                lastPurchase: customer.lastPurchaseDate ? new Date(customer.lastPurchaseDate).toISOString().split('T')[0] : null,
-                status: 'Active', // Placeholder
-                contactPerson: addressData.contactPerson || customer.name,
-                address: displayAddress, // Override with formatted address
+                id: customer.id,
+                name: customer.name,
+                email: customer.email,
+                phone: customer.phone,
+                address: displayAddress,
+                customerType: customer.customerType as 'wholesale' | 'retail',
+                creditLimit: customer.creditLimit,
+                creditPeriod: customer.creditPeriod,
+                isActive: customer.isActive,
+                createdAt: customer.createdAt,
+                updatedAt: customer.updatedAt,
+                lastPurchaseDate: latestInvoice ? latestInvoice.createdAt : null,
+                latestInvoicePaymentStatus: latestInvoice ? latestInvoice.status : null,
+                balance: customer.customerType === 'wholesale' ? customer.creditLimit || 0 : undefined,
+                contactPerson: customer.name,
             };
             return uiCustomer;
         });
 
         let postFilteredCustomers = formattedCustomers;
         if (customerType) {
-            postFilteredCustomers = postFilteredCustomers.filter(c => c.type?.toLowerCase() === customerType.toLowerCase());
+            postFilteredCustomers = postFilteredCustomers.filter(c => c.customerType.toLowerCase() === customerType.toLowerCase());
         }
         if (customerStatus) {
-            postFilteredCustomers = postFilteredCustomers.filter(c => c.status?.toLowerCase() === customerStatus.toLowerCase());
+            if (customerStatus.toLowerCase() === 'paid' || customerStatus.toLowerCase() === 'unpaid' || customerStatus.toLowerCase() === 'pending' || customerStatus.toLowerCase() === 'partial') {
+                postFilteredCustomers = postFilteredCustomers.filter(c => c.latestInvoicePaymentStatus?.toLowerCase() === customerStatus.toLowerCase());
+            } else if (customerStatus === 'Active' || customerStatus === 'Inactive') {
+                postFilteredCustomers = postFilteredCustomers.filter(c => c.isActive === (customerStatus === 'Active'));
+            }
         }
         if (!isNaN(balanceMin)) {
-            postFilteredCustomers = postFilteredCustomers.filter(c => c.type === 'Credit' && (c.balance || 0) >= balanceMin);
+            postFilteredCustomers = postFilteredCustomers.filter(c => c.customerType === 'wholesale' && (c.balance || 0) >= balanceMin);
         }
         if (!isNaN(balanceMax)) {
-            postFilteredCustomers = postFilteredCustomers.filter(c => c.type === 'Credit' && (c.balance || 0) <= balanceMax);
+            postFilteredCustomers = postFilteredCustomers.filter(c => c.customerType === 'wholesale' && (c.balance || 0) <= balanceMax);
         }
         if (lastPurchaseFrom) {
-            postFilteredCustomers = postFilteredCustomers.filter(c => c.lastPurchase && new Date(c.lastPurchase) >= new Date(lastPurchaseFrom));
+            postFilteredCustomers = postFilteredCustomers.filter(c => c.lastPurchaseDate && new Date(c.lastPurchaseDate) >= new Date(lastPurchaseFrom));
         }
         if (lastPurchaseTo) {
-            postFilteredCustomers = postFilteredCustomers.filter(c => c.lastPurchase && new Date(c.lastPurchase) <= new Date(lastPurchaseTo));
+            postFilteredCustomers = postFilteredCustomers.filter(c => c.lastPurchaseDate && new Date(c.lastPurchaseDate) <= new Date(lastPurchaseTo));
         }
 
         return {
@@ -152,7 +178,7 @@ async function fetchCustomersData(
 export default async function CustomersPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
     const page = searchParams?.page as string | undefined;
     const search = searchParams?.search as string | undefined;
-    const type = searchParams?.type as string | undefined;
+    const customerType = searchParams?.type as string | undefined;
     const status = searchParams?.status as string | undefined;
     const balanceMin = searchParams?.balanceMin as string | undefined;
     const balanceMax = searchParams?.balanceMax as string | undefined;
@@ -162,7 +188,7 @@ export default async function CustomersPage({ searchParams }: { searchParams?: {
     const { customers, totalPages, currentPage, error } = await fetchCustomersData(
         page,
         search,
-        type,
+        customerType,
         status,
         balanceMin,
         balanceMax,

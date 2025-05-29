@@ -18,7 +18,6 @@ interface CustomerDetails {
     postalCode?: string | null;
     contactPerson?: string | null;
     contactPersonPhone?: string | null;
-    customerType?: string | null;
     paymentType?: string | null;
     creditLimit?: number | null;
     creditPeriod?: number | null;
@@ -26,6 +25,9 @@ interface CustomerDetails {
     notes?: string | null;
     createdAt: string;
     updatedAt: string;
+    customerType: 'retail' | 'wholesale';
+    isActive: boolean;
+    invoices?: Invoice[];
 }
 
 export default function CustomerDetails({ params }: { params: { id: string } }) {
@@ -86,12 +88,14 @@ export default function CustomerDetails({ params }: { params: { id: string } }) 
                     postalCode: addressData.postalCode || null,
                     contactPerson: addressData.contactPerson || data.name,
                     contactPersonPhone: addressData.contactPersonPhone || data.phone,
-                    customerType: addressData.customerType || 'Retail',
                     paymentType: addressData.paymentType || data.paymentType || 'Cash',
-                    creditLimit: addressData.creditLimit || null,
-                    creditPeriod: addressData.creditPeriod || null,
+                    creditLimit: data.creditLimit !== undefined ? data.creditLimit : (addressData.creditLimit || null),
+                    creditPeriod: data.creditPeriod !== undefined ? data.creditPeriod : (addressData.creditPeriod || null),
                     taxId: addressData.taxId || null,
-                    notes: addressData.notes || null
+                    notes: addressData.notes || null,
+                    customerType: data.customerType || 'retail',
+                    isActive: data.isActive || true,
+                    invoices: data.invoices || []
                 });
             } catch (error) {
                 console.error('Error fetching customer details:', error);
@@ -128,6 +132,20 @@ export default function CustomerDetails({ params }: { params: { id: string } }) 
             setDeleteLoading(false);
         }
     };
+
+    // Calculate customer balance (for wholesale)
+    const calculateCustomerBalance = () => {
+        if (!customer || customer.customerType !== 'wholesale') {
+            return null;
+        }
+        const unpaidInvoicesTotal = customer.invoices
+            .filter(invoice => !invoice.isPaid)
+            .reduce((total, invoice) => total + invoice.total, 0);
+        return unpaidInvoicesTotal;
+    };
+
+    const customerBalance = calculateCustomerBalance();
+    const availableCredit = customer?.customerType === 'wholesale' ? (customer.creditLimit || 0) - (customerBalance || 0) : null;
 
     if (loading) {
         return (
@@ -224,7 +242,7 @@ export default function CustomerDetails({ params }: { params: { id: string } }) 
                         </div>
                         <div>
                             <h3 className="text-sm font-medium text-black/70">Customer Type</h3>
-                            <p className="mt-1 text-sm text-black">{customer.customerType || 'Retail'}</p>
+                            <p className="mt-1 text-sm text-black">{customer.customerType.charAt(0).toUpperCase() + customer.customerType.slice(1)}</p>
                         </div>
                         <div>
                             <h3 className="text-sm font-medium text-black/70">Payment Type</h3>
@@ -297,6 +315,52 @@ export default function CustomerDetails({ params }: { params: { id: string } }) 
                         </p>
                     </div>
                 </div>
+
+                <div className="mt-6">
+                    <h2 className="text-xl font-semibold text-gray-700 mb-4">Financial Information</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><p className="text-sm text-gray-500">Type:</p><p className="text-gray-800">{customer.customerType.charAt(0).toUpperCase() + customer.customerType.slice(1)}</p></div>
+                        {customer.customerType === 'wholesale' && (
+                            <>
+                                <div><p className="text-sm text-gray-500">Credit Limit:</p><p className="text-gray-800">Rs. {customer.creditLimit?.toLocaleString() || '0.00'}</p></div>
+                                <div><p className="text-sm text-gray-500">Credit Period:</p><p className="text-gray-800">{customer.creditPeriod || 0} days</p></div>
+                            </>
+                        )}
+                        <div><p className="text-sm text-gray-500">Active Status:</p><p className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${customer.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{customer.isActive ? 'Active' : 'Inactive'}</p></div>
+                    </div>
+                </div>
+
+                {(customer.customerType === 'wholesale' || customer.creditLimit || customer.creditPeriod) && (
+                    <>
+                        <div className="px-6 py-4 border-t border-gray-200 bg-primary/5">
+                            <h2 className="text-lg font-medium text-primary">Financial Information</h2>
+                        </div>
+                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {customer.customerType === 'wholesale' && (
+                                <>
+                                    <div>
+                                        <h3 className="text-sm font-medium text-black/70">Credit Limit</h3>
+                                        <p className="mt-1 text-sm text-black">
+                                            {customer.creditLimit ? `Rs. ${customer.creditLimit.toLocaleString()}` : '-'}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-medium text-black/70">Credit Period</h3>
+                                        <p className="mt-1 text-sm text-black">
+                                            {customer.creditPeriod ? `${customer.creditPeriod} days` : '-'}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-medium text-black/70">Available Credit</h3>
+                                        <p className="mt-1 text-sm text-black">
+                                            {availableCredit !== null ? `Rs. ${availableCredit.toLocaleString()}` : '-'}
+                                        </p>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </>
+                )}
             </div>
         </MainLayout>
     );

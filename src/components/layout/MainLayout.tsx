@@ -25,6 +25,7 @@ import {
     MessageSquare
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { Toaster } from 'sonner';
 
 type NavItem = {
     icon: React.ElementType;
@@ -152,6 +153,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
     return (
         <SocketProvider>
             <div className="min-h-screen bg-gray-100">
+                <Toaster position="top-right" richColors />
                 {/* Sidebar */}
                 <aside
                     className={cn(

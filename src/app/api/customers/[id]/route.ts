@@ -23,6 +23,16 @@ export async function GET(
         const customer = await prisma.customer.findUnique({
             where: {
                 id: id
+            },
+            include: {
+                invoices: {
+                    include: {
+                        items: true
+                    },
+                    orderBy: {
+                        createdAt: 'desc'
+                    }
+                }
             }
         });
 

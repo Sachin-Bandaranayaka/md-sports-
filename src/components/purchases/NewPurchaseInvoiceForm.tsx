@@ -234,10 +234,11 @@ export default function NewPurchaseInvoiceForm({
 
         try {
             // Prepare the data with proper types
-            const preparedData = {
+            const preparedData: any = { // Use 'any' for now, or create a more specific type
                 ...formData,
                 items: formData.items?.map(item => ({
                     ...item,
+                    productId: parseInt(item.productId), // Ensure productId is a number
                     quantity: Number(item.quantity),
                     price: Number(item.price),
                 })),
@@ -245,17 +246,30 @@ export default function NewPurchaseInvoiceForm({
                 paidAmount: Number(formData.paidAmount || 0),
             };
 
-            // Add distribution data if available
-            const itemDistributions: Record<string, Record<string, number>> = {};
-            formData.items?.forEach((item, index) => {
-                if (item.productId && itemDistributions[index]) {
-                    itemDistributions[item.productId] = itemDistributions[index];
-                }
-            });
+            // Add distribution data if available and correctly structured
+            const hasActualDistributions = itemDistributions.some(dist => Object.keys(dist).length > 0);
 
-            if (Object.keys(itemDistributions).length > 0) {
-                // @ts-ignore
-                preparedData.itemDistributions = itemDistributions;
+            if (hasActualDistributions) {
+                preparedData.distributions = itemDistributions.map((dist, index) => {
+                    const item = formData.items?.[index];
+                    // Ensure distribution is only added if item exists and distribution is not empty
+                    if (item && Object.keys(dist).length > 0) {
+                        return dist;
+                    }
+                    return {}; // Return empty object if no distribution for this item
+                });
+            } else if (shops.length > 0) { // If no specific distributions, check for a default shop
+                // Attempt to use the first shop as a default if no specific distributions
+                // This is a placeholder, you might have a more specific way to define a "default" shop
+                const defaultShop = shops.find(s => s.isDefault) || shops[0];
+                if (defaultShop) {
+                    preparedData.defaultShopId = defaultShop.id;
+                }
+            }
+
+            // Remove itemDistributions if it was added in error previously
+            if (preparedData.itemDistributions) {
+                delete preparedData.itemDistributions;
             }
 
             console.log('Submitting purchase invoice:', preparedData);
