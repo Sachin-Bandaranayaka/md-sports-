@@ -2,6 +2,62 @@ import { NextResponse } from 'next/server';
 import { prisma, safeQuery } from '@/lib/prisma';
 import { cacheService } from '@/lib/cache';
 
+// Filtered version of fetchSalesData with date range support
+export async function fetchSalesDataFiltered(startDate?: string | null, endDate?: string | null) {
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    if (startDate && endDate) {
+        // Custom date range - generate monthly data within the range
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+
+        const months = [];
+        const current = new Date(start.getFullYear(), start.getMonth(), 1);
+
+        while (current <= end) {
+            const monthStart = new Date(current.getFullYear(), current.getMonth(), 1);
+            const monthEnd = new Date(current.getFullYear(), current.getMonth() + 1, 0, 23, 59, 59, 999);
+
+            // Ensure we don't go beyond the specified end date
+            const actualEnd = monthEnd > end ? end : monthEnd;
+            const actualStart = monthStart < start ? start : monthStart;
+
+            const monthlyInvoices = await safeQuery(
+                () => prisma.invoice.aggregate({
+                    where: {
+                        createdAt: {
+                            gte: actualStart,
+                            lte: actualEnd
+                        }
+                    },
+                    _sum: {
+                        total: true
+                    }
+                }),
+                { _sum: { total: null } },
+                `Failed to fetch invoice data for ${monthNames[current.getMonth()]} ${current.getFullYear()}`
+            );
+
+            months.push({
+                month: `${monthNames[current.getMonth()]} ${current.getFullYear()}`,
+                sales: monthlyInvoices._sum.total || 0
+            });
+
+            // Move to next month
+            current.setMonth(current.getMonth() + 1);
+        }
+
+        return {
+            success: true,
+            data: months
+        };
+    } else {
+        // Default behavior - last 6 months
+        return fetchSalesData();
+    }
+}
+
 export async function fetchSalesData() {
     // Get current month and year
     const now = new Date();

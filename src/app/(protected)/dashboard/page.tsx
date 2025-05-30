@@ -1,7 +1,5 @@
 import { Suspense } from 'react';
-import DashboardMetrics from './components/DashboardMetrics';
-import DashboardCharts from './components/DashboardCharts';
-import DashboardTransfers from './components/DashboardTransfers';
+import DashboardClientWrapper from './components/DashboardClientWrapper';
 import { Loader2 } from 'lucide-react';
 import { headers } from 'next/headers';
 
@@ -10,11 +8,11 @@ export const revalidate = 30;
 
 // Server Component for the Dashboard
 export default async function DashboardPage() {
-    // Fetch dashboard data server-side
-    async function fetchDashboardData() {
+    // Fetch initial dashboard data server-side
+    async function fetchInitialDashboardData() {
         try {
             // Get the host from headers for proper URL construction
-            const headersList = await headers(); // Corrected: await headers()
+            const headersList = await headers();
             const host = headersList.get('host') || 'localhost:3000';
             const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
             const baseUrl = `${protocol}://${host}`;
@@ -24,7 +22,7 @@ export default async function DashboardPage() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                cache: 'no-store' // Retain no-store for now, can be re-evaluated
+                cache: 'no-store'
             });
 
             const result = await response.json();
@@ -45,9 +43,8 @@ export default async function DashboardPage() {
                 recentTransfers: result.recentTransfers,
             };
         } catch (error) {
-            console.error('Error fetching dashboard data:', error);
+            console.error('Error fetching initial dashboard data:', error);
             return {
-                error: error instanceof Error ? error.message : 'Failed to load dashboard data',
                 summaryData: null,
                 shopPerformance: null,
                 inventoryDistribution: null,
@@ -57,46 +54,18 @@ export default async function DashboardPage() {
         }
     }
 
-    const dashboardData = await fetchDashboardData();
+    const initialData = await fetchInitialDashboardData();
 
     return (
-        <div className="space-y-8">
-            {dashboardData.error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-                    {dashboardData.error}
+        <Suspense fallback={
+            <div className="h-full flex items-center justify-center p-20">
+                <div className="text-center">
+                    <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
+                    <p className="text-gray-500">Loading dashboard...</p>
                 </div>
-            )}
-
-            <Suspense fallback={
-                <div className="h-full flex items-center justify-center p-20">
-                    <div className="text-center">
-                        <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
-                        <p className="text-gray-500">Loading dashboard metrics...</p>
-                    </div>
-                </div>
-            }>
-                <DashboardMetrics summaryData={dashboardData.summaryData} />
-            </Suspense>
-
-            <Suspense fallback={
-                <div className="h-64 flex items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-            }>
-                <DashboardCharts
-                    shopPerformance={dashboardData.shopPerformance}
-                    inventoryDistribution={dashboardData.inventoryDistribution}
-                    monthlySales={dashboardData.monthlySales}
-                />
-            </Suspense>
-
-            <Suspense fallback={
-                <div className="h-64 flex items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-            }>
-                <DashboardTransfers transfers={dashboardData.recentTransfers} />
-            </Suspense>
-        </div>
+            </div>
+        }>
+            <DashboardClientWrapper initialData={initialData} />
+        </Suspense>
     );
-} 
+}

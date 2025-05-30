@@ -128,6 +128,135 @@ export async function fetchSummaryData() {
 }
 
 // GET: Fetch dashboard summary statistics
+// Filtered version of fetchSummaryData with date range support
+export async function fetchSummaryDataFiltered(startDate?: string | null, endDate?: string | null) {
+    // Build date filter for queries
+    const dateFilter: any = {};
+    if (startDate) {
+        dateFilter.gte = new Date(startDate);
+    }
+    if (endDate) {
+        // Set end date to end of day
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        dateFilter.lte = endDateTime;
+    }
+
+    // 1. Calculate Total Inventory Value (same as original - inventory doesn't need date filtering)
+    console.time('calculateInventoryValueRaw');
+    const totalValueResult = await safeQuery<Array<{ totalinventoryvalue: bigint | number | null }>>(
+        () => prisma.$queryRaw`
+            SELECT SUM(p.weightedaveragecost * i.quantity) as "totalinventoryvalue"
+            FROM "InventoryItem" i
+            JOIN "Product" p ON i."productId" = p.id
+            WHERE i.quantity > 0 AND p.weightedaveragecost IS NOT NULL AND p.weightedaveragecost > 0;
+        `,
+        [{ totalinventoryvalue: 0n }],
+        'Failed to calculate total inventory value via raw query'
+    );
+    console.timeEnd('calculateInventoryValueRaw');
+
+    let totalValue: number = 0;
+    if (totalValueResult && totalValueResult[0] && totalValueResult[0].totalinventoryvalue !== null) {
+        totalValue = Number(totalValueResult[0].totalinventoryvalue);
+    }
+
+    // 2. Count Pending Transfers with date filter
+    console.time('countPendingTransfers');
+    const pendingTransfersResult = await safeQuery(
+        () => prisma.inventoryTransfer.count({
+            where: {
+                status: 'Pending',
+                ...(Object.keys(dateFilter).length > 0 && { createdAt: dateFilter })
+            }
+        }),
+        0,
+        'Failed to count pending transfers'
+    );
+    console.timeEnd('countPendingTransfers');
+
+    // 3. Calculate Outstanding Invoices with date filter
+    console.time('calculateOutstandingInvoices');
+    const outstandingInvoicesResult = await safeQuery(
+        () => prisma.invoice.aggregate({
+            where: {
+                status: { in: ['Pending', 'Overdue'] },
+                ...(Object.keys(dateFilter).length > 0 && { createdAt: dateFilter })
+            },
+            _sum: { total: true }
+        }),
+        { _sum: { total: 0 } },
+        'Failed to calculate outstanding invoices'
+    );
+    console.timeEnd('calculateOutstandingInvoices');
+
+    // 4. Count Low Stock Items (same as original - doesn't need date filtering)
+    console.time('countLowStockItems');
+    const lowStockItemsResult = await safeQuery(
+        () => prisma.inventoryItem.count({
+            where: {
+                quantity: { lte: 10 }
+            }
+        }),
+        0,
+        'Failed to count low stock items'
+    );
+    console.timeEnd('countLowStockItems');
+
+    // Generate random trends
+    const getRandomTrend = (isPercentage = true) => {
+        const randomValue = Math.random() * 10 - 5;
+        const formatted = isPercentage
+            ? `${randomValue >= 0 ? '+' : ''}${randomValue.toFixed(1)}%`
+            : `${randomValue >= 0 ? '+' : ''}${Math.floor(randomValue)}`;
+        return {
+            trend: formatted,
+            trendUp: randomValue >= 0
+        };
+    };
+
+    const inventoryTrend = getRandomTrend(true);
+    const transfersTrend = getRandomTrend(false);
+    const invoicesTrend = getRandomTrend(true);
+    const stockTrend = getRandomTrend(false);
+
+    const summaryData = [
+        {
+            title: 'Total Inventory Value',
+            value: `Rs. ${totalValue.toLocaleString()}`,
+            icon: 'Package',
+            trend: inventoryTrend.trend,
+            trendUp: inventoryTrend.trendUp
+        },
+        {
+            title: 'Pending Transfers',
+            value: pendingTransfersResult.toString(),
+            icon: 'Truck',
+            trend: transfersTrend.trend,
+            trendUp: transfersTrend.trendUp
+        },
+        {
+            title: 'Outstanding Invoices',
+            value: `Rs. ${(outstandingInvoicesResult._sum.total || 0).toLocaleString()}`,
+            icon: 'CreditCard',
+            trend: invoicesTrend.trend,
+            trendUp: invoicesTrend.trendUp
+        },
+        {
+            title: 'Low Stock Items',
+            value: lowStockItemsResult.toString(),
+            icon: 'AlertTriangle',
+            trend: stockTrend.trend,
+            trendUp: stockTrend.trendUp
+        }
+    ];
+
+    return {
+        success: true,
+        data: summaryData
+    };
+}
+
 export async function GET() {
     try {
         // Check cache first
