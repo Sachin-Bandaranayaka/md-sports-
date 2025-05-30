@@ -7,6 +7,8 @@ import { Combobox } from '@/components/ui/Combobox';
 import { Loader2, Save, XCircle, Plus, FileText, DollarSign, Calendar, Trash, Store, PackagePlus, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PurchaseInvoice, Supplier, Product, Category, Shop } from '@/types';
+import { useInventoryUpdates } from '@/hooks/useWebSocket';
+import { WEBSOCKET_EVENTS } from '@/lib/websocket';
 
 const cardVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -92,6 +94,59 @@ export default function NewPurchaseInvoiceForm({
         }, 0);
         setFormData(prev => ({ ...prev, totalAmount: total }));
     }, [formData.items]);
+
+    // Subscribe to real-time inventory updates
+    useInventoryUpdates(useCallback((eventData) => {
+        console.log('Received inventory update in NewPurchaseInvoiceForm:', eventData);
+        const { type, payload } = eventData;
+
+        if (type === WEBSOCKET_EVENTS.INVENTORY_ITEM_CREATE && payload?.product) {
+            // Add new product to the list
+            const newProduct = payload.product;
+            setProducts(prev => {
+                const exists = prev.some(p => p.id === newProduct.id);
+                if (!exists) {
+                    return [...prev, newProduct];
+                }
+                return prev;
+            });
+            setFilteredProducts(prev => {
+                const exists = prev.some(p => p.id === newProduct.id);
+                if (!exists) {
+                    return [...prev, newProduct];
+                }
+                return prev;
+            });
+        } else if (type === WEBSOCKET_EVENTS.INVENTORY_ITEM_UPDATE && payload?.product) {
+            // Update existing product
+            const updatedProduct = payload.product;
+            setProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
+            setFilteredProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
+        } else if (type === WEBSOCKET_EVENTS.INVENTORY_LEVEL_UPDATED && payload?.productId) {
+            // Refresh product data when inventory levels change
+            const productId = payload.productId;
+            // Optionally fetch updated product data or just trigger a refresh
+            fetchUpdatedProductData(productId);
+        }
+    }, []));
+
+    // Function to fetch updated product data
+    const fetchUpdatedProductData = useCallback(async (productId?: number) => {
+        try {
+            const response = await fetch('/api/products', {
+                cache: 'no-store' // Ensure fresh data
+            });
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.data) {
+                    setProducts(data.data);
+                    setFilteredProducts(data.data);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching updated product data:', error);
+        }
+    }, []);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -521,4 +576,4 @@ export default function NewPurchaseInvoiceForm({
             </div>
         </form>
     );
-} 
+}

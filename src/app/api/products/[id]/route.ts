@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma, safeQuery } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
 
 // Default fallback for a single product
 const getDefaultProduct = (id: number) => ({
@@ -152,6 +153,19 @@ export async function PUT(
             }
         }
 
+        // Emit WebSocket event for real-time updates
+        const io = getSocketIO();
+        if (io) {
+            io.emit(WEBSOCKET_EVENTS.INVENTORY_ITEM_UPDATE, {
+                type: 'product_update',
+                payload: {
+                    product: updatedProduct,
+                    changes: changes
+                }
+            });
+            console.log('Emitted product update event via WebSocket');
+        }
+
         return NextResponse.json({
             success: true,
             message: 'Product updated successfully',
@@ -275,4 +289,4 @@ export async function DELETE(
             error: error instanceof Error ? error.message : String(error)
         }, { status: 500 });
     }
-} 
+}

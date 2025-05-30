@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import db from '@/utils/db';
+import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
+import { emitInventoryLevelUpdated } from '@/lib/utils/websocket';
 
 // GET: Fetch all inventory items with optional filtering
 export async function GET(request: Request) {
@@ -158,12 +160,20 @@ export async function POST(request: Request) {
             `, [shopId, productId, quantity, reorderLevel || 0]);
         }
 
+        // Emit WebSocket event for real-time inventory updates
+        const inventoryItem = result.rows[0];
+        emitInventoryLevelUpdated(productId, {
+            shopId: shopId,
+            newQuantity: quantity,
+            source: 'inventory_api'
+        });
+
         return NextResponse.json({
             success: true,
             message: inventoryResult.rows.length > 0
                 ? 'Inventory item updated successfully'
                 : 'Inventory item created successfully',
-            data: result.rows[0]
+            data: inventoryItem
         });
     } catch (error) {
         console.error('Error creating/updating inventory item:', error);
@@ -173,4 +183,4 @@ export async function POST(request: Request) {
             error: error instanceof Error ? error.message : String(error)
         }, { status: 500 });
     }
-} 
+}

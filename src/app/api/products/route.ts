@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma, safeQuery } from '@/lib/prisma';
 import { getShopId } from '@/lib/utils/middleware';
 import { NextRequest } from 'next/server';
+import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
 
 // Default fallback data for products
 const defaultProductsData = [
@@ -110,6 +111,18 @@ export async function POST(request: Request) {
 
         console.log('Product created successfully with WAC:', product.weightedAverageCost);
 
+        // Emit WebSocket event for real-time updates
+        const io = getSocketIO();
+        if (io) {
+            io.emit(WEBSOCKET_EVENTS.INVENTORY_ITEM_CREATE, {
+                type: 'product_create',
+                payload: {
+                    product: product
+                }
+            });
+            console.log('Emitted product creation event via WebSocket');
+        }
+
         return NextResponse.json({
             success: true,
             message: 'Product created successfully',
@@ -123,4 +136,4 @@ export async function POST(request: Request) {
             error: error instanceof Error ? error.message : String(error)
         }, { status: 500 });
     }
-} 
+}
