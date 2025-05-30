@@ -5,9 +5,22 @@ import { fetchShopsData } from '../shops/route';
 import { fetchInventoryDistributionData } from '../inventory/route';
 import { fetchSalesData } from '../sales/route';
 import { fetchTransfersData } from '../transfers/route';
+import { cacheService } from '@/lib/cache';
 
 export async function GET() {
     try {
+        // Check cache first
+        const cacheKey = 'dashboard:all';
+        console.time('cache check');
+        const cachedData = await cacheService.get(cacheKey);
+        console.timeEnd('cache check');
+
+        if (cachedData) {
+            console.log('✅ Dashboard data served from cache');
+            return NextResponse.json(cachedData);
+        }
+
+        console.log('🔄 Fetching fresh dashboard data');
         console.time('fetchSummaryData');
         const p1 = fetchSummaryData().finally(() => console.timeEnd('fetchSummaryData'));
 
@@ -53,7 +66,7 @@ export async function GET() {
             });
         }
 
-        return NextResponse.json({
+        const responseData = {
             success: true, // Overall success
             summaryData: summaryResult.success ? summaryResult.data : null,
             // totalRetailValue: totalRetailValueResult.success ? totalRetailValueResult : null, // No longer needed separately
@@ -70,7 +83,15 @@ export async function GET() {
                 !salesResult.success ? 'Failed to fetch sales data' : null,
                 !transfersResult.success ? 'Failed to fetch transfers data' : null,
             ].filter(e => e !== null)
-        });
+        };
+
+        // Cache the response for 2 minutes
+        console.time('cache set');
+        await cacheService.set(cacheKey, responseData, 120);
+        console.timeEnd('cache set');
+        console.log('💾 Dashboard data cached for 2 minutes');
+
+        return NextResponse.json(responseData);
 
     } catch (error) {
         console.error('Error fetching all dashboard data:', error);
@@ -83,4 +104,4 @@ export async function GET() {
             { status: 500 }
         );
     }
-} 
+}

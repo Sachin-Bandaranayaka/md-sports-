@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma, safeQuery } from '@/lib/prisma';
+import { cacheService } from '@/lib/cache';
 
 export async function fetchTotalRetailValueData() {
     // Get all inventory items
@@ -63,7 +64,22 @@ export async function fetchTotalRetailValueData() {
 
 export async function GET(request: NextRequest) {
     try {
+        // Check cache first
+        const cacheKey = 'dashboard:total-retail-value';
+        const cachedData = await cacheService.get(cacheKey);
+
+        if (cachedData) {
+            console.log('✅ Total retail value served from cache');
+            return NextResponse.json(cachedData);
+        }
+
+        console.log('🔄 Fetching fresh total retail value');
         const retailValueData = await fetchTotalRetailValueData();
+
+        // Cache for 3 minutes (retail value changes moderately)
+        await cacheService.set(cacheKey, retailValueData, 180);
+        console.log('💾 Total retail value cached for 3 minutes');
+
         return NextResponse.json(retailValueData);
     } catch (error) {
         console.error('Error calculating total retail value:', error);
@@ -72,4 +88,4 @@ export async function GET(request: NextRequest) {
             message: 'Failed to calculate total retail value'
         }, { status: 500 });
     }
-} 
+}

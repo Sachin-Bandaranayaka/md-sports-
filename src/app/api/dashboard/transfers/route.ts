@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma, safeQuery } from '@/lib/prisma';
+import { cacheService } from '@/lib/cache';
 
 export async function fetchTransfersData() {
     // Fetch recent inventory transfers using Prisma
@@ -47,7 +48,22 @@ export async function fetchTransfersData() {
 // GET: Fetch recent inventory transfers
 export async function GET() {
     try {
+        // Check cache first
+        const cacheKey = 'dashboard:transfers';
+        const cachedData = await cacheService.get(cacheKey);
+
+        if (cachedData) {
+            console.log('✅ Transfers data served from cache');
+            return NextResponse.json(cachedData);
+        }
+
+        console.log('🔄 Fetching fresh transfers data');
         const transfersResult = await fetchTransfersData();
+
+        // Cache for 2 minutes (transfers change frequently)
+        await cacheService.set(cacheKey, transfersResult, 120);
+        console.log('💾 Transfers data cached for 2 minutes');
+
         return NextResponse.json(transfersResult);
     } catch (error) {
         console.error('Error fetching transfer data:', error);
@@ -58,4 +74,4 @@ export async function GET() {
             message: error instanceof Error ? error.message : 'Unknown error'
         });
     }
-} 
+}

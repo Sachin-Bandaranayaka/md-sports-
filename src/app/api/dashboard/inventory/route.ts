@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma, safeQuery } from '@/lib/prisma';
+import { cacheService } from '@/lib/cache';
 
 export async function fetchInventoryDistributionData() {
     // Get all categories
@@ -66,7 +67,22 @@ export async function fetchInventoryDistributionData() {
 // GET: Fetch inventory distribution by category
 export async function GET() {
     try {
+        // Check cache first
+        const cacheKey = 'dashboard:inventory';
+        const cachedData = await cacheService.get(cacheKey);
+
+        if (cachedData) {
+            console.log('✅ Inventory data served from cache');
+            return NextResponse.json(cachedData);
+        }
+
+        console.log('🔄 Fetching fresh inventory data');
         const inventoryResult = await fetchInventoryDistributionData();
+
+        // Cache for 3 minutes (inventory changes moderately)
+        await cacheService.set(cacheKey, inventoryResult, 180);
+        console.log('💾 Inventory data cached for 3 minutes');
+
         return NextResponse.json(inventoryResult);
     } catch (error) {
         console.error('Error fetching inventory distribution:', error);
@@ -77,4 +93,4 @@ export async function GET() {
             message: error instanceof Error ? error.message : 'Unknown error'
         });
     }
-} 
+}

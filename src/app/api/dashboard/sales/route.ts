@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma, safeQuery } from '@/lib/prisma';
+import { cacheService } from '@/lib/cache';
 
 export async function fetchSalesData() {
     // Get current month and year
@@ -57,7 +58,22 @@ export async function fetchSalesData() {
 // GET: Fetch monthly sales data
 export async function GET() {
     try {
+        // Check cache first
+        const cacheKey = 'dashboard:sales';
+        const cachedData = await cacheService.get(cacheKey);
+
+        if (cachedData) {
+            console.log('✅ Sales data served from cache');
+            return NextResponse.json(cachedData);
+        }
+
+        console.log('🔄 Fetching fresh sales data');
         const salesResult = await fetchSalesData();
+
+        // Cache for 5 minutes (sales data changes less frequently)
+        await cacheService.set(cacheKey, salesResult, 300);
+        console.log('💾 Sales data cached for 5 minutes');
+
         return NextResponse.json(salesResult);
     } catch (error) {
         console.error('Error generating sales data:', error);
@@ -83,4 +99,4 @@ export async function GET() {
             message: error instanceof Error ? error.message : 'Unknown error'
         });
     }
-} 
+}

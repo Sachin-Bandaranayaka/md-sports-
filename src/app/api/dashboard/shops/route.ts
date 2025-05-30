@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma, safeQuery } from '@/lib/prisma';
+import { cacheService } from '@/lib/cache';
 
 // Default fallback data for shops (can be removed if not needed after refactor)
 // const defaultShopsData = [
@@ -89,7 +90,22 @@ export async function fetchShopsData() {
 // GET: Fetch shop performance data
 export async function GET() {
     try {
+        // Check cache first
+        const cacheKey = 'dashboard:shops';
+        const cachedData = await cacheService.get(cacheKey);
+
+        if (cachedData) {
+            console.log('✅ Shops data served from cache');
+            return NextResponse.json(cachedData);
+        }
+
+        console.log('🔄 Fetching fresh shops data');
         const shopsResult = await fetchShopsData();
+
+        // Cache for 5 minutes (shop data changes less frequently)
+        await cacheService.set(cacheKey, shopsResult, 300);
+        console.log('💾 Shops data cached for 5 minutes');
+
         return NextResponse.json(shopsResult);
     } catch (error) {
         console.error('Error fetching shop performance data:', error);
@@ -99,4 +115,4 @@ export async function GET() {
             message: error instanceof Error ? error.message : 'Unknown error'
         }, { status: 500 });
     }
-} 
+}

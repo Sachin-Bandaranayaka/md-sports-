@@ -1,8 +1,19 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { cacheService } from '@/lib/cache';
 
 export async function GET() {
     try {
+        // Check cache first
+        const cacheKey = 'dashboard:inventory-value';
+        const cachedData = await cacheService.get(cacheKey);
+
+        if (cachedData) {
+            console.log('✅ Inventory value served from cache');
+            return NextResponse.json(cachedData);
+        }
+
+        console.log('🔄 Fetching fresh inventory value');
         // Direct SQL query to calculate inventory value
         const result = await prisma.$queryRaw`
             SELECT SUM(i.quantity * p.weightedaveragecost) as total_value
@@ -19,12 +30,18 @@ export async function GET() {
 
         // Format the value
         const formattedValue = Number(totalValue).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-        
-        return NextResponse.json({
+
+        const responseData = {
             success: true,
             totalValue,
             formattedValue: `Rs. ${formattedValue}`
-        });
+        };
+
+        // Cache for 3 minutes (inventory value changes moderately)
+        await cacheService.set(cacheKey, responseData, 180);
+        console.log('💾 Inventory value cached for 3 minutes');
+
+        return NextResponse.json(responseData);
     } catch (error) {
         console.error('Error calculating inventory value:', error);
         return NextResponse.json({
@@ -33,4 +50,4 @@ export async function GET() {
             error: error instanceof Error ? error.message : String(error)
         }, { status: 500 });
     }
-} 
+}

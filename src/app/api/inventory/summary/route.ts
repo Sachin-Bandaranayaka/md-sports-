@@ -179,6 +179,7 @@ export async function GET(request: NextRequest) {
       }));
 
       const responseData = {
+        success: true,
         data: formattedData,
         pagination: {
           page,
@@ -200,7 +201,7 @@ export async function GET(request: NextRequest) {
     } catch (error) {
       console.error('Error fetching inventory summary:', error);
       return NextResponse.json(
-        { error: 'Failed to fetch inventory summary' },
+        { success: false, error: 'Failed to fetch inventory summary' },
         { status: 500 }
       );
     }

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma, safeQuery } from '@/lib/prisma';
+import { cacheService } from '@/lib/cache';
 
 // Extracted function to fetch dashboard summary data
 export async function fetchSummaryData() {
@@ -129,9 +130,24 @@ export async function fetchSummaryData() {
 // GET: Fetch dashboard summary statistics
 export async function GET() {
     try {
+        // Check cache first
+        const cacheKey = 'dashboard:summary';
+        const cachedData = await cacheService.get(cacheKey);
+
+        if (cachedData) {
+            console.log('✅ Summary data served from cache');
+            return NextResponse.json(cachedData);
+        }
+
+        console.log('🔄 Fetching fresh summary data');
         console.time('fetchSummaryDataOverall');
         const summaryResult = await fetchSummaryData();
         console.timeEnd('fetchSummaryDataOverall');
+
+        // Cache for 1 minute (summary data changes frequently)
+        await cacheService.set(cacheKey, summaryResult, 60);
+        console.log('💾 Summary data cached for 1 minute');
+
         return NextResponse.json(summaryResult);
     } catch (error) {
         console.error('Error fetching dashboard summary data:', error);
@@ -141,4 +157,4 @@ export async function GET() {
             error: error instanceof Error ? error.message : String(error)
         }, { status: 500 });
     }
-} 
+}
