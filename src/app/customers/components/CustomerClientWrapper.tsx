@@ -128,6 +128,30 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
         setCurrentPage(initialCurrentPage);
     }, [initialCustomers, initialTotalPages, initialCurrentPage]);
 
+    // Initialize filter states from URL parameters
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const search = urlParams.get('search') || '';
+        const type = urlParams.get('type') || '';
+        const status = urlParams.get('status') || '';
+        const balanceMin = urlParams.get('balanceMin') || '';
+        const balanceMax = urlParams.get('balanceMax') || '';
+        const lastPurchaseFrom = urlParams.get('lastPurchaseFrom') || '';
+        const lastPurchaseTo = urlParams.get('lastPurchaseTo') || '';
+
+        setSearchTerm(search);
+        setSelectedType(type);
+        setSelectedStatus(status);
+        setFilterOptions({
+            customerType: type,
+            customerStatus: status,
+            balanceMin,
+            balanceMax,
+            lastPurchaseFrom,
+            lastPurchaseTo
+        });
+    }, []);
+
 
     // Function to search customers and update suggestions
     const searchCustomers = (value: string) => {
@@ -217,13 +241,17 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
         setSelectedType(value);
         // Update filterOptions and then call handleApplyFilters or similar
         setFilterOptions(prev => ({ ...prev, customerType: value }));
-        // If we want instant apply:
-        // const queryParams = new URLSearchParams();
-        // if (searchTerm) queryParams.set('search', searchTerm);
-        // queryParams.set('type', value);
-        // if (selectedStatus) queryParams.set('status', selectedStatus);
-        // queryParams.set('page', '1');
-        // router.push(`/customers?${queryParams.toString()}`);
+        // Apply filter instantly:
+        const queryParams = new URLSearchParams(window.location.search);
+        if (searchTerm) queryParams.set('search', searchTerm);
+        if (value) {
+            queryParams.set('type', value);
+        } else {
+            queryParams.delete('type');
+        }
+        if (selectedStatus) queryParams.set('status', selectedStatus);
+        queryParams.set('page', '1');
+        router.push(`/customers?${queryParams.toString()}`);
     };
 
     const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -389,7 +417,7 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                             id="customerType"
                             value={selectedType}
                             onChange={handleTypeChange}
-                            className={`w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${selectedType === '' ? 'text-black' : ''}`}
+                            className="w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-black"
                         >
                             <option value="">All Types</option>
                             <option value="wholesale">Wholesale</option>
@@ -410,7 +438,7 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                                 queryParams.set('page', '1');
                                 router.push(`/customers?${queryParams.toString()}`);
                             }}
-                            className={`w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${selectedStatus === '' ? 'text-black' : ''}`}
+                            className="w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-black"
                         >
                             <option value="">All Statuses</option>
                             <option value="Active">Active (Customer)</option>
@@ -549,7 +577,6 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer ID</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Person</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
@@ -572,11 +599,10 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                                             {customer.customerType.charAt(0).toUpperCase() + customer.customerType.slice(1)}
                                         </span>
                                     </td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{customer.contactPerson || 'N/A'}</td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{customer.phone || 'N/A'}</td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{customer.address || 'N/A'}</td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                                        {customer.customerType === 'wholesale' && customer.balance !== undefined ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(customer.balance) : 'N/A'}
+                                        {customer.customerType === 'wholesale' && customer.balance !== undefined ? `Rs ${new Intl.NumberFormat('en-US').format(customer.balance)}` : 'N/A'}
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                                         {customer.lastPurchaseDate ? new Date(customer.lastPurchaseDate).toLocaleDateString() : 'N/A'}
