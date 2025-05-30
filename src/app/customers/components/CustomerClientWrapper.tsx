@@ -48,7 +48,11 @@ const getInvoicePaymentStatusBadgeClass = (status?: string | null): string => {
 };
 
 const getCustomerTypeClass = (customerType: 'wholesale' | 'retail') => {
-    return customerType === 'wholesale' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800';
+    return customerType === 'wholesale' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800';
+};
+
+const getCustomerTypeRowClass = (customerType: 'wholesale' | 'retail') => {
+    return customerType === 'wholesale' ? 'bg-blue-50' : 'bg-green-50';
 };
 
 interface CustomerClientWrapperProps {
@@ -544,6 +548,7 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                             <tr>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer ID</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Person</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
@@ -555,12 +560,17 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {customers.map((customer) => (
-                                <tr key={customer.id} className="hover:bg-gray-50 transition-colors duration-150">
+                                <tr key={customer.id} className={`hover:bg-gray-50 transition-colors duration-150 ${getCustomerTypeRowClass(customer.customerType)}`}>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{customer.id}</td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                                         <button onClick={() => router.push(`/customers/${customer.id}`)} className="text-indigo-600 hover:text-indigo-900 hover:underline">
                                             {customer.name}
                                         </button>
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getCustomerTypeClass(customer.customerType)}`}>
+                                            {customer.customerType.charAt(0).toUpperCase() + customer.customerType.slice(1)}
+                                        </span>
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{customer.contactPerson || 'N/A'}</td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{customer.phone || 'N/A'}</td>
@@ -640,4 +650,4 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
             )}
         </>
     );
-} 
+}
