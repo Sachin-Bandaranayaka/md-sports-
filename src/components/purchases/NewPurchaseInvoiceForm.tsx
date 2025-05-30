@@ -122,6 +122,12 @@ export default function NewPurchaseInvoiceForm({
             const updatedProduct = payload.product;
             setProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
             setFilteredProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
+        } else if (type === WEBSOCKET_EVENTS.INVENTORY_ITEM_DELETE && payload?.productId) {
+            // Remove deleted product from the list
+            const deletedProductId = payload.productId;
+            setProducts(prev => prev.filter(p => p.id !== deletedProductId));
+            setFilteredProducts(prev => prev.filter(p => p.id !== deletedProductId));
+            console.log(`Removed deleted product ${deletedProductId} from product list`);
         } else if (type === WEBSOCKET_EVENTS.INVENTORY_LEVEL_UPDATED && payload?.productId) {
             // Refresh product data when inventory levels change
             const productId = payload.productId;

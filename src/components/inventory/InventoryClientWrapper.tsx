@@ -212,9 +212,11 @@ export default function InventoryClientWrapper({
             setTotalItems(prev => prev + 1);
             // Recalculate totalPages based on new totalItems and itemsPerPage
             setTotalPages(Math.ceil((totalItems + 1) / itemsPerPage));
-        } else if (type === WEBSOCKET_EVENTS.INVENTORY_ITEM_DELETE && payload.itemId) {
+        } else if (type === WEBSOCKET_EVENTS.INVENTORY_ITEM_DELETE && (payload.itemId || payload.productId)) {
             // Item deletion - no debounce needed
-            setInventoryItems(prev => prev.filter(item => item.id !== payload.itemId));
+            // Handle both inventory item deletion (payload.itemId) and product deletion (payload.productId)
+            const idToRemove = payload.itemId || payload.productId;
+            setInventoryItems(prev => prev.filter(item => item.id !== idToRemove));
             setTotalItems(prev => prev - 1);
             setTotalPages(Math.ceil((totalItems - 1) / itemsPerPage));
         } else if (type === WEBSOCKET_EVENTS.INVENTORY_LEVEL_UPDATED && payload.productId) {

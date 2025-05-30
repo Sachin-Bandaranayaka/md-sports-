@@ -349,8 +349,291 @@ export default function SettingsContainer() {
                 </div>
             )}
 
-            {/* Rest of the tabs code here - omitted for brevity */}
-            {/* You would include the other tabs (users, shops, system, notifications, ai) here */}
+            {activeTab === 'users' && (
+                <div className="space-y-6">
+                    <h3 className="text-lg font-medium text-gray-900">Users & Permissions</h3>
+                    <p className="text-gray-500">
+                        Manage user accounts, roles, and permissions.
+                    </p>
+
+                    <div className="bg-white p-6 rounded-lg border border-gray-200">
+                        <div className="flex justify-between items-center mb-4">
+                            <h4 className="text-md font-medium text-gray-900">User Management</h4>
+                            <button
+                                onClick={() => router.push('/settings/users/add')}
+                                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark"
+                            >
+                                Add New User
+                            </button>
+                        </div>
+                        <p className="text-gray-600">Click "Add New User" to create new user accounts and assign roles.</p>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-lg border border-gray-200">
+                        <div className="flex justify-between items-center mb-4">
+                            <h4 className="text-md font-medium text-gray-900">Role Management</h4>
+                            <button
+                                onClick={() => router.push('/settings/roles/add')}
+                                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark"
+                            >
+                                Add New Role
+                            </button>
+                        </div>
+                        <p className="text-gray-600">Create and manage user roles with specific permissions.</p>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'shops' && (
+                <div className="space-y-6">
+                    <h3 className="text-lg font-medium text-gray-900">Shop Management</h3>
+                    <p className="text-gray-500">
+                        Configure shop locations and inventory settings.
+                    </p>
+
+                    <div className="bg-white p-6 rounded-lg border border-gray-200">
+                        <div className="flex justify-between items-center mb-4">
+                            <h4 className="text-md font-medium text-gray-900">Shop Locations</h4>
+                            <button
+                                onClick={() => router.push('/shops')}
+                                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark"
+                            >
+                                Manage Shops
+                            </button>
+                        </div>
+                        <p className="text-gray-600">View and manage all shop locations, inventory transfers, and shop-specific settings.</p>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'system' && (
+                <div className="space-y-6">
+                    <h3 className="text-lg font-medium text-gray-900">System Settings</h3>
+                    <p className="text-gray-500">
+                        Configure system-wide settings and maintenance options.
+                    </p>
+
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-700">Database Backup Schedule</label>
+                            <select
+                                className="w-full p-2 border border-gray-300 rounded-md"
+                                value={settings['db_backup_schedule'] || 'Daily'}
+                                onChange={(e) => handleInputChange('db_backup_schedule', e.target.value)}
+                            >
+                                <option value="Hourly">Hourly</option>
+                                <option value="Daily">Daily</option>
+                                <option value="Weekly">Weekly</option>
+                                <option value="Monthly">Monthly</option>
+                            </select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-700">Log Level</label>
+                            <select
+                                className="w-full p-2 border border-gray-300 rounded-md"
+                                value={settings['log_level'] || 'Info'}
+                                onChange={(e) => handleInputChange('log_level', e.target.value)}
+                            >
+                                <option value="Debug">Debug</option>
+                                <option value="Info">Info</option>
+                                <option value="Warning">Warning</option>
+                                <option value="Error">Error</option>
+                            </select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    checked={settings['maintenance_mode'] === 'true'}
+                                    onChange={(e) => handleCheckboxChange('maintenance_mode', e.target.checked)}
+                                    className="rounded border-gray-300"
+                                />
+                                <span className="text-sm font-medium text-gray-700">Maintenance Mode</span>
+                            </label>
+                            <p className="text-xs text-gray-500">Enable maintenance mode to restrict system access</p>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end mt-6">
+                        <button
+                            className={`px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            onClick={handleSaveSystemSettings}
+                            disabled={isSaving}
+                        >
+                            {isSaving ? 'Saving...' : 'Save System Settings'}
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'notifications' && (
+                <div className="space-y-6">
+                    <h3 className="text-lg font-medium text-gray-900">Notification Settings</h3>
+                    <p className="text-gray-500">
+                        Configure SMS and email notification settings.
+                    </p>
+
+                    <div className="space-y-6">
+                        <div className="space-y-2">
+                            <label className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    checked={settings['sms_enabled'] === 'true'}
+                                    onChange={(e) => handleCheckboxChange('sms_enabled', e.target.checked)}
+                                    className="rounded border-gray-300"
+                                />
+                                <span className="text-sm font-medium text-gray-700">Enable SMS Notifications</span>
+                            </label>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium text-gray-700">SMS API Key</label>
+                                <input
+                                    type="password"
+                                    className="w-full p-2 border border-gray-300 rounded-md"
+                                    value={settings['sms_api_key'] || ''}
+                                    onChange={(e) => handleInputChange('sms_api_key', e.target.value)}
+                                    placeholder="Enter notify.lk API key"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium text-gray-700">SMS User ID</label>
+                                <input
+                                    type="text"
+                                    className="w-full p-2 border border-gray-300 rounded-md"
+                                    value={settings['sms_user_id'] || ''}
+                                    onChange={(e) => handleInputChange('sms_user_id', e.target.value)}
+                                    placeholder="Enter notify.lk User ID"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium text-gray-700">SMS Sender ID</label>
+                                <input
+                                    type="text"
+                                    className="w-full p-2 border border-gray-300 rounded-md"
+                                    value={settings['sms_sender_id'] || 'NotifyDEMO'}
+                                    onChange={(e) => handleInputChange('sms_sender_id', e.target.value)}
+                                    placeholder="Enter sender ID"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                            <h4 className="text-sm font-medium text-gray-900 mb-3">Test SMS Configuration</h4>
+                            <div className="flex space-x-3">
+                                <input
+                                    type="tel"
+                                    className="flex-1 p-2 border border-gray-300 rounded-md"
+                                    value={testSmsPhone}
+                                    onChange={(e) => setTestSmsPhone(e.target.value)}
+                                    placeholder="Enter phone number (e.g., +94771234567)"
+                                />
+                                <button
+                                    onClick={handleTestSms}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                                >
+                                    Send Test SMS
+                                </button>
+                            </div>
+                            {testSmsStatus && (
+                                <div className={`mt-3 p-3 rounded-md ${testSmsStatus.success === true ? 'bg-green-50 text-green-800' :
+                                        testSmsStatus.success === false ? 'bg-red-50 text-red-800' :
+                                            'bg-blue-50 text-blue-800'
+                                    }`}>
+                                    {testSmsStatus.message}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-end mt-6">
+                            <button
+                                className={`px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                onClick={handleSaveNotificationSettings}
+                                disabled={isSaving}
+                            >
+                                {isSaving ? 'Saving...' : 'Save Notification Settings'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'ai' && (
+                <div className="space-y-6">
+                    <h3 className="text-lg font-medium text-gray-900">AI Assistant Settings</h3>
+                    <p className="text-gray-500">
+                        Configure AI chatbot and assistant features.
+                    </p>
+
+                    <div className="space-y-6">
+                        <div className="space-y-2">
+                            <label className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    checked={settings['ai_chatbot_enabled'] === 'true'}
+                                    onChange={(e) => handleCheckboxChange('ai_chatbot_enabled', e.target.checked)}
+                                    className="rounded border-gray-300"
+                                />
+                                <span className="text-sm font-medium text-gray-700">Enable AI Chatbot</span>
+                            </label>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-700">Deepseek API Key</label>
+                            <input
+                                type="password"
+                                className="w-full p-2 border border-gray-300 rounded-md"
+                                value={settings['deepseek_api_key'] || ''}
+                                onChange={(e) => handleInputChange('deepseek_api_key', e.target.value)}
+                                placeholder="Enter Deepseek API key"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-700">Business Context</label>
+                            <textarea
+                                className="w-full p-2 border border-gray-300 rounded-md h-32"
+                                value={settings['ai_business_context'] || 'You are an AI assistant for MS Sports, an inventory management system. You can help with questions about inventory management, sales tracking, customer information, supplier relationships, product information, business performance, and system features and usage.'}
+                                onChange={(e) => handleInputChange('ai_business_context', e.target.value)}
+                                placeholder="Describe your business context for the AI assistant"
+                            />
+                        </div>
+
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                            <h4 className="text-sm font-medium text-gray-900 mb-3">Test AI Configuration</h4>
+                            <button
+                                onClick={testAiConnection}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                            >
+                                Test AI Connection
+                            </button>
+                            {testAiStatus && (
+                                <div className={`mt-3 p-3 rounded-md ${testAiStatus.success === true ? 'bg-green-50 text-green-800' :
+                                        testAiStatus.success === false ? 'bg-red-50 text-red-800' :
+                                            'bg-blue-50 text-blue-800'
+                                    }`}>
+                                    {testAiStatus.message}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-end mt-6">
+                            <button
+                                className={`px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                onClick={handleSaveAISettings}
+                                disabled={isSaving}
+                            >
+                                {isSaving ? 'Saving...' : 'Save AI Settings'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
-} 
+}

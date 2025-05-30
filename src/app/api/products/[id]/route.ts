@@ -249,6 +249,19 @@ export async function DELETE(
                 });
             });
 
+            // Emit WebSocket event for real-time updates
+            const io = getSocketIO();
+            if (io) {
+                io.emit(WEBSOCKET_EVENTS.INVENTORY_ITEM_DELETE, {
+                    type: 'product_delete',
+                    payload: {
+                        productId: id,
+                        productName: existingProduct.name
+                    }
+                });
+                console.log('Emitted product delete event via WebSocket');
+            }
+
             return NextResponse.json({
                 success: true,
                 message: 'Product deleted successfully'
