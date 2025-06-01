@@ -326,10 +326,12 @@ export default function CreateInvoice() {
             };
 
             // Create invoice via API
+            const token = localStorage.getItem('accessToken');
             const response = await fetch('/api/invoices', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': token ? `Bearer ${token}` : '',
                 },
                 body: JSON.stringify(invoiceData),
             });

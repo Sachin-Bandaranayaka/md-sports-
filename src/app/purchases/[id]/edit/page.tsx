@@ -34,7 +34,7 @@ async function fetchPurchaseInvoice(id: string, baseUrl: string): Promise<Purcha
 async function fetchSuppliers(baseUrl: string): Promise<Supplier[]> {
     try {
         const response = await fetch(`${baseUrl}/api/suppliers`, { next: { revalidate: 3600 } });
-            if (!response.ok) {
+        if (!response.ok) {
             console.error(`Failed to fetch suppliers: ${response.status} ${await response.text()}`);
             return [];
         }
@@ -48,7 +48,7 @@ async function fetchSuppliers(baseUrl: string): Promise<Supplier[]> {
 
 async function fetchProducts(baseUrl: string): Promise<Product[]> {
     try {
-        const response = await fetch(`${baseUrl}/api/products`, { next: { revalidate: 3600 } }); // Can cache products too
+        const response = await fetch(`${baseUrl}/api/products`, { next: { revalidate: 30 } }); // Cache for 30 seconds
         if (!response.ok) {
             console.error(`Failed to fetch products: ${response.status} ${await response.text()}`);
             return [];
@@ -79,7 +79,7 @@ async function fetchCategories(baseUrl: string): Promise<Category[]> {
 async function fetchShops(baseUrl: string): Promise<Shop[]> {
     try {
         const response = await fetch(`${baseUrl}/api/shops`, { next: { revalidate: 3600 } });
-            if (!response.ok) {
+        if (!response.ok) {
             console.error(`Failed to fetch shops: ${response.status} ${await response.text()}`);
             return [];
         }
@@ -146,7 +146,7 @@ export default async function EditPurchaseInvoicePage({ params }: EditPurchaseIn
                         initialShops={shops}
                     />
                 </Suspense>
-                        </div>
+            </div>
         </MainLayout>
     );
 }

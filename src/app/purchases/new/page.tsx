@@ -28,9 +28,9 @@ async function fetchSuppliers(baseUrl: string): Promise<Supplier[]> {
 
 async function fetchProducts(baseUrl: string): Promise<Product[]> {
     try {
-        // Use incremental static regeneration for products with a 5-minute cache
+        // Use incremental static regeneration for products with a 30-second cache
         const response = await fetch(`${baseUrl}/api/products`, {
-            next: { revalidate: 300 }  // Cache for 5 minutes
+            next: { revalidate: 30 }  // Cache for 30 seconds
         });
         if (!response.ok) {
             console.error(`Failed to fetch products: ${response.status} ${await response.text()}`);
@@ -123,4 +123,4 @@ export default async function NewPurchaseInvoicePage() {
             </div>
         </MainLayout>
     );
-} 
+}

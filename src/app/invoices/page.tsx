@@ -28,12 +28,14 @@ async function fetchInvoicesData(
     pageParam: string | undefined,
     statusFilterParam: string | undefined,
     paymentMethodFilterParam: string | undefined,
-    searchQueryParam: string | undefined
+    searchQueryParam: string | undefined,
+    timePeriodParam: string | undefined
 ) {
     const page = parseInt(pageParam || '1', 10);
     const statusFilter = statusFilterParam || '';
     const paymentMethodFilter = paymentMethodFilterParam || '';
     const searchQuery = searchQueryParam || '';
+    const timePeriod = timePeriodParam || 'all';
 
     let whereClause: any = {};
     if (statusFilter) {
@@ -47,11 +49,33 @@ async function fetchInvoicesData(
             { invoiceNumber: { contains: searchQuery, mode: 'insensitive' } },
             { customer: { name: { contains: searchQuery, mode: 'insensitive' } } },
         ];
-        // Optional: If you want to search by total if a number is entered
-        // const numericQuery = parseFloat(searchQuery);
-        // if (!isNaN(numericQuery)) {
-        //     whereClause.OR.push({ total: numericQuery }); 
-        // }
+    }
+
+    // Add time period filtering
+    const now = new Date();
+    if (timePeriod !== 'all') {
+        let startDate: Date;
+        switch (timePeriod) {
+            case 'today':
+                startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                break;
+            case 'week':
+                startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                break;
+            case 'month':
+                startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                break;
+            case 'quarter':
+                const quarterStart = Math.floor(now.getMonth() / 3) * 3;
+                startDate = new Date(now.getFullYear(), quarterStart, 1);
+                break;
+            case 'year':
+                startDate = new Date(now.getFullYear(), 0, 1);
+                break;
+            default:
+                startDate = new Date(0); // All time
+        }
+        whereClause.createdAt = { gte: startDate };
     }
 
     try {
@@ -96,16 +120,39 @@ async function fetchInvoicesData(
             where: {
                 ...whereClause,
                 status: 'Overdue',
-                // AND: whereClause.AND ? [...whereClause.AND] : [],
             }
         });
 
-        const [invoicesFromDB, totalInvoicesCount, totalOutstandingResult, paidThisMonthResult, overdueCountResult] = await Promise.all([
+        // Credit sales (wholesale customers)
+        const creditSalesPromise = prisma.invoice.aggregate({
+            _sum: { total: true },
+            where: {
+                ...whereClause,
+                customer: {
+                    customerType: 'wholesale'
+                }
+            }
+        });
+
+        // Non-credit sales (retail customers)
+        const nonCreditSalesPromise = prisma.invoice.aggregate({
+            _sum: { total: true },
+            where: {
+                ...whereClause,
+                customer: {
+                    customerType: 'retail'
+                }
+            }
+        });
+
+        const [invoicesFromDB, totalInvoicesCount, totalOutstandingResult, paidThisMonthResult, overdueCountResult, creditSalesResult, nonCreditSalesResult] = await Promise.all([
             invoicesPromise,
             totalInvoicesCountPromise,
             totalOutstandingPromise,
             paidThisMonthPromise,
-            overdueCountPromise
+            overdueCountPromise,
+            creditSalesPromise,
+            nonCreditSalesPromise
         ]);
 
 
@@ -139,6 +186,8 @@ async function fetchInvoicesData(
                 totalOutstanding: totalOutstandingResult._sum.total || 0,
                 paidThisMonth: paidThisMonthResult._sum.total || 0,
                 overdueCount: overdueCountResult || 0,
+                totalCreditSales: creditSalesResult._sum.total || 0,
+                totalNonCreditSales: nonCreditSalesResult._sum.total || 0,
             },
         };
 
@@ -149,7 +198,7 @@ async function fetchInvoicesData(
             invoices: [],
             totalPages: 0,
             currentPage: 1,
-            statistics: { totalOutstanding: 0, paidThisMonth: 0, overdueCount: 0 },
+            statistics: { totalOutstanding: 0, paidThisMonth: 0, overdueCount: 0, totalCreditSales: 0, totalNonCreditSales: 0 },
             error: 'Failed to fetch invoices. Please try refreshing the page.',
         };
     }
@@ -162,7 +211,8 @@ export default async function InvoicesPage({ searchParams: passedSearchParams }:
         searchParams?.page as string | undefined,
         searchParams?.status as string | undefined,
         searchParams?.paymentMethod as string | undefined,
-        searchParams?.search as string | undefined
+        searchParams?.search as string | undefined,
+        searchParams?.timePeriod as string | undefined
     );
 
     if (error) {
@@ -194,4 +244,4 @@ export default async function InvoicesPage({ searchParams: passedSearchParams }:
             </div>
         </MainLayout>
     );
-} 
+}

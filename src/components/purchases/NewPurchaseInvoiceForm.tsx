@@ -95,6 +95,11 @@ export default function NewPurchaseInvoiceForm({
         setFormData(prev => ({ ...prev, totalAmount: total }));
     }, [formData.items]);
 
+    // Force refresh products on component mount to ensure latest data
+    useEffect(() => {
+        fetchUpdatedProductData();
+    }, [fetchUpdatedProductData]);
+
     // Subscribe to real-time inventory updates
     useInventoryUpdates(useCallback((eventData) => {
         console.log('Received inventory update in NewPurchaseInvoiceForm:', eventData);
@@ -139,8 +144,15 @@ export default function NewPurchaseInvoiceForm({
     // Function to fetch updated product data
     const fetchUpdatedProductData = useCallback(async (productId?: number) => {
         try {
-            const response = await fetch('/api/products', {
-                cache: 'no-store' // Ensure fresh data
+            // Add timestamp to ensure cache busting
+            const timestamp = Date.now();
+            const response = await fetch(`/api/products?t=${timestamp}`, {
+                cache: 'no-store', // Ensure fresh data
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                }
             });
             if (response.ok) {
                 const data = await response.json();

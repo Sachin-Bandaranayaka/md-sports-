@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma, safeQuery } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
+import { cacheService } from '@/lib/cache';
 
 // Default fallback for a single product
 const getDefaultProduct = (id: number) => ({
@@ -248,6 +249,10 @@ export async function DELETE(
                     where: { id }
                 });
             });
+
+            // Invalidate product cache
+            await cacheService.invalidatePattern('products:*');
+            await cacheService.invalidateInventory();
 
             // Emit WebSocket event for real-time updates
             const io = getSocketIO();

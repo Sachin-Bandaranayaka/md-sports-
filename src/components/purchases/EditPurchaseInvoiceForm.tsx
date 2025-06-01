@@ -86,6 +86,36 @@ export default function EditPurchaseInvoiceForm({
         setFormData(prev => ({ ...prev, totalAmount: total }));
     }, [formData.items]);
 
+    // Function to fetch updated product data
+    const fetchUpdatedProductData = useCallback(async (productId?: number) => {
+        try {
+            // Add timestamp to ensure cache busting
+            const timestamp = Date.now();
+            const response = await fetch(`/api/products?t=${timestamp}`, {
+                cache: 'no-store', // Ensure fresh data
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.data) {
+                    setProducts(data.data);
+                    setFilteredProducts(data.data);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching updated product data:', error);
+        }
+    }, []);
+
+    // Force refresh products on component mount to ensure latest data
+    useEffect(() => {
+        fetchUpdatedProductData();
+    }, [fetchUpdatedProductData]);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({
@@ -476,4 +506,4 @@ export default function EditPurchaseInvoiceForm({
             </div>
         </form>
     );
-} 
+}

@@ -45,6 +45,8 @@ interface InvoiceClientWrapperProps {
         totalOutstanding: number;
         paidThisMonth: number;
         overdueCount: number;
+        totalCreditSales: number;
+        totalNonCreditSales: number;
     };
 }
 
@@ -68,6 +70,7 @@ export default function InvoiceClientWrapper({
     const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('status') || '');
     const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>(searchParams.get('paymentMethod') || '');
     const [searchQuery, setSearchQuery] = useState<string>(searchParams.get('search') || '');
+    const [timePeriodFilter, setTimePeriodFilter] = useState<string>(searchParams.get('timePeriod') || 'all');
 
     useEffect(() => {
         setInvoices(initialInvoices);
@@ -75,6 +78,13 @@ export default function InvoiceClientWrapper({
         setCurrentPage(initialCurrentPage);
         setStatistics(initialStatistics);
     }, [initialInvoices, initialTotalPages, initialCurrentPage, initialStatistics]);
+
+    // Handle time period filter changes
+    useEffect(() => {
+        if (timePeriodFilter !== 'all') {
+            handleFilterChange();
+        }
+    }, [timePeriodFilter]);
 
     const handleFilterChange = () => {
         const params = new URLSearchParams(searchParams);
@@ -84,6 +94,8 @@ export default function InvoiceClientWrapper({
         else params.delete('status');
         if (paymentMethodFilter) params.set('paymentMethod', paymentMethodFilter);
         else params.delete('paymentMethod');
+        if (timePeriodFilter && timePeriodFilter !== 'all') params.set('timePeriod', timePeriodFilter);
+        else params.delete('timePeriod');
         params.set('page', '1'); // Reset to page 1 on new filter
         router.push(`/invoices?${params.toString()}`);
     };
@@ -92,6 +104,7 @@ export default function InvoiceClientWrapper({
         setSearchQuery('');
         setStatusFilter('');
         setPaymentMethodFilter('');
+        setTimePeriodFilter('all');
         const params = new URLSearchParams();
         params.set('page', '1');
         router.push(`/invoices?${params.toString()}`);
@@ -152,7 +165,7 @@ export default function InvoiceClientWrapper({
                         <Plus size={18} className="mr-2" /> Create New Invoice
                     </Button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
                     <div className="bg-white p-4 shadow rounded-lg">
                         <h3 className="text-sm font-medium text-gray-500">Total Outstanding</h3>
                         <p className="text-2xl font-semibold text-gray-800">Rs. {statistics.totalOutstanding.toLocaleString()}</p>
@@ -165,12 +178,20 @@ export default function InvoiceClientWrapper({
                         <h3 className="text-sm font-medium text-gray-500">Overdue Invoices</h3>
                         <p className="text-2xl font-semibold text-red-600">{statistics.overdueCount}</p>
                     </div>
+                    <div className="bg-white p-4 shadow rounded-lg">
+                        <h3 className="text-sm font-medium text-gray-500">Credit Sales (Wholesale)</h3>
+                        <p className="text-2xl font-semibold text-blue-600">Rs. {statistics.totalCreditSales.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-white p-4 shadow rounded-lg">
+                        <h3 className="text-sm font-medium text-gray-500">Non-Credit Sales (Retail)</h3>
+                        <p className="text-2xl font-semibold text-purple-600">Rs. {statistics.totalNonCreditSales.toLocaleString()}</p>
+                    </div>
                 </div>
             </div>
 
             {/* Search and Filter Bar */}
             <div className="mb-6 p-4 bg-white shadow rounded-lg">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
                     <div className="md:col-span-2">
                         <label htmlFor="searchInvoice" className="block text-sm font-medium text-gray-700 mb-1">Search Invoices</label>
                         <div className="relative">
@@ -187,12 +208,28 @@ export default function InvoiceClientWrapper({
                         </div>
                     </div>
                     <div>
+                        <label htmlFor="timePeriodFilter" className="block text-sm font-medium text-gray-700 mb-1">Time Period</label>
+                        <select
+                            id="timePeriodFilter"
+                            value={timePeriodFilter}
+                            onChange={(e) => setTimePeriodFilter(e.target.value)}
+                            className="w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
+                        >
+                            <option value="all">All Time</option>
+                            <option value="today">Today</option>
+                            <option value="week">This Week</option>
+                            <option value="month">This Month</option>
+                            <option value="quarter">This Quarter</option>
+                            <option value="year">This Year</option>
+                        </select>
+                    </div>
+                    <div>
                         <label htmlFor="statusFilter" className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                         <select
                             id="statusFilter"
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            className="w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
                         >
                             <option value="">All Statuses</option>
                             <option value="Pending">Pending</option>
@@ -207,7 +244,7 @@ export default function InvoiceClientWrapper({
                             id="paymentMethodFilter"
                             value={paymentMethodFilter}
                             onChange={(e) => setPaymentMethodFilter(e.target.value)}
-                            className="w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
                         >
                             <option value="">All Methods</option>
                             <option value="Cash">Cash</option>
@@ -334,4 +371,4 @@ export default function InvoiceClientWrapper({
             )}
         </>
     );
-} 
+}
