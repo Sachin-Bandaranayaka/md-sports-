@@ -42,7 +42,7 @@ interface InventorySearchParams {
 async function fetchCategories(baseUrl: string) {
     try {
         const categoriesResponse = await fetch(`${baseUrl}/api/categories`, {
-            next: { revalidate: 3600 } // Revalidate every hour
+            next: { revalidate: 30 } // Revalidate every 30 seconds
         });
         if (!categoriesResponse.ok) {
             console.error('Failed to fetch categories:', categoriesResponse.status, await categoriesResponse.text());
@@ -140,4 +140,4 @@ export default async function Inventory({
             </div>
         </MainLayout>
     );
-} 
+}

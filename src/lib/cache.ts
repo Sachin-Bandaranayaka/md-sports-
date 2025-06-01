@@ -19,6 +19,11 @@ const CACHE_CONFIG = {
         SHOPS: 'shops:list',
         CUSTOMERS: 'customers:list',
         PRODUCTS: 'products:list',
+        // Authentication cache keys
+        USER_SESSION: 'auth:user:session',
+        USER_PERMISSIONS: 'auth:user:permissions',
+        ROLE_PERMISSIONS: 'auth:role:permissions',
+        TOKEN_VALIDATION: 'auth:token:validation',
     },
 
     // TTL for different data types
@@ -27,6 +32,11 @@ const CACHE_CONFIG = {
         INVOICES: 120, // 2 minutes
         STATS: 300, // 5 minutes
         REFERENCE_DATA: 3600, // 1 hour (categories, shops, etc.)
+        // Authentication TTLs
+        USER_SESSION: 900, // 15 minutes
+        USER_PERMISSIONS: 1800, // 30 minutes
+        ROLE_PERMISSIONS: 3600, // 1 hour
+        TOKEN_VALIDATION: 300, // 5 minutes
     }
 };
 
@@ -254,6 +264,36 @@ class CacheManager implements CacheService {
             this.invalidatePattern(`${CACHE_CONFIG.KEYS.CATEGORIES}*`),
             this.invalidatePattern(`${CACHE_CONFIG.KEYS.SHOPS}*`),
             this.invalidatePattern(`${CACHE_CONFIG.KEYS.CUSTOMERS}*`),
+        ]);
+    }
+
+    // Authentication cache invalidation methods
+    async invalidateUserSession(userId: number): Promise<void> {
+        const userSessionKey = this.generateKey(CACHE_CONFIG.KEYS.USER_SESSION, { userId });
+        await this.del(userSessionKey);
+    }
+
+    async invalidateUserPermissions(userId: number): Promise<void> {
+        const userPermissionsKey = this.generateKey(CACHE_CONFIG.KEYS.USER_PERMISSIONS, { userId });
+        await this.del(userPermissionsKey);
+    }
+
+    async invalidateRolePermissions(roleId: number): Promise<void> {
+        const rolePermissionsKey = this.generateKey(CACHE_CONFIG.KEYS.ROLE_PERMISSIONS, { roleId });
+        await this.del(rolePermissionsKey);
+        // Also invalidate all user permissions for users with this role
+        await this.invalidatePattern(`${CACHE_CONFIG.KEYS.USER_PERMISSIONS}*`);
+    }
+
+    async invalidateTokenValidation(token: string): Promise<void> {
+        const tokenKey = this.generateKey(CACHE_CONFIG.KEYS.TOKEN_VALIDATION, { token: token.substring(0, 20) });
+        await this.del(tokenKey);
+    }
+
+    async invalidateAllUserAuth(userId: number): Promise<void> {
+        await Promise.all([
+            this.invalidateUserSession(userId),
+            this.invalidateUserPermissions(userId),
         ]);
     }
 }

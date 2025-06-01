@@ -100,6 +100,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
             }
         });
 
+        // Invalidate reference data cache
+        const { cacheService } = await import('@/lib/cache');
+        await cacheService.invalidateReferenceData();
+
         return NextResponse.json({
             success: true,
             message: 'Category updated successfully',
@@ -199,6 +203,10 @@ export async function DELETE(
         await prisma.category.delete({
             where: { id: categoryId }
         });
+
+        // Invalidate reference data cache
+        const { cacheService } = await import('@/lib/cache');
+        await cacheService.invalidateReferenceData();
 
         return NextResponse.json({
             success: true,
@@ -375,4 +383,4 @@ export async function PATCH(
             { status: 500 }
         );
     }
-} 
+}

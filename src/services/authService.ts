@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
+import { cacheService, CACHE_CONFIG } from '@/lib/cache';
 
 // Secret key for JWT - should be moved to environment variables in production
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -40,11 +41,12 @@ interface TokenPayload {
 }
 
 /**
- * Authenticate a user with email and password
+ * Authenticate a user with email and password (optimized with single query)
  */
 export const authenticateUser = async (email: string, password: string) => {
     try {
-        // Find user by email with role and permissions
+        console.time('user authentication query');
+        // Optimized single query using the new composite index
         const user = await prisma.user.findFirst({
             where: {
                 email: email,
@@ -53,11 +55,14 @@ export const authenticateUser = async (email: string, password: string) => {
             include: {
                 role: {
                     include: {
-                        permissions: true
+                        permissions: {
+                            select: { name: true }
+                        }
                     }
                 }
             }
         });
+        console.timeEnd('user authentication query');
 
         // If user not found
         if (!user) {
@@ -88,6 +93,22 @@ export const authenticateUser = async (email: string, password: string) => {
             shopId: user.shopId,
             permissions
         });
+
+        const userSession = {
+            id: user.id,
+            username: user.name,
+            fullName: user.name,
+            email: user.email,
+            roleId: user.roleId,
+            roleName: user.role.name,
+            shopId: user.shopId,
+            permissions,
+            role: user.role
+        };
+
+        // Cache user session for faster subsequent requests
+        const cacheKey = cacheService.generateKey(CACHE_CONFIG.KEYS.USER_SESSION, { userId: user.id });
+        await cacheService.set(cacheKey, userSession, CACHE_CONFIG.TTL.USER_SESSION);
 
         return {
             success: true,
@@ -120,11 +141,25 @@ export const generateToken = (payload: TokenPayload) => {
 };
 
 /**
- * Verify a JWT token
+ * Verify a JWT token with caching
  */
-export const verifyToken = (token: string) => {
+export const verifyToken = async (token: string) => {
+    const tokenKey = cacheService.generateKey(CACHE_CONFIG.KEYS.TOKEN_VALIDATION, { token: token.substring(0, 20) });
+
     try {
-        return jwt.verify(token, JWT_SECRET) as TokenPayload;
+        // Check cache first for token validation result
+        const cachedResult = await cacheService.get(tokenKey);
+        if (cachedResult) {
+            return cachedResult as TokenPayload;
+        }
+
+        // Verify token
+        const payload = jwt.verify(token, JWT_SECRET) as TokenPayload;
+
+        // Cache the valid token payload (shorter TTL for security)
+        await cacheService.set(tokenKey, payload, CACHE_CONFIG.TTL.TOKEN_VALIDATION);
+
+        return payload;
     } catch (error) {
         // Log the error here if desired
         if (error instanceof jwt.TokenExpiredError) {
@@ -139,14 +174,50 @@ export const verifyToken = (token: string) => {
 };
 
 /**
- * Check if a token has a specific permission
+ * Check if a token has a specific permission with caching
  */
-export const hasPermission = (tokenPayload: TokenPayload, permission: string) => {
-    return tokenPayload.permissions?.includes(permission) || false;
+export const hasPermission = async (tokenPayload: TokenPayload, permission: string) => {
+    // Quick check from token payload first
+    if (tokenPayload.permissions?.includes(permission)) {
+        return true;
+    }
+
+    // If not in token, check cached user permissions
+    const permissionsCacheKey = cacheService.generateKey(CACHE_CONFIG.KEYS.USER_PERMISSIONS, { userId: tokenPayload.sub });
+
+    try {
+        const cachedPermissions = await cacheService.get(permissionsCacheKey);
+        if (cachedPermissions) {
+            return cachedPermissions.includes(permission);
+        }
+
+        // Fallback to database query if not cached
+        const user = await prisma.user.findFirst({
+            where: { id: tokenPayload.sub, isActive: true },
+            include: {
+                role: {
+                    include: {
+                        permissions: { select: { name: true } }
+                    }
+                }
+            }
+        });
+
+        if (user) {
+            const permissions = user.role.permissions.map(p => p.name);
+            // Cache permissions for future checks
+            await cacheService.set(permissionsCacheKey, permissions, CACHE_CONFIG.TTL.USER_PERMISSIONS);
+            return permissions.includes(permission);
+        }
+    } catch (error) {
+        console.error('Error checking permissions:', error);
+    }
+
+    return false;
 };
 
 /**
- * Get user details from a decoded token payload
+ * Get user details from a decoded token payload with caching
  */
 export const getUserFromDecodedPayload = async (payload: TokenPayload | null) => {
     console.log('getUserFromDecodedPayload received payload:', payload);
@@ -161,12 +232,22 @@ export const getUserFromDecodedPayload = async (payload: TokenPayload | null) =>
         return null;
     }
 
+    const userId = Number(payload.sub);
+    const cacheKey = cacheService.generateKey(CACHE_CONFIG.KEYS.USER_SESSION, { userId });
+
     try {
-        console.log('Looking up user with ID:', payload.sub);
+        // Try to get user from cache first
+        const cachedUser = await cacheService.get(cacheKey);
+        if (cachedUser) {
+            console.log('User found in cache:', userId);
+            return cachedUser;
+        }
+
+        console.log('Looking up user with ID:', userId);
         console.time('prisma.user.findFirst for auth'); // Start timer
         const user = await prisma.user.findFirst({
             where: {
-                id: Number(payload.sub),
+                id: userId,
                 isActive: true
             },
             include: {
@@ -182,16 +263,21 @@ export const getUserFromDecodedPayload = async (payload: TokenPayload | null) =>
         console.timeEnd('prisma.user.findFirst for auth'); // End timer
 
         if (!user) {
-            console.error('User not found for ID:', payload.sub);
+            console.error('User not found for ID:', userId);
             return null;
         }
 
-        console.log('User found:', user.id, user.name);
-        return {
+        const userWithPermissions = {
             ...user,
             roleName: user.role.name,
             permissions: user.role.permissions.map(p => p.name)
         };
+
+        // Cache the user session
+        await cacheService.set(cacheKey, userWithPermissions, CACHE_CONFIG.TTL.USER_SESSION);
+
+        console.log('User found and cached:', user.id, user.name);
+        return userWithPermissions;
     } catch (error) {
         console.error('Error getting user from decoded payload:', error);
         return null;
@@ -203,6 +289,6 @@ export const getUserFromDecodedPayload = async (payload: TokenPayload | null) =>
  * This function now calls verifyToken and then getUserFromDecodedPayload.
  */
 export const getUserFromToken = async (token: string) => {
-    const payload = verifyToken(token);
+    const payload = await verifyToken(token);
     return getUserFromDecodedPayload(payload);
-}; 
+};

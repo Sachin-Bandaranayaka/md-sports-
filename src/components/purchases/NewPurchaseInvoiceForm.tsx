@@ -88,6 +88,31 @@ export default function NewPurchaseInvoiceForm({
         paidAmount: 0,
     });
 
+    // Function to fetch updated product data
+    const fetchUpdatedProductData = useCallback(async (productId?: number) => {
+        try {
+            // Add timestamp to ensure cache busting
+            const timestamp = Date.now();
+            const response = await fetch(`/api/products?t=${timestamp}`, {
+                cache: 'no-store', // Ensure fresh data
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.data) {
+                    setProducts(data.data);
+                    setFilteredProducts(data.data);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching updated product data:', error);
+        }
+    }, []);
+
     useEffect(() => {
         const total = (formData.items || []).reduce((sum, item) => {
             return sum + (Number(item.quantity) * Number(item.price));
@@ -139,32 +164,7 @@ export default function NewPurchaseInvoiceForm({
             // Optionally fetch updated product data or just trigger a refresh
             fetchUpdatedProductData(productId);
         }
-    }, []));
-
-    // Function to fetch updated product data
-    const fetchUpdatedProductData = useCallback(async (productId?: number) => {
-        try {
-            // Add timestamp to ensure cache busting
-            const timestamp = Date.now();
-            const response = await fetch(`/api/products?t=${timestamp}`, {
-                cache: 'no-store', // Ensure fresh data
-                headers: {
-                    'Cache-Control': 'no-cache, no-store, must-revalidate',
-                    'Pragma': 'no-cache',
-                    'Expires': '0'
-                }
-            });
-            if (response.ok) {
-                const data = await response.json();
-                if (data.success && data.data) {
-                    setProducts(data.data);
-                    setFilteredProducts(data.data);
-                }
-            }
-        } catch (error) {
-            console.error('Error fetching updated product data:', error);
-        }
-    }, []);
+    }, [fetchUpdatedProductData]));
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;

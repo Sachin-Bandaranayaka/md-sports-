@@ -14,6 +14,7 @@
     "db:sync": "ts-node --project tsconfig.json src/lib/db-init.ts",
     "db:sync:force": "ts-node --project tsconfig.json src/lib/db-init.ts --force",
     "db:seed": "ts-node --project tsconfig.json src/lib/db-init.ts --seed",
+    "test:auth-performance": "ts-node --project tsconfig.json src/scripts/auth-performance-test.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:reset": "prisma migrate reset",

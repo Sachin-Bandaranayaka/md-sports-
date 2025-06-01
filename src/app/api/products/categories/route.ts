@@ -115,6 +115,10 @@ export async function POST(request: NextRequest) {
             }
         });
 
+        // Invalidate reference data cache
+        const { cacheService } = await import('@/lib/cache');
+        await cacheService.invalidateReferenceData();
+
         return NextResponse.json({
             success: true,
             message: 'Category created successfully',
@@ -127,4 +131,4 @@ export async function POST(request: NextRequest) {
             { status: 500 }
         );
     }
-} 
+}

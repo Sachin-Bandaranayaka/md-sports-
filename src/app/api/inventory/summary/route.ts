@@ -4,8 +4,8 @@ import { verifyToken } from '@/lib/auth';
 import { cacheService, CACHE_CONFIG } from '@/lib/cache';
 import { measureAsync } from '@/lib/performance';
 
-// Cache for 30 seconds
-const CACHE_DURATION = 30;
+// Cache for 10 seconds
+const CACHE_DURATION = 10;
 
 export async function GET(request: NextRequest) {
   return measureAsync('inventory-summary-api', async () => {

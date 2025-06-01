@@ -16,7 +16,8 @@ const defaultProductsData = [
 export async function GET(request: NextRequest) {
     try {
         // Get shop ID from token if user is restricted to a specific shop
-        const shopId = getShopId(request);
+        const shopId = await getShopId(request);
+        console.log('Products API - Shop ID from token:', shopId);
 
         // Fetch products using Prisma
         const products = await safeQuery(
@@ -24,12 +25,13 @@ export async function GET(request: NextRequest) {
                 let productsQuery;
 
                 if (shopId) {
+                    console.log(`Fetching products for shop ID: ${shopId}`);
                     // User is restricted to a specific shop - only show products in that shop's inventory
                     productsQuery = await prisma.product.findMany({
                         where: {
                             inventoryItems: {
                                 some: {
-                                    shopId: parseInt(shopId)
+                                    shopId: parseInt(shopId.toString())
                                 }
                             }
                         },
@@ -40,7 +42,9 @@ export async function GET(request: NextRequest) {
                             name: 'asc'
                         }
                     });
+                    console.log(`Found ${productsQuery.length} products for shop ${shopId}`);
                 } else {
+                    console.log('No shop restriction - fetching all products');
                     // Administrator or manager with full access - show all products
                     productsQuery = await prisma.product.findMany({
                         include: {
@@ -50,13 +54,31 @@ export async function GET(request: NextRequest) {
                             name: 'asc'
                         }
                     });
+                    console.log(`Found ${productsQuery.length} total products`);
+                }
+
+                // If no products found and we were filtering by shop, fall back to all products
+                if (productsQuery.length === 0 && shopId) {
+                    console.log('No products found for shop, falling back to all products');
+                    productsQuery = await prisma.product.findMany({
+                        include: {
+                            category: true
+                        },
+                        orderBy: {
+                            name: 'asc'
+                        }
+                    });
+                    console.log(`Fallback found ${productsQuery.length} total products`);
                 }
 
                 // Format the products data
-                return productsQuery.map(product => ({
+                const formattedProducts = productsQuery.map(product => ({
                     ...product,
                     category_name: product.category?.name || null
                 }));
+                
+                console.log('Returning formatted products:', formattedProducts.length);
+                return formattedProducts;
             },
             defaultProductsData,
             'Failed to fetch products'
@@ -110,6 +132,9 @@ export async function POST(request: Request) {
         }
 
         console.log('Product created successfully with WAC:', product.weightedAverageCost);
+
+        // Invalidate inventory cache
+        await cacheService.invalidateInventory();
 
         // Emit WebSocket event for real-time updates
         const io = getSocketIO();

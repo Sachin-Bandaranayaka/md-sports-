@@ -154,6 +154,9 @@ export async function PUT(
             }
         }
 
+        // Invalidate inventory cache
+        await cacheService.invalidateInventory();
+
         // Emit WebSocket event for real-time updates
         const io = getSocketIO();
         if (io) {

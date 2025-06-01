@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import prisma from '@/lib/prisma';
 import { generateRefreshToken } from '@/services/refreshTokenService';
-import { parseTimeStringToSeconds } from '@/services/authService';
+import { authenticateUser, parseTimeStringToSeconds } from '@/services/authService';
 
 // JWT configuration - use environment variables
 const JWT_SECRET = process.env.JWT_SECRET || 'CHANGE_THIS_IN_PRODUCTION';
@@ -26,57 +23,21 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Find user by email with related role and permissions
-        const user = await prisma.user.findFirst({
-            where: {
-                email: email,
-                isActive: true
-            },
-            include: {
-                role: {
-                    include: {
-                        permissions: true
-                    }
-                },
-                shop: true
-            }
-        });
+        // Use optimized authentication service
+        console.time('total authentication time');
+        const authResult = await authenticateUser(email, password);
+        console.timeEnd('total authentication time');
 
-        if (!user) {
-            console.log('User not found with email:', email);
+        if (!authResult.success) {
+            console.log('Authentication failed:', authResult.message);
             return NextResponse.json(
-                { success: false, message: 'Invalid email or password' },
+                { success: false, message: authResult.message },
                 { status: 401 }
             );
         }
 
-        console.log('User found:', user.id, user.name, user.email);
-        console.log('Stored password hash:', user.password);
-
-        // Check password
-        const passwordMatch = await bcrypt.compare(password, user.password);
-        console.log('Password match result:', passwordMatch);
-
-        if (!passwordMatch) {
-            return NextResponse.json(
-                { success: false, message: 'Invalid email or password' },
-                { status: 401 }
-            );
-        }
-
-        // Extract permissions
-        const permissions = user.role.permissions.map(p => p.name);
-        console.log('User permissions:', permissions);
-
-        // Generate JWT access token with shorter expiration
-        const accessToken = jwt.sign({
-            sub: user.id, // Standard JWT claim for subject (user ID)
-            username: user.name,
-            email: user.email,
-            roleId: user.roleId,
-            permissions,
-            shopId: user.shopId
-        }, JWT_SECRET, { expiresIn: JWT_ACCESS_TOKEN_EXPIRES_IN });
+        const { token: accessToken, user } = authResult;
+        console.log('User permissions:', user.permissions);
 
         // Generate refresh token - with fallback if it fails
         let refreshToken = null;
@@ -93,16 +54,7 @@ export async function POST(req: NextRequest) {
             success: true,
             accessToken,
             refreshToken,
-            user: {
-                id: user.id,
-                username: user.name,
-                fullName: user.name,
-                email: user.email,
-                roleId: user.roleId,
-                roleName: user.role.name,
-                shopId: user.shopId,
-                permissions
-            }
+            user
         });
 
         // Set HTTP-only cookies for tokens (more secure approach)
@@ -129,7 +81,7 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        console.log('Login successful for user:', user.name);
+        console.log('Login successful for user:', user.username);
         return response;
     } catch (error) {
         console.error('Login error:', error);
@@ -138,4 +90,4 @@ export async function POST(req: NextRequest) {
             { status: 500 }
         );
     }
-} 
+}

@@ -161,6 +161,12 @@ export async function POST(request: NextRequest) {
             summaryMessage += ' Please check the details for errors.';
         }
 
+        // Invalidate inventory cache if any products were successfully imported
+        if (successfullyImportedCount > 0) {
+            const { cacheService } = await import('@/lib/cache');
+            await cacheService.invalidateInventory();
+        }
+
         return NextResponse.json({
             success: successfullyImportedCount > 0 || totalRows === 0, // Overall success if at least one or no rows
             message: summaryMessage,
@@ -174,4 +180,4 @@ export async function POST(request: NextRequest) {
             { status: 500 }
         );
     }
-} 
+}

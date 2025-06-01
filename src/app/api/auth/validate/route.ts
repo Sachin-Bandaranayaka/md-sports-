@@ -17,11 +17,15 @@ export async function GET(req: NextRequest) {
         const token = authHeader.split(' ')[1];
         console.log('Token received for validation:', token.substring(0, 10) + '...');
 
-        // verifyToken will now throw if token is invalid/expired
-        const tokenData = verifyToken(token);
+        // Use optimized async verifyToken with caching
+        console.time('token validation time');
+        const tokenData = await verifyToken(token);
+        console.timeEnd('token validation time');
 
         // If verifyToken didn't throw, tokenData is valid and populated
+        console.time('user lookup time');
         const user = await getUserFromDecodedPayload(tokenData);
+        console.timeEnd('user lookup time');
 
         if (!user) {
             console.error('User not found from token payload or user is inactive');
@@ -68,4 +72,4 @@ export async function GET(req: NextRequest) {
             { status: 500 }
         );
     }
-} 
+}
