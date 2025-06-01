@@ -63,35 +63,34 @@ model Permission {
 }
 
 model Shop {
-  id             Int                 @id @default(autoincrement())
-  name           String
-  location       String?
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-  contact_person String?
-  phone          String?
-  email          String?
-  is_active      Boolean?            @default(true)
-  opening_time   DateTime?           @db.Time(6)
-  closing_time   DateTime?           @db.Time(6)
-  manager_id     Int?
-  opening_date   DateTime?           @db.Date
-  status         String?             @default("open")
-  address_line1  String?
-  address_line2  String?
-  city           String?
-  state          String?
-  postal_code    String?
-  country        String?             @default("Malaysia")
-  latitude       Decimal?            @db.Decimal
-  longitude      Decimal?            @db.Decimal
-  tax_rate       Decimal?            @default(0) @db.Decimal
-  inventoryItems InventoryItem[]
-  transfersFrom  InventoryTransfer[] @relation("FromShop")
-  transfersTo    InventoryTransfer[] @relation("ToShop")
-  products       Product[]
-  users          User[]
-  invoices       Invoice[]
+  id               String             @id @default(cuid())
+  name             String
+  location         String
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  contact_person   String?
+  phone            String?
+  email            String?
+  is_active        Boolean            @default(true)
+  opening_time     DateTime?          @db.Time
+  closing_time     DateTime?          @db.Time
+  manager_id       String?
+  opening_date     DateTime?          @db.Date
+  status           String             @default("open")
+  address_line1    String?
+  address_line2    String?
+  city             String?
+  state            String?
+  postal_code      String?
+  country          String?            @default("Malaysia")
+  latitude         Decimal?
+  longitude        Decimal?
+  tax_rate         Decimal?           @default(0)
+  InventoryItem    InventoryItem[]
+  InventoryTransfer InventoryTransfer[]
+  Product          Product[]
+  manager          User?              @relation(fields: [manager_id], references: [id])
+  Invoice          Invoice[]
 }
 
 model Product {

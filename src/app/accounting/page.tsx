@@ -133,19 +133,22 @@ function AccountingContent() {
         (account.description && account.description.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
-    // Calculate financial summary
-    const totalAssets = accounts
-        .filter(account => account.type === 'asset')
-        .reduce((sum, account) => sum + Number(account.balance), 0);
+    // Calculate simplified cash flow summary based on paid invoices and transactions
+    const cashInHand = transactions
+        .filter(transaction => transaction.type === 'income' &&
+            (transaction.category?.toLowerCase().includes('cash') ||
+                transaction.accountName?.toLowerCase().includes('cash')))
+        .reduce((sum, transaction) => sum + Number(transaction.amount), 0);
 
-    const totalLiabilities = accounts
-        .filter(account => account.type === 'liability')
-        .reduce((sum, account) => sum + Number(account.balance), 0);
+    const cashInBank = transactions
+        .filter(transaction => transaction.type === 'income' &&
+            (transaction.category?.toLowerCase().includes('bank') ||
+                transaction.category?.toLowerCase().includes('card') ||
+                transaction.accountName?.toLowerCase().includes('bank')))
+        .reduce((sum, transaction) => sum + Number(transaction.amount), 0);
 
-    const totalEquity = totalAssets - totalLiabilities;
-
-    // Calculate income from transactions
-    const totalIncome = transactions
+    // Calculate total sales from all income transactions (representing paid invoices)
+    const totalSales = transactions
         .filter(transaction => transaction.type === 'income')
         .reduce((sum, transaction) => sum + Number(transaction.amount), 0);
 
@@ -153,13 +156,6 @@ function AccountingContent() {
     const totalExpenses = transactions
         .filter(transaction => transaction.type === 'expense')
         .reduce((sum, transaction) => sum + Number(transaction.amount), 0);
-
-    // Calculate total withdrawals
-    const totalWithdrawals = transactions
-        .filter(transaction => transaction.type === 'withdrawal')
-        .reduce((sum, transaction) => sum + Number(transaction.amount), 0);
-
-    const netProfit = totalIncome - totalExpenses;
 
     const handleAddTransaction = () => {
         router.push('/accounting/add-transaction');
@@ -261,24 +257,14 @@ function AccountingContent() {
                     transition={{ duration: 0.5 }}
                 >
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Accounting</h1>
-                        <p className="text-gray-500">Manage your financial transactions and accounts</p>
+                        <h1 className="text-2xl font-bold text-gray-900">Cash Flow Overview</h1>
+                        <p className="text-gray-500">Track your cash flow from sales and expenses</p>
                     </div>
-                    <motion.div
-                        className="flex gap-3"
-                        whileHover={{ scale: 1.03 }}
-                    >
-                        {activeTab === 'transactions' ? (
-                            <Button
-                                variant="primary"
-                                size="sm"
-                                onClick={handleAddTransaction}
-                                className="flex items-center shadow-md hover:shadow-lg transition-shadow duration-300"
-                            >
-                                <Plus className="w-4 h-4 mr-2" />
-                                New Transaction
-                            </Button>
-                        ) : (
+                    {activeTab === 'accounts' && (
+                        <motion.div
+                            className="flex gap-3"
+                            whileHover={{ scale: 1.03 }}
+                        >
                             <Button
                                 variant="primary"
                                 size="sm"
@@ -288,13 +274,13 @@ function AccountingContent() {
                                 <Plus className="w-4 h-4 mr-2" />
                                 New Account
                             </Button>
-                        )}
-                    </motion.div>
+                        </motion.div>
+                    )}
                 </motion.div>
 
-                {/* Financial Summary Cards */}
+                {/* Simplified Cash Flow Summary Cards */}
                 <motion.div
-                    className="grid grid-cols-1 md:grid-cols-3 gap-4"
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
                     initial="hidden"
                     animate="visible"
                     variants={listVariants}
@@ -305,9 +291,25 @@ function AccountingContent() {
                     >
                         <div className="flex items-center justify-between">
                             <div>
-                                <h3 className="text-sm font-medium text-gray-500 mb-1">Assets</h3>
-                                <p className="text-2xl font-bold text-gray-900">Rs. {totalAssets.toLocaleString()}</p>
-                                <div className="mt-1 text-sm text-gray-600">Total value of all assets</div>
+                                <h3 className="text-sm font-medium text-gray-500 mb-1">Cash in Hand</h3>
+                                <p className="text-2xl font-bold text-green-600">Rs. {cashInHand.toLocaleString()}</p>
+                                <div className="mt-1 text-sm text-gray-600">From cash payments</div>
+                            </div>
+                            <div className="bg-green-100 p-3 rounded-full">
+                                <DollarSign className="w-6 h-6 text-green-600" />
+                            </div>
+                        </div>
+                    </motion.div>
+
+                    <motion.div
+                        className="bg-white p-5 rounded-lg shadow-md border border-gray-100 hover:shadow-lg transition-shadow duration-300"
+                        variants={cardVariants}
+                    >
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-sm font-medium text-gray-500 mb-1">Cash in Bank</h3>
+                                <p className="text-2xl font-bold text-blue-600">Rs. {cashInBank.toLocaleString()}</p>
+                                <div className="mt-1 text-sm text-gray-600">From bank transfers & cards</div>
                             </div>
                             <div className="bg-blue-100 p-3 rounded-full">
                                 <Briefcase className="w-6 h-6 text-blue-600" />
@@ -321,28 +323,12 @@ function AccountingContent() {
                     >
                         <div className="flex items-center justify-between">
                             <div>
-                                <h3 className="text-sm font-medium text-gray-500 mb-1">Liabilities</h3>
-                                <p className="text-2xl font-bold text-gray-900">Rs. {totalLiabilities.toLocaleString()}</p>
-                                <div className="mt-1 text-sm text-gray-600">Total value of all liabilities</div>
-                            </div>
-                            <div className="bg-red-100 p-3 rounded-full">
-                                <CreditCard className="w-6 h-6 text-red-600" />
-                            </div>
-                        </div>
-                    </motion.div>
-
-                    <motion.div
-                        className="bg-white p-5 rounded-lg shadow-md border border-gray-100 hover:shadow-lg transition-shadow duration-300"
-                        variants={cardVariants}
-                    >
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h3 className="text-sm font-medium text-gray-500 mb-1">Equity</h3>
-                                <p className="text-2xl font-bold text-gray-900">Rs. {totalEquity.toLocaleString()}</p>
-                                <div className="mt-1 text-sm text-gray-600">Total business equity</div>
+                                <h3 className="text-sm font-medium text-gray-500 mb-1">Total Sales</h3>
+                                <p className="text-2xl font-bold text-purple-600">Rs. {totalSales.toLocaleString()}</p>
+                                <div className="mt-1 text-sm text-gray-600">From paid invoices</div>
                             </div>
                             <div className="bg-purple-100 p-3 rounded-full">
-                                <PieChart className="w-6 h-6 text-purple-600" />
+                                <TrendingUp className="w-6 h-6 text-purple-600" />
                             </div>
                         </div>
                     </motion.div>
@@ -353,62 +339,12 @@ function AccountingContent() {
                     >
                         <div className="flex items-center justify-between">
                             <div>
-                                <h3 className="text-sm font-medium text-gray-500 mb-1">Income</h3>
-                                <p className="text-2xl font-bold text-green-600">Rs. {totalIncome.toLocaleString()}</p>
-                                <div className="mt-1 text-sm text-gray-600">Total revenue and income</div>
-                            </div>
-                            <div className="bg-green-100 p-3 rounded-full">
-                                <TrendingUp className="w-6 h-6 text-green-600" />
-                            </div>
-                        </div>
-                    </motion.div>
-
-                    <motion.div
-                        className="bg-white p-5 rounded-lg shadow-md border border-gray-100 hover:shadow-lg transition-shadow duration-300"
-                        variants={cardVariants}
-                    >
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h3 className="text-sm font-medium text-gray-500 mb-1">Expenses</h3>
+                                <h3 className="text-sm font-medium text-gray-500 mb-1">Total Expenses</h3>
                                 <p className="text-2xl font-bold text-red-600">Rs. {totalExpenses.toLocaleString()}</p>
-                                <div className="mt-1 text-sm text-gray-600">Total expenses and costs</div>
+                                <div className="mt-1 text-sm text-gray-600">Business expenses</div>
                             </div>
                             <div className="bg-red-100 p-3 rounded-full">
                                 <TrendingDown className="w-6 h-6 text-red-600" />
-                            </div>
-                        </div>
-                    </motion.div>
-
-                    <motion.div
-                        className="bg-white p-5 rounded-lg shadow-md border border-gray-100 hover:shadow-lg transition-shadow duration-300"
-                        variants={cardVariants}
-                    >
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h3 className="text-sm font-medium text-gray-500 mb-1">Net Profit</h3>
-                                <p className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                    Rs. {netProfit.toLocaleString()}
-                                </p>
-                                <div className="mt-1 text-sm text-gray-600">Total profit after expenses</div>
-                            </div>
-                            <div className={`${netProfit >= 0 ? 'bg-green-100' : 'bg-red-100'} p-3 rounded-full`}>
-                                <DollarSign className={`w-6 h-6 ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`} />
-                            </div>
-                        </div>
-                    </motion.div>
-
-                    <motion.div
-                        className="bg-white p-5 rounded-lg shadow-md border border-gray-100 hover:shadow-lg transition-shadow duration-300"
-                        variants={cardVariants}
-                    >
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h3 className="text-sm font-medium text-gray-500 mb-1">Owner Withdrawals</h3>
-                                <p className="text-2xl font-bold text-orange-600">Rs. {totalWithdrawals.toLocaleString()}</p>
-                                <div className="mt-1 text-sm text-gray-600">Total owner drawings this period</div>
-                            </div>
-                            <div className="bg-orange-100 p-3 rounded-full">
-                                <ArrowUp className="w-6 h-6 text-orange-600" />
                             </div>
                         </div>
                     </motion.div>
@@ -917,4 +853,4 @@ export default function Accounting() {
             <AccountingContent />
         </Suspense>
     );
-} 
+}

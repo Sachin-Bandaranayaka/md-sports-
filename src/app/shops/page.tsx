@@ -745,10 +745,10 @@ export default function Shops() {
                                                 type="text"
                                                 id="name"
                                                 name="name"
-                                                value={formData.name}
+                                                value={formData.name || ''}
                                                 onChange={handleInputChange}
                                                 required
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-gray-900"
                                             />
                                         </div>
                                         <div>
@@ -757,10 +757,10 @@ export default function Shops() {
                                                 type="text"
                                                 id="location"
                                                 name="location"
-                                                value={formData.location}
+                                                value={formData.location || ''}
                                                 onChange={handleInputChange}
                                                 required
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-gray-900"
                                             />
                                         </div>
                                         <div>
@@ -768,232 +768,31 @@ export default function Shops() {
                                             <select
                                                 id="status"
                                                 name="status"
-                                                value={formData.status}
+                                                value={formData.status || 'open'}
                                                 onChange={handleInputChange}
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-gray-900"
                                             >
                                                 <option value="open">Open</option>
                                                 <option value="closed">Closed</option>
-                                                <option value="renovating">Renovating</option>
-                                                <option value="coming_soon">Coming Soon</option>
+                                                <option value="maintenance">Maintenance</option>
                                             </select>
                                         </div>
-                                        <div className="flex items-center h-full pt-5">
-                                            <input
-                                                type="checkbox"
-                                                id="is_active"
-                                                name="is_active"
-                                                checked={formData.is_active}
-                                                onChange={handleInputChange}
-                                                className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-                                            />
-                                            <label htmlFor="is_active" className="ml-2 block text-sm text-gray-900">
-                                                Active
+                                        <div>
+                                            <label htmlFor="is_active" className="flex items-center space-x-2">
+                                                <input
+                                                    type="checkbox"
+                                                    id="is_active"
+                                                    name="is_active"
+                                                    checked={formData.is_active || false}
+                                                    onChange={handleInputChange}
+                                                    className="rounded border-gray-300 text-primary focus:ring-primary"
+                                                />
+                                                <span className="text-sm font-medium text-gray-700">Active Shop</span>
                                             </label>
                                         </div>
                                     </div>
 
-                                    <div className="border-t border-gray-200 pt-4">
-                                        <h3 className="text-md font-medium text-gray-900">Contact Information</h3>
-                                    </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label htmlFor="contact_person" className="block text-sm font-medium text-gray-700">Manager</label>
-                                            <input
-                                                type="text"
-                                                id="contact_person"
-                                                name="contact_person"
-                                                value={formData.contact_person || ''}
-                                                onChange={handleInputChange}
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="manager_id" className="block text-sm font-medium text-gray-700">Manager ID</label>
-                                            <input
-                                                type="number"
-                                                id="manager_id"
-                                                name="manager_id"
-                                                value={formData.manager_id || ''}
-                                                onChange={handleInputChange}
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Phone</label>
-                                            <input
-                                                type="tel"
-                                                id="phone"
-                                                name="phone"
-                                                value={formData.phone || ''}
-                                                onChange={handleInputChange}
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
-                                            <input
-                                                type="email"
-                                                id="email"
-                                                name="email"
-                                                value={formData.email || ''}
-                                                onChange={handleInputChange}
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="border-t border-gray-200 pt-4">
-                                        <h3 className="text-md font-medium text-gray-900">Business Hours</h3>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label htmlFor="opening_time" className="block text-sm font-medium text-gray-700">Opening Time</label>
-                                            <input
-                                                type="time"
-                                                id="opening_time"
-                                                name="opening_time"
-                                                value={formData.opening_time || ''}
-                                                onChange={handleInputChange}
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="closing_time" className="block text-sm font-medium text-gray-700">Closing Time</label>
-                                            <input
-                                                type="time"
-                                                id="closing_time"
-                                                name="closing_time"
-                                                value={formData.closing_time || ''}
-                                                onChange={handleInputChange}
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="opening_date" className="block text-sm font-medium text-gray-700">Opening Date</label>
-                                            <input
-                                                type="date"
-                                                id="opening_date"
-                                                name="opening_date"
-                                                value={formData.opening_date || ''}
-                                                onChange={handleInputChange}
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="tax_rate" className="block text-sm font-medium text-gray-700">Tax Rate (%)</label>
-                                            <input
-                                                type="number"
-                                                id="tax_rate"
-                                                name="tax_rate"
-                                                value={formData.tax_rate || 0}
-                                                onChange={handleInputChange}
-                                                step="0.01"
-                                                min="0"
-                                                max="100"
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="border-t border-gray-200 pt-4">
-                                        <h3 className="text-md font-medium text-gray-900">Address Details</h3>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label htmlFor="address_line1" className="block text-sm font-medium text-gray-700">Address Line 1</label>
-                                            <input
-                                                type="text"
-                                                id="address_line1"
-                                                name="address_line1"
-                                                value={formData.address_line1 || ''}
-                                                onChange={handleInputChange}
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="address_line2" className="block text-sm font-medium text-gray-700">Address Line 2</label>
-                                            <input
-                                                type="text"
-                                                id="address_line2"
-                                                name="address_line2"
-                                                value={formData.address_line2 || ''}
-                                                onChange={handleInputChange}
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="city" className="block text-sm font-medium text-gray-700">City</label>
-                                            <input
-                                                type="text"
-                                                id="city"
-                                                name="city"
-                                                value={formData.city || ''}
-                                                onChange={handleInputChange}
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="state" className="block text-sm font-medium text-gray-700">State</label>
-                                            <input
-                                                type="text"
-                                                id="state"
-                                                name="state"
-                                                value={formData.state || ''}
-                                                onChange={handleInputChange}
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="postal_code" className="block text-sm font-medium text-gray-700">Postal Code</label>
-                                            <input
-                                                type="text"
-                                                id="postal_code"
-                                                name="postal_code"
-                                                value={formData.postal_code || ''}
-                                                onChange={handleInputChange}
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="country" className="block text-sm font-medium text-gray-700">Country</label>
-                                            <input
-                                                type="text"
-                                                id="country"
-                                                name="country"
-                                                value={formData.country || 'Malaysia'}
-                                                onChange={handleInputChange}
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="latitude" className="block text-sm font-medium text-gray-700">Latitude</label>
-                                            <input
-                                                type="number"
-                                                id="latitude"
-                                                name="latitude"
-                                                value={formData.latitude || ''}
-                                                onChange={handleInputChange}
-                                                step="0.000001"
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="longitude" className="block text-sm font-medium text-gray-700">Longitude</label>
-                                            <input
-                                                type="number"
-                                                id="longitude"
-                                                name="longitude"
-                                                value={formData.longitude || ''}
-                                                onChange={handleInputChange}
-                                                step="0.000001"
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                                            />
-                                        </div>
-                                    </div>
 
                                     <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                                         <Button
@@ -1186,4 +985,4 @@ export default function Shops() {
             </div>
         </MainLayout>
     );
-} 
+}
