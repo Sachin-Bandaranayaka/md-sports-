@@ -70,6 +70,17 @@ export default function CreateInvoice() {
     const [quantity, setQuantity] = useState<number>(1);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [productStock, setProductStock] = useState<number | null>(null);
+    const [customPrice, setCustomPrice] = useState<number>(0);
+    const [showQuickCustomerModal, setShowQuickCustomerModal] = useState(false);
+    const [quickCustomerData, setQuickCustomerData] = useState({
+        name: '',
+        phone: '',
+        address: '',
+        customerType: 'Retail' as 'Retail' | 'Wholesale',
+        creditLimit: 0,
+        creditPeriod: 0
+    });
+    const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
 
     const [formData, setFormData] = useState<InvoiceFormData>({
         customerId: 0, // Changed to 0 (number)
@@ -254,7 +265,7 @@ export default function CreateInvoice() {
                 if (data.success && data.data) {
                     // Calculate stock only for the selected shop
                     const shopStock = data.data.inventory?.find(
-                        (item: any) => item.shopId === formData.shopId
+                        (item: any) => item.shop_id === formData.shopId
                     )?.quantity || 0;
                     setProductStock(shopStock);
                 }
@@ -284,7 +295,9 @@ export default function CreateInvoice() {
             return;
         }
 
-        const newItemTotal = selectedProduct.price * quantity;
+        // Use custom price if set, otherwise use product's default price
+        const finalPrice = customPrice > 0 ? customPrice : selectedProduct.price;
+        const newItemTotal = finalPrice * quantity;
 
         // Check credit limit for wholesale customers
         if (selectedCustomer && selectedCustomer.customerType === 'wholesale' && selectedCustomer.creditLimit) {
@@ -300,7 +313,7 @@ export default function CreateInvoice() {
             productId: selectedProduct.id,
             productName: selectedProduct.name,
             quantity: quantity,
-            price: selectedProduct.price,
+            price: finalPrice,
             total: newItemTotal
         };
 
@@ -313,6 +326,7 @@ export default function CreateInvoice() {
         setSelectedProduct(null);
         setProductStock(null);
         setQuantity(1);
+        setCustomPrice(0);
     };
 
     // Remove line item from invoice
@@ -386,6 +400,72 @@ export default function CreateInvoice() {
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const handleQuickCustomerSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsCreatingCustomer(true);
+
+        try {
+            const response = await fetch('/api/customers', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: quickCustomerData.name,
+                    phone: quickCustomerData.phone,
+                    address: quickCustomerData.address,
+                    customerType: quickCustomerData.customerType,
+                    creditLimit: quickCustomerData.customerType === 'Wholesale' ? quickCustomerData.creditLimit : null,
+                    creditPeriod: quickCustomerData.customerType === 'Wholesale' ? quickCustomerData.creditPeriod : null,
+                }),
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                const newCustomer: Customer = {
+                    id: result.data.id,
+                    name: result.data.name,
+                    email: result.data.email,
+                    phone: result.data.phone,
+                    customerType: result.data.customerType.toLowerCase() as 'wholesale' | 'retail',
+                    creditLimit: result.data.creditLimit,
+                    creditPeriod: result.data.creditPeriod
+                };
+
+                // Add to customers list and select it
+                setCustomers(prev => [...prev, newCustomer]);
+                handleSelectCustomer(newCustomer);
+
+                // Reset modal
+                setShowQuickCustomerModal(false);
+                setQuickCustomerData({
+                    name: '',
+                    phone: '',
+                    address: '',
+                    customerType: 'Retail',
+                    creditLimit: 0,
+                    creditPeriod: 0
+                });
+            } else {
+                const errorData = await response.json();
+                alert(`Failed to create customer: ${errorData.message || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Error creating customer:', error);
+            alert('An error occurred while creating the customer.');
+        } finally {
+            setIsCreatingCustomer(false);
+        }
+    };
+
+    const handleQuickCustomerInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value, type } = e.target;
+        setQuickCustomerData(prev => ({
+            ...prev,
+            [name]: type === 'number' ? (value === '' ? 0 : Number(value)) : value
+        }));
     };
 
     return (
@@ -514,9 +594,21 @@ export default function CreateInvoice() {
                                 <h2 className="text-lg font-semibold mb-4 text-gray-900 border-b pb-2">Customer Information</h2>
                                 <div className="space-y-4">
                                     <div className="relative">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Customer <span className="text-red-500">*</span>
-                                        </label>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <label className="block text-sm font-medium text-gray-700">
+                                                Customer <span className="text-red-500">*</span>
+                                            </label>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setShowQuickCustomerModal(true)}
+                                                className="text-xs px-2 py-1 h-6"
+                                            >
+                                                <Plus className="w-3 h-3 mr-1" />
+                                                Quick Add
+                                            </Button>
+                                        </div>
                                         <div className="relative">
                                             <input
                                                 type="text"
@@ -679,7 +771,10 @@ export default function CreateInvoice() {
                                                             <li
                                                                 key={product.id}
                                                                 className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                                                                onClick={() => handleSelectProduct(product)}
+                                                                onClick={() => {
+                                                                    handleSelectProduct(product);
+                                                                    setCustomPrice(0); // Reset custom price when new product is selected
+                                                                }}
                                                             >
                                                                 <div className="font-medium">{product.name}</div>
                                                                 <div className="text-xs flex justify-between">
@@ -715,12 +810,20 @@ export default function CreateInvoice() {
                                     </div>
                                     <div className="md:col-span-1">
                                         <input
-                                            type="text"
+                                            type="number"
                                             placeholder="Price"
-                                            value={selectedProduct ? selectedProduct.price.toLocaleString() : ''}
-                                            disabled
-                                            className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900 bg-gray-100"
+                                            value={customPrice || (selectedProduct ? selectedProduct.price : '')}
+                                            onChange={(e) => {
+                                                const value = parseFloat(e.target.value) || 0;
+                                                setCustomPrice(value);
+                                            }}
+                                            className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
                                         />
+                                        {selectedProduct && (
+                                            <div className="absolute text-xs mt-1 text-gray-500">
+                                                Retail: Rs. {selectedProduct.price.toLocaleString()}
+                                            </div>
+                                        )}
                                     </div>
                                     <div>
                                         <Button
@@ -834,6 +937,127 @@ export default function CreateInvoice() {
                         </div>
                     </form>
                 </div>
+
+                {/* Quick Customer Modal */}
+                {showQuickCustomerModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+                            <h3 className="text-lg font-semibold mb-4 text-gray-900">Quick Add Customer</h3>
+                            <form onSubmit={handleQuickCustomerSubmit} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Name <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="name"
+                                        value={quickCustomerData.name}
+                                        onChange={handleQuickCustomerInputChange}
+                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Phone
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="phone"
+                                        value={quickCustomerData.phone}
+                                        onChange={handleQuickCustomerInputChange}
+                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Address
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="address"
+                                        value={quickCustomerData.address}
+                                        onChange={handleQuickCustomerInputChange}
+                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Customer Type
+                                    </label>
+                                    <select
+                                        name="customerType"
+                                        value={quickCustomerData.customerType}
+                                        onChange={handleQuickCustomerInputChange}
+                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
+                                    >
+                                        <option value="Retail">Retail</option>
+                                        <option value="Wholesale">Wholesale</option>
+                                    </select>
+                                </div>
+                                {quickCustomerData.customerType === 'Wholesale' && (
+                                    <>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Credit Limit
+                                            </label>
+                                            <input
+                                                type="number"
+                                                name="creditLimit"
+                                                value={quickCustomerData.creditLimit}
+                                                onChange={handleQuickCustomerInputChange}
+                                                className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
+                                                min="0"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Credit Period (days)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                name="creditPeriod"
+                                                value={quickCustomerData.creditPeriod}
+                                                onChange={handleQuickCustomerInputChange}
+                                                className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
+                                                min="0"
+                                            />
+                                        </div>
+                                    </>
+                                )}
+                                <div className="flex justify-end gap-3 pt-4">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => {
+                                            setShowQuickCustomerModal(false);
+                                            setQuickCustomerData({
+                                                name: '',
+                                                phone: '',
+                                                address: '',
+                                                customerType: 'Retail',
+                                                creditLimit: 0,
+                                                creditPeriod: 0
+                                            });
+                                        }}
+                                        size="sm"
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        type="submit"
+                                        variant="primary"
+                                        isLoading={isCreatingCustomer}
+                                        disabled={!quickCustomerData.name.trim()}
+                                        size="sm"
+                                    >
+                                        Create Customer
+                                    </Button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
             </div>
         </MainLayout>
     );

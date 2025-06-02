@@ -210,6 +210,8 @@ model Invoice {
   invoiceNumber String        @unique
   customerId    Int
   total         Float
+  totalProfit   Float?        @default(0)
+  profitMargin  Float?        @default(0)
   status        String
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
@@ -241,6 +243,8 @@ model InvoiceItem {
   quantity  Int
   price     Float
   total     Float
+  costPrice Float?   @default(0)
+  profit    Float?   @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   invoice   Invoice  @relation(fields: [invoiceId], references: [id])

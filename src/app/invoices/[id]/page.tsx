@@ -616,6 +616,18 @@ export default function InvoiceDetail() {
                                         <span className="text-black">Total:</span>
                                         <span className="text-black">{formatCurrency(invoice.total)}</span>
                                     </div>
+                                    {invoice.totalProfit !== null && invoice.totalProfit !== undefined && (
+                                        <div className="flex justify-between py-2">
+                                            <span className="text-black">Total Profit:</span>
+                                            <span className="font-medium text-green-600">{formatCurrency(invoice.totalProfit)}</span>
+                                        </div>
+                                    )}
+                                    {invoice.profitMargin !== null && invoice.profitMargin !== undefined && (
+                                        <div className="flex justify-between py-2">
+                                            <span className="text-black">Profit Margin:</span>
+                                            <span className="font-medium text-green-600">{invoice.profitMargin.toFixed(2)}%</span>
+                                        </div>
+                                    )}
                                     <div className="flex justify-between py-2">
                                         <span className="text-black">Amount Paid:</span>
                                         <span className="font-medium text-black">{formatCurrency(paidAmount)}</span>
@@ -675,4 +687,4 @@ export default function InvoiceDetail() {
             </div>
         </MainLayout>
     );
-} 
+}

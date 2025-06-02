@@ -46,7 +46,8 @@ export default function DashboardMetrics({ summaryData: initialSummaryData }: Da
         'Truck': Truck,
         'CreditCard': CreditCard,
         'AlertTriangle': AlertTriangle,
-        'Tag': Tag
+        'Tag': Tag,
+        'TrendingUp': TrendingUp
     };
 
     // Use provided data or fallback to dummy data
@@ -90,4 +91,4 @@ export default function DashboardMetrics({ summaryData: initialSummaryData }: Da
             })}
         </div>
     );
-} 
+}

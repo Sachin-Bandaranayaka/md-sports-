@@ -110,9 +110,57 @@ export async function fetchSummaryData() {
 
     const formattedValue = totalValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
+    // 6. Calculate Total Profit from Invoices
+    console.time('calculateTotalProfit');
+    const totalProfitResult = await safeQuery(
+        () => prisma.invoice.aggregate({
+            where: { status: 'Paid' },
+            _sum: { totalProfit: true }
+        }),
+        { _sum: { totalProfit: null } },
+        'Failed to calculate total profit'
+    );
+    const totalProfit = totalProfitResult._sum.totalProfit || 0;
+
+    // Calculate profit trend (comparing with previous month)
+    let profitTrend = '0%';
+    let profitTrendUp = false;
+    if (totalProfit > 0) {
+        const previousMonthStart = new Date();
+        previousMonthStart.setMonth(previousMonthStart.getMonth() - 1);
+        previousMonthStart.setDate(1);
+        previousMonthStart.setHours(0, 0, 0, 0);
+        const previousMonthEnd = new Date();
+        previousMonthEnd.setDate(0);
+        previousMonthEnd.setHours(23, 59, 59, 999);
+
+        const previousMonthProfit = await safeQuery(
+            () => prisma.invoice.aggregate({
+                where: {
+                    status: 'Paid',
+                    createdAt: { gte: previousMonthStart, lte: previousMonthEnd }
+                },
+                _sum: { totalProfit: true }
+            }),
+            { _sum: { totalProfit: null } },
+            'Failed to calculate previous month profit'
+        );
+        const previousTotal = previousMonthProfit._sum.totalProfit || 0;
+        if (previousTotal > 0) {
+            const percentChange = ((totalProfit - previousTotal) / previousTotal) * 100;
+            profitTrend = `${percentChange > 0 ? '+' : ''}${Math.round(percentChange)}%`;
+            profitTrendUp = percentChange > 0;
+        } else if (totalProfit > 0) {
+            profitTrend = '+100%';
+            profitTrendUp = true;
+        }
+    }
+    console.timeEnd('calculateTotalProfit');
+
     const data = [
         { title: 'Total Inventory Value', value: `Rs. ${formattedValue}`, icon: 'Package', trend: inventoryTrendData.trend, trendUp: inventoryTrendData.trendUp },
         { title: 'Total Retail Value', value: 'Loading...', icon: 'Tag', trend: '+0%', trendUp: false },
+        { title: 'Total Profit', value: `Rs. ${Number(totalProfit).toLocaleString()}`, icon: 'TrendingUp', trend: profitTrend, trendUp: profitTrendUp },
         { title: 'Pending Transfers', value: `${pendingTransfers}`, icon: 'Truck', trend: transfersTrendData.trend, trendUp: transfersTrendData.trendUp },
         { title: 'Outstanding Invoices', value: `Rs. ${Number(totalOutstanding).toLocaleString()}`, icon: 'CreditCard', trend: invoiceTrend, trendUp: invoiceTrendUp },
         { title: 'Low Stock Items', value: `${lowStockItems}`, icon: 'AlertTriangle', trend: lowStockTrendData.trend, trendUp: lowStockTrendData.trendUp },
@@ -220,6 +268,23 @@ export async function fetchSummaryDataFiltered(startDate?: string | null, endDat
     const invoicesTrend = getRandomTrend(true);
     const stockTrend = getRandomTrend(false);
 
+    // 5. Calculate Total Profit with date filter
+    console.time('calculateTotalProfit');
+    const totalProfitResult = await safeQuery(
+        () => prisma.invoice.aggregate({
+            where: {
+                status: 'Paid',
+                ...(Object.keys(dateFilter).length > 0 && { createdAt: dateFilter })
+            },
+            _sum: { totalProfit: true }
+        }),
+        { _sum: { totalProfit: 0 } },
+        'Failed to calculate total profit'
+    );
+    console.timeEnd('calculateTotalProfit');
+
+    const profitTrend = getRandomTrend(true);
+
     const summaryData = [
         {
             title: 'Total Inventory Value',
@@ -227,6 +292,13 @@ export async function fetchSummaryDataFiltered(startDate?: string | null, endDat
             icon: 'Package',
             trend: inventoryTrend.trend,
             trendUp: inventoryTrend.trendUp
+        },
+        {
+            title: 'Total Profit',
+            value: `Rs. ${(totalProfitResult._sum.totalProfit || 0).toLocaleString()}`,
+            icon: 'TrendingUp',
+            trend: profitTrend.trend,
+            trendUp: profitTrend.trendUp
         },
         {
             title: 'Pending Transfers',

@@ -244,6 +244,8 @@ export async function POST(request: NextRequest) {
                                 dueDate: invoiceDetails.dueDate ? new Date(invoiceDetails.dueDate) : null,
                                 notes: invoiceDetails.notes || '',
                                 shopId: invoiceDetails.shopId,
+                                totalProfit: 0, // Will be updated after items are processed
+                                profitMargin: 0 // Will be updated after items are processed
                             },
                         });
 
@@ -260,17 +262,56 @@ export async function POST(request: NextRequest) {
                         }
 
                         if (invoiceDetails.items && Array.isArray(invoiceDetails.items)) {
+                            // Get product costs for profit calculation
+                            const productIds = invoiceDetails.items.map((item: any) => item.productId);
+                            const products = await tx.product.findMany({
+                                where: { id: { in: productIds } },
+                                select: { id: true, weightedAverageCost: true }
+                            });
+
+                            const productCostMap = new Map(products.map(p => [p.id, p.weightedAverageCost || 0]));
+
                             for (const item of invoiceDetails.items) {
+                                const costPrice = productCostMap.get(item.productId) || 0;
+                                const totalCost = costPrice * item.quantity;
+                                const profit = (item.quantity * item.price) - totalCost;
+
                                 await tx.invoiceItem.create({
                                     data: {
                                         invoiceId: createdInvoice.id,
                                         productId: item.productId,
                                         quantity: item.quantity,
                                         price: item.price,
-                                        total: item.quantity * item.price
+                                        total: item.quantity * item.price,
+                                        costPrice: costPrice,
+                                        profit: profit
                                     }
                                 });
+                            }
 
+                            // Calculate and update total profit and profit margin
+                            const totalProfit = invoiceDetails.items.reduce((sum: number, item: any) => {
+                                const costPrice = productCostMap.get(item.productId) || 0;
+                                const totalCost = costPrice * item.quantity;
+                                const profit = (item.quantity * item.price) - totalCost;
+                                return sum + profit;
+                            }, 0);
+
+                            const profitMargin = invoiceDetails.total > 0 ? (totalProfit / invoiceDetails.total) * 100 : 0;
+
+                            // Update invoice with profit information
+                            await tx.invoice.update({
+                                where: { id: invoice.id },
+                                data: {
+                                    totalProfit: totalProfit,
+                                    profitMargin: profitMargin
+                                }
+                            });
+                        }
+
+                        // Check and update inventory levels for the selected shop
+                        if (invoiceDetails.shopId && invoiceDetails.items && Array.isArray(invoiceDetails.items)) {
+                            for (const item of invoiceDetails.items) {
                                 // Check inventory only for the selected shop
                                 const inventoryItems = await tx.inventoryItem.findMany({
                                     where: {
