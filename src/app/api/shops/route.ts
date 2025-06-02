@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
                 name: 'asc'
             },
             include: {
-                inventoryItems: true
+                InventoryItem: true
             }
         });
 
@@ -32,13 +32,13 @@ export async function GET(request: NextRequest) {
 
         // Add inventory count and remove the full inventory items array
         const shopsWithCounts = shops.map(shop => {
-            const inventoryCount = shop.inventoryItems ? shop.inventoryItems.length : 0;
+            const inventoryCount = shop.InventoryItem ? shop.InventoryItem.length : 0;
             console.log(`Shop ${shop.id} (${shop.name}) has ${inventoryCount} inventory items`);
 
             return {
                 ...shop,
                 total_inventory: inventoryCount,
-                inventoryItems: undefined // Don't send the full inventory items array to the client
+                InventoryItem: undefined
             };
         });
 

@@ -21,15 +21,16 @@ interface Customer {
 interface Product {
     id: number;
     name: string;
-    price: number;
+    price: number; // Retail price
     description?: string;
     sku?: string;
-    stock?: number;
+    stock?: number; // Available stock (may need to be specific to selected shop)
+    weightedAverageCost?: number; // Added for profit calculation
 }
 
 // Interface for Shop in dropdown (NEW)
 interface Shop {
-    id: number;
+    id: string;
     name: string;
 }
 
@@ -39,8 +40,10 @@ interface InvoiceItem {
     productId: number;
     productName: string;
     quantity: number;
-    price: number;
-    total: number;
+    price: number; // Selling price for this item
+    costPrice: number; // Cost price at the time of adding
+    total: number; // quantity * price
+    profit: number; // (price - costPrice) * quantity
 }
 
 // Interface for Invoice Form Data
@@ -53,7 +56,7 @@ interface InvoiceFormData {
     status: 'Draft' | 'Pending' | 'Paid' | 'Overdue';
     paymentMethod: 'Cash' | 'Credit' | 'Card' | 'Bank';
     items: InvoiceItem[];
-    shopId: number | null; // Added shopId
+    shopId: string | null; // Changed to string to match Shop model
 }
 
 export default function CreateInvoice() {
@@ -68,6 +71,7 @@ export default function CreateInvoice() {
     const [showProductDropdown, setShowProductDropdown] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [quantity, setQuantity] = useState<number>(1);
+    const [currentProductCost, setCurrentProductCost] = useState<number>(0); // To store cost of selected product
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [productStock, setProductStock] = useState<number | null>(null);
     const [customPrice, setCustomPrice] = useState<number>(0);
@@ -247,33 +251,51 @@ export default function CreateInvoice() {
 
     // Handle product selection for adding to line items
     const handleSelectProduct = async (product: Product) => {
-        setSelectedProduct(product);
-        setProductSearch('');
-        setShowProductDropdown(false);
-
-        // Fetch stock information for the selected product and shop
+        // Fetch full product details to get weightedAverageCost
         if (!formData.shopId) {
+            // This check is important, but already exists later. Re-iterate for clarity.
             alert('Please select a shop first before adding products.');
-            setSelectedProduct(null);
             return;
         }
-
         try {
             const response = await fetch(`/api/products/${product.id}`);
             if (response.ok) {
-                const data = await response.json();
-                if (data.success && data.data) {
+                const detailedProductData = await response.json();
+                if (detailedProductData.success && detailedProductData.data) {
+                    // Update selectedProduct with full data, including weightedAverageCost
+                    setSelectedProduct(detailedProductData.data);
+                    setCurrentProductCost(detailedProductData.data.weightedAverageCost || 0);
+
                     // Calculate stock only for the selected shop
-                    const shopStock = data.data.inventory?.find(
-                        (item: any) => item.shop_id === formData.shopId
+                    const shopStock = detailedProductData.data.inventory?.find(
+                        (item: any) => item.shop_id === formData.shopId // Ensure this shopId comparison is correct (string vs number)
                     )?.quantity || 0;
                     setProductStock(shopStock);
+                    setCustomPrice(detailedProductData.data.price); // Reset custom price to product's default
+                } else {
+                    // Fallback if detailed data fetch fails but we have basic product info
+                    setSelectedProduct(product); // Use the basic product info
+                    setCurrentProductCost(product.weightedAverageCost || 0); // Use WAC from list if available
+                    setCustomPrice(product.price);
+                    setProductStock(null); // Can't determine shop-specific stock
+                    console.error('Failed to fetch detailed product data or data format incorrect.');
                 }
+            } else {
+                setSelectedProduct(product); // Use the basic product info on API error
+                setCurrentProductCost(product.weightedAverageCost || 0);
+                setCustomPrice(product.price);
+                setProductStock(null);
+                console.error('Error fetching product details for stock and cost:', await response.text());
             }
         } catch (error) {
-            console.error('Error fetching product stock:', error);
+            setSelectedProduct(product); // Use the basic product info on general error
+            setCurrentProductCost(product.weightedAverageCost || 0);
+            setCustomPrice(product.price);
             setProductStock(null);
+            console.error('Error fetching product stock and cost:', error);
         }
+        setProductSearch(''); // Clear search
+        setShowProductDropdown(false); // Close dropdown
     };
 
     // Handle adding a line item to the invoice
@@ -296,13 +318,15 @@ export default function CreateInvoice() {
         }
 
         // Use custom price if set, otherwise use product's default price
-        const finalPrice = customPrice > 0 ? customPrice : selectedProduct.price;
-        const newItemTotal = finalPrice * quantity;
+        const finalPrice = customPrice > 0 ? customPrice : (selectedProduct.price || 0);
+        const costPrice = currentProductCost; // Use the fetched cost for the selected product
+        const itemTotal = finalPrice * quantity;
+        const itemProfit = (finalPrice - costPrice) * quantity;
 
         // Check credit limit for wholesale customers
         if (selectedCustomer && selectedCustomer.customerType === 'wholesale' && selectedCustomer.creditLimit) {
             const currentTotal = formData.items.reduce((sum, item) => sum + item.total, 0);
-            if (currentTotal + newItemTotal > selectedCustomer.creditLimit) {
+            if (currentTotal + itemTotal > selectedCustomer.creditLimit) {
                 alert(`Adding this item exceeds the customer\'s credit limit of ${selectedCustomer.creditLimit}.`);
                 return;
             }
@@ -314,7 +338,9 @@ export default function CreateInvoice() {
             productName: selectedProduct.name,
             quantity: quantity,
             price: finalPrice,
-            total: newItemTotal
+            costPrice: costPrice, // Store cost price
+            total: itemTotal,
+            profit: itemProfit,  // Store profit
         };
 
         setFormData({
@@ -325,6 +351,7 @@ export default function CreateInvoice() {
         // Reset selection
         setSelectedProduct(null);
         setProductStock(null);
+        setCurrentProductCost(0); // Reset current product cost
         setQuantity(1);
         setCustomPrice(0);
     };
@@ -334,6 +361,33 @@ export default function CreateInvoice() {
         setFormData({
             ...formData,
             items: formData.items.filter(item => item.id !== itemId)
+        });
+    };
+
+    // Handle changes to quantity or price of an existing line item
+    const handleItemDetailChange = (itemId: string, field: 'quantity' | 'price', value: string) => {
+        const numericValue = parseFloat(value);
+        if (isNaN(numericValue) && value !== '') return;
+
+        setFormData(prevFormData => {
+            const updatedItems = prevFormData.items.map(item => {
+                if (item.id === itemId) {
+                    const newQuantity = field === 'quantity' ? (numericValue >= 0 ? numericValue : item.quantity) : item.quantity;
+                    const newPrice = field === 'price' ? (numericValue >= 0 ? numericValue : item.price) : item.price;
+                    // item.costPrice is already set and should not change when user edits qty/price
+                    const newTotal = newQuantity * newPrice;
+                    const newProfit = (newPrice - item.costPrice) * newQuantity;
+                    return {
+                        ...item,
+                        quantity: newQuantity,
+                        price: newPrice,
+                        total: newTotal,
+                        profit: newProfit, // Recalculate profit
+                    };
+                }
+                return item;
+            });
+            return { ...prevFormData, items: updatedItems };
         });
     };
 
@@ -556,7 +610,7 @@ export default function CreateInvoice() {
                                             name="shopId"
                                             value={formData.shopId || ''} // Handle null state for placeholder
                                             onChange={(e) => {
-                                                const newShopId = parseInt(e.target.value) || null;
+                                                const newShopId = e.target.value || null;
                                                 console.log('Shop selection changed to:', newShopId);
                                                 setFormData({ ...formData, shopId: newShopId });
                                             }}
@@ -846,24 +900,48 @@ export default function CreateInvoice() {
                                 <table className="w-full text-sm text-left">
                                     <thead className="text-xs uppercase bg-gray-50">
                                         <tr>
-                                            <th className="px-4 py-3 text-gray-900">Item</th>
-                                            <th className="px-4 py-3 text-center text-gray-900">Quantity</th>
-                                            <th className="px-4 py-3 text-right text-gray-900">Price</th>
-                                            <th className="px-4 py-3 text-right text-gray-900">Total</th>
-                                            <th className="px-4 py-3 text-center text-gray-900">Action</th>
+                                            <th className="py-2 px-3 text-left text-sm font-semibold text-gray-700">Product</th>
+                                            <th className="py-2 px-3 text-center text-sm font-semibold text-gray-700">Qty</th>
+                                            <th className="py-2 px-3 text-right text-sm font-semibold text-gray-700">Price (Rs.)</th>
+                                            <th className="py-2 px-3 text-right text-sm font-semibold text-gray-700">Item Profit (Rs.)</th>
+                                            <th className="py-2 px-3 text-right text-sm font-semibold text-gray-700">Total (Rs.)</th>
+                                            <th className="py-2 px-3 text-center text-sm font-semibold text-gray-700">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {formData.items.length > 0 ? (
-                                            formData.items.map((item) => (
-                                                <tr key={item.id} className="border-b hover:bg-gray-50">
-                                                    <td className="px-4 py-3 font-medium text-gray-900">
+                                            formData.items.map((item, index) => (
+                                                <tr key={item.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                                    <td className="py-2 px-3 border-b border-gray-200 text-sm text-gray-700">
                                                         {item.productName}
+                                                        <span className="text-xs text-gray-500 block">ID: {item.productId}</span>
                                                     </td>
-                                                    <td className="px-4 py-3 text-center">{item.quantity}</td>
-                                                    <td className="px-4 py-3 text-right">Rs. {item.price.toLocaleString()}</td>
-                                                    <td className="px-4 py-3 text-right">Rs. {item.total.toLocaleString()}</td>
-                                                    <td className="px-4 py-3 text-center">
+                                                    <td className="py-2 px-3 border-b border-gray-200 text-sm text-gray-700 text-center">
+                                                        <input
+                                                            type="number"
+                                                            value={item.quantity}
+                                                            onChange={(e) => handleItemDetailChange(item.id, 'quantity', e.target.value)}
+                                                            className="w-20 p-1 border border-gray-300 rounded-md text-center text-sm"
+                                                            min="1"
+                                                        />
+                                                    </td>
+                                                    <td className="py-2 px-3 border-b border-gray-200 text-sm text-gray-700 text-right">
+                                                        <input
+                                                            type="number"
+                                                            value={item.price}
+                                                            onChange={(e) => handleItemDetailChange(item.id, 'price', e.target.value)}
+                                                            className="w-24 p-1 border border-gray-300 rounded-md text-right text-sm"
+                                                            min="0"
+                                                            step="0.01"
+                                                        />
+                                                    </td>
+                                                    <td className="py-2 px-3 border-b border-gray-200 text-sm text-gray-700 text-right">
+                                                        {item.profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    </td>
+                                                    <td className="py-2 px-3 border-b border-gray-200 text-sm text-gray-700 text-right">
+                                                        {item.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    </td>
+                                                    <td className="py-2 px-3 border-b border-gray-200 text-center">
                                                         <button
                                                             type="button"
                                                             onClick={() => handleRemoveLineItem(item.id)}

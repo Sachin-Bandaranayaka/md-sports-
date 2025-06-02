@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { verifyToken } from '@/lib/auth';
-import { emitInventoryUpdate } from '@/lib/websocket';
+import { emitInventoryUpdate, getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
 import { sendSMS } from '@/lib/sms';
 import { cacheService, CACHE_CONFIG } from '@/lib/cache';
 import { measureAsync } from '@/lib/performance';
@@ -237,13 +237,13 @@ export async function POST(request: NextRequest) {
                             data: {
                                 invoiceNumber: invoiceDetails.invoiceNumber,
                                 customerId: invoiceDetails.customerId,
-                                total: invoiceDetails.total,
+                                total: 0, // Will be updated after items are processed
                                 status: 'Pending',
                                 paymentMethod: invoiceDetails.paymentMethod || 'Cash',
                                 invoiceDate: invoiceDetails.invoiceDate ? new Date(invoiceDetails.invoiceDate) : new Date(),
                                 dueDate: invoiceDetails.dueDate ? new Date(invoiceDetails.dueDate) : null,
                                 notes: invoiceDetails.notes || '',
-                                shopId: invoiceDetails.shopId,
+                                shopId: invoiceDetails.shopId || null,
                                 totalProfit: 0, // Will be updated after items are processed
                                 profitMargin: 0 // Will be updated after items are processed
                             },
@@ -254,7 +254,7 @@ export async function POST(request: NextRequest) {
                                 data: {
                                     invoiceId: createdInvoice.id,
                                     customerId: invoiceDetails.customerId,
-                                    amount: invoiceDetails.total,
+                                    amount: 0, // Will be updated after items are processed
                                     paymentMethod: 'Cash',
                                     referenceNumber: `AUTO-${createdInvoice.invoiceNumber}`,
                                 }
@@ -271,10 +271,13 @@ export async function POST(request: NextRequest) {
 
                             const productCostMap = new Map(products.map(p => [p.id, p.weightedAverageCost || 0]));
 
+                            let calculatedTotalInvoiceAmount = 0; // Added for server-side calculation
+
                             for (const item of invoiceDetails.items) {
                                 const costPrice = productCostMap.get(item.productId) || 0;
-                                const totalCost = costPrice * item.quantity;
-                                const profit = (item.quantity * item.price) - totalCost;
+                                const itemSellingTotal = item.quantity * item.price; // Renamed for clarity
+                                const totalItemCost = costPrice * item.quantity; // Renamed for clarity
+                                const itemProfit = itemSellingTotal - totalItemCost; // Renamed for clarity
 
                                 await tx.invoiceItem.create({
                                     data: {
@@ -282,27 +285,30 @@ export async function POST(request: NextRequest) {
                                         productId: item.productId,
                                         quantity: item.quantity,
                                         price: item.price,
-                                        total: item.quantity * item.price,
+                                        total: itemSellingTotal,
                                         costPrice: costPrice,
-                                        profit: profit
+                                        profit: itemProfit
                                     }
                                 });
+                                calculatedTotalInvoiceAmount += itemSellingTotal; // Accumulate server-calculated total
                             }
 
                             // Calculate and update total profit and profit margin
                             const totalProfit = invoiceDetails.items.reduce((sum: number, item: any) => {
                                 const costPrice = productCostMap.get(item.productId) || 0;
-                                const totalCost = costPrice * item.quantity;
-                                const profit = (item.quantity * item.price) - totalCost;
-                                return sum + profit;
+                                const itemSellingTotal = item.quantity * item.price;
+                                const totalItemCost = costPrice * item.quantity;
+                                const itemProfit = itemSellingTotal - totalItemCost;
+                                return sum + itemProfit;
                             }, 0);
 
-                            const profitMargin = invoiceDetails.total > 0 ? (totalProfit / invoiceDetails.total) * 100 : 0;
+                            const profitMargin = calculatedTotalInvoiceAmount > 0 ? (totalProfit / calculatedTotalInvoiceAmount) * 100 : 0;
 
                             // Update invoice with profit information
                             await tx.invoice.update({
-                                where: { id: invoice.id },
+                                where: { id: createdInvoice.id },
                                 data: {
+                                    total: calculatedTotalInvoiceAmount, // Use server-calculated total
                                     totalProfit: totalProfit,
                                     profitMargin: profitMargin
                                 }

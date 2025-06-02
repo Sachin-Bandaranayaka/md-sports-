@@ -69,8 +69,18 @@ export const requirePermission = (permission: string) => {
                 return null;
             }
 
-            // Use optimized cached permission check
-            const userHasPermission = await hasPermission(token, permission);
+            // Verify the token to get the payload first
+            const tokenPayload = await verifyToken(token);
+            if (!tokenPayload) {
+                console.error('Invalid token - payload could not be verified');
+                return NextResponse.json(
+                    { success: false, message: 'Invalid token' },
+                    { status: 401 }
+                );
+            }
+
+            // Now pass the TokenPayload object to hasPermission
+            const userHasPermission = await hasPermission(tokenPayload, permission);
 
             if (!userHasPermission) {
                 console.error(`Permission denied: ${permission}`);

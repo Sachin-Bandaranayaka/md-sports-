@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 
 // GET: Fetch a specific shop by ID
@@ -155,18 +155,11 @@ export async function PUT(
 
 // DELETE: Delete a shop by ID (since Prisma doesn't have built-in soft delete)
 export async function DELETE(
-    request: Request,
-    { params }: { params: { id: string } }
+    request: NextRequest,
+    context: { params: { id: string } }
 ) {
     try {
-        const id = parseInt(params.id);
-
-        if (isNaN(id)) {
-            return NextResponse.json({
-                success: false,
-                message: 'Invalid shop ID'
-            }, { status: 400 });
-        }
+        const id = context.params.id;
 
         // Check if the shop exists
         const existingShop = await prisma.shop.findUnique({
@@ -236,7 +229,7 @@ export async function DELETE(
             message: 'Shop deleted successfully'
         });
     } catch (error) {
-        console.error(`Error deleting shop with ID ${params.id}:`, error);
+        console.error(`Error deleting shop with ID ${context.params.id}:`, error);
         return NextResponse.json({
             success: false,
             message: 'Error deleting shop',

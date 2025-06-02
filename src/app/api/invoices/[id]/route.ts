@@ -112,7 +112,7 @@ export async function PUT(
                     const existingInvoice = await tx.invoice.findUnique({
                         where: { id: invoiceId },
                         include: {
-                            items: true // Crucial for comparing old and new items
+                            items: true // Keep for inventory adjustment if needed, though items will be replaced
                         }
                     });
 
@@ -120,11 +120,13 @@ export async function PUT(
                         throw new Error('Invoice not found');
                     }
 
-                    // --- Inventory Adjustment Logic --- 
+                    // --- Inventory Adjustment Logic (existing) --- 
+                    // This logic might need review if items are fully replaced, 
+                    // as it compares old vs new item quantities. 
+                    // For profit, we are deleting and re-creating items.
                     const oldItemsMap = new Map();
                     const newItemsMap = new Map();
 
-                    // Aggregate quantities by product ID
                     for (const item of existingInvoice.items) {
                         const existingQuantity = oldItemsMap.get(item.productId) || 0;
                         oldItemsMap.set(item.productId, existingQuantity + item.quantity);
@@ -135,73 +137,43 @@ export async function PUT(
                         newItemsMap.set(item.productId, existingQuantity + item.quantity);
                     }
 
-                    // Process unique product IDs from both old and new items
                     const allProductIds = new Set([
                         ...Array.from(oldItemsMap.keys()),
                         ...Array.from(newItemsMap.keys())
                     ]);
 
-                    // Log inventory changes for debugging
-                    console.log('Invoice update - Inventory changes:');
-
-                    // Process each unique product
+                    console.log('Invoice update - Inventory changes (based on diff):');
                     for (const productId of allProductIds) {
                         const oldQuantity = oldItemsMap.get(productId) || 0;
                         const newQuantity = newItemsMap.get(productId) || 0;
                         const quantityChange = newQuantity - oldQuantity;
-
                         console.log(`Product ID ${productId}: Old=${oldQuantity}, New=${newQuantity}, Change=${quantityChange}`);
-
                         if (quantityChange !== 0) {
-                            // Attempt to find specific shop inventory items for this product
-                            // This is an important part for emitting granular shop-specific events.
-                            // The current logic uses updateMany by productId, which is not shop-specific.
-                            // If we want shop-specific events, this part needs to be more intelligent
-                            // to determine which shops are affected by quantityChange.
+                            // Ensure affectedShopId is a string if invoiceData.shopId is a string
+                            let affectedShopId: string | undefined = invoiceData.shopId ? String(invoiceData.shopId) : undefined;
 
-                            // For now, we'll record the change at the product level.
-                            // If a shopId can be determined (e.g. if invoice is tied to one shop, or items are from one shop)
-                            // then that shopId should be used.
-                            // Assuming for now sales invoices can pull from any shop or a primary shop for the product.
-
-                            let affectedShopId: number | undefined = undefined;
-                            // If invoiceData.shopId is available, it means the sale is tied to a specific shop
-                            // and inventory should ideally be deducted from this shop.
-                            // The existing logic does not seem to use invoiceData.shopId for inventory deduction.
-                            if (invoiceData.shopId) {
-                                affectedShopId = invoiceData.shopId;
-                            }
-
-                            // Log the intended change for the event payload
-                            // The actual new/old quantities per shop might be complex to get accurately here
-                            // without refactoring the inventory update logic itself.
                             inventoryUpdatesForEvent.push({
                                 productId: productId as number,
-                                shopId: affectedShopId, // This might be undefined if not determinable here
+                                shopId: affectedShopId,
                                 quantityChange: quantityChange,
-                                // newQuantity/oldQuantity for specific shop would need more info
                             });
-
-                            if (quantityChange > 0) { // Deduct (more items sold)
-                                // Check inventory availability for the specific shop
+                            if (quantityChange > 0) { // Deduct (more items sold or added)
                                 if (affectedShopId) {
                                     const availableInventory = await tx.inventoryItem.findMany({
                                         where: { productId: productId as number, shopId: affectedShopId }
                                     });
                                     const totalAvailable = availableInventory.reduce((sum, item) => sum + item.quantity, 0);
-
                                     if (totalAvailable < quantityChange) {
-                                        throw new Error(`Insufficient inventory for product ID ${productId} in selected shop. Available: ${totalAvailable}, Required: ${quantityChange}`);
+                                        throw new Error(`Insufficient inventory for product ID ${productId} in shop ${affectedShopId}. Available: ${totalAvailable}, Required increase: ${quantityChange}`);
                                     }
-
+                                    // This should ideally be a more robust way to pick which inventory item to decrement
                                     await tx.inventoryItem.updateMany({
-                                        where: { productId: productId as number, shopId: affectedShopId },
+                                        where: { productId: productId as number, shopId: affectedShopId, quantity: { gte: quantityChange } }, // Simplistic update
                                         data: { quantity: { decrement: quantityChange } }
                                     });
                                 } else {
-                                    // Fallback to general decrement if no shop specified
                                     await tx.inventoryItem.updateMany({
-                                        where: { productId: productId as number },
+                                        where: { productId: productId as number, quantity: { gte: quantityChange } }, // Simplistic update
                                         data: { quantity: { decrement: quantityChange } }
                                     });
                                 }
@@ -218,33 +190,79 @@ export async function PUT(
                                     });
                                 }
                             }
-                        } else {
-                            console.log(`No inventory change needed for product ${productId}`);
                         }
                     }
                     // --- End Inventory Adjustment Logic ---
 
-                    const dataToUpdate = {
-                        total: invoiceData.total, // Ensure total is recalculated based on new items on client
+                    // Delete old invoice items before adding new ones for profit recalc
+                    await tx.invoiceItem.deleteMany({ where: { invoiceId: invoiceId } });
+
+                    let newCalculatedTotalInvoiceAmount = 0;
+                    let newTotalInvoiceProfit = 0;
+
+                    if (invoiceData.items && Array.isArray(invoiceData.items) && invoiceData.items.length > 0) {
+                        const productIdsForNewItems = invoiceData.items.map((item: any) => item.productId);
+                        const productsData = await tx.product.findMany({
+                            where: { id: { in: productIdsForNewItems } },
+                            select: { id: true, weightedAverageCost: true }
+                        });
+                        const productCostMap = new Map(productsData.map(p => [p.id, p.weightedAverageCost || 0]));
+
+                        for (const item of invoiceData.items) {
+                            const costPrice = productCostMap.get(item.productId) || 0;
+                            const itemSellingTotal = item.quantity * item.price;
+                            const totalItemCost = costPrice * item.quantity;
+                            const itemProfit = itemSellingTotal - totalItemCost;
+
+                            await tx.invoiceItem.create({
+                                data: {
+                                    invoiceId: invoiceId,
+                                    productId: item.productId,
+                                    quantity: item.quantity,
+                                    price: item.price,
+                                    total: itemSellingTotal,
+                                    costPrice: costPrice,
+                                    profit: itemProfit
+                                }
+                            });
+                            newCalculatedTotalInvoiceAmount += itemSellingTotal;
+                            newTotalInvoiceProfit += itemProfit;
+                        }
+                    }
+
+                    const newProfitMargin = newCalculatedTotalInvoiceAmount > 0 ? (newTotalInvoiceProfit / newCalculatedTotalInvoiceAmount) * 100 : 0;
+
+                    const dataToUpdate: any = {
                         status: invoiceData.status,
                         paymentMethod: invoiceData.paymentMethod,
-                        // Correct way to update customer relationship
-                        customer: invoiceData.customerId ? {
-                            connect: { id: invoiceData.customerId }
-                        } : undefined,
-                        // Add date fields directly to the update object
                         invoiceDate: invoiceData.invoiceDate ? new Date(invoiceData.invoiceDate) : undefined,
                         dueDate: invoiceData.dueDate ? new Date(invoiceData.dueDate) : undefined,
                         notes: invoiceData.notes,
-                        shopId: invoiceData.shopId // Ensure shopId is updated on the invoice itself
+                        shopId: invoiceData.shopId ? String(invoiceData.shopId) : null, // Ensure shopId is string or null
+                        total: newCalculatedTotalInvoiceAmount, // Updated total
+                        totalProfit: newTotalInvoiceProfit,   // Updated profit
+                        profitMargin: newProfitMargin         // Updated profit margin
                     };
 
-                    console.log('Updating invoice details:', { invoiceId, dataToUpdate });
+                    if (invoiceData.customerId) {
+                        dataToUpdate.customerId = invoiceData.customerId;
+                    } else {
+                        // If customerId is explicitly null or undefined, disconnect it if your schema allows
+                        // dataToUpdate.customer = { disconnect: true }; 
+                        // Or ensure it's set to null if the field is optional and you want to clear it.
+                        // For now, we assume if not provided, it's not changed or handled by frontend state.
+                    }
 
-                    // Update basic invoice details
-                    const updatedInvoiceDetails = await tx.invoice.update({
+                    console.log('Updating invoice details with profit:', { invoiceId, dataToUpdate });
+
+                    const finalUpdatedInvoice = await tx.invoice.update({
                         where: { id: invoiceId },
-                        data: dataToUpdate
+                        data: dataToUpdate,
+                        include: {
+                            customer: true,
+                            items: { include: { product: true } },
+                            payments: true
+                        }
                     });
 
                     // Handle cash payment method
@@ -272,45 +290,13 @@ export async function PUT(
                                     customerId: invoiceData.customerId,
                                     amount: invoiceData.total,
                                     paymentMethod: 'Cash',
-                                    referenceNumber: `AUTO-UPDATE-${updatedInvoiceDetails.invoiceNumber}`,
+                                    referenceNumber: `AUTO-UPDATE-${finalUpdatedInvoice.invoiceNumber}`,
                                 }
                             });
                         }
                     }
 
-                    console.log('Deleting existing invoice items for invoice:', invoiceId);
-                    // Delete existing invoice items and create new ones
-                    // This is done after inventory adjustments to ensure data integrity
-                    await tx.invoiceItem.deleteMany({
-                        where: { invoiceId: invoiceId }
-                    });
-
-                    console.log('Creating new invoice items:', invoiceData.items);
-                    for (const item of invoiceData.items) {
-                        await tx.invoiceItem.create({
-                            data: {
-                                invoiceId: invoiceId,
-                                productId: item.productId,
-                                quantity: item.quantity,
-                                price: item.price,
-                                total: item.quantity * item.price
-                            }
-                        });
-                    }
-
-                    // Return the complete updated invoice with relations
-                    return tx.invoice.findUnique({
-                        where: { id: invoiceId },
-                        include: {
-                            customer: true,
-                            items: {
-                                include: {
-                                    product: true
-                                }
-                            },
-                            payments: true
-                        }
-                    });
+                    return finalUpdatedInvoice;
                 } catch (txError) {
                     console.error('Transaction error:', txError);
                     throw txError;

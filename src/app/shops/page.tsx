@@ -7,7 +7,7 @@ import { Store, MapPin, Phone, Mail, Plus, Search, X, AlertTriangle, Trash2 } fr
 
 // Define the Shop type
 type Shop = {
-    id: number;
+    id: string;
     name: string;
     location: string;
     contact_person: string | null;

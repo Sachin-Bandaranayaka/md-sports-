@@ -224,7 +224,7 @@ export async function POST(request: NextRequest) {
                         if (itemDistribution && Object.keys(itemDistribution).length > 0) {
                             // Distribute to specific shops as specified
                             for (const [shopIdStr, quantity] of Object.entries(itemDistribution)) {
-                                const shopId = parseInt(shopIdStr);
+                                const shopId = shopIdStr; // Keep shopId as string
                                 const qty = Number(quantity);
 
                                 if (qty <= 0) continue;
@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
                                 const existingInventory = await tx.inventoryItem.findFirst({
                                     where: {
                                         productId: parseInt(item.productId),
-                                        shopId: shopId
+                                        shopId: shopId // shopId is now a string
                                     }
                                 });
 
@@ -250,23 +250,26 @@ export async function POST(request: NextRequest) {
                                     await tx.inventoryItem.create({
                                         data: {
                                             productId: parseInt(item.productId),
-                                            shopId: shopId,
-                                            quantity: finalQuantity,
+                                            shopId: shopId, // shopId is now a string
+                                            quantity: finalQuantity
                                         }
                                     });
                                 }
-                                inventoryUpdates.push({ productId: parseInt(item.productId), shopId, newQuantity: finalQuantity });
+                                inventoryUpdates.push({ productId: parseInt(item.productId), shopId: parseInt(shopId), newQuantity: finalQuantity });
                             }
-                        } else if (body.defaultShopId) { // Distribute all to a default shop if specified
-                            const shopId = parseInt(body.defaultShopId as string);
+                        } else {
+                            // If no distribution specified, assume a default shop (e.g., shopId '1' or main shop)
+                            const defaultShopId = '1'; // Default shopId as string
                             const qty = item.quantity;
 
                             const existingInventory = await tx.inventoryItem.findFirst({
                                 where: {
                                     productId: parseInt(item.productId),
-                                    shopId: shopId
+                                    shopId: defaultShopId
                                 }
                             });
+
+                            let finalQuantity = 0;
                             if (existingInventory) {
                                 finalQuantity = existingInventory.quantity + qty;
                                 await tx.inventoryItem.update({
@@ -278,50 +281,12 @@ export async function POST(request: NextRequest) {
                                 await tx.inventoryItem.create({
                                     data: {
                                         productId: parseInt(item.productId),
-                                        shopId: shopId,
-                                        quantity: finalQuantity,
+                                        shopId: defaultShopId,
+                                        quantity: finalQuantity
                                     }
                                 });
                             }
-                            inventoryUpdates.push({ productId: parseInt(item.productId), shopId, newQuantity: finalQuantity });
-                        } else {
-                            // Fallback: if no distribution and no default shopId, what to do?
-                            // Option: Don't update inventory, or add to a predefined main/default shop (e.g. shopId 1)
-                            // For now, let's assume if no distribution/defaultShopId, inventory is not managed at shop level here
-                            // Or, as a simple fallback, let's attempt to add to shopId 1 if it exists (VERY SIMPLISTIC)
-                            const defaultShopIdFallback = 1; // This should be a configurable or better handled default
-                            const qty = item.quantity;
-                            try {
-                                const existingInventory = await tx.inventoryItem.findFirst({
-                                    where: {
-                                        productId: parseInt(item.productId),
-                                        shopId: defaultShopIdFallback
-                                    }
-                                });
-                                if (existingInventory) {
-                                    finalQuantity = existingInventory.quantity + qty;
-                                    await tx.inventoryItem.update({
-                                        where: { id: existingInventory.id },
-                                        data: { quantity: finalQuantity }
-                                    });
-                                } else {
-                                    // Check if shopId 1 exists before creating. This is still very basic.
-                                    const shopOneExists = await tx.shop.findUnique({ where: { id: defaultShopIdFallback } });
-                                    if (shopOneExists) {
-                                        finalQuantity = qty;
-                                        await tx.inventoryItem.create({
-                                            data: {
-                                                productId: parseInt(item.productId),
-                                                shopId: defaultShopIdFallback,
-                                                quantity: finalQuantity,
-                                            }
-                                        });
-                                    }
-                                }
-                                inventoryUpdates.push({ productId: parseInt(item.productId), shopId: defaultShopIdFallback, newQuantity: finalQuantity });
-                            } catch (e) {
-                                console.warn(`Could not update inventory for product ${item.productId} in fallback shop ${defaultShopIdFallback}:`, e)
-                            }
+                            inventoryUpdates.push({ productId: parseInt(item.productId), shopId: parseInt(defaultShopId), newQuantity: finalQuantity });
                         }
                     }
                 }
@@ -338,45 +303,49 @@ export async function POST(request: NextRequest) {
                     });
                 }
 
-                // Return the created invoice along with inventory updates for event emission
-                return { createdInvoice, inventoryUpdates };
+                // Fetch the complete invoice with items
+                const fullInvoice = await tx.purchaseInvoice.findUnique({
+                    where: { id: createdInvoice.id },
+                    include: {
+                        supplier: true,
+                        items: { include: { product: true } }
+                    }
+                });
+
+                return { invoice: fullInvoice, inventoryUpdates };
             },
-            { timeout: 30000 }
+            { timeout: 20000 } // 20 seconds timeout
         );
 
-        // Emit WebSocket events after successful transaction
+        // Emit WebSocket events
         const io = getSocketIO();
-        if (io && purchase) {
-            const fullPurchaseInvoice = await prisma.purchaseInvoice.findUnique({
-                where: { id: purchase.createdInvoice.id },
-                include: { supplier: true, items: { include: { product: true } } }
-            });
-            io.emit(WEBSOCKET_EVENTS.PURCHASE_INVOICE_CREATED, { invoice: fullPurchaseInvoice });
+        if (io && purchase && purchase.invoice) {
+            io.emit(WEBSOCKET_EVENTS.PURCHASE_INVOICE_CREATED, purchase.invoice);
 
-            // Emit inventory level updates
+            // Emit inventory updates
             if (purchase.inventoryUpdates && purchase.inventoryUpdates.length > 0) {
                 purchase.inventoryUpdates.forEach(update => {
+                    // Assuming emitInventoryLevelUpdated can handle numeric shopId for its own logic
+                    // but the critical part is that Prisma queries used string shopId as fixed above.
                     emitInventoryLevelUpdated(update.productId, {
-                        shopId: update.shopId,
+                        shopId: update.shopId, // This might need to be string if emitInventoryLevelUpdated expects it
                         newQuantity: update.newQuantity,
                         source: 'purchase_creation'
                     });
                 });
             }
-            console.log('Emitted PURCHASE_INVOICE_CREATED and INVENTORY_LEVEL_UPDATED events');
+            console.log(`Emitted WebSocket events for new purchase invoice ${purchase.invoice.id}`);
         }
 
-        return NextResponse.json({
-            success: true,
-            message: 'Purchase invoice created successfully',
-            data: purchase.createdInvoice,
-            id: purchase.createdInvoice.id
-        }, { status: 201 });
+        return NextResponse.json(
+            { success: true, message: 'Purchase invoice created successfully', data: purchase.invoice },
+            { status: 201 }
+        );
     } catch (error) {
         console.error('Error creating purchase invoice:', error);
-        const details = error instanceof Error ? error.message : 'An unknown error occurred';
+        const message = error instanceof Error ? error.message : 'An unknown error occurred';
         return NextResponse.json(
-            { error: { message: 'Failed to create purchase invoice', details: details } },
+            { error: { message: 'Failed to create purchase invoice', details: message } },
             { status: 500 }
         );
     }

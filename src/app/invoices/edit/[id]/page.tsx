@@ -20,25 +20,28 @@ interface Customer {
 interface Product {
     id: number;
     name: string;
-    price: number;
+    price: number; // Retail price
     description?: string;
     sku?: string;
     stock?: number;
+    weightedAverageCost?: number; // Added
 }
 
 // Interface for Invoice Line Item
 interface InvoiceItem {
-    id: string | number; // Either temporary ID for UI or real ID from database
+    id: string | number;
     productId: number;
     productName: string;
     quantity: number;
-    price: number;
+    price: number; // Selling price
+    costPrice: number; // Added: Cost price at the time of sale
     total: number;
+    profit: number; // Added: (price - costPrice) * quantity
 }
 
 // Interface for Shop in dropdown
 interface Shop {
-    id: number;
+    id: string;
     name: string;
     address?: string;
 }
@@ -52,7 +55,7 @@ interface InvoiceFormData {
     notes: string;
     status: 'Draft' | 'Pending' | 'Paid' | 'Overdue';
     paymentMethod: 'Cash' | 'Credit' | 'Card' | 'Bank';
-    shopId: number | null;
+    shopId: string | null;
     items: InvoiceItem[];
 }
 
@@ -62,6 +65,8 @@ interface ApiInvoice {
     invoiceNumber: string;
     customerId: number;
     total: number;
+    totalProfit?: number; // Added, as backend provides this
+    profitMargin?: number; // Added, as backend provides this
     status: string;
     paymentMethod: string;
     createdAt: string;
@@ -73,9 +78,12 @@ interface ApiInvoice {
         invoiceId: number;
         quantity: number;
         price: number;
+        costPrice: number; // Added: Expect from API
         total: number;
-        product: Product;
+        profit: number;  // Added: Expect from API
+        product: Product; // Product might also have weightedAverageCost for newly added items
     }>;
+    shopId?: string; // Ensure shopId is string here too
 }
 
 export default function EditInvoice() {
@@ -92,10 +100,38 @@ export default function EditInvoice() {
     const [showProductDropdown, setShowProductDropdown] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [quantity, setQuantity] = useState<number>(1);
+    const [currentProductCost, setCurrentProductCost] = useState<number>(0); // Added
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [productStock, setProductStock] = useState<number | null>(null);
     const [invoiceNumber, setInvoiceNumber] = useState<string>('');
     const [sendSms, setSendSms] = useState<boolean>(false);
+
+    // Handle changes to quantity or price of an existing line item
+    const handleItemDetailChange = (itemId: string | number, field: 'quantity' | 'price', value: string) => {
+        const numericValue = parseFloat(value);
+        if (isNaN(numericValue) && value !== '') return;
+
+        setFormData(prevFormData => {
+            const updatedItems = prevFormData.items.map(item => {
+                if (item.id === itemId) {
+                    const newQuantity = field === 'quantity' ? (numericValue >= 0 ? numericValue : item.quantity) : item.quantity;
+                    const newPrice = field === 'price' ? (numericValue >= 0 ? numericValue : item.price) : item.price;
+                    // item.costPrice is already set from DB or when item was added, should not change here.
+                    const newTotal = newQuantity * newPrice;
+                    const newProfit = (newPrice - item.costPrice) * newQuantity; // Recalculate profit
+                    return {
+                        ...item,
+                        quantity: newQuantity,
+                        price: newPrice,
+                        total: newTotal,
+                        profit: newProfit,
+                    };
+                }
+                return item;
+            });
+            return { ...prevFormData, items: updatedItems };
+        });
+    };
 
     const [formData, setFormData] = useState<InvoiceFormData>({
         customerId: 0,
@@ -139,7 +175,9 @@ export default function EditInvoice() {
                     productName: item.product.name,
                     quantity: item.quantity,
                     price: item.price,
-                    total: item.total
+                    costPrice: item.costPrice || 0, // Populate from API
+                    total: item.total,
+                    profit: item.profit || 0    // Populate from API
                 }));
 
                 // Calculate due date (30 days from creation date or based on customer credit period)
@@ -155,7 +193,7 @@ export default function EditInvoice() {
                     notes: '', // Assuming notes might be added later
                     status: invoiceData.status as any,
                     paymentMethod: invoiceData.paymentMethod as any,
-                    shopId: (invoiceData as any).shopId || null,
+                    shopId: invoiceData.shopId || null, // Will be string if present
                     items
                 });
 
@@ -312,63 +350,74 @@ export default function EditInvoice() {
 
     // Handle product selection for adding to line items
     const handleSelectProduct = async (product: Product) => {
-        setSelectedProduct(product);
-        setProductSearch('');
-        setShowProductDropdown(false);
-
-        // Fetch stock information for the selected product
+        // Fetch full product details to get weightedAverageCost for newly added items
+        if (!formData.shopId) {
+            alert('Please select a shop first before adding products.');
+            return;
+        }
         try {
             const response = await fetch(`/api/products/${product.id}`);
             if (response.ok) {
-                const data = await response.json();
-                if (data.success && data.data) {
-                    // Find stock for the selected shop only
-                    if (formData.shopId) {
-                        const shopInventory = data.data.inventory?.find(
-                            (item: any) => item.shopId === formData.shopId
-                        );
-                        setProductStock(shopInventory?.quantity || 0);
-                    } else {
-                        setProductStock(null);
-                    }
+                const detailedProductData = await response.json();
+                if (detailedProductData.success && detailedProductData.data) {
+                    setSelectedProduct(detailedProductData.data);
+                    setCurrentProductCost(detailedProductData.data.weightedAverageCost || 0);
+                    const shopStock = detailedProductData.data.inventory?.find(
+                        (invItem: any) => invItem.shop_id === formData.shopId // Assuming shopId on inventoryItem is number
+                    )?.quantity || 0;
+                    setProductStock(shopStock);
+                    // Do not reset customPrice here, as user might be adding a new item
+                } else {
+                    setSelectedProduct(product);
+                    setCurrentProductCost(product.weightedAverageCost || 0);
+                    setProductStock(null);
                 }
+            } else {
+                setSelectedProduct(product);
+                setCurrentProductCost(product.weightedAverageCost || 0);
+                setProductStock(null);
             }
         } catch (error) {
-            console.error('Error fetching product stock:', error);
+            setSelectedProduct(product);
+            setCurrentProductCost(product.weightedAverageCost || 0);
             setProductStock(null);
+            console.error('Error fetching product stock and cost for new item:', error);
         }
+        setProductSearch('');
+        setShowProductDropdown(false);
     };
 
     // Add line item to invoice
     const handleAddLineItem = () => {
         if (!selectedProduct) return;
 
-        // Check if shop is selected
         if (!formData.shopId) {
             alert('Please select a shop first');
             return;
         }
-
-        // Validate that quantity is greater than 0
         if (quantity <= 0) {
-            // Set to 1 if it's 0 or negative
             setQuantity(1);
             return;
         }
-
-        // Check if there's enough stock in the selected shop
         if (productStock !== null && quantity > productStock) {
             alert(`Not enough stock in selected shop. Available: ${productStock}`);
             return;
         }
+
+        const sellingPrice = selectedProduct.price; // For newly added item, use its default price or allow edit before add
+        const costPrice = currentProductCost;       // Cost for the new item
+        const itemTotal = sellingPrice * quantity;
+        const itemProfit = (sellingPrice - costPrice) * quantity;
 
         const newItem: InvoiceItem = {
             id: Date.now().toString(), // Temporary ID for UI
             productId: selectedProduct.id,
             productName: selectedProduct.name,
             quantity: quantity,
-            price: selectedProduct.price,
-            total: selectedProduct.price * quantity
+            price: sellingPrice,
+            costPrice: costPrice,
+            total: itemTotal,
+            profit: itemProfit,
         };
 
         setFormData({
@@ -617,7 +666,7 @@ export default function EditInvoice() {
                                         <select
                                             name="shopId"
                                             value={formData.shopId || ''}
-                                            onChange={(e) => setFormData({ ...formData, shopId: parseInt(e.target.value) || null })}
+                                            onChange={(e) => setFormData({ ...formData, shopId: e.target.value || null })}
                                             className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
                                             required
                                         >
@@ -835,58 +884,48 @@ export default function EditInvoice() {
                                 <table className="w-full text-sm text-left">
                                     <thead className="text-xs uppercase bg-gray-50">
                                         <tr>
-                                            <th className="px-4 py-3 text-gray-900">Item</th>
-                                            <th className="px-4 py-3 text-center text-gray-900">Quantity</th>
-                                            <th className="px-4 py-3 text-right text-gray-900">Price</th>
-                                            <th className="px-4 py-3 text-right text-gray-900">Total</th>
-                                            <th className="px-4 py-3 text-center text-gray-900">Action</th>
+                                            <th className="py-2 px-3 text-left text-sm font-semibold text-gray-700">Product</th>
+                                            <th className="py-2 px-3 text-center text-sm font-semibold text-gray-700">Qty</th>
+                                            <th className="py-2 px-3 text-right text-sm font-semibold text-gray-700">Price (Rs.)</th>
+                                            <th className="py-2 px-3 text-right text-sm font-semibold text-gray-700">Item Profit (Rs.)</th>
+                                            <th className="py-2 px-3 text-right text-sm font-semibold text-gray-700">Total (Rs.)</th>
+                                            <th className="py-2 px-3 text-center text-sm font-semibold text-gray-700">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {formData.items.length > 0 ? (
-                                            formData.items.map((item) => (
-                                                <tr key={item.id} className="border-b hover:bg-gray-50">
-                                                    <td className="px-4 py-3 font-medium text-gray-900">
+                                            formData.items.map((item, index) => (
+                                                <tr key={item.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                                    <td className="py-2 px-3 border-b border-gray-200 text-sm text-gray-700">
                                                         {item.productName}
+                                                        <span className="text-xs text-gray-500 block">ID: {item.productId}</span>
                                                     </td>
-                                                    <td className="px-4 py-3 text-center">
+                                                    <td className="py-2 px-3 border-b border-gray-200 text-sm text-gray-700 text-center">
                                                         <input
                                                             type="number"
-                                                            min="1"
                                                             value={item.quantity}
-                                                            onChange={(e) => {
-                                                                try {
-                                                                    // Parse to integer, default to current item quantity if parsing fails
-                                                                    const currentItem = formData.items.find(i => i.id === item.id);
-                                                                    const currentValue = currentItem ? currentItem.quantity : 1;
-                                                                    const newValue = parseInt(e.target.value);
-
-                                                                    if (isNaN(newValue) || newValue <= 0) {
-                                                                        // Handle invalid input: either reset or keep current valid quantity
-                                                                        // For now, let's call update with a value that will be caught by the check (e.g., 0 or current)
-                                                                        // This ensures the input visually reverts if an invalid number is typed.
-                                                                        handleUpdateItemQuantity(item.id, 0); // This will revert to old value or do nothing based on the check
-                                                                        // Or, to be more direct, you could reset the input field's display value here
-                                                                        // e.target.value = currentValue.toString(); // but this is less React-idiomatic
-                                                                    } else {
-                                                                        console.log('Input change detected (parsed):', item.id, newValue);
-                                                                        handleUpdateItemQuantity(item.id, newValue);
-                                                                    }
-                                                                } catch (error) {
-                                                                    console.error('Error updating quantity from input:', error);
-                                                                    // Optionally, revert to old value if there's an error
-                                                                    const currentItem = formData.items.find(i => i.id === item.id);
-                                                                    if (currentItem) {
-                                                                        e.target.value = currentItem.quantity.toString();
-                                                                    }
-                                                                }
-                                                            }}
-                                                            className="w-16 text-center rounded-md border border-gray-300 p-1 text-sm text-gray-900"
+                                                            onChange={(e) => handleItemDetailChange(item.id, 'quantity', e.target.value)}
+                                                            className="w-20 p-1 border border-gray-300 rounded-md text-center text-sm"
+                                                            min="1"
                                                         />
                                                     </td>
-                                                    <td className="px-4 py-3 text-right">Rs. {item.price.toLocaleString()}</td>
-                                                    <td className="px-4 py-3 text-right">Rs. {item.total.toLocaleString()}</td>
-                                                    <td className="px-4 py-3 text-center">
+                                                    <td className="py-2 px-3 border-b border-gray-200 text-sm text-gray-700 text-right">
+                                                        <input
+                                                            type="number"
+                                                            value={item.price}
+                                                            onChange={(e) => handleItemDetailChange(item.id, 'price', e.target.value)}
+                                                            className="w-24 p-1 border border-gray-300 rounded-md text-right text-sm"
+                                                            min="0"
+                                                            step="0.01"
+                                                        />
+                                                    </td>
+                                                    <td className="py-2 px-3 border-b border-gray-200 text-sm text-gray-700 text-right">
+                                                        {(item.profit || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    </td>
+                                                    <td className="py-2 px-3 border-b border-gray-200 text-sm text-gray-700 text-right">
+                                                        {item.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    </td>
+                                                    <td className="py-2 px-3 border-b border-gray-200 text-center">
                                                         <button
                                                             type="button"
                                                             onClick={() => handleRemoveLineItem(item.id)}

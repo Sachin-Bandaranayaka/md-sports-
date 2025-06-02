@@ -101,9 +101,9 @@ export async function PUT(
 
                     if (oldItemDistribution && Object.keys(oldItemDistribution).length > 0) {
                         for (const [shopIdStr, quantityInShop] of Object.entries(oldItemDistribution as any)) {
-                            const shopId = parseInt(shopIdStr);
+                            const shopId = shopIdStr;
                             const qtyToRemove = Number(quantityInShop);
-                            if (qtyToRemove <= 0 || isNaN(qtyToRemove) || isNaN(shopId)) continue;
+                            if (qtyToRemove <= 0 || isNaN(qtyToRemove)) continue;
                             const inventory = await tx.inventoryItem.findFirst({ where: { productId: oldItem.productId, shopId: shopId } });
                             if (inventory) {
                                 const oldShopQuantity = inventory.quantity;
@@ -113,7 +113,7 @@ export async function PUT(
                             }
                         }
                     } else {
-                        const shopId = 1;
+                        const shopId = '1';
                         const inventory = await tx.inventoryItem.findFirst({ where: { productId: oldItem.productId, shopId: shopId } });
                         if (inventory) {
                             const oldShopQuantity = inventory.quantity;
@@ -171,9 +171,9 @@ export async function PUT(
 
                     if (newItemDistribution && Object.keys(newItemDistribution).length > 0) {
                         for (const [shopIdStr, quantityInShop] of Object.entries(newItemDistribution as any)) {
-                            const shopId = parseInt(shopIdStr);
+                            const shopId = shopIdStr;
                             const qtyToAdd = Number(quantityInShop);
-                            if (qtyToAdd <= 0 || isNaN(qtyToAdd) || isNaN(shopId)) continue;
+                            if (qtyToAdd <= 0 || isNaN(qtyToAdd)) continue;
                             const inventory = await tx.inventoryItem.findFirst({ where: { productId: Number(newItem.productId), shopId: shopId } });
                             let finalQuantity = 0;
                             const oldInvQty = inventory?.quantity || 0;
@@ -187,7 +187,7 @@ export async function PUT(
                             inventoryUpdates.push({ productId: Number(newItem.productId), shopId, newQuantity: finalQuantity, oldQuantity: oldInvQty });
                         }
                     } else {
-                        const shopId = 1;
+                        const shopId = '1';
                         const inventory = await tx.inventoryItem.findFirst({ where: { productId: Number(newItem.productId), shopId: shopId } });
                         let finalQuantity = 0;
                         const oldInvQty = inventory?.quantity || 0;
@@ -315,12 +315,12 @@ export async function DELETE(
                     if (itemDistributionInfo) {
                         console.log(`Reversing item-specific distribution for product ${productId}, purchase ${purchaseId}`);
                         for (const [shopIdStr, distributedQuantityStr] of Object.entries(itemDistributionInfo)) {
-                            const shopId = parseInt(shopIdStr);
+                            const shopId = shopIdStr;
                             const qtyInShopToRemove = Number(distributedQuantityStr);
 
                             if (isNaN(shopId) || isNaN(qtyInShopToRemove) || qtyInShopToRemove <= 0) continue;
 
-                            const inventoryItem = await tx.inventoryItem.findFirst({ where: { productId, shopId } });
+                            const inventoryItem = await tx.inventoryItem.findFirst({ where: { productId, shopId: shopId } });
                             if (inventoryItem) {
                                 const oldShopQuantity = inventoryItem.quantity;
                                 const newShopQuantity = Math.max(0, inventoryItem.quantity - qtyInShopToRemove);
@@ -335,8 +335,8 @@ export async function DELETE(
                             }
                         }
                     } else if ((purchaseToDelete as any).defaultShopId) {
-                        const defaultShopId = parseInt((purchaseToDelete as any).defaultShopId);
-                        if (!isNaN(defaultShopId)) {
+                        const defaultShopId = String((purchaseToDelete as any).defaultShopId);
+                        if (defaultShopId) {
                             console.log(`Reversing stock for product ${productId} from defaultShopId ${defaultShopId} on purchase ${purchaseId}`);
                             const inventoryItem = await tx.inventoryItem.findFirst({ where: { productId, shopId: defaultShopId } });
                             if (inventoryItem) {
@@ -353,7 +353,7 @@ export async function DELETE(
                             }
                         }
                     } else {
-                        const FALLBACK_SHOP_ID = 1;
+                        const FALLBACK_SHOP_ID = '1';
                         console.warn(`No specific distribution or defaultShopId. Attempting fallback to shop ${FALLBACK_SHOP_ID} for product ${productId}, purchase ${purchaseId}.`);
                         const inventoryItem = await tx.inventoryItem.findFirst({ where: { productId, shopId: FALLBACK_SHOP_ID } });
                         if (inventoryItem) {

@@ -3,6 +3,7 @@ import { prisma, safeQuery } from '@/lib/prisma';
 import { getShopId } from '@/lib/utils/middleware';
 import { NextRequest } from 'next/server';
 import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
+import { cacheService } from '@/lib/cache';
 
 // Default fallback data for products
 const defaultProductsData = [
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
         console.log('Products API - Shop ID from query:', queryShopId);
 
         // Use query shopId if provided, otherwise use token shopId
-        const shopId = queryShopId ? parseInt(queryShopId) : tokenShopId;
+        const shopId = queryShopId ? queryShopId : tokenShopId ? String(tokenShopId) : null;
 
         // Fetch products using Prisma
         const products = await safeQuery(

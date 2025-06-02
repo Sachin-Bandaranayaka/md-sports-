@@ -27,7 +27,7 @@ const itemVariants = {
 };
 
 interface EditPurchaseInvoiceFormProps {
-    initialInvoice: PurchaseInvoice & { items: PurchaseInvoiceItem[], distributions?: Array<Record<number, number>> };
+    initialInvoice: PurchaseInvoice & { items: PurchaseInvoiceItem[], distributions?: Array<Record<string, number>> };
     initialSuppliers: Supplier[];
     initialProducts: Product[];
     initialCategories: Category[];
@@ -65,8 +65,14 @@ export default function EditPurchaseInvoiceForm({
 
     const [selectedItemIndexForDistribution, setSelectedItemIndexForDistribution] = useState<number | null>(null);
     const [showDistributionModal, setShowDistributionModal] = useState(false);
-    const [itemDistributions, setItemDistributions] = useState<Array<Record<number, number>>>(
-        initialInvoice.distributions || initialInvoice.items.map(() => ({}))
+    const [itemDistributions, setItemDistributions] = useState<Array<Record<string, number>>>(
+        initialInvoice.distributions?.map(dist => {
+            const newDist: Record<string, number> = {};
+            for (const key in dist) {
+                newDist[String(key)] = dist[key];
+            }
+            return newDist;
+        }) || initialInvoice.items.map(() => ({}))
     );
 
     const [formData, setFormData] = useState<Partial<PurchaseInvoice>>({
@@ -178,18 +184,16 @@ export default function EditPurchaseInvoiceForm({
         setShowDistributionModal(true);
     };
 
-    const handleDistributionChange = (shopId: number, quantityStr: string) => {
+    const handleDistributionChange = (shopId: string, quantityStr: string) => {
         if (selectedItemIndexForDistribution === null) return;
         const quantity = quantityStr === '' ? 0 : parseInt(quantityStr) || 0;
         setItemDistributions(prevDists => {
-            const newDists = [...prevDists];
-            const currentItemDist = { ...(newDists[selectedItemIndexForDistribution] || {}) };
+            const newDists = { ...prevDists };
             if (quantity > 0) {
-                currentItemDist[shopId] = quantity;
+                newDists[shopId] = quantity;
             } else {
-                delete currentItemDist[shopId];
+                delete newDists[shopId];
             }
-            newDists[selectedItemIndexForDistribution] = currentItemDist;
             return newDists;
         });
     };
@@ -198,6 +202,9 @@ export default function EditPurchaseInvoiceForm({
         if (itemIndex === null || !itemDistributions[itemIndex]) return 0;
         return Object.values(itemDistributions[itemIndex]).reduce((sum, qty) => sum + Number(qty), 0);
     };
+
+    // New helper to get shop options for combobox, ensuring shop.id is string
+    const shopOptions = shops.map(shop => ({ value: String(shop.id), label: shop.name }));
 
     const handleCreateNewProduct = async () => {
         if (!newProductData.name || !newProductData.categoryId || newProductData.price <= 0 || newProductData.weightedAverageCost <= 0) {
@@ -474,17 +481,16 @@ export default function EditPurchaseInvoiceForm({
                                     <p>Remaining: <span className="font-semibold text-blue-800">{Math.max(0, Number(formData.items[selectedItemIndexForDistribution].quantity) - getTotalDistributedForItem(selectedItemIndexForDistribution))}</span></p>
                                 </div>
                                 {shops.length > 0 ? shops.map(shop => (
-                                    <div key={shop.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
-                                        <label htmlFor={`dist-shop-${shop.id}`} className="text-sm text-gray-700">{shop.name}</label>
+                                    <div key={shop.id} className="grid grid-cols-3 gap-2 items-center">
+                                        <label htmlFor={`dist-shop-${shop.id}`} className="col-span-1 text-sm text-gray-700">{shop.name}</label>
                                         <input
                                             type="number"
                                             id={`dist-shop-${shop.id}`}
-                                            value={itemDistributions[selectedItemIndexForDistribution]?.[shop.id] || ''}
-                                            onChange={(e) => handleDistributionChange(shop.id, e.target.value)}
+                                            value={itemDistributions[String(shop.id)] || ''}
+                                            onChange={(e) => handleDistributionChange(String(shop.id), e.target.value)}
                                             min="0"
-                                            max={Number(formData.items![selectedItemIndexForDistribution].quantity) - (getTotalDistributedForItem(selectedItemIndexForDistribution) - (itemDistributions[selectedItemIndexForDistribution]?.[shop.id] || 0))}
-                                            placeholder="0"
-                                            className="block w-28 rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-gray-900 p-1.5 placeholder-gray-500"
+                                            className="col-span-2 block w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-gray-900 p-2 placeholder-gray-400"
+                                            placeholder="Quantity"
                                         />
                                     </div>
                                 )) : <p className="text-sm text-gray-500 py-4 text-center">No shops available for distribution.</p>}

@@ -17,7 +17,7 @@ model User {
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
   isActive              Boolean             @default(true)
-  shopId                Int?
+  shopId                String?
   roleName              String?
   permissions           String[]            @default([])
   inventoryTransferFrom InventoryTransfer[] @relation("FromUser")
@@ -25,7 +25,7 @@ model User {
   notifications         Notification[]
   refreshTokens         RefreshToken[]      @relation("UserRefreshTokens")
   role                  Role                @relation(fields: [roleId], references: [id])
-  shop                  Shop?               @relation(fields: [shopId], references: [id])
+  shop                  Shop?
   confirmedReceipts     Receipt[]
 }
 
@@ -74,7 +74,7 @@ model Shop {
   is_active        Boolean            @default(true)
   opening_time     DateTime?          @db.Time
   closing_time     DateTime?          @db.Time
-  manager_id       String?
+  manager_id       Int?               @unique
   opening_date     DateTime?          @db.Date
   status           String             @default("open")
   address_line1    String?
@@ -87,7 +87,8 @@ model Shop {
   longitude        Decimal?
   tax_rate         Decimal?           @default(0)
   InventoryItem    InventoryItem[]
-  InventoryTransfer InventoryTransfer[]
+  inventoryTransferFrom InventoryTransfer[] @relation("FromShop")
+  inventoryTransferTo   InventoryTransfer[] @relation("ToShop")
   Product          Product[]
   manager          User?              @relation(fields: [manager_id], references: [id])
   Invoice          Invoice[]
@@ -102,7 +103,7 @@ model Product {
   sku                 String?               @unique
   barcode             String?
   categoryId          Int?
-  shopId              Int?
+  shopId              String?
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
   inventoryItems      InventoryItem[]
@@ -130,7 +131,7 @@ model InventoryItem {
   id        Int      @id @default(autoincrement())
   productId Int
   quantity  Int
-  shopId    Int
+  shopId    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   product   Product  @relation(fields: [productId], references: [id])
@@ -139,8 +140,8 @@ model InventoryItem {
 
 model InventoryTransfer {
   id            Int            @id @default(autoincrement())
-  fromShopId    Int
-  toShopId      Int
+  fromShopId    String
+  toShopId      String
   fromUserId    Int
   toUserId      Int
   status        String
@@ -219,7 +220,7 @@ model Invoice {
   invoiceDate   DateTime?     @db.Date
   dueDate       DateTime?     @db.Date
   notes         String?
-  shopId        Int?
+  shopId        String?
   customer      Customer      @relation(fields: [customerId], references: [id])
   shop          Shop?         @relation(fields: [shopId], references: [id])
   items         InvoiceItem[]

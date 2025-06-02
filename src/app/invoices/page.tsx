@@ -13,6 +13,8 @@ interface Invoice {
     customerId: number;
     customerName?: string;
     total: number;
+    totalProfit?: number;
+    profitMargin?: number;
     status: string;
     paymentMethod: string;
     createdAt: Date | string;
@@ -81,10 +83,24 @@ async function fetchInvoicesData(
     try {
         const invoicesPromise = prisma.invoice.findMany({
             where: whereClause,
-            include: {
-                customer: true, // To get customerName
+            select: {
+                id: true,
+                invoiceNumber: true,
+                customerId: true,
+                total: true,
+                totalProfit: true,
+                profitMargin: true,
+                status: true,
+                paymentMethod: true,
+                createdAt: true,
+                updatedAt: true,
+                invoiceDate: true,
+                dueDate: true,
+                notes: true,
+                shopId: true,
+                customer: true,
                 _count: {
-                    select: { items: true }, // To get itemCount
+                    select: { items: true },
                 },
             },
             orderBy: { createdAt: 'desc' },
@@ -175,6 +191,8 @@ async function fetchInvoicesData(
                 itemCount: inv._count?.items || 0,
                 date: createdDate.toISOString().split('T')[0],
                 dueDate: displayDueDate, // Use the calculated or existing due date
+                totalProfit: inv.totalProfit || 0,
+                profitMargin: inv.profitMargin || 0
             };
         });
 
