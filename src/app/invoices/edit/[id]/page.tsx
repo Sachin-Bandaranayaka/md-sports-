@@ -36,6 +36,13 @@ interface InvoiceItem {
     total: number;
 }
 
+// Interface for Shop in dropdown
+interface Shop {
+    id: number;
+    name: string;
+    address?: string;
+}
+
 // Interface for Invoice Form Data
 interface InvoiceFormData {
     customerId: number;
@@ -45,6 +52,7 @@ interface InvoiceFormData {
     notes: string;
     status: 'Draft' | 'Pending' | 'Paid' | 'Overdue';
     paymentMethod: 'Cash' | 'Credit' | 'Card' | 'Bank';
+    shopId: number | null;
     items: InvoiceItem[];
 }
 
@@ -77,6 +85,7 @@ export default function EditInvoice() {
     const [isLoading, setIsLoading] = useState(true);
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
+    const [shops, setShops] = useState<Shop[]>([]);
     const [customerSearch, setCustomerSearch] = useState('');
     const [productSearch, setProductSearch] = useState('');
     const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
@@ -96,6 +105,7 @@ export default function EditInvoice() {
         notes: '',
         status: 'Pending',
         paymentMethod: 'Cash',
+        shopId: null,
         items: []
     });
 
@@ -145,6 +155,7 @@ export default function EditInvoice() {
                     notes: '', // Assuming notes might be added later
                     status: invoiceData.status as any,
                     paymentMethod: invoiceData.paymentMethod as any,
+                    shopId: (invoiceData as any).shopId || null,
                     items
                 });
 
@@ -184,6 +195,13 @@ export default function EditInvoice() {
                         { id: 4, name: 'Football', price: 3200, description: 'Professional football', sku: 'FB-004' },
                         { id: 5, name: 'Tennis Racket', price: 8500, description: 'Professional tennis racket', sku: 'TR-005' },
                     ]);
+                }
+
+                // Fetch shops
+                const shopResponse = await fetch('/api/shops?simple=true');
+                if (shopResponse.ok) {
+                    const shopData = await shopResponse.json();
+                    setShops(Array.isArray(shopData.data) ? shopData.data : []);
                 }
             } catch (error) {
                 console.error('Error fetching master data:', error);
@@ -304,12 +322,15 @@ export default function EditInvoice() {
             if (response.ok) {
                 const data = await response.json();
                 if (data.success && data.data) {
-                    // Calculate total stock across all locations
-                    const totalStock = data.data.inventory?.reduce(
-                        (sum: number, item: any) => sum + item.quantity,
-                        0
-                    ) || 0;
-                    setProductStock(totalStock);
+                    // Find stock for the selected shop only
+                    if (formData.shopId) {
+                        const shopInventory = data.data.inventory?.find(
+                            (item: any) => item.shopId === formData.shopId
+                        );
+                        setProductStock(shopInventory?.quantity || 0);
+                    } else {
+                        setProductStock(null);
+                    }
                 }
             }
         } catch (error) {
@@ -322,10 +343,22 @@ export default function EditInvoice() {
     const handleAddLineItem = () => {
         if (!selectedProduct) return;
 
+        // Check if shop is selected
+        if (!formData.shopId) {
+            alert('Please select a shop first');
+            return;
+        }
+
         // Validate that quantity is greater than 0
         if (quantity <= 0) {
             // Set to 1 if it's 0 or negative
             setQuantity(1);
+            return;
+        }
+
+        // Check if there's enough stock in the selected shop
+        if (productStock !== null && quantity > productStock) {
+            alert(`Not enough stock in selected shop. Available: ${productStock}`);
             return;
         }
 
@@ -415,6 +448,7 @@ export default function EditInvoice() {
                 notes: formData.notes,
                 invoiceDate: formData.invoiceDate,
                 dueDate: formData.dueDate,
+                shopId: formData.shopId,
                 items: formData.items.map(item => ({
                     productId: item.productId,
                     quantity: item.quantity,
@@ -574,6 +608,25 @@ export default function EditInvoice() {
                                             <option value="Credit">Credit</option>
                                             <option value="Card">Card</option>
                                             <option value="Bank">Bank</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Shop <span className="text-red-500">*</span>
+                                        </label>
+                                        <select
+                                            name="shopId"
+                                            value={formData.shopId || ''}
+                                            onChange={(e) => setFormData({ ...formData, shopId: parseInt(e.target.value) || null })}
+                                            className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
+                                            required
+                                        >
+                                            <option value="">Select a shop</option>
+                                            {shops.map((shop) => (
+                                                <option key={shop.id} value={shop.id}>
+                                                    {shop.name}
+                                                </option>
+                                            ))}
                                         </select>
                                     </div>
                                 </div>
@@ -922,4 +975,4 @@ export default function EditInvoice() {
             </div>
         </MainLayout>
     );
-} 
+}

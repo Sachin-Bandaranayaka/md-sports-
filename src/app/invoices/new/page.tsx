@@ -94,7 +94,7 @@ export default function CreateInvoice() {
         return formData.items.reduce((sum, item) => sum + item.total, 0);
     }, [formData.items]);
 
-    // Fetch customers and products on component mount
+    // Fetch customers and shops on component mount
     useEffect(() => {
         async function fetchData() {
             try {
@@ -107,21 +107,6 @@ export default function CreateInvoice() {
                 } else {
                     console.error('Failed to fetch customers:', await customerResponse.text());
                     setCustomers([]); // Set to empty array on failure
-                }
-
-                // Fetch products
-                const productResponse = await fetch('/api/products');
-                if (productResponse.ok) {
-                    const productData = await productResponse.json();
-                    setProducts(Array.isArray(productData.data) ? productData.data : []);
-                } else {
-                    setProducts([
-                        { id: 1, name: 'Cricket Bat', price: 12500, description: 'Professional cricket bat', sku: 'CB-001' },
-                        { id: 2, name: 'Cricket Ball', price: 1800, description: 'Match quality cricket ball', sku: 'CBL-002' },
-                        { id: 3, name: 'Basketball', price: 4500, description: 'Official size basketball', sku: 'BB-003' },
-                        { id: 4, name: 'Football', price: 3200, description: 'Professional football', sku: 'FB-004' },
-                        { id: 5, name: 'Tennis Racket', price: 8500, description: 'Professional tennis racket', sku: 'TR-005' },
-                    ]);
                 }
 
                 // Fetch shops (NEW)
@@ -156,6 +141,39 @@ export default function CreateInvoice() {
 
         fetchData();
     }, []);
+
+    // Fetch products when shop is selected
+    useEffect(() => {
+        async function fetchProducts() {
+            console.log('fetchProducts called with shopId:', formData.shopId);
+            if (!formData.shopId) {
+                console.log('No shopId, clearing products');
+                setProducts([]);
+                return;
+            }
+
+            try {
+                // Fetch products that have inventory in the selected shop
+                const url = `/api/products?shopId=${formData.shopId}`;
+                console.log('Fetching products from:', url);
+                const productResponse = await fetch(url);
+                if (productResponse.ok) {
+                    const productData = await productResponse.json();
+                    console.log('Products API response:', productData);
+                    setProducts(Array.isArray(productData.data) ? productData.data : []);
+                    console.log('Products set to:', Array.isArray(productData.data) ? productData.data : []);
+                } else {
+                    console.error('Failed to fetch products for shop:', await productResponse.text());
+                    setProducts([]);
+                }
+            } catch (error) {
+                console.error('Error fetching products for shop:', error);
+                setProducts([]);
+            }
+        }
+
+        fetchProducts();
+    }, [formData.shopId]);
 
     // Filter customers based on search term
     const filteredCustomers = useMemo(() => {
@@ -222,18 +240,23 @@ export default function CreateInvoice() {
         setProductSearch('');
         setShowProductDropdown(false);
 
-        // Fetch stock information for the selected product
+        // Fetch stock information for the selected product and shop
+        if (!formData.shopId) {
+            alert('Please select a shop first before adding products.');
+            setSelectedProduct(null);
+            return;
+        }
+
         try {
             const response = await fetch(`/api/products/${product.id}`);
             if (response.ok) {
                 const data = await response.json();
                 if (data.success && data.data) {
-                    // Calculate total stock across all locations
-                    const totalStock = data.data.inventory?.reduce(
-                        (sum: number, item: any) => sum + item.quantity,
-                        0
-                    ) || 0;
-                    setProductStock(totalStock);
+                    // Calculate stock only for the selected shop
+                    const shopStock = data.data.inventory?.find(
+                        (item: any) => item.shopId === formData.shopId
+                    )?.quantity || 0;
+                    setProductStock(shopStock);
                 }
             }
         } catch (error) {
@@ -246,6 +269,18 @@ export default function CreateInvoice() {
     const handleAddLineItem = () => {
         if (!selectedProduct || quantity <= 0) {
             alert('Please select a product and enter a valid quantity.');
+            return;
+        }
+
+        // Check if shop is selected
+        if (!formData.shopId) {
+            alert('Please select a shop first.');
+            return;
+        }
+
+        // Check if sufficient stock is available in the selected shop
+        if (productStock !== null && quantity > productStock) {
+            alert(`Insufficient stock in the selected shop. Available: ${productStock}, Requested: ${quantity}`);
             return;
         }
 
@@ -336,11 +371,13 @@ export default function CreateInvoice() {
                 body: JSON.stringify(invoiceData),
             });
 
-            if (!response.ok) {
-                throw new Error('Failed to create invoice');
+            const responseData = await response.json();
+
+            if (!response.ok && !responseData.success) {
+                throw new Error(responseData.message || responseData.error || 'Failed to create invoice');
             }
 
-            // Redirect to invoices list page
+            // If we get here, the invoice was created successfully
             router.push('/invoices');
             router.refresh();
         } catch (error) {
@@ -438,7 +475,11 @@ export default function CreateInvoice() {
                                         <select
                                             name="shopId"
                                             value={formData.shopId || ''} // Handle null state for placeholder
-                                            onChange={(e) => setFormData({ ...formData, shopId: parseInt(e.target.value) || null })}
+                                            onChange={(e) => {
+                                                const newShopId = parseInt(e.target.value) || null;
+                                                console.log('Shop selection changed to:', newShopId);
+                                                setFormData({ ...formData, shopId: newShopId });
+                                            }}
                                             className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
                                             required
                                         >

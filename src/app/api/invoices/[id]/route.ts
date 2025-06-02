@@ -183,21 +183,39 @@ export async function PUT(
                             });
 
                             if (quantityChange > 0) { // Deduct (more items sold)
-                                // Current logic: tx.inventoryItem.updateMany({ where: { productId }, data: { quantity: { decrement: quantityChange } } });
-                                // This is not shop-specific. To make it shop-specific for event, we'd need to know *which* shop(s) had stock decremented.
-                                // If tied to invoiceData.shopId:
+                                // Check inventory availability for the specific shop
                                 if (affectedShopId) {
-                                    await tx.inventoryItem.updateMany({ where: { productId: productId as number, shopId: affectedShopId }, data: { quantity: { decrement: quantityChange } } });
+                                    const availableInventory = await tx.inventoryItem.findMany({
+                                        where: { productId: productId as number, shopId: affectedShopId }
+                                    });
+                                    const totalAvailable = availableInventory.reduce((sum, item) => sum + item.quantity, 0);
+
+                                    if (totalAvailable < quantityChange) {
+                                        throw new Error(`Insufficient inventory for product ID ${productId} in selected shop. Available: ${totalAvailable}, Required: ${quantityChange}`);
+                                    }
+
+                                    await tx.inventoryItem.updateMany({
+                                        where: { productId: productId as number, shopId: affectedShopId },
+                                        data: { quantity: { decrement: quantityChange } }
+                                    });
                                 } else {
-                                    // Fallback to general decrement if no shop specified or if product can be from any shop
-                                    // This is where the original logic might have been:
-                                    await tx.inventoryItem.updateMany({ where: { productId: productId as number }, data: { quantity: { decrement: quantityChange } } });
+                                    // Fallback to general decrement if no shop specified
+                                    await tx.inventoryItem.updateMany({
+                                        where: { productId: productId as number },
+                                        data: { quantity: { decrement: quantityChange } }
+                                    });
                                 }
                             } else { // Add back (fewer items sold or items removed)
                                 if (affectedShopId) {
-                                    await tx.inventoryItem.updateMany({ where: { productId: productId as number, shopId: affectedShopId }, data: { quantity: { increment: Math.abs(quantityChange) } } });
+                                    await tx.inventoryItem.updateMany({
+                                        where: { productId: productId as number, shopId: affectedShopId },
+                                        data: { quantity: { increment: Math.abs(quantityChange) } }
+                                    });
                                 } else {
-                                    await tx.inventoryItem.updateMany({ where: { productId: productId as number }, data: { quantity: { increment: Math.abs(quantityChange) } } });
+                                    await tx.inventoryItem.updateMany({
+                                        where: { productId: productId as number },
+                                        data: { quantity: { increment: Math.abs(quantityChange) } }
+                                    });
                                 }
                             }
                         } else {
@@ -472,4 +490,4 @@ export async function DELETE(
             { status: 500 }
         );
     }
-} 
+}

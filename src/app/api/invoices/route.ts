@@ -271,14 +271,22 @@ export async function POST(request: NextRequest) {
                                     }
                                 });
 
+                                // Check inventory only for the selected shop
                                 const inventoryItems = await tx.inventoryItem.findMany({
-                                    where: { productId: item.productId },
+                                    where: {
+                                        productId: item.productId,
+                                        shopId: invoiceDetails.shopId // Only check inventory for the selected shop
+                                    },
                                     orderBy: { updatedAt: 'asc' }
                                 });
                                 let remainingQuantity = item.quantity;
-                                if (inventoryItems.length === 0) throw new Error(`No inventory for product ID ${item.productId}`);
+                                if (inventoryItems.length === 0) {
+                                    throw new Error(`No inventory for product ID ${item.productId} in the selected shop`);
+                                }
                                 const totalInventory = inventoryItems.reduce((sum, inv) => sum + inv.quantity, 0);
-                                if (totalInventory < remainingQuantity) throw new Error(`Insufficient inventory for product ID ${item.productId}. Have: ${totalInventory}, Need: ${item.quantity}`);
+                                if (totalInventory < remainingQuantity) {
+                                    throw new Error(`Insufficient inventory for product ID ${item.productId} in the selected shop. Available: ${totalInventory}, Required: ${item.quantity}`);
+                                }
 
                                 for (const inventoryItem of inventoryItems) {
                                     if (remainingQuantity <= 0) break;
