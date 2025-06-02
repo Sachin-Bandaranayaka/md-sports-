@@ -55,8 +55,13 @@ export default function CreateTransferPage() {
                     throw new Error('Failed to fetch shops');
                 }
                 const shopsData = await shopsResponse.json();
-                // Assuming shopsData is an array directly if shopsResponse.ok is true
-                setShops(shopsData || []);
+                console.log('Shops API response:', shopsData);
+                if (!shopsData.success) {
+                    throw new Error(shopsData.message || 'Failed to fetch shops');
+                }
+                const shopsArray = Array.isArray(shopsData.data) ? shopsData.data : [];
+                console.log('Setting shops to:', shopsArray);
+                setShops(shopsArray);
 
                 // Fetch all products (we'll filter them based on selected shop later)
                 const productsResponse = await authFetch('/api/products');
@@ -345,11 +350,14 @@ export default function CreateTransferPage() {
                                     required
                                 >
                                     <option value="">Select source shop</option>
-                                    {shops.map((shop) => (
-                                        <option key={shop.id} value={shop.id}>
-                                            {shop.name}
-                                        </option>
-                                    ))}
+                                    {(() => {
+                                        console.log('Rendering source shops, shops state:', shops, 'isArray:', Array.isArray(shops));
+                                        return shops && Array.isArray(shops) && shops.map((shop) => (
+                                            <option key={shop.id} value={shop.id}>
+                                                {shop.name}
+                                            </option>
+                                        ));
+                                    })()}
                                 </select>
                             </div>
 
@@ -375,15 +383,18 @@ export default function CreateTransferPage() {
                                     required
                                 >
                                     <option value="">Select destination shop</option>
-                                    {shops.map((shop) => (
-                                        <option
-                                            key={shop.id}
-                                            value={shop.id}
-                                            disabled={sourceShopId === shop.id}
-                                        >
-                                            {shop.name}
-                                        </option>
-                                    ))}
+                                    {(() => {
+                                        console.log('Rendering destination shops, shops state:', shops, 'isArray:', Array.isArray(shops));
+                                        return shops && Array.isArray(shops) && shops.map((shop) => (
+                                            <option
+                                                key={shop.id}
+                                                value={shop.id}
+                                                disabled={sourceShopId === shop.id}
+                                            >
+                                                {shop.name}
+                                            </option>
+                                        ));
+                                    })()}
                                 </select>
                             </div>
                         </div>
@@ -562,4 +573,4 @@ export default function CreateTransferPage() {
             </div>
         </MainLayout>
     );
-} 
+}

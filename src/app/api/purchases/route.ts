@@ -240,18 +240,34 @@ export async function POST(request: NextRequest) {
                                 // Update or create inventory
                                 let finalQuantity = 0;
                                 if (existingInventory) {
-                                    finalQuantity = existingInventory.quantity + qty;
-                                    await tx.inventoryItem.update({
-                                        where: { id: existingInventory.id },
-                                        data: { quantity: finalQuantity }
-                                    });
+                                    // Calculate new shop-specific WAC for existing inventory
+                                const currentQuantity = existingInventory.quantity;
+                                const currentCost = existingInventory.shopSpecificCost || 0;
+                                const newTotalQuantity = currentQuantity + qty;
+                                
+                                let newShopSpecificCost = newCost;
+                                if (currentQuantity > 0) {
+                                    const currentTotalValue = currentQuantity * currentCost;
+                                    const newTotalValue = qty * newCost;
+                                    newShopSpecificCost = (currentTotalValue + newTotalValue) / newTotalQuantity;
+                                }
+                                
+                                finalQuantity = newTotalQuantity;
+                                await tx.inventoryItem.update({
+                                    where: { id: existingInventory.id },
+                                    data: {
+                                        quantity: finalQuantity,
+                                        shopSpecificCost: newShopSpecificCost
+                                    }
+                                });
                                 } else {
                                     finalQuantity = qty;
                                     await tx.inventoryItem.create({
                                         data: {
                                             productId: parseInt(item.productId),
                                             shopId: shopId, // shopId is now a string
-                                            quantity: finalQuantity
+                                            quantity: finalQuantity,
+                                            shopSpecificCost: newCost
                                         }
                                     });
                                 }
@@ -271,10 +287,25 @@ export async function POST(request: NextRequest) {
 
                             let finalQuantity = 0;
                             if (existingInventory) {
-                                finalQuantity = existingInventory.quantity + qty;
+                                // Calculate new shop-specific WAC for existing inventory
+                                const currentQuantity = existingInventory.quantity;
+                                const currentCost = existingInventory.shopSpecificCost || 0;
+                                const newTotalQuantity = currentQuantity + qty;
+                                
+                                let newShopSpecificCost = newCost;
+                                if (currentQuantity > 0) {
+                                    const currentTotalValue = currentQuantity * currentCost;
+                                    const newTotalValue = qty * newCost;
+                                    newShopSpecificCost = (currentTotalValue + newTotalValue) / newTotalQuantity;
+                                }
+                                
+                                finalQuantity = newTotalQuantity;
                                 await tx.inventoryItem.update({
                                     where: { id: existingInventory.id },
-                                    data: { quantity: finalQuantity }
+                                    data: {
+                                        quantity: finalQuantity,
+                                        shopSpecificCost: newShopSpecificCost
+                                    }
                                 });
                             } else {
                                 finalQuantity = qty;
@@ -282,7 +313,8 @@ export async function POST(request: NextRequest) {
                                     data: {
                                         productId: parseInt(item.productId),
                                         shopId: defaultShopId,
-                                        quantity: finalQuantity
+                                        quantity: finalQuantity,
+                                        shopSpecificCost: newCost
                                     }
                                 });
                             }
@@ -349,4 +381,4 @@ export async function POST(request: NextRequest) {
             { status: 500 }
         );
     }
-} 
+}

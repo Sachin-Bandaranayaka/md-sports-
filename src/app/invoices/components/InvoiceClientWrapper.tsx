@@ -73,6 +73,7 @@ export default function InvoiceClientWrapper({
     const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>(searchParams.get('paymentMethod') || '');
     const [searchQuery, setSearchQuery] = useState<string>(searchParams.get('search') || '');
     const [timePeriodFilter, setTimePeriodFilter] = useState<string>(searchParams.get('timePeriod') || 'all');
+    const [sortBy, setSortBy] = useState<string>(searchParams.get('sortBy') || 'newest');
 
     useEffect(() => {
         setInvoices(initialInvoices);
@@ -88,6 +89,13 @@ export default function InvoiceClientWrapper({
         }
     }, [timePeriodFilter]);
 
+    // Handle sort changes
+    useEffect(() => {
+        if (sortBy !== 'newest') {
+            handleFilterChange();
+        }
+    }, [sortBy]);
+
     const handleFilterChange = () => {
         const params = new URLSearchParams(searchParams);
         if (searchQuery) params.set('search', searchQuery);
@@ -98,6 +106,8 @@ export default function InvoiceClientWrapper({
         else params.delete('paymentMethod');
         if (timePeriodFilter && timePeriodFilter !== 'all') params.set('timePeriod', timePeriodFilter);
         else params.delete('timePeriod');
+        if (sortBy && sortBy !== 'newest') params.set('sortBy', sortBy);
+        else params.delete('sortBy');
         params.set('page', '1'); // Reset to page 1 on new filter
         router.push(`/invoices?${params.toString()}`);
     };
@@ -107,6 +117,7 @@ export default function InvoiceClientWrapper({
         setStatusFilter('');
         setPaymentMethodFilter('');
         setTimePeriodFilter('all');
+        setSortBy('newest');
         const params = new URLSearchParams();
         params.set('page', '1');
         router.push(`/invoices?${params.toString()}`);
@@ -147,6 +158,44 @@ export default function InvoiceClientWrapper({
         if (!dateString) return 'N/A';
         const date = new Date(dateString);
         return date.toISOString().split('T')[0];
+    };
+
+    // Calculate countdown or overdue days for due date
+    const getDueDateStatus = (invoice: Invoice) => {
+        let dueDate: Date;
+        
+        if (invoice.dueDate) {
+            dueDate = new Date(invoice.dueDate);
+        } else {
+            // Default to 30 days after creation if no due date
+            dueDate = new Date(invoice.createdAt);
+            dueDate.setDate(dueDate.getDate() + 30);
+        }
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Reset time to start of day
+        dueDate.setHours(0, 0, 0, 0); // Reset time to start of day
+        
+        const diffTime = dueDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays > 0) {
+            return {
+                text: `${diffDays} day${diffDays === 1 ? '' : 's'} left`,
+                className: diffDays <= 3 ? 'text-orange-600 font-medium' : 'text-green-600'
+            };
+        } else if (diffDays === 0) {
+            return {
+                text: 'Due today',
+                className: 'text-orange-600 font-medium'
+            };
+        } else {
+            const overdueDays = Math.abs(diffDays);
+            return {
+                text: `${overdueDays} day${overdueDays === 1 ? '' : 's'} overdue`,
+                className: 'text-red-600 font-medium'
+            };
+        }
     };
 
 
@@ -193,7 +242,7 @@ export default function InvoiceClientWrapper({
 
             {/* Search and Filter Bar */}
             <div className="mb-6 p-4 bg-white shadow rounded-lg">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
                     <div className="md:col-span-2">
                         <label htmlFor="searchInvoice" className="block text-sm font-medium text-gray-700 mb-1">Search Invoices</label>
                         <div className="relative">
@@ -255,6 +304,22 @@ export default function InvoiceClientWrapper({
                             <option value="Cheque">Cheque</option>
                         </select>
                     </div>
+                    <div>
+                        <label htmlFor="sortBy" className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+                        <select
+                            id="sortBy"
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                            className="w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
+                        >
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                            <option value="amount-high">Amount: High to Low</option>
+                            <option value="amount-low">Amount: Low to High</option>
+                            <option value="customer">Customer Name A-Z</option>
+                            <option value="due-date">Due Date</option>
+                        </select>
+                    </div>
                 </div>
                 <div className="mt-4 flex justify-end gap-2">
                     <Button variant="outline" onClick={clearFilters} disabled={loading}>
@@ -293,7 +358,7 @@ export default function InvoiceClientWrapper({
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice #</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Date</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Due Date</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Due Status</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profit</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Items</th>
@@ -307,7 +372,11 @@ export default function InvoiceClientWrapper({
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-600 hover:text-indigo-800 cursor-pointer" onClick={() => router.push(`/invoices/${invoice.id}`)}>{invoice.invoiceNumber}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{invoice.customerName}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">{formatDate(invoice.createdAt)}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell">{invoice.dueDate || formatDate(new Date(new Date(invoice.createdAt).setDate(new Date(invoice.createdAt).getDate() + 30)))}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm hidden lg:table-cell">
+                                        <span className={getDueDateStatus(invoice).className}>
+                                            {getDueDateStatus(invoice).text}
+                                        </span>
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-semibold">Rs. {invoice.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-semibold">Rs. {(invoice.totalProfit || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">{invoice.itemCount}</td>

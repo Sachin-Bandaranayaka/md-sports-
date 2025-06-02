@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { Calendar, RefreshCw } from 'lucide-react';
 import DashboardMetrics from './DashboardMetrics';
-import DashboardCharts from './DashboardCharts';
 import DashboardTransfers from './DashboardTransfers';
 
 // Types for our data
@@ -13,22 +12,6 @@ interface SummaryItem {
     icon: string;
     trend: string;
     trendUp: boolean;
-}
-
-interface ShopPerformance {
-    name: string;
-    sales: number;
-    stock: number;
-}
-
-interface InventoryCategory {
-    name: string;
-    value: number;
-}
-
-interface MonthlySales {
-    month: string;
-    sales: number;
 }
 
 interface Transfer {
@@ -43,9 +26,6 @@ interface Transfer {
 
 interface DashboardData {
     summaryData: SummaryItem[] | null;
-    shopPerformance: ShopPerformance[] | null;
-    inventoryDistribution: InventoryCategory[] | null;
-    monthlySales: MonthlySales[] | null;
     recentTransfers: Transfer[] | null;
 }
 
@@ -131,9 +111,6 @@ export default function DashboardClientWrapper({ initialData }: DashboardClientW
             if (result.success) {
                 setDashboardData({
                     summaryData: result.summaryData,
-                    shopPerformance: result.shopPerformance,
-                    inventoryDistribution: result.inventoryDistribution,
-                    monthlySales: result.monthlySales,
                     recentTransfers: result.recentTransfers
                 });
             } else {
@@ -261,12 +238,6 @@ export default function DashboardClientWrapper({ initialData }: DashboardClientW
 
             {/* Dashboard Components */}
             <DashboardMetrics summaryData={dashboardData.summaryData} />
-
-            <DashboardCharts
-                shopPerformance={dashboardData.shopPerformance}
-                inventoryDistribution={dashboardData.inventoryDistribution}
-                monthlySales={dashboardData.monthlySales}
-            />
 
             <DashboardTransfers transfers={dashboardData.recentTransfers} />
         </div>

@@ -206,30 +206,26 @@ export default function PurchaseListClient({
     };
 
     const handleDeleteInvoice = async (id: string) => {
-        if (confirm('Are you sure you want to delete this invoice? This action cannot be undone.')) {
-            try {
-                setLoading(true);
-                const response = await fetch(`/api/purchases/${id}`, {
-                    method: 'DELETE'
-                });
+        try {
+            setLoading(true);
+            const response = await fetch(`/api/purchases/${id}`, {
+                method: 'DELETE'
+            });
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    // Expect standardized error: { error: { message: "..." } }
-                    const message = errorData.error?.message || 'Failed to delete purchase invoice';
-                    throw new Error(message);
-                }
-                // Refetch or update list
-                // For simplicity, we can router.refresh() or fetch current page data again
-                // Or, filter out locally if no server-side changes are expected to affect current view significantly
-                setPurchaseInvoices(purchaseInvoices.filter(invoice => invoice.id !== id));
-                toast.success('Invoice deleted successfully.');
-            } catch (err: any) {
-                console.error('Error deleting purchase invoice:', err);
-                setError(err.message || 'Failed to delete purchase invoice. Please try again.');
-            } finally {
-                setLoading(false);
+            if (!response.ok) {
+                const errorData = await response.json();
+                // Expect standardized error: { error: { message: "..." } }
+                const message = errorData.error?.message || 'Failed to delete purchase invoice';
+                throw new Error(message);
             }
+            // Remove manual local state update - let WebSocket handle UI update for consistency
+            // The PURCHASE_INVOICE_DELETED event will automatically update the UI
+            toast.success('Invoice deleted successfully.');
+        } catch (err: any) {
+            console.error('Error deleting purchase invoice:', err);
+            setError(err.message || 'Failed to delete purchase invoice. Please try again.');
+        } finally {
+            setLoading(false);
         }
     };
 

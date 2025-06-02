@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 import MainLayout from '@/components/layout/MainLayout';
 import InventoryClientWrapper from '@/components/inventory/InventoryClientWrapper';
 import InventoryHeaderActions from '@/components/inventory/InventoryHeaderActions';
@@ -39,9 +39,10 @@ interface InventorySearchParams {
     status?: string;
 }
 
-async function fetchCategories(baseUrl: string) {
+async function fetchCategories(baseUrl: string, headers?: HeadersInit) {
     try {
         const categoriesResponse = await fetch(`${baseUrl}/api/categories`, {
+            headers,
             next: { revalidate: 30 } // Revalidate every 30 seconds
         });
         if (!categoriesResponse.ok) {
@@ -82,13 +83,29 @@ export default async function Inventory({
     if (categoryFilter) queryParams.append('category', categoryFilter);
     if (statusFilter) queryParams.append('status', statusFilter);
 
+    // Get access token from cookies for authentication
+    const cookieStore = cookies();
+    const accessToken = cookieStore.get('accessToken')?.value;
+    
+    // Prepare headers for authenticated requests
+    const requestHeaders: HeadersInit = {
+        'Content-Type': 'application/json',
+    };
+    
+    if (accessToken) {
+        requestHeaders['Authorization'] = `Bearer ${accessToken}`;
+    }
+
     // Fetch categories from the new API route with caching
-    const categories: Category[] = await fetchCategories(baseUrl);
+    const categories: Category[] = await fetchCategories(baseUrl, requestHeaders);
 
     // Fetch inventory data with pagination and filters
     const inventoryResponse = await fetch(
         `${baseUrl}/api/inventory/summary?${queryParams.toString()}`,
-        { next: { revalidate: 10 } } // Revalidate every 10 seconds to match page revalidation time
+        { 
+            headers: requestHeaders,
+            next: { revalidate: 10 } // Revalidate every 10 seconds to match page revalidation time
+        }
     );
 
     let inventoryItems: InventoryItem[] = [];

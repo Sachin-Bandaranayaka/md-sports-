@@ -37,18 +37,12 @@ export default async function DashboardPage() {
 
             return {
                 summaryData: result.summaryData,
-                shopPerformance: result.shopPerformance,
-                inventoryDistribution: result.inventoryDistribution,
-                monthlySales: result.monthlySales,
                 recentTransfers: result.recentTransfers,
             };
         } catch (error) {
             console.error('Error fetching initial dashboard data:', error);
             return {
                 summaryData: null,
-                shopPerformance: null,
-                inventoryDistribution: null,
-                monthlySales: null,
                 recentTransfers: null
             };
         }

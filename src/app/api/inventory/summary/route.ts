@@ -171,7 +171,7 @@ export async function GET(request: NextRequest) {
         name: item.name,
         sku: item.sku,
         category: item.category || 'Uncategorized',
-        quantity: parseInt(item.total_quantity),
+        stock: parseInt(item.total_quantity),
         retailPrice: parseFloat(item.retailPrice || '0'),
         weightedAverageCost: parseFloat(item.weighted_avg_cost || '0'),
         status: item.status,

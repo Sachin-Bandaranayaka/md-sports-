@@ -185,6 +185,9 @@ export async function PATCH(
                                     throw new Error(`Insufficient inventory for product ID ${item.productId} in source shop`);
                                 }
 
+                                // Get the shop-specific cost from source inventory
+                                const transferCostPerUnit = sourceInventory.shopSpecificCost || 0;
+
                                 // Decrease source inventory
                                 await tx.inventoryItem.update({
                                     where: { id: sourceInventory.id },
@@ -204,21 +207,64 @@ export async function PATCH(
 
                                 if (!destInventory) {
                                     // Create destination inventory if it doesn't exist
+                                    // Use the source shop's WAC as the initial cost for destination
                                     await tx.inventoryItem.create({
                                         data: {
                                             shopId: transfer.toShopId,
                                             productId: item.productId,
-                                            quantity: item.quantity
+                                            quantity: item.quantity,
+                                            shopSpecificCost: transferCostPerUnit
                                         }
                                     });
                                 } else {
-                                    // Increase destination inventory
+                                    // Calculate new WAC for destination shop using weighted average
+                                    const currentDestQuantity = destInventory.quantity;
+                                    const currentDestCost = destInventory.shopSpecificCost || 0;
+                                    const transferQuantity = item.quantity;
+                                    
+                                    // Calculate new WAC using weighted average formula
+                                    // (Current Quantity × Current WAC + Transfer Quantity × Transfer WAC) / (Current Quantity + Transfer Quantity)
+                                    let newShopSpecificCost = transferCostPerUnit; // Default to transfer cost
+                                    
+                                    if (currentDestQuantity > 0) {
+                                        const currentTotalValue = currentDestQuantity * currentDestCost;
+                                        const transferTotalValue = transferQuantity * transferCostPerUnit;
+                                        const newTotalQuantity = currentDestQuantity + transferQuantity;
+                                        
+                                        newShopSpecificCost = (currentTotalValue + transferTotalValue) / newTotalQuantity;
+                                    }
+                                    
+                                    // Update destination inventory with new quantity and recalculated WAC
                                     await tx.inventoryItem.update({
                                         where: { id: destInventory.id },
                                         data: {
                                             quantity: destInventory.quantity + item.quantity,
+                                            shopSpecificCost: newShopSpecificCost,
                                             updatedAt: new Date()
                                         }
+                                    });
+                                }
+                                
+                                // Recalculate global product WAC based on all shop inventories
+                                const allInventoryAfterTransfer = await tx.inventoryItem.findMany({
+                                    where: { 
+                                        productId: item.productId,
+                                        quantity: { gt: 0 } // Only consider inventories with stock
+                                    }
+                                });
+                                
+                                if (allInventoryAfterTransfer.length > 0) {
+                                    const totalQuantity = allInventoryAfterTransfer.reduce((sum, inv) => sum + inv.quantity, 0);
+                                    const totalValue = allInventoryAfterTransfer.reduce((sum, inv) => {
+                                        return sum + (inv.quantity * (inv.shopSpecificCost || 0));
+                                    }, 0);
+                                    
+                                    const globalWAC = totalQuantity > 0 ? totalValue / totalQuantity : 0;
+                                    
+                                    // Update the global product WAC
+                                    await tx.product.update({
+                                        where: { id: item.productId },
+                                        data: { weightedAverageCost: globalWAC }
                                     });
                                 }
                             }
@@ -334,4 +380,4 @@ export async function DELETE(
             error: error instanceof Error ? error.message : String(error)
         }, { status: 500 });
     }
-} 
+}

@@ -119,7 +119,8 @@ export default function InventoryClientWrapper({
 
     // Auto-refresh settings
     const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
-    const [autoRefreshInterval, setAutoRefreshInterval] = useState(30); // seconds
+    const [autoRefreshInterval, setAutoRefreshInterval] = useState(60); // seconds - increased from 30 to 60
+    const [pendingOperations, setPendingOperations] = useState(new Set<string>()); // Track pending operations
     const autoRefreshTimerRef = useRef<NodeJS.Timeout | null>(null);
     const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
 
@@ -180,46 +181,64 @@ export default function InventoryClientWrapper({
         };
     }, [processPendingUpdates, pendingUpdatesRef.current.size]);
 
-    // Memoized callback for WebSocket updates
+    // Memoized callback for WebSocket updates with improved reliability
     const handleInventoryUpdate = useCallback((eventData: any) => {
         console.log('Received event via useInventoryUpdates (memoized):', eventData);
         setIsWebSocketUpdate(true);
 
         const { type, ...payload } = eventData;
 
-        if (type === WEBSOCKET_EVENTS.INVENTORY_UPDATE && payload.items) {
-            // Full inventory update - no debounce needed
-            setInventoryItems(payload.items);
-            if (payload.pagination) {
-                setTotalPages(payload.pagination.totalPages);
-                setTotalItems(payload.pagination.total);
-            }
-        } else if (type === WEBSOCKET_EVENTS.INVENTORY_ITEM_UPDATE && payload.item) {
-            // Single item update - no debounce needed for complete item replacement
-            setInventoryItems(prev =>
-                prev.map(item => item.id === payload.item.id ? payload.item : item)
-            );
-        } else if (type === WEBSOCKET_EVENTS.INVENTORY_ITEM_CREATE && payload.item) {
-            // Item creation - no debounce needed
-            setInventoryItems(prevItems => {
-                // Add to the beginning if on the first page and not exceeding itemsPerPage
-                const newItems = [payload.item, ...prevItems];
-                if (currentPage === 1) {
-                    return newItems.slice(0, itemsPerPage);
+        try {
+            if (type === WEBSOCKET_EVENTS.INVENTORY_UPDATE && payload.items) {
+                // Full inventory update - only apply if no pending operations
+                if (pendingOperations.size === 0) {
+                    setInventoryItems(payload.items);
+                    if (payload.pagination) {
+                        setTotalPages(payload.pagination.totalPages);
+                        setTotalItems(payload.pagination.total);
+                    }
+                } else {
+                    console.log('Skipping full inventory update due to pending operations');
                 }
-                return prevItems; // If not on page 1, data will be fetched on navigation
-            });
-            setTotalItems(prev => prev + 1);
-            // Recalculate totalPages based on new totalItems and itemsPerPage
-            setTotalPages(Math.ceil((totalItems + 1) / itemsPerPage));
-        } else if (type === WEBSOCKET_EVENTS.INVENTORY_ITEM_DELETE && (payload.itemId || payload.productId)) {
-            // Item deletion - no debounce needed
-            // Handle both inventory item deletion (payload.itemId) and product deletion (payload.productId)
-            const idToRemove = payload.itemId || payload.productId;
-            setInventoryItems(prev => prev.filter(item => item.id !== idToRemove));
-            setTotalItems(prev => prev - 1);
-            setTotalPages(Math.ceil((totalItems - 1) / itemsPerPage));
-        } else if (type === WEBSOCKET_EVENTS.INVENTORY_LEVEL_UPDATED && payload.productId) {
+            } else if (type === WEBSOCKET_EVENTS.INVENTORY_ITEM_UPDATE && payload.item) {
+                // Single item update - only apply if no pending operations for this item
+                const hasRelatedPendingOp = Array.from(pendingOperations).some(op => 
+                    op.includes(`-${payload.item.id}`)
+                );
+                if (!hasRelatedPendingOp) {
+                    setInventoryItems(prev =>
+                        prev.map(item => item.id === payload.item.id ? payload.item : item)
+                    );
+                } else {
+                    console.log(`Skipping item update for ${payload.item.id} due to pending operation`);
+                }
+            } else if (type === WEBSOCKET_EVENTS.INVENTORY_ITEM_CREATE && payload.item) {
+                // Item creation - no debounce needed
+                setInventoryItems(prevItems => {
+                    // Add to the beginning if on the first page and not exceeding itemsPerPage
+                    const newItems = [payload.item, ...prevItems];
+                    if (currentPage === 1) {
+                        return newItems.slice(0, itemsPerPage);
+                    }
+                    return prevItems; // If not on page 1, data will be fetched on navigation
+                });
+                setTotalItems(prev => prev + 1);
+                // Recalculate totalPages based on new totalItems and itemsPerPage
+                setTotalPages(Math.ceil((totalItems + 1) / itemsPerPage));
+            } else if (type === WEBSOCKET_EVENTS.INVENTORY_ITEM_DELETE && (payload.itemId || payload.productId)) {
+                // Item deletion - only apply if no pending operations for this item
+                const idToRemove = payload.itemId || payload.productId;
+                const hasRelatedPendingOp = Array.from(pendingOperations).some(op => 
+                    op.includes(`-${idToRemove}`)
+                );
+                if (!hasRelatedPendingOp) {
+                    setInventoryItems(prev => prev.filter(item => item.id !== idToRemove));
+                    setTotalItems(prev => prev - 1);
+                    setTotalPages(Math.ceil((totalItems - 1) / itemsPerPage));
+                } else {
+                    console.log(`Skipping item deletion for ${idToRemove} due to pending operation`);
+                }
+            } else if (type === WEBSOCKET_EVENTS.INVENTORY_LEVEL_UPDATED && payload.productId) {
             console.log('Handling INVENTORY_LEVEL_UPDATED (memoized):', payload);
 
             // Use the updater function for setInventoryItems to access the latest inventoryItems
@@ -272,10 +291,14 @@ export default function InventoryClientWrapper({
                 return prevInventoryItems; // Return previous state, debounce will handle the actual update
             });
 
-        } else {
-            console.log('Received unhandled WebSocket event type or payload (memoized):', type, payload);
+            } else {
+                console.log('Received unhandled WebSocket event type or payload (memoized):', type, payload);
+            }
+        } catch (error) {
+            console.error('Error handling WebSocket event:', error, eventData);
+            // Don't crash the component on WebSocket errors
         }
-    }, [currentPage, itemsPerPage, totalItems, WEBSOCKET_EVENTS, processPendingUpdates]); // Removed inventoryItems, added processPendingUpdates
+    }, [currentPage, itemsPerPage, totalItems, WEBSOCKET_EVENTS, processPendingUpdates, pendingOperations]);
 
     // Subscribe to inventory updates via WebSocket
     useInventoryUpdates(handleInventoryUpdate);
@@ -372,7 +395,7 @@ export default function InventoryClientWrapper({
         setShowFilterPanel(!showFilterPanel);
     };
 
-    // Handle delete product
+    // Handle delete product with race condition prevention
     const handleDeleteProduct = async (e: React.MouseEvent, productId: number) => {
         e.stopPropagation();
 
@@ -380,23 +403,49 @@ export default function InventoryClientWrapper({
             return;
         }
 
+        const operationId = `delete-product-${productId}`;
         setDeleteLoading(productId);
+        setPendingOperations(prev => new Set(prev).add(operationId));
+        
+        // Temporarily disable auto-refresh during deletion
+        const wasAutoRefreshEnabled = autoRefreshEnabled;
+        setAutoRefreshEnabled(false);
 
         try {
+            // Optimistic update - immediately remove from UI
+            const originalItems = inventoryItems;
+            setInventoryItems(prevItems => prevItems.filter(item => item.id !== productId));
+            
             const response = await authDelete(`/api/products/${productId}`);
             const data = await response.json();
 
             if (data.success) {
-                // Remove the deleted product from the state
-                setInventoryItems(prevItems => prevItems.filter(item => item.id !== productId));
+                // Success - keep the item removed
+                console.log(`Product ${productId} deleted successfully`);
+                
+                // Wait a bit before re-enabling auto-refresh to ensure DB consistency
+                setTimeout(() => {
+                    setAutoRefreshEnabled(wasAutoRefreshEnabled);
+                }, 2000);
             } else {
+                // Rollback optimistic update on failure
+                setInventoryItems(originalItems);
                 setError(data.message || 'Failed to delete product');
+                setAutoRefreshEnabled(wasAutoRefreshEnabled); // Re-enable immediately on error
             }
         } catch (err) {
             console.error('Error deleting product:', err);
+            // Rollback optimistic update on error
+            setInventoryItems(inventoryItems);
             setError('Failed to delete product. Please try again later.');
+            setAutoRefreshEnabled(wasAutoRefreshEnabled); // Re-enable immediately on error
         } finally {
             setDeleteLoading(null);
+            setPendingOperations(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(operationId);
+                return newSet;
+            });
         }
     };
 
@@ -431,8 +480,14 @@ export default function InventoryClientWrapper({
         debouncedSearch(value);
     }, [debouncedSearch]);
 
-    // Function to manually refresh inventory data
-    const refreshInventory = useCallback(async () => {
+    // Function to manually refresh inventory data with smart refresh logic
+    const refreshInventory = useCallback(async (force = false) => {
+        // Smart refresh logic - don't refresh if there are pending operations (unless forced)
+        if (!force && pendingOperations.size > 0) {
+            console.log('Skipping refresh due to pending operations:', Array.from(pendingOperations));
+            return;
+        }
+
         try {
             setError(null);
 
@@ -447,12 +502,14 @@ export default function InventoryClientWrapper({
             // Add a timestamp to bust cache
             params.set('_t', Date.now().toString());
 
-            console.log('Manually refreshing inventory data...', {
+            console.log('Refreshing inventory data...', {
                 page: currentPage,
                 limit: itemsPerPage,
                 search: searchTerm,
                 category: categoryFilter,
                 status: statusFilter,
+                pendingOperations: Array.from(pendingOperations),
+                forced: force,
                 queryParams: params.toString()
             });
 
@@ -470,10 +527,13 @@ export default function InventoryClientWrapper({
                     pagination: data.pagination
                 });
 
-                setInventoryItems(data.data);
-                if (data.pagination) {
-                    setTotalPages(data.pagination.totalPages);
-                    setTotalItems(data.pagination.total);
+                // Only update if no pending operations or if forced
+                if (force || pendingOperations.size === 0) {
+                    setInventoryItems(data.data);
+                    if (data.pagination) {
+                        setTotalPages(data.pagination.totalPages);
+                        setTotalItems(data.pagination.total);
+                    }
                 }
 
                 // Update last refreshed timestamp
@@ -485,7 +545,7 @@ export default function InventoryClientWrapper({
             console.error('Error refreshing inventory:', err);
             setError(err instanceof Error ? err.message : 'Failed to refresh inventory');
         }
-    }, [currentPage, itemsPerPage, searchTerm, categoryFilter, statusFilter]);
+    }, [currentPage, itemsPerPage, searchTerm, categoryFilter, statusFilter, pendingOperations]);
 
     // Optimized auto-refresh with exponential backoff
     useEffect(() => {
@@ -585,18 +645,27 @@ export default function InventoryClientWrapper({
                             disabled={!autoRefreshEnabled}
                             className="bg-white border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-primary focus:border-primary p-1"
                         >
-                            <option value="10">Every 10 seconds</option>
                             <option value="30">Every 30 seconds</option>
                             <option value="60">Every minute</option>
+                            <option value="120">Every 2 minutes</option>
                             <option value="300">Every 5 minutes</option>
                         </select>
                     </div>
                     <div className="flex items-center">
-                        <div className={`w-2 h-2 rounded-full mr-2 ${autoRefreshEnabled ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
+                        <div className={`w-2 h-2 rounded-full mr-2 ${
+                            pendingOperations.size > 0 ? 'bg-yellow-500 animate-pulse' :
+                            autoRefreshEnabled ? 'bg-green-500 animate-pulse' : 'bg-gray-300'
+                        }`}></div>
                         <div className="text-xs text-gray-500">
-                            {autoRefreshEnabled ?
-                                `Auto-refreshing every ${autoRefreshInterval} seconds` :
-                                'Auto-refresh is disabled'}
+                            {pendingOperations.size > 0 ? (
+                                <span className="text-yellow-600 font-medium">
+                                    {pendingOperations.size} operation(s) in progress...
+                                </span>
+                            ) : autoRefreshEnabled ? (
+                                `Auto-refreshing every ${autoRefreshInterval} seconds`
+                            ) : (
+                                'Auto-refresh is disabled'
+                            )}
                             {lastRefreshed && (
                                 <span className="ml-2">
                                     · Last refreshed: {lastRefreshed.toLocaleTimeString()}

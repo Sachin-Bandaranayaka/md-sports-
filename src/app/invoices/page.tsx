@@ -31,13 +31,15 @@ async function fetchInvoicesData(
     statusFilterParam: string | undefined,
     paymentMethodFilterParam: string | undefined,
     searchQueryParam: string | undefined,
-    timePeriodParam: string | undefined
+    timePeriodParam: string | undefined,
+    sortByParam: string | undefined
 ) {
     const page = parseInt(pageParam || '1', 10);
     const statusFilter = statusFilterParam || '';
     const paymentMethodFilter = paymentMethodFilterParam || '';
     const searchQuery = searchQueryParam || '';
     const timePeriod = timePeriodParam || 'all';
+    const sortBy = sortByParam || 'newest';
 
     let whereClause: any = {};
     if (statusFilter) {
@@ -80,6 +82,30 @@ async function fetchInvoicesData(
         whereClause.createdAt = { gte: startDate };
     }
 
+    // Determine sorting order
+    let orderBy: any;
+    switch (sortBy) {
+        case 'oldest':
+            orderBy = { createdAt: 'asc' };
+            break;
+        case 'amount-high':
+            orderBy = { total: 'desc' };
+            break;
+        case 'amount-low':
+            orderBy = { total: 'asc' };
+            break;
+        case 'customer':
+            orderBy = { customer: { name: 'asc' } };
+            break;
+        case 'due-date':
+            orderBy = { dueDate: 'asc' };
+            break;
+        case 'newest':
+        default:
+            orderBy = { createdAt: 'desc' };
+            break;
+    }
+
     try {
         const invoicesPromise = prisma.invoice.findMany({
             where: whereClause,
@@ -103,7 +129,7 @@ async function fetchInvoicesData(
                     select: { items: true },
                 },
             },
-            orderBy: { createdAt: 'desc' },
+            orderBy: orderBy,
             skip: (page - 1) * ITEMS_PER_PAGE,
             take: ITEMS_PER_PAGE,
         });
@@ -230,7 +256,8 @@ export default async function InvoicesPage({ searchParams: passedSearchParams }:
         searchParams?.status as string | undefined,
         searchParams?.paymentMethod as string | undefined,
         searchParams?.search as string | undefined,
-        searchParams?.timePeriod as string | undefined
+        searchParams?.timePeriod as string | undefined,
+        searchParams?.sortBy as string | undefined
     );
 
     if (error) {
