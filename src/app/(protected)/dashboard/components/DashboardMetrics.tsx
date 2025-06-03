@@ -53,9 +53,12 @@ export default function DashboardMetrics({ summaryData: initialSummaryData }: Da
     // Use provided data or fallback to dummy data
     const displayData = summaryData || dummySummaryData;
 
+    // Filter out "Total Retail Value" card
+    const filteredDisplayData = displayData.filter(item => item.title !== 'Total Retail Value');
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {displayData.map((item, index) => {
+            {filteredDisplayData.map((item, index) => {
                 // Get the corresponding icon component
                 const IconComponent = iconMap[item.icon] || Package;
 

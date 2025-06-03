@@ -129,7 +129,7 @@ export async function PUT(
 
                     // Recalculate WAC based on remaining purchase history after removing this item
                     const remainingPurchaseItems = await tx.purchaseInvoiceItem.findMany({
-                        where: { 
+                        where: {
                             productId: oldItem.productId,
                             purchaseInvoiceId: { not: purchaseId } // Exclude current invoice being updated
                         }
@@ -336,9 +336,9 @@ export async function DELETE(
                             const shopId = shopIdStr;
                             const qtyInShopToRemove = Number(distributedQuantityStr);
 
-                            if (isNaN(shopId) || isNaN(qtyInShopToRemove) || qtyInShopToRemove <= 0) continue;
+                            if (isNaN(qtyInShopToRemove) || qtyInShopToRemove <= 0) continue;
 
-                            const inventoryItem = await tx.inventoryItem.findFirst({ where: { productId, shopId: Number(shopId) } });
+                            const inventoryItem = await tx.inventoryItem.findFirst({ where: { productId, shopId: shopId } });
                             if (inventoryItem) {
                                 const oldShopQuantity = inventoryItem.quantity;
                                 const newShopQuantity = Math.max(0, inventoryItem.quantity - qtyInShopToRemove);
@@ -356,7 +356,7 @@ export async function DELETE(
                         const defaultShopId = String((purchaseToDelete as any).defaultShopId);
                         if (defaultShopId) {
                             console.log(`Reversing stock for product ${productId} from defaultShopId ${defaultShopId} on purchase ${purchaseId}`);
-                            const inventoryItem = await tx.inventoryItem.findFirst({ where: { productId, shopId: Number(defaultShopId) } });
+                            const inventoryItem = await tx.inventoryItem.findFirst({ where: { productId, shopId: defaultShopId } });
                             if (inventoryItem) {
                                 const oldShopQuantity = inventoryItem.quantity;
                                 const newShopQuantity = Math.max(0, inventoryItem.quantity - quantityToRemoveForItem);
@@ -373,7 +373,7 @@ export async function DELETE(
                     } else {
                         const FALLBACK_SHOP_ID = '1';
                         console.warn(`No specific distribution or defaultShopId. Attempting fallback to shop ${FALLBACK_SHOP_ID} for product ${productId}, purchase ${purchaseId}.`);
-                        const inventoryItem = await tx.inventoryItem.findFirst({ where: { productId, shopId: Number(FALLBACK_SHOP_ID) } });
+                        const inventoryItem = await tx.inventoryItem.findFirst({ where: { productId, shopId: FALLBACK_SHOP_ID } });
                         if (inventoryItem) {
                             const oldShopQuantity = inventoryItem.quantity;
                             const newShopQuantity = Math.max(0, inventoryItem.quantity - quantityToRemoveForItem);
@@ -391,7 +391,7 @@ export async function DELETE(
                     // ---- BEGIN WAC Recalculation for the deleted item ----
                     // Recalculate WAC based on remaining purchase history after deleting this invoice
                     const remainingPurchaseItems = await tx.purchaseInvoiceItem.findMany({
-                        where: { 
+                        where: {
                             productId: productId,
                             purchaseInvoiceId: { not: purchaseId } // Exclude the invoice being deleted
                         }

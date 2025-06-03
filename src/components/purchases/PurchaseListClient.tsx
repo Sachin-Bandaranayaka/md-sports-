@@ -125,6 +125,8 @@ export default function PurchaseListClient({
                 if (currentPage === 1) {
                     return [payload.invoice, ...prev];
                 }
+                // If not on page 1, or to simply refresh to show correct total/pagination:
+                // router.refresh(); // Option: refresh if created item should appear on other pages or affect totals
                 return prev;
             });
             setLastRefreshed(new Date());
@@ -134,12 +136,15 @@ export default function PurchaseListClient({
                 prev.map(invoice => invoice.id === payload.invoice.id ? payload.invoice : invoice)
             );
             setLastRefreshed(new Date());
+            // Optionally, refresh if an update could affect sorting or filtering that's partially server-managed
+            // router.refresh();
         } else if (type === WEBSOCKET_EVENTS.PURCHASE_INVOICE_DELETED && payload.id) {
             console.log('Removing purchase invoice from list:', payload.id);
             setPurchaseInvoices(prev => prev.filter(invoice => invoice.id !== payload.id));
             setLastRefreshed(new Date());
+            router.refresh();
         }
-    }, [currentPage]);
+    }, [currentPage, router]);
 
     // Subscribe to purchase updates via WebSocket
     usePurchaseUpdates(handlePurchaseUpdate);

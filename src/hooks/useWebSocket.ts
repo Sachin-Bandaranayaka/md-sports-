@@ -400,27 +400,41 @@ export function useCustomerUpdates(callback: (data: any) => void) {
 }
 
 export function usePurchaseUpdates(callback: (data: any) => void) {
-    const { subscribe, isConnected, socket } = useWebSocket({});
-
-    useEffect(() => {
-        if (!isConnected || !socket) return;
-        const eventTypes = [
-            WEBSOCKET_EVENTS.PURCHASE_UPDATE,
-            WEBSOCKET_EVENTS.PURCHASE_CREATE,
-            WEBSOCKET_EVENTS.PURCHASE_STATUS_UPDATE,
-            WEBSOCKET_EVENTS.PURCHASE_DELETE,
+    const { subscribe, isConnected } = useWebSocket({
+        events: [
             WEBSOCKET_EVENTS.PURCHASE_INVOICE_CREATED,
             WEBSOCKET_EVENTS.PURCHASE_INVOICE_UPDATED,
-            WEBSOCKET_EVENTS.PURCHASE_INVOICE_DELETED
+            WEBSOCKET_EVENTS.PURCHASE_INVOICE_DELETED,
+            // Also listen to generic purchase status/update if needed
+            // WEBSOCKET_EVENTS.PURCHASE_STATUS_UPDATE,
+            // WEBSOCKET_EVENTS.PURCHASE_UPDATE,
+        ]
+    });
+
+    useEffect(() => {
+        if (!isConnected) return;
+
+        // Modified handler creation
+        const createHandler = (eventType: string) => (payload: any) => {
+            // Construct eventData with type and payload
+            // Ensure payload is not null or undefined to avoid spreading issues if it's a simple value
+            const eventData = payload && typeof payload === 'object'
+                ? { type: eventType, ...payload }
+                : { type: eventType, data: payload }; // Wrap non-object payload if necessary
+            callback(eventData);
+        };
+
+        const unsubscribes = [
+            subscribe(WEBSOCKET_EVENTS.PURCHASE_INVOICE_CREATED, createHandler(WEBSOCKET_EVENTS.PURCHASE_INVOICE_CREATED)),
+            subscribe(WEBSOCKET_EVENTS.PURCHASE_INVOICE_UPDATED, createHandler(WEBSOCKET_EVENTS.PURCHASE_INVOICE_UPDATED)),
+            subscribe(WEBSOCKET_EVENTS.PURCHASE_INVOICE_DELETED, createHandler(WEBSOCKET_EVENTS.PURCHASE_INVOICE_DELETED)),
+            // Example for other events if they were active:
+            // subscribe(WEBSOCKET_EVENTS.PURCHASE_STATUS_UPDATE, createHandler(WEBSOCKET_EVENTS.PURCHASE_STATUS_UPDATE)),
+            // subscribe(WEBSOCKET_EVENTS.PURCHASE_UPDATE, createHandler(WEBSOCKET_EVENTS.PURCHASE_UPDATE)),
         ];
-        const unsubscribes = eventTypes.map(eventType => {
-            const handler = (eventData: any) => {
-                callback({ type: eventType, ...eventData });
-            };
-            return subscribe(eventType, handler);
-        });
+
         return () => {
             unsubscribes.forEach(unsubscribe => unsubscribe());
         };
-    }, [subscribe, callback, isConnected, socket]);
+    }, [subscribe, callback, isConnected]);
 } 
