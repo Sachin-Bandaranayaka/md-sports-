@@ -31,7 +31,7 @@ export async function fetchShopsDataFiltered(startDate?: string | null, endDate?
     const shopsWithInventory = await safeQuery(
         () => prisma.shop.findMany({
             include: {
-                inventoryItems: {
+                InventoryItem: {
                     select: { quantity: true } // Only select quantity for stock calculation
                 }
             }
@@ -76,7 +76,7 @@ export async function fetchShopsDataFiltered(startDate?: string | null, endDate?
 
     // 3. Combine shop data with their sales and stock
     const data = shopsWithInventory.map(shop => {
-        const totalStock = shop.inventoryItems.reduce(
+        const totalStock = shop.InventoryItem.reduce(
             (sum, item) => sum + item.quantity,
             0
         );
@@ -103,7 +103,7 @@ export async function fetchShopsData() {
     const shopsWithInventory = await safeQuery(
         () => prisma.shop.findMany({
             include: {
-                inventoryItems: {
+                InventoryItem: {
                     select: { quantity: true } // Only select quantity for stock calculation
                 }
             }
@@ -150,7 +150,7 @@ export async function fetchShopsData() {
 
     // 3. Combine shop data with their sales and stock
     const data = shopsWithInventory.map(shop => {
-        const totalStock = shop.inventoryItems.reduce(
+        const totalStock = shop.InventoryItem.reduce(
             (sum, item) => sum + item.quantity,
             0
         );

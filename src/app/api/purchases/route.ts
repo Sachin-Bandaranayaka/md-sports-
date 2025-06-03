@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
 import { emitInventoryLevelUpdated } from '@/lib/utils/websocket';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { getToken } from 'next-auth/jwt';
+import { cacheService } from '@/lib/cache';
 
 // GET /api/purchases - Get all purchase invoices
 export async function GET(request: NextRequest) {
@@ -201,7 +204,7 @@ export async function POST(request: NextRequest) {
                             const newPurchaseValue = newQuantity * newCost;
                             const totalValue = currentTotalValue + newPurchaseValue;
                             const totalQuantity = currentTotalQuantity + newQuantity;
-                            
+
                             newWeightedAverageCost = totalValue / totalQuantity;
                         }
 
@@ -219,102 +222,123 @@ export async function POST(request: NextRequest) {
                         // Handle distribution across shops
                         if (itemDistribution && Object.keys(itemDistribution).length > 0) {
                             // Distribute to specific shops as specified
-                            for (const [shopIdStr, quantity] of Object.entries(itemDistribution)) {
+                            for (const [shopIdStr, quantity] of Object.entries(itemDistribution as Record<string, number>)) { // Type assertion for quantity
                                 const shopId = shopIdStr; // Keep shopId as string
                                 const qty = Number(quantity);
 
-                                if (qty <= 0) continue;
+                                if (qty <= 0 || isNaN(qty)) continue; // Added isNaN check
 
-                                // Check if inventory exists for this product/shop combination
                                 const existingInventory = await tx.inventoryItem.findFirst({
                                     where: {
                                         productId: parseInt(item.productId),
-                                        shopId: shopId // shopId is now a string
+                                        shopId: shopId
                                     }
                                 });
 
-                                // Update or create inventory
                                 let finalQuantity = 0;
                                 if (existingInventory) {
-                                    // Calculate new shop-specific WAC for existing inventory
-                                const currentQuantity = existingInventory.quantity;
-                                const currentCost = existingInventory.shopSpecificCost || 0;
-                                const newTotalQuantity = currentQuantity + qty;
-                                
-                                let newShopSpecificCost = newCost;
-                                if (currentQuantity > 0) {
-                                    const currentTotalValue = currentQuantity * currentCost;
-                                    const newTotalValue = qty * newCost;
-                                    newShopSpecificCost = (currentTotalValue + newTotalValue) / newTotalQuantity;
-                                }
-                                
-                                finalQuantity = newTotalQuantity;
-                                await tx.inventoryItem.update({
-                                    where: { id: existingInventory.id },
-                                    data: {
-                                        quantity: finalQuantity,
-                                        shopSpecificCost: newShopSpecificCost
+                                    const currentQuantity = existingInventory.quantity;
+                                    const currentCost = existingInventory.shopSpecificCost || 0;
+                                    const newTotalQuantity = currentQuantity + qty;
+                                    let newShopSpecificCost = newCost; // item.price
+                                    if (currentQuantity > 0 && currentCost > 0) { // ensure currentCost is also positive
+                                        const currentTotalValue = currentQuantity * currentCost;
+                                        const newTotalValue = qty * newCost;
+                                        newShopSpecificCost = (currentTotalValue + newTotalValue) / newTotalQuantity;
+                                    } else if (currentQuantity === 0 && newTotalQuantity > 0) { // First stock for this item in this shop
+                                        newShopSpecificCost = newCost;
                                     }
-                                });
+
+
+                                    finalQuantity = newTotalQuantity;
+                                    await tx.inventoryItem.update({
+                                        where: { id: existingInventory.id },
+                                        data: {
+                                            quantity: finalQuantity,
+                                            shopSpecificCost: newShopSpecificCost >= 0 ? newShopSpecificCost : 0
+                                        }
+                                    });
                                 } else {
                                     finalQuantity = qty;
                                     await tx.inventoryItem.create({
                                         data: {
                                             productId: parseInt(item.productId),
-                                            shopId: shopId, // shopId is now a string
+                                            shopId: shopId,
                                             quantity: finalQuantity,
-                                            shopSpecificCost: newCost
+                                            shopSpecificCost: newCost >= 0 ? newCost : 0
                                         }
                                     });
                                 }
                                 inventoryUpdates.push({ productId: parseInt(item.productId), shopId: parseInt(shopId), newQuantity: finalQuantity });
                             }
                         } else {
-                            // If no distribution specified, assume a default shop (e.g., shopId '1' or main shop)
-                            const defaultShopId = '1'; // Default shopId as string
-                            const qty = item.quantity;
-
-                            const existingInventory = await tx.inventoryItem.findFirst({
-                                where: {
-                                    productId: parseInt(item.productId),
-                                    shopId: defaultShopId
-                                }
+                            // No explicit distribution: attempt to infer shop
+                            console.warn(`No distribution for product ${item.productId} in purchase. Attempting to infer shop.`);
+                            const existingInventoriesForProduct = await tx.inventoryItem.findMany({
+                                where: { productId: parseInt(item.productId) }
                             });
 
-                            let finalQuantity = 0;
-                            if (existingInventory) {
-                                // Calculate new shop-specific WAC for existing inventory
-                                const currentQuantity = existingInventory.quantity;
-                                const currentCost = existingInventory.shopSpecificCost || 0;
-                                const newTotalQuantity = currentQuantity + qty;
-                                
-                                let newShopSpecificCost = newCost;
-                                if (currentQuantity > 0) {
-                                    const currentTotalValue = currentQuantity * currentCost;
-                                    const newTotalValue = qty * newCost;
-                                    newShopSpecificCost = (currentTotalValue + newTotalValue) / newTotalQuantity;
-                                }
-                                
-                                finalQuantity = newTotalQuantity;
-                                await tx.inventoryItem.update({
-                                    where: { id: existingInventory.id },
-                                    data: {
-                                        quantity: finalQuantity,
-                                        shopSpecificCost: newShopSpecificCost
-                                    }
-                                });
-                            } else {
-                                finalQuantity = qty;
-                                await tx.inventoryItem.create({
-                                    data: {
-                                        productId: parseInt(item.productId),
-                                        shopId: defaultShopId,
-                                        quantity: finalQuantity,
-                                        shopSpecificCost: newCost
-                                    }
-                                });
+                            let inferredShopId: string | null = null;
+                            if (existingInventoriesForProduct.length === 1) {
+                                inferredShopId = existingInventoriesForProduct[0].shopId;
+                                console.log(`Product ${item.productId} found in single shop ${inferredShopId}. Will update there.`);
+                            } else if (existingInventoriesForProduct.length === 0) {
+                                console.error(`Product ${item.productId} is new to inventory and no shop distribution provided. Cannot automatically assign to a shop. Inventory not updated for this item.`);
+                            } else { // More than 1 shop
+                                console.error(`Product ${item.productId} exists in multiple shops and no specific distribution provided. Ambiguous. Inventory not updated for this item.`);
                             }
-                            inventoryUpdates.push({ productId: parseInt(item.productId), shopId: parseInt(defaultShopId), newQuantity: finalQuantity });
+
+                            if (inferredShopId) {
+                                const qty = item.quantity;
+                                if (qty > 0) {
+                                    const inventoryInInferredShop = await tx.inventoryItem.findFirst({
+                                        where: {
+                                            productId: parseInt(item.productId),
+                                            shopId: inferredShopId
+                                        }
+                                    });
+
+                                    let finalQuantity = 0;
+                                    if (inventoryInInferredShop) {
+                                        const currentQuantity = inventoryInInferredShop.quantity;
+                                        const currentShopCost = inventoryInInferredShop.shopSpecificCost || 0;
+                                        const newTotalQuantity = currentQuantity + qty;
+                                        let newShopSpecificCost = newCost; // item.price
+
+                                        if (currentQuantity > 0 && currentShopCost > 0) {
+                                            const currentTotalValue = currentQuantity * currentShopCost;
+                                            const newTotalValue = qty * newCost;
+                                            newShopSpecificCost = (currentTotalValue + newTotalValue) / newTotalQuantity;
+                                        } else if (currentQuantity === 0 && newTotalQuantity > 0) {
+                                            newShopSpecificCost = newCost;
+                                        }
+
+                                        finalQuantity = newTotalQuantity;
+                                        await tx.inventoryItem.update({
+                                            where: { id: inventoryInInferredShop.id },
+                                            data: {
+                                                quantity: finalQuantity,
+                                                shopSpecificCost: newShopSpecificCost >= 0 ? newShopSpecificCost : 0
+                                            }
+                                        });
+                                    } else {
+                                        // This case should ideally not be hit if existingInventoriesForProduct.length === 1
+                                        // because it means we found it in that list. But for safety:
+                                        finalQuantity = qty;
+                                        await tx.inventoryItem.create({
+                                            data: {
+                                                productId: parseInt(item.productId),
+                                                shopId: inferredShopId,
+                                                quantity: finalQuantity,
+                                                shopSpecificCost: newCost >= 0 ? newCost : 0
+                                            }
+                                        });
+                                    }
+                                    inventoryUpdates.push({ productId: parseInt(item.productId), shopId: parseInt(inferredShopId), newQuantity: finalQuantity });
+                                } else {
+                                    console.warn(`Quantity for product ${item.productId} in inferred shop ${inferredShopId} is zero or negative. No inventory update.`);
+                                }
+                            }
                         }
                     }
                 }
@@ -354,14 +378,30 @@ export async function POST(request: NextRequest) {
                 purchase.inventoryUpdates.forEach(update => {
                     // Assuming emitInventoryLevelUpdated can handle numeric shopId for its own logic
                     // but the critical part is that Prisma queries used string shopId as fixed above.
+                    // However, since we're now inferring shops, it's possible that shopId is a string.
+                    // So, we'll convert it to a number if it's a string.
                     emitInventoryLevelUpdated(update.productId, {
-                        shopId: update.shopId, // This might need to be string if emitInventoryLevelUpdated expects it
+                        shopId: typeof update.shopId === 'string' ? parseInt(update.shopId) : update.shopId,
                         newQuantity: update.newQuantity,
                         source: 'purchase_creation'
                     });
                 });
             }
             console.log(`Emitted WebSocket events for new purchase invoice ${purchase.invoice.id}`);
+        }
+
+        // After successful transaction, invalidate relevant caches
+        try {
+            await cacheService.invalidateInventory(); // Handles 'inventory:summary:*' and 'products:*'
+            await cacheService.del('dashboard:inventory');
+            await cacheService.del('dashboard:inventory-value');
+            await cacheService.del('dashboard:shops');
+            await cacheService.del('dashboard:all');
+            await cacheService.del('dashboard:summary'); // As per DASHBOARD_PERFORMANCE_OPTIMIZATIONS.md
+            console.log('Relevant caches invalidated after purchase creation.');
+        } catch (cacheError) {
+            console.error('Error invalidating caches after purchase creation:', cacheError);
+            // Do not let cache invalidation error fail the main operation
         }
 
         return NextResponse.json(

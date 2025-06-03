@@ -75,6 +75,11 @@ export default function EditPurchaseInvoiceForm({
         }) || initialInvoice.items.map(() => ({}))
     );
 
+    // Track previous item quantities to detect changes
+    const [previousItemQuantities, setPreviousItemQuantities] = useState<number[]>(
+        initialInvoice.items.map(item => Number(item.quantity))
+    );
+
     const [formData, setFormData] = useState<Partial<PurchaseInvoice>>({
         ...initialInvoice,
         date: initialInvoice.date ? new Date(initialInvoice.date).toISOString().split('T')[0] : '',
@@ -90,7 +95,57 @@ export default function EditPurchaseInvoiceForm({
             return sum + (Number(item.quantity) * Number(item.price));
         }, 0);
         setFormData(prev => ({ ...prev, totalAmount: total }));
-    }, [formData.items]);
+
+        // Sync distributions when item quantities change
+        if (formData.items) {
+            const currentQuantities = formData.items.map(item => Number(item.quantity) || 0);
+            const hasQuantityChanges = currentQuantities.some((qty, index) =>
+                qty !== (previousItemQuantities[index] || 0)
+            );
+
+            if (hasQuantityChanges) {
+                setItemDistributions(prevDists => {
+                    const newDists = [...prevDists];
+
+                    currentQuantities.forEach((newQty, itemIndex) => {
+                        const oldQty = previousItemQuantities[itemIndex] || 0;
+
+                        if (newQty !== oldQty && oldQty > 0) {
+                            // Proportionally adjust existing distributions
+                            const currentDist = newDists[itemIndex] || {};
+                            const totalDistributed = Object.values(currentDist).reduce((sum, qty) => sum + Number(qty), 0);
+
+                            if (totalDistributed > 0) {
+                                const ratio = newQty / oldQty;
+                                const adjustedDist: Record<string, number> = {};
+
+                                for (const [shopId, qty] of Object.entries(currentDist)) {
+                                    const adjustedQty = Math.round(Number(qty) * ratio);
+                                    if (adjustedQty > 0) {
+                                        adjustedDist[shopId] = adjustedQty;
+                                    }
+                                }
+
+                                newDists[itemIndex] = adjustedDist;
+                            }
+                        } else if (newQty === 0) {
+                            // Clear distributions if quantity is zero
+                            newDists[itemIndex] = {};
+                        }
+                    });
+
+                    // Ensure we have distribution objects for all items
+                    while (newDists.length < currentQuantities.length) {
+                        newDists.push({});
+                    }
+
+                    return newDists;
+                });
+
+                setPreviousItemQuantities(currentQuantities);
+            }
+        }
+    }, [formData.items, previousItemQuantities]);
 
     // Function to fetch updated product data
     const fetchUpdatedProductData = useCallback(async (productId?: number) => {
@@ -188,12 +243,16 @@ export default function EditPurchaseInvoiceForm({
         if (selectedItemIndexForDistribution === null) return;
         const quantity = quantityStr === '' ? 0 : parseInt(quantityStr) || 0;
         setItemDistributions(prevDists => {
-            const newDists = { ...prevDists };
+            const newDists = [...prevDists];
+            const currentItemDist = { ...newDists[selectedItemIndexForDistribution] } || {};
+
             if (quantity > 0) {
-                newDists[shopId] = quantity;
+                currentItemDist[shopId] = quantity;
             } else {
-                delete newDists[shopId];
+                delete currentItemDist[shopId];
             }
+
+            newDists[selectedItemIndexForDistribution] = currentItemDist;
             return newDists;
         });
     };
@@ -257,9 +316,20 @@ export default function EditPurchaseInvoiceForm({
                 setError(`Distributed quantity for ${item.productName || `item #${i + 1}`} (${distributedAmount}) exceeds item quantity (${item.quantity}).`);
                 return;
             }
+
+            // Auto-distribute to single shop if no distribution is set and only one shop has this product
+            if (distributedAmount === 0 && Number(item.quantity) > 0) {
+                // This will be handled by the backend logic, but we could add a warning here
+                console.warn(`Item ${i + 1} (${item.productName}) has no distribution set. Backend will attempt to infer target shop.`);
+            }
         }
 
         setSubmitting(true);
+        // Ensure distributions array matches items array length
+        const syncedDistributions = formData.items.map((_, index) =>
+            itemDistributions[index] || {}
+        );
+
         const submissionData = {
             ...formData,
             items: formData.items.map(item => ({
@@ -268,10 +338,16 @@ export default function EditPurchaseInvoiceForm({
                 price: Number(item.price),
                 id: (item as any).id || undefined // Keep item ID if it exists for update
             })),
-            distributions: itemDistributions,
+            distributions: syncedDistributions,
             totalAmount: formData.totalAmount || 0,
             paidAmount: formData.paidAmount || 0,
         };
+
+        console.log('Submitting purchase invoice update with synced distributions:', {
+            itemsCount: submissionData.items.length,
+            distributionsCount: submissionData.distributions.length,
+            distributions: submissionData.distributions
+        });
 
         try {
             const response = await fetch(`/api/purchases/${initialInvoice.id}`,
@@ -486,9 +562,10 @@ export default function EditPurchaseInvoiceForm({
                                         <input
                                             type="number"
                                             id={`dist-shop-${shop.id}`}
-                                            value={itemDistributions[String(shop.id)] || ''}
+                                            value={(itemDistributions[selectedItemIndexForDistribution] && itemDistributions[selectedItemIndexForDistribution][String(shop.id)]) || ''}
                                             onChange={(e) => handleDistributionChange(String(shop.id), e.target.value)}
                                             min="0"
+                                            max={Number(formData.items![selectedItemIndexForDistribution].quantity)}
                                             className="col-span-2 block w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-gray-900 p-2 placeholder-gray-400"
                                             placeholder="Quantity"
                                         />

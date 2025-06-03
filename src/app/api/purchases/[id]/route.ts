@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
 import { emitInventoryLevelUpdated } from '@/lib/utils/websocket';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { getToken } from 'next-auth/jwt';
+import { cacheService } from '@/lib/cache';
 
 // GET /api/purchases/[id] - Get a specific purchase invoice
 export async function GET(
@@ -95,7 +98,7 @@ export async function PUT(
                     const productToUpdate = await tx.product.findUnique({ where: { id: oldItem.productId } });
                     if (!productToUpdate) continue;
 
-                    const oldItemDistribution = originalPurchase.distributions && Array.isArray(originalPurchase.distributions) && originalPurchase.distributions[originalPurchase.items.indexOf(oldItem)]
+                    const oldItemDistribution = originalPurchase.distributions && Array.isArray(originalPurchase.distributions) && originalPurchase.items.indexOf(oldItem) < originalPurchase.distributions.length
                         ? originalPurchase.distributions[originalPurchase.items.indexOf(oldItem)]
                         : (originalPurchase.distributions && typeof originalPurchase.distributions === 'object' && !Array.isArray(originalPurchase.distributions) ? originalPurchase.distributions : null);
 
@@ -108,18 +111,42 @@ export async function PUT(
                             if (inventory) {
                                 const oldShopQuantity = inventory.quantity;
                                 const newQuantity = Math.max(0, inventory.quantity - qtyToRemove);
-                                await tx.inventoryItem.update({ where: { id: inventory.id }, data: { quantity: newQuantity } });
+                                await tx.inventoryItem.update({
+                                    where: { id: inventory.id },
+                                    data: {
+                                        quantity: newQuantity,
+                                        // If new quantity is 0, reset shopSpecificCost, else keep existing
+                                        shopSpecificCost: newQuantity === 0 ? 0 : inventory.shopSpecificCost
+                                    }
+                                });
                                 inventoryUpdates.push({ productId: oldItem.productId, shopId: Number(shopId), newQuantity, quantityChange: newQuantity - oldShopQuantity, source: 'purchase_update' });
                             }
                         }
                     } else {
-                        const shopId = '1';
-                        const inventory = await tx.inventoryItem.findFirst({ where: { productId: oldItem.productId, shopId: shopId } });
-                        if (inventory) {
+                        // oldItemDistribution is missing. Attempt to infer shop for stock reversal.
+                        console.warn(`Old item ${oldItem.productId} in purchase ${purchaseId} has no distribution. Attempting to infer shop for stock reversal.`);
+                        const existingInventoriesForOldItem = await tx.inventoryItem.findMany({
+                            where: { productId: oldItem.productId }
+                        });
+                        if (existingInventoriesForOldItem.length === 1) {
+                            const shopIdToReverseFrom = existingInventoriesForOldItem[0].shopId;
+                            const inventory = existingInventoriesForOldItem[0]; // Already fetched
                             const oldShopQuantity = inventory.quantity;
-                            const newQuantity = Math.max(0, inventory.quantity - oldItem.quantity);
-                            await tx.inventoryItem.update({ where: { id: inventory.id }, data: { quantity: newQuantity } });
-                            inventoryUpdates.push({ productId: oldItem.productId, shopId: Number(shopId), newQuantity, quantityChange: newQuantity - oldShopQuantity, source: 'purchase_update' });
+                            const newQuantity = Math.max(0, inventory.quantity - oldItem.quantity); // Use total oldItem.quantity
+                            await tx.inventoryItem.update({
+                                where: { id: inventory.id },
+                                data: {
+                                    quantity: newQuantity,
+                                    // If new quantity is 0, reset shopSpecificCost, else keep existing
+                                    shopSpecificCost: newQuantity === 0 ? 0 : inventory.shopSpecificCost
+                                }
+                            });
+                            inventoryUpdates.push({ productId: oldItem.productId, shopId: Number(shopIdToReverseFrom), newQuantity, quantityChange: newQuantity - oldShopQuantity, source: 'purchase_update_reversal_inferred_shop' });
+                            console.log(`Reversed ${oldItem.quantity} from product ${oldItem.productId} in inferred shop ${shopIdToReverseFrom}.`);
+                        } else if (existingInventoriesForOldItem.length === 0) {
+                            console.error(`Old item ${oldItem.productId} not found in any inventory. Cannot reverse stock for this item line from a specific shop.`);
+                        } else { // Multiple shops
+                            console.error(`Old item ${oldItem.productId} exists in multiple shops and no specific distribution for reversal. Ambiguous. Stock not reversed from a specific shop for this item line.`);
                         }
                     }
 
@@ -156,6 +183,16 @@ export async function PUT(
             }
 
             await tx.purchaseInvoiceItem.deleteMany({ where: { purchaseInvoiceId: purchaseId } });
+
+            // Recalculate totalAmount for the invoice based on new/updated items
+            let newTotalInvoiceAmount = 0;
+            if (newItemsData && Array.isArray(newItemsData)) {
+                newItemsData.forEach(item => {
+                    newTotalInvoiceAmount += Number(item.quantity) * Number(item.price || 0);
+                });
+            }
+            cleanedInvoiceData.total = newTotalInvoiceAmount; // Ensure this is assigned to the correct field for DB update
+
             const updatedInvoice = await tx.purchaseInvoice.update({ where: { id: purchaseId }, data: cleanedInvoiceData });
 
             if (newItemsData && Array.isArray(newItemsData)) {
@@ -183,31 +220,98 @@ export async function PUT(
                             const shopId = shopIdStr;
                             const qtyToAdd = Number(quantityInShop);
                             if (qtyToAdd <= 0 || isNaN(qtyToAdd)) continue;
+
                             const inventory = await tx.inventoryItem.findFirst({ where: { productId: Number(newItem.productId), shopId: shopId } });
                             let finalQuantity = 0;
                             const oldInvQty = inventory?.quantity || 0;
+                            let newShopSpecificCostValue = 0;
+                            const itemPrice = Number(newItem.price || 0);
+
                             if (inventory) {
                                 finalQuantity = inventory.quantity + qtyToAdd;
-                                await tx.inventoryItem.update({ where: { id: inventory.id }, data: { quantity: finalQuantity } });
+                                const oldShopTotalValue = (inventory.quantity || 0) * (inventory.shopSpecificCost || 0);
+                                const valueOfThisBatch = qtyToAdd * itemPrice;
+                                if (finalQuantity > 0) {
+                                    newShopSpecificCostValue = (oldShopTotalValue + valueOfThisBatch) / finalQuantity;
+                                } else {
+                                    newShopSpecificCostValue = 0;
+                                }
+                                await tx.inventoryItem.update({
+                                    where: { id: inventory.id },
+                                    data: { quantity: finalQuantity, shopSpecificCost: newShopSpecificCostValue >= 0 ? newShopSpecificCostValue : 0 }
+                                });
                             } else {
                                 finalQuantity = qtyToAdd;
-                                await tx.inventoryItem.create({ data: { productId: Number(newItem.productId), shopId: shopId, quantity: finalQuantity } });
+                                newShopSpecificCostValue = itemPrice;
+                                await tx.inventoryItem.create({
+                                    data: {
+                                        productId: Number(newItem.productId),
+                                        shopId: shopId,
+                                        quantity: finalQuantity,
+                                        shopSpecificCost: newShopSpecificCostValue >= 0 ? newShopSpecificCostValue : 0
+                                    }
+                                });
                             }
                             inventoryUpdates.push({ productId: Number(newItem.productId), shopId: Number(shopId), newQuantity: finalQuantity, quantityChange: finalQuantity - oldInvQty, source: 'purchase_update' });
                         }
                     } else {
-                        const shopId = '1';
-                        const inventory = await tx.inventoryItem.findFirst({ where: { productId: Number(newItem.productId), shopId: shopId } });
-                        let finalQuantity = 0;
-                        const oldInvQty = inventory?.quantity || 0;
-                        if (inventory) {
-                            finalQuantity = inventory.quantity + itemQuantityTotal;
-                            await tx.inventoryItem.update({ where: { id: inventory.id }, data: { quantity: finalQuantity } });
-                        } else {
-                            finalQuantity = itemQuantityTotal;
-                            await tx.inventoryItem.create({ data: { productId: Number(newItem.productId), shopId: shopId, quantity: finalQuantity } });
+                        // newItemDistribution is missing or empty. Try to infer shop or log error.
+                        console.warn(`Purchase item with productId ${newItem.productId} in invoice ${purchaseId} does not have explicit shop distribution data. Attempting to infer target shop.`);
+                        const existingInventoryItems = await tx.inventoryItem.findMany({
+                            where: { productId: Number(newItem.productId) }
+                        });
+
+                        let targetShopId: string | null = null;
+
+                        if (existingInventoryItems.length === 1) {
+                            targetShopId = existingInventoryItems[0].shopId;
+                            console.log(`Product ${newItem.productId} exists in one shop (${targetShopId}). Attributing new stock there.`);
+                        } else if (existingInventoryItems.length === 0) {
+                            console.error(`Product ${newItem.productId} is new to inventory and no shop distribution provided. Cannot automatically assign to a shop. Inventory not updated for this item.`);
+                        } else { // existingInventoryItems.length > 1
+                            console.error(`Product ${newItem.productId} exists in multiple shops and no specific distribution provided. Ambiguous. Inventory not updated for this item.`);
                         }
-                        inventoryUpdates.push({ productId: Number(newItem.productId), shopId: Number(shopId), newQuantity: finalQuantity, quantityChange: finalQuantity - oldInvQty, source: 'purchase_update' });
+
+                        if (targetShopId) {
+                            const qtyToAdd = itemQuantityTotal; // The total quantity for this newItem.
+                            if (qtyToAdd > 0) {
+                                const inventory = await tx.inventoryItem.findFirst({ where: { productId: Number(newItem.productId), shopId: targetShopId } });
+                                let finalQuantity = 0;
+                                const oldInvQty = inventory?.quantity || 0;
+                                let newShopSpecificCostValue = 0;
+                                const itemPrice = Number(newItem.price || 0);
+
+                                if (inventory) {
+                                    finalQuantity = inventory.quantity + qtyToAdd;
+                                    const oldShopTotalValue = (inventory.quantity || 0) * (inventory.shopSpecificCost || 0);
+                                    const valueOfThisBatch = qtyToAdd * itemPrice;
+                                    if (finalQuantity > 0) {
+                                        newShopSpecificCostValue = (oldShopTotalValue + valueOfThisBatch) / finalQuantity;
+                                    } else {
+                                        newShopSpecificCostValue = 0;
+                                    }
+                                    await tx.inventoryItem.update({
+                                        where: { id: inventory.id },
+                                        data: { quantity: finalQuantity, shopSpecificCost: newShopSpecificCostValue >= 0 ? newShopSpecificCostValue : 0 }
+                                    });
+                                } else {
+                                    finalQuantity = qtyToAdd;
+                                    newShopSpecificCostValue = itemPrice;
+                                    console.warn(`InventoryItem for product ${newItem.productId} in targetShopId ${targetShopId} not found during update, attempting create.`);
+                                    await tx.inventoryItem.create({
+                                        data: {
+                                            productId: Number(newItem.productId),
+                                            shopId: targetShopId,
+                                            quantity: finalQuantity,
+                                            shopSpecificCost: newShopSpecificCostValue >= 0 ? newShopSpecificCostValue : 0
+                                        }
+                                    });
+                                }
+                                inventoryUpdates.push({ productId: Number(newItem.productId), shopId: Number(targetShopId), newQuantity: finalQuantity, quantityChange: finalQuantity - oldInvQty, source: 'purchase_update_inferred_shop' });
+                            } else {
+                                console.warn(`Quantity for product ${newItem.productId} is zero or negative. No inventory update performed for this item.`);
+                            }
+                        }
                     }
 
                     // Recalculate WAC based on all purchase history for this product
@@ -260,7 +364,25 @@ export async function PUT(
             });
             console.log('Emitted PURCHASE_INVOICE_UPDATED and INVENTORY_LEVEL_UPDATED events');
         }
-        return NextResponse.json(result.fullUpdatedInvoice);
+
+        // After successful transaction, invalidate relevant caches
+        try {
+            await cacheService.invalidateInventory(); // Handles 'inventory:summary:*' and 'products:*'
+            await cacheService.del('dashboard:inventory');
+            await cacheService.del('dashboard:inventory-value');
+            await cacheService.del('dashboard:shops');
+            await cacheService.del('dashboard:all');
+            await cacheService.del('dashboard:summary');
+            console.log('Relevant caches invalidated after purchase update.');
+        } catch (cacheError) {
+            console.error('Error invalidating caches after purchase update:', cacheError);
+            // Do not let cache invalidation error fail the main operation
+        }
+
+        return NextResponse.json({
+            message: 'Purchase invoice updated successfully',
+            data: result.fullUpdatedInvoice
+        });
     } catch (error) {
         console.error(`Error updating purchase invoice ${id}:`, error);
         const details = error instanceof Error ? error.message : String(error);
@@ -288,7 +410,8 @@ export async function DELETE(
             where: { id: purchaseId },
             include: {
                 items: { include: { product: true } },
-                // No 'distributions' field is explicitly included here, relies on it being on purchaseToDelete if it exists
+                // Ensure 'distributions' is included if it's a relation,
+                // or directly accessible if it's a JSON field on PurchaseInvoice
             },
         });
 
@@ -299,7 +422,7 @@ export async function DELETE(
         }
 
         const result = await prisma.$transaction(async (tx) => {
-            const inventoryUpdates: Array<{ productId: number, shopId: number, newQuantity: number, oldQuantity: number }> = [];
+            const inventoryUpdates: Array<{ productId: number, shopId: number, newQuantity: number, quantityChange: number, source: string }> = [];
 
             if (purchaseToDelete.items && purchaseToDelete.items.length > 0) {
                 for (const item of purchaseToDelete.items) {
@@ -309,16 +432,12 @@ export async function DELETE(
                     }
 
                     const productId = item.productId;
-                    const quantityToRemoveForItem = item.quantity;
+                    const quantityToRemoveForItemTotal = item.quantity; // Total quantity for this item line
 
                     let itemDistributionInfo: { [shopId: string]: number } | null = null;
-                    // Assuming purchaseToDelete.distributions might be an array of objects or a single object.
-                    // This part needs to align with how distributions are actually structured on PurchaseInvoice model.
-                    // The provided file content for PurchaseInvoice creation (POST route) uses `distributions`
-                    // as potentially an array of distribution objects per item or a general one.
-                    // Let's assume it's an array parallel to items for this logic.
-                    const distributionsOnInvoice = (purchaseToDelete as any).distributions; // Accessing potentially dynamic field
+                    const distributionsOnInvoice = (purchaseToDelete as any).distributions;
 
+                    // Attempt to get specific distribution for this item
                     if (
                         distributionsOnInvoice &&
                         Array.isArray(distributionsOnInvoice) &&
@@ -331,6 +450,7 @@ export async function DELETE(
                     }
 
                     if (itemDistributionInfo) {
+                        // Case 1: Explicit distribution data found for the item
                         console.log(`Reversing item-specific distribution for product ${productId}, purchase ${purchaseId}`);
                         for (const [shopIdStr, distributedQuantityStr] of Object.entries(itemDistributionInfo)) {
                             const shopId = shopIdStr;
@@ -342,74 +462,70 @@ export async function DELETE(
                             if (inventoryItem) {
                                 const oldShopQuantity = inventoryItem.quantity;
                                 const newShopQuantity = Math.max(0, inventoryItem.quantity - qtyInShopToRemove);
+                                const updateData = {
+                                    quantity: newShopQuantity,
+                                    shopSpecificCost: newShopQuantity === 0 ? 0 : inventoryItem.shopSpecificCost
+                                };
                                 await tx.inventoryItem.update({
                                     where: { id: inventoryItem.id },
-                                    data: { quantity: newShopQuantity },
+                                    data: updateData,
                                 });
-                                inventoryUpdates.push({ productId, shopId: Number(shopId), newQuantity: newShopQuantity, quantityChange: newShopQuantity - oldShopQuantity, source: 'purchase_delete' });
+                                inventoryUpdates.push({ productId, shopId: Number(shopId), newQuantity: newShopQuantity, quantityChange: newShopQuantity - oldShopQuantity, source: 'purchase_delete_explicit_dist' });
                                 console.log(`  - Reduced inventory for product ${productId} in shop ${shopId} by ${qtyInShopToRemove}. Old: ${oldShopQuantity}, New: ${newShopQuantity}`);
                             } else {
-                                console.warn(`  - Inventory item not found for product ${productId} in shop ${shopId} during purchase deletion.`);
-                            }
-                        }
-                    } else if ((purchaseToDelete as any).defaultShopId) {
-                        const defaultShopId = String((purchaseToDelete as any).defaultShopId);
-                        if (defaultShopId) {
-                            console.log(`Reversing stock for product ${productId} from defaultShopId ${defaultShopId} on purchase ${purchaseId}`);
-                            const inventoryItem = await tx.inventoryItem.findFirst({ where: { productId, shopId: defaultShopId } });
-                            if (inventoryItem) {
-                                const oldShopQuantity = inventoryItem.quantity;
-                                const newShopQuantity = Math.max(0, inventoryItem.quantity - quantityToRemoveForItem);
-                                await tx.inventoryItem.update({
-                                    where: { id: inventoryItem.id },
-                                    data: { quantity: newShopQuantity },
-                                });
-                                inventoryUpdates.push({ productId, shopId: Number(defaultShopId), newQuantity: newShopQuantity, quantityChange: newShopQuantity - oldShopQuantity, source: 'purchase_delete' });
-                                console.log(`  - Reduced inventory for product ${productId} in shop ${defaultShopId} by ${quantityToRemoveForItem}. Old: ${oldShopQuantity}, New: ${newShopQuantity}`);
-                            } else {
-                                console.warn(`  - Inventory item not found for product ${productId} in default shop ${defaultShopId}.`);
+                                console.warn(`  - Inventory item not found for product ${productId} in shop ${shopId} during purchase deletion with explicit distribution. Stock may be inaccurate.`);
                             }
                         }
                     } else {
-                        const FALLBACK_SHOP_ID = '1';
-                        console.warn(`No specific distribution or defaultShopId. Attempting fallback to shop ${FALLBACK_SHOP_ID} for product ${productId}, purchase ${purchaseId}.`);
-                        const inventoryItem = await tx.inventoryItem.findFirst({ where: { productId, shopId: FALLBACK_SHOP_ID } });
-                        if (inventoryItem) {
-                            const oldShopQuantity = inventoryItem.quantity;
-                            const newShopQuantity = Math.max(0, inventoryItem.quantity - quantityToRemoveForItem);
+                        // Case 2: No explicit distribution for this item. Attempt to infer.
+                        console.warn(`No specific distribution found for item ${productId} in deleted purchase ${purchaseId}. Attempting to infer shop(s) for stock reversal of total quantity ${quantityToRemoveForItemTotal}.`);
+                        const existingInventoriesForItem = await tx.inventoryItem.findMany({
+                            where: { productId: productId }
+                        });
+
+                        if (existingInventoriesForItem.length === 1) {
+                            const singleShopInventory = existingInventoriesForItem[0];
+                            const shopIdToDeductFrom = singleShopInventory.shopId;
+
+                            console.log(`Product ${productId} found in single shop ${shopIdToDeductFrom}. Deducting total item quantity ${quantityToRemoveForItemTotal}.`);
+                            const oldShopQuantity = singleShopInventory.quantity;
+                            const newShopQuantity = Math.max(0, singleShopInventory.quantity - quantityToRemoveForItemTotal);
+                            const updateDataInferred = {
+                                quantity: newShopQuantity,
+                                shopSpecificCost: newShopQuantity === 0 ? 0 : singleShopInventory.shopSpecificCost
+                            };
                             await tx.inventoryItem.update({
-                                where: { id: inventoryItem.id },
-                                data: { quantity: newShopQuantity },
+                                where: { id: singleShopInventory.id },
+                                data: updateDataInferred,
                             });
-                            inventoryUpdates.push({ productId, shopId: Number(FALLBACK_SHOP_ID), newQuantity: newShopQuantity, quantityChange: newShopQuantity - oldShopQuantity, source: 'purchase_delete' });
-                            console.log(`  - Reduced inventory for product ${productId} in fallback shop ${FALLBACK_SHOP_ID} by ${quantityToRemoveForItem}. Old: ${oldShopQuantity}, New: ${newShopQuantity}`);
-                        } else {
-                            console.error(`  - FALLBACK FAILED: Inventory item not found for product ${productId} in fallback shop ${FALLBACK_SHOP_ID}.`);
+                            inventoryUpdates.push({ productId, shopId: Number(shopIdToDeductFrom), newQuantity: newShopQuantity, quantityChange: newShopQuantity - oldShopQuantity, source: 'purchase_delete_inferred_shop' });
+                            console.log(`  - Reduced inventory for product ${productId} in inferred shop ${shopIdToDeductFrom} by ${quantityToRemoveForItemTotal}. Old: ${oldShopQuantity}, New: ${newShopQuantity}`);
+                        } else if (existingInventoriesForItem.length === 0) {
+                            console.error(`Product ${productId} (from deleted purchase ${purchaseId}) not found in any inventory. Cannot reverse stock for this item.`);
+                        } else { // Product exists in multiple shops
+                            console.error(`Product ${productId} (from deleted purchase ${purchaseId}) exists in multiple shops, but no specific distribution data was found on the invoice for reversal. Ambiguous. Stock not automatically reversed for this item. Manual adjustment may be needed.`);
                         }
                     }
 
                     // ---- BEGIN WAC Recalculation for the deleted item ----
-                    // Recalculate WAC based on remaining purchase history after deleting this invoice
                     const remainingPurchaseItems = await tx.purchaseInvoiceItem.findMany({
                         where: {
                             productId: productId,
-                            purchaseInvoiceId: { not: purchaseId } // Exclude the invoice being deleted
+                            purchaseInvoiceId: { not: purchaseId }
                         }
                     });
 
                     let totalRemainingQuantity = 0;
                     let totalRemainingValue = 0;
-
-                    remainingPurchaseItems.forEach(purchaseItem => {
-                        totalRemainingQuantity += purchaseItem.quantity;
-                        totalRemainingValue += purchaseItem.quantity * purchaseItem.price;
+                    remainingPurchaseItems.forEach(pItem => {
+                        totalRemainingQuantity += pItem.quantity;
+                        totalRemainingValue += pItem.quantity * pItem.price;
                     });
 
                     let newCalculatedWAC = 0;
                     if (totalRemainingQuantity > 0) {
                         newCalculatedWAC = totalRemainingValue / totalRemainingQuantity;
                     }
-
                     await tx.product.update({
                         where: { id: productId },
                         data: { weightedAverageCost: newCalculatedWAC >= 0 ? newCalculatedWAC : 0 }
@@ -418,23 +534,15 @@ export async function DELETE(
                 }
             }
 
-            // Payment deletion - uncommented to delete associated payments
-            // await tx.payment.deleteMany({ where: { purchaseInvoiceId: purchaseId } });
-
             await tx.purchaseInvoiceItem.deleteMany({ where: { purchaseInvoiceId: purchaseId } });
-            console.log(`Deleted items for purchase invoice ${purchaseId}`);
-
             await tx.purchaseInvoice.delete({ where: { id: purchaseId } });
-            console.log(`Deleted purchase invoice ${purchaseId}`);
 
             return { deletedInvoiceId: purchaseId, inventoryUpdates };
         });
 
         const io = getSocketIO();
-        if (io) {
-            io.emit(WEBSOCKET_EVENTS.PURCHASE_INVOICE_DELETED, { id: purchaseId });
-
-            // Emit inventory updates
+        if (io && result) {
+            io.emit(WEBSOCKET_EVENTS.PURCHASE_INVOICE_DELETED, { id: result.deletedInvoiceId });
             if (result.inventoryUpdates && result.inventoryUpdates.length > 0) {
                 result.inventoryUpdates.forEach(update => {
                     emitInventoryLevelUpdated(update.productId, {
@@ -445,9 +553,24 @@ export async function DELETE(
                     });
                 });
             }
-
-            console.log(`Emitted WebSocket events for purchase invoice deletion ${purchaseId}`);
+            console.log(`Broadcasting PURCHASE_INVOICE_DELETED event for invoice ${result.deletedInvoiceId}`);
+            console.log(`Broadcasting INVENTORY_LEVEL_UPDATED event for affected products after deleting invoice ${result.deletedInvoiceId}`);
         }
+
+        // After successful transaction, invalidate relevant caches
+        try {
+            await cacheService.invalidateInventory(); // Handles 'inventory:summary:*' and 'products:*'
+            await cacheService.del('dashboard:inventory');
+            await cacheService.del('dashboard:inventory-value');
+            await cacheService.del('dashboard:shops');
+            await cacheService.del('dashboard:all');
+            await cacheService.del('dashboard:summary');
+            console.log('Relevant caches invalidated after purchase deletion.');
+        } catch (cacheError) {
+            console.error('Error invalidating caches after purchase deletion:', cacheError);
+            // Do not let cache invalidation error fail the main operation
+        }
+
         return NextResponse.json({ message: 'Purchase invoice deleted successfully' });
 
     } catch (error) {

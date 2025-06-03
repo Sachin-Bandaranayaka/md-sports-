@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { smsService } from '@/services/smsService';
 import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
 import { emitInventoryLevelUpdated } from '@/lib/utils/websocket';
+import { cacheService } from '@/lib/cache';
 
 export async function GET(
     request: Request,
@@ -343,6 +344,13 @@ export async function PUT(
             }
         }
 
+        // Invalidate related caches after successful update
+        await Promise.all([
+            cacheService.invalidateInvoices(),
+            cacheService.invalidateInventory(),
+            cacheService.del('dashboard:summary') // Invalidate dashboard cache
+        ]);
+
         return NextResponse.json({
             success: true,
             message: 'Invoice updated successfully',
@@ -448,6 +456,12 @@ export async function DELETE(
             console.log(`Emitted INVOICE_DELETE event for invoice ${deletedInvoiceResult.id}`);
         }
 
+        // Invalidate related caches after successful deletion
+        await Promise.all([
+            cacheService.invalidateInvoices(),
+            cacheService.invalidateInventory(),
+            cacheService.del('dashboard:summary') // Invalidate dashboard cache
+        ]);
 
         return NextResponse.json({
             success: true,

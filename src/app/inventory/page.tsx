@@ -84,14 +84,14 @@ export default async function Inventory({
     if (statusFilter) queryParams.append('status', statusFilter);
 
     // Get access token from cookies for authentication
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const accessToken = cookieStore.get('accessToken')?.value;
-    
+
     // Prepare headers for authenticated requests
     const requestHeaders: HeadersInit = {
         'Content-Type': 'application/json',
     };
-    
+
     if (accessToken) {
         requestHeaders['Authorization'] = `Bearer ${accessToken}`;
     }
@@ -102,7 +102,7 @@ export default async function Inventory({
     // Fetch inventory data with pagination and filters
     const inventoryResponse = await fetch(
         `${baseUrl}/api/inventory/summary?${queryParams.toString()}`,
-        { 
+        {
             headers: requestHeaders,
             next: { revalidate: 10 } // Revalidate every 10 seconds to match page revalidation time
         }
