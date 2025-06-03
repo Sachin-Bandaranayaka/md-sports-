@@ -192,32 +192,28 @@ export async function POST(request: NextRequest) {
                         const currentCost = product?.weightedAverageCost || 0;
                         const newCost = item.price;
 
-                        // --- BEGIN DEBUG LOGS ---
-                        console.log(`[WAC_DEBUG] Product ID: ${item.productId}`);
-                        console.log(`[WAC_DEBUG] Current Total Quantity: ${currentTotalQuantity}, Type: ${typeof currentTotalQuantity}`);
-                        console.log(`[WAC_DEBUG] Current Cost (WAC from DB): ${currentCost}, Type: ${typeof currentCost}`);
-                        console.log(`[WAC_DEBUG] New Quantity (from invoice item): ${newQuantity}, Type: ${typeof newQuantity}`);
-                        console.log(`[WAC_DEBUG] New Cost (from invoice item): ${newCost}, Type: ${typeof newCost}`);
-                        // --- END DEBUG LOGS ---
-
-                        // Calculate new weighted average cost
-                        // (Current Quantity * Current WAC + New Quantity * New Cost) / (Current Quantity + New Quantity)
+                        // Calculate new weighted average cost using proper formula
+                        // WAC = (Current Total Value + New Purchase Value) / (Current Quantity + New Quantity)
                         let newWeightedAverageCost = newCost; // Default to new cost if there's no existing inventory
 
-                        if (currentTotalQuantity > 0) {
-                            newWeightedAverageCost =
-                                ((currentTotalQuantity * currentCost) + (newQuantity * newCost)) /
-                                (currentTotalQuantity + newQuantity);
+                        if (currentTotalQuantity > 0 && currentCost > 0) {
+                            const currentTotalValue = currentTotalQuantity * currentCost;
+                            const newPurchaseValue = newQuantity * newCost;
+                            const totalValue = currentTotalValue + newPurchaseValue;
+                            const totalQuantity = currentTotalQuantity + newQuantity;
+                            
+                            newWeightedAverageCost = totalValue / totalQuantity;
                         }
 
-                        // --- BEGIN DEBUG LOGS ---
-                        console.log(`[WAC_DEBUG] Calculated newWeightedAverageCost (before guard): ${newWeightedAverageCost}, Type: ${typeof newWeightedAverageCost}`);
-                        // --- END DEBUG LOGS ---
+                        // Ensure WAC is valid and positive
+                        if (newWeightedAverageCost <= 0 || isNaN(newWeightedAverageCost)) {
+                            newWeightedAverageCost = newCost;
+                        }
 
                         // Update product with new weighted average cost
                         await tx.product.update({
                             where: { id: parseInt(item.productId) },
-                            data: { weightedAverageCost: newWeightedAverageCost > 0 ? newWeightedAverageCost : 0 }
+                            data: { weightedAverageCost: newWeightedAverageCost }
                         });
 
                         // Handle distribution across shops
@@ -327,7 +323,6 @@ export async function POST(request: NextRequest) {
                 if (body.paidAmount && body.paidAmount > 0) {
                     await tx.payment.create({
                         data: {
-                            purchaseInvoiceId: createdInvoice.id,
                             amount: parseFloat(body.paidAmount as unknown as string) || 0,
                             paymentDate: new Date(), // Or use a date from body if provided
                             paymentMethod: body.paymentMethod || 'cash' // Default or from body
