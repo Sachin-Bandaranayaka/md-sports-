@@ -109,7 +109,7 @@ export async function PUT(
                                 const oldShopQuantity = inventory.quantity;
                                 const newQuantity = Math.max(0, inventory.quantity - qtyToRemove);
                                 await tx.inventoryItem.update({ where: { id: inventory.id }, data: { quantity: newQuantity } });
-                                inventoryUpdates.push({ productId: oldItem.productId, shopId, newQuantity, oldQuantity: oldShopQuantity });
+                                inventoryUpdates.push({ productId: oldItem.productId, shopId: Number(shopId), newQuantity, quantityChange: newQuantity - oldShopQuantity, source: 'purchase_update' });
                             }
                         }
                     } else {
@@ -119,7 +119,7 @@ export async function PUT(
                             const oldShopQuantity = inventory.quantity;
                             const newQuantity = Math.max(0, inventory.quantity - oldItem.quantity);
                             await tx.inventoryItem.update({ where: { id: inventory.id }, data: { quantity: newQuantity } });
-                            inventoryUpdates.push({ productId: oldItem.productId, shopId, newQuantity, oldQuantity: oldShopQuantity });
+                            inventoryUpdates.push({ productId: oldItem.productId, shopId: Number(shopId), newQuantity, quantityChange: newQuantity - oldShopQuantity, source: 'purchase_update' });
                         }
                     }
 
@@ -127,22 +127,31 @@ export async function PUT(
                     const allInventoryForProductAfterReversal = await tx.inventoryItem.findMany({ where: { productId: oldItem.productId } });
                     currentTotalProductQuantity = allInventoryForProductAfterReversal.reduce((sum, inv) => sum + inv.quantity, 0);
 
-                    if (currentTotalProductQuantity > 0 && productToUpdate.weightedAverageCost !== null) {
-                        const currentTotalValue = allInventoryForProductAfterReversal.reduce((sum, inv) => {
-                            const invProd = inv.productId === productToUpdate.id ? productToUpdate : null;
-                            return sum + (inv.quantity * (invProd?.weightedAverageCost || 0));
-                        }, 0);
-                        const newWAC = currentTotalValue / currentTotalProductQuantity;
-                        await tx.product.update({
-                            where: { id: oldItem.productId },
-                            data: { weightedAverageCost: newWAC > 0 ? newWAC : 0 }
-                        });
-                    } else if (currentTotalProductQuantity <= 0) {
-                        await tx.product.update({
-                            where: { id: oldItem.productId },
-                            data: { weightedAverageCost: 0 }
-                        });
+                    // Recalculate WAC based on remaining purchase history after removing this item
+                    const remainingPurchaseItems = await tx.purchaseInvoiceItem.findMany({
+                        where: { 
+                            productId: oldItem.productId,
+                            purchaseInvoiceId: { not: purchaseId } // Exclude current invoice being updated
+                        }
+                    });
+
+                    let totalRemainingQuantity = 0;
+                    let totalRemainingValue = 0;
+
+                    remainingPurchaseItems.forEach(purchaseItem => {
+                        totalRemainingQuantity += purchaseItem.quantity;
+                        totalRemainingValue += purchaseItem.quantity * purchaseItem.price;
+                    });
+
+                    let newWAC = 0;
+                    if (totalRemainingQuantity > 0) {
+                        newWAC = totalRemainingValue / totalRemainingQuantity;
                     }
+
+                    await tx.product.update({
+                        where: { id: oldItem.productId },
+                        data: { weightedAverageCost: newWAC >= 0 ? newWAC : 0 }
+                    });
                 }
             }
 
@@ -184,7 +193,7 @@ export async function PUT(
                                 finalQuantity = qtyToAdd;
                                 await tx.inventoryItem.create({ data: { productId: Number(newItem.productId), shopId: shopId, quantity: finalQuantity } });
                             }
-                            inventoryUpdates.push({ productId: Number(newItem.productId), shopId, newQuantity: finalQuantity, oldQuantity: oldInvQty });
+                            inventoryUpdates.push({ productId: Number(newItem.productId), shopId: Number(shopId), newQuantity: finalQuantity, quantityChange: finalQuantity - oldInvQty, source: 'purchase_update' });
                         }
                     } else {
                         const shopId = '1';
@@ -198,24 +207,33 @@ export async function PUT(
                             finalQuantity = itemQuantityTotal;
                             await tx.inventoryItem.create({ data: { productId: Number(newItem.productId), shopId: shopId, quantity: finalQuantity } });
                         }
-                        inventoryUpdates.push({ productId: Number(newItem.productId), shopId, newQuantity: finalQuantity, oldQuantity: oldInvQty });
+                        inventoryUpdates.push({ productId: Number(newItem.productId), shopId: Number(shopId), newQuantity: finalQuantity, quantityChange: finalQuantity - oldInvQty, source: 'purchase_update' });
                     }
 
-                    let currentTotalProductQuantityBeforeNewItem = 0;
-                    const allInventoryForProductAfterNewItem = await tx.inventoryItem.findMany({ where: { productId: Number(newItem.productId) } });
-                    currentTotalProductQuantityBeforeNewItem = allInventoryForProductAfterNewItem.reduce((sum, inv) => sum + inv.quantity, 0) - itemQuantityTotal;
+                    // Recalculate WAC based on all purchase history for this product
+                    // This ensures accuracy regardless of update order
+                    const allPurchaseItems = await tx.purchaseInvoiceItem.findMany({
+                        where: { productId: Number(newItem.productId) }
+                    });
 
-                    const currentWAC = productToUpdate.weightedAverageCost || 0;
-                    const newItemCost = Number(newItem.price);
+                    let totalPurchaseQuantity = 0;
+                    let totalPurchaseValue = 0;
 
-                    let newWeightedAverageCost = newItemCost;
-                    if (currentTotalProductQuantityBeforeNewItem > 0) {
-                        newWeightedAverageCost =
-                            ((currentTotalProductQuantityBeforeNewItem * currentWAC) + (itemQuantityTotal * newItemCost)) /
-                            (currentTotalProductQuantityBeforeNewItem + itemQuantityTotal);
-                    } else if (itemQuantityTotal > 0) {
-                        newWeightedAverageCost = newItemCost;
+                    allPurchaseItems.forEach(purchaseItem => {
+                        totalPurchaseQuantity += purchaseItem.quantity;
+                        totalPurchaseValue += purchaseItem.quantity * purchaseItem.price;
+                    });
+
+                    let newWeightedAverageCost = 0;
+                    if (totalPurchaseQuantity > 0) {
+                        newWeightedAverageCost = totalPurchaseValue / totalPurchaseQuantity;
                     }
+
+                    // Ensure WAC is valid
+                    if (newWeightedAverageCost <= 0 || isNaN(newWeightedAverageCost)) {
+                        newWeightedAverageCost = Number(newItem.price);
+                    }
+
                     await tx.product.update({
                         where: { id: Number(newItem.productId) },
                         data: { weightedAverageCost: newWeightedAverageCost }
@@ -236,8 +254,8 @@ export async function PUT(
                 emitInventoryLevelUpdated(upd.productId, {
                     shopId: upd.shopId,
                     newQuantity: upd.newQuantity,
-                    oldQuantity: upd.oldQuantity,
-                    source: 'purchase_update'
+                    quantityChange: upd.quantityChange,
+                    source: upd.source
                 });
             });
             console.log('Emitted PURCHASE_INVOICE_UPDATED and INVENTORY_LEVEL_UPDATED events');
@@ -320,7 +338,7 @@ export async function DELETE(
 
                             if (isNaN(shopId) || isNaN(qtyInShopToRemove) || qtyInShopToRemove <= 0) continue;
 
-                            const inventoryItem = await tx.inventoryItem.findFirst({ where: { productId, shopId: shopId } });
+                            const inventoryItem = await tx.inventoryItem.findFirst({ where: { productId, shopId: Number(shopId) } });
                             if (inventoryItem) {
                                 const oldShopQuantity = inventoryItem.quantity;
                                 const newShopQuantity = Math.max(0, inventoryItem.quantity - qtyInShopToRemove);
@@ -328,7 +346,7 @@ export async function DELETE(
                                     where: { id: inventoryItem.id },
                                     data: { quantity: newShopQuantity },
                                 });
-                                inventoryUpdates.push({ productId, shopId, newQuantity: newShopQuantity, oldQuantity: oldShopQuantity });
+                                inventoryUpdates.push({ productId, shopId: Number(shopId), newQuantity: newShopQuantity, quantityChange: newShopQuantity - oldShopQuantity, source: 'purchase_delete' });
                                 console.log(`  - Reduced inventory for product ${productId} in shop ${shopId} by ${qtyInShopToRemove}. Old: ${oldShopQuantity}, New: ${newShopQuantity}`);
                             } else {
                                 console.warn(`  - Inventory item not found for product ${productId} in shop ${shopId} during purchase deletion.`);
@@ -338,7 +356,7 @@ export async function DELETE(
                         const defaultShopId = String((purchaseToDelete as any).defaultShopId);
                         if (defaultShopId) {
                             console.log(`Reversing stock for product ${productId} from defaultShopId ${defaultShopId} on purchase ${purchaseId}`);
-                            const inventoryItem = await tx.inventoryItem.findFirst({ where: { productId, shopId: defaultShopId } });
+                            const inventoryItem = await tx.inventoryItem.findFirst({ where: { productId, shopId: Number(defaultShopId) } });
                             if (inventoryItem) {
                                 const oldShopQuantity = inventoryItem.quantity;
                                 const newShopQuantity = Math.max(0, inventoryItem.quantity - quantityToRemoveForItem);
@@ -346,7 +364,7 @@ export async function DELETE(
                                     where: { id: inventoryItem.id },
                                     data: { quantity: newShopQuantity },
                                 });
-                                inventoryUpdates.push({ productId, shopId: defaultShopId, newQuantity: newShopQuantity, oldQuantity: oldShopQuantity });
+                                inventoryUpdates.push({ productId, shopId: Number(defaultShopId), newQuantity: newShopQuantity, quantityChange: newShopQuantity - oldShopQuantity, source: 'purchase_delete' });
                                 console.log(`  - Reduced inventory for product ${productId} in shop ${defaultShopId} by ${quantityToRemoveForItem}. Old: ${oldShopQuantity}, New: ${newShopQuantity}`);
                             } else {
                                 console.warn(`  - Inventory item not found for product ${productId} in default shop ${defaultShopId}.`);
@@ -355,7 +373,7 @@ export async function DELETE(
                     } else {
                         const FALLBACK_SHOP_ID = '1';
                         console.warn(`No specific distribution or defaultShopId. Attempting fallback to shop ${FALLBACK_SHOP_ID} for product ${productId}, purchase ${purchaseId}.`);
-                        const inventoryItem = await tx.inventoryItem.findFirst({ where: { productId, shopId: FALLBACK_SHOP_ID } });
+                        const inventoryItem = await tx.inventoryItem.findFirst({ where: { productId, shopId: Number(FALLBACK_SHOP_ID) } });
                         if (inventoryItem) {
                             const oldShopQuantity = inventoryItem.quantity;
                             const newShopQuantity = Math.max(0, inventoryItem.quantity - quantityToRemoveForItem);
@@ -363,7 +381,7 @@ export async function DELETE(
                                 where: { id: inventoryItem.id },
                                 data: { quantity: newShopQuantity },
                             });
-                            inventoryUpdates.push({ productId, shopId: FALLBACK_SHOP_ID, newQuantity: newShopQuantity, oldQuantity: oldShopQuantity });
+                            inventoryUpdates.push({ productId, shopId: Number(FALLBACK_SHOP_ID), newQuantity: newShopQuantity, quantityChange: newShopQuantity - oldShopQuantity, source: 'purchase_delete' });
                             console.log(`  - Reduced inventory for product ${productId} in fallback shop ${FALLBACK_SHOP_ID} by ${quantityToRemoveForItem}. Old: ${oldShopQuantity}, New: ${newShopQuantity}`);
                         } else {
                             console.error(`  - FALLBACK FAILED: Inventory item not found for product ${productId} in fallback shop ${FALLBACK_SHOP_ID}.`);
@@ -371,31 +389,31 @@ export async function DELETE(
                     }
 
                     // ---- BEGIN WAC Recalculation for the deleted item ----
-                    const productToUpdate = await tx.product.findUnique({ where: { id: productId } });
-                    if (productToUpdate) {
-                        const allInventoryForProduct = await tx.inventoryItem.findMany({
-                            where: { productId: productId }
-                        });
-                        const newTotalProductQuantity = allInventoryForProduct.reduce((sum, inv) => sum + inv.quantity, 0);
-
-                        let newCalculatedWAC = 0;
-                        if (newTotalProductQuantity > 0) {
-                            const originalTotalQuantityBeforeThisDeletion = newTotalProductQuantity + quantityToRemoveForItem;
-                            if (originalTotalQuantityBeforeThisDeletion > 0) { // Avoid division by zero if somehow original was 0
-                                const originalTotalValue = (productToUpdate.weightedAverageCost || 0) * originalTotalQuantityBeforeThisDeletion;
-                                const valueOfItemsRemoved = (item.price || 0) * quantityToRemoveForItem;
-
-                                newCalculatedWAC = (originalTotalValue - valueOfItemsRemoved) / newTotalProductQuantity;
-                            }
-                        } else {
-                            newCalculatedWAC = 0; // If no stock left, WAC is 0
+                    // Recalculate WAC based on remaining purchase history after deleting this invoice
+                    const remainingPurchaseItems = await tx.purchaseInvoiceItem.findMany({
+                        where: { 
+                            productId: productId,
+                            purchaseInvoiceId: { not: purchaseId } // Exclude the invoice being deleted
                         }
+                    });
 
-                        await tx.product.update({
-                            where: { id: productId },
-                            data: { weightedAverageCost: newCalculatedWAC >= 0 ? newCalculatedWAC : 0 } // Ensure WAC is not negative
-                        });
+                    let totalRemainingQuantity = 0;
+                    let totalRemainingValue = 0;
+
+                    remainingPurchaseItems.forEach(purchaseItem => {
+                        totalRemainingQuantity += purchaseItem.quantity;
+                        totalRemainingValue += purchaseItem.quantity * purchaseItem.price;
+                    });
+
+                    let newCalculatedWAC = 0;
+                    if (totalRemainingQuantity > 0) {
+                        newCalculatedWAC = totalRemainingValue / totalRemainingQuantity;
                     }
+
+                    await tx.product.update({
+                        where: { id: productId },
+                        data: { weightedAverageCost: newCalculatedWAC >= 0 ? newCalculatedWAC : 0 }
+                    });
                     // ---- END WAC Recalculation ----
                 }
             }
@@ -422,8 +440,8 @@ export async function DELETE(
                     emitInventoryLevelUpdated(update.productId, {
                         shopId: update.shopId,
                         newQuantity: update.newQuantity,
-                        oldQuantity: update.oldQuantity,
-                        source: 'purchase_delete'
+                        quantityChange: update.quantityChange,
+                        source: update.source
                     });
                 });
             }
@@ -439,4 +457,4 @@ export async function DELETE(
             { error: { message: 'Failed to delete purchase invoice', details: details } },
             { status: 500 });
     }
-} 
+}
