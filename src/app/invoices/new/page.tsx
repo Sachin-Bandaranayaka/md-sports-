@@ -43,7 +43,6 @@ interface InvoiceItem {
     price: number; // Selling price for this item
     costPrice: number; // Cost price at the time of adding
     total: number; // quantity * price
-    profit: number; // (price - costPrice) * quantity
 }
 
 // Interface for Invoice Form Data
@@ -321,7 +320,6 @@ export default function CreateInvoice() {
         const finalPrice = customPrice > 0 ? customPrice : (selectedProduct.price || 0);
         const costPrice = currentProductCost; // Use the fetched cost for the selected product
         const itemTotal = finalPrice * quantity;
-        const itemProfit = (finalPrice - costPrice) * quantity;
 
         // Check credit limit for wholesale customers
         if (selectedCustomer && selectedCustomer.customerType === 'wholesale' && selectedCustomer.creditLimit) {
@@ -340,7 +338,6 @@ export default function CreateInvoice() {
             price: finalPrice,
             costPrice: costPrice, // Store cost price
             total: itemTotal,
-            profit: itemProfit,  // Store profit
         };
 
         setFormData({
@@ -376,13 +373,11 @@ export default function CreateInvoice() {
                     const newPrice = field === 'price' ? (numericValue >= 0 ? numericValue : item.price) : item.price;
                     // item.costPrice is already set and should not change when user edits qty/price
                     const newTotal = newQuantity * newPrice;
-                    const newProfit = (newPrice - item.costPrice) * newQuantity;
                     return {
                         ...item,
                         quantity: newQuantity,
                         price: newPrice,
                         total: newTotal,
-                        profit: newProfit, // Recalculate profit
                     };
                 }
                 return item;
@@ -903,7 +898,6 @@ export default function CreateInvoice() {
                                             <th className="py-2 px-3 text-left text-sm font-semibold text-gray-700">Product</th>
                                             <th className="py-2 px-3 text-center text-sm font-semibold text-gray-700">Qty</th>
                                             <th className="py-2 px-3 text-right text-sm font-semibold text-gray-700">Price (Rs.)</th>
-                                            <th className="py-2 px-3 text-right text-sm font-semibold text-gray-700">Item Profit (Rs.)</th>
                                             <th className="py-2 px-3 text-right text-sm font-semibold text-gray-700">Total (Rs.)</th>
                                             <th className="py-2 px-3 text-center text-sm font-semibold text-gray-700">Actions</th>
                                         </tr>
@@ -934,9 +928,6 @@ export default function CreateInvoice() {
                                                             min="0"
                                                             step="0.01"
                                                         />
-                                                    </td>
-                                                    <td className="py-2 px-3 border-b border-gray-200 text-sm text-gray-700 text-right">
-                                                        {item.profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </td>
                                                     <td className="py-2 px-3 border-b border-gray-200 text-sm text-gray-700 text-right">
                                                         {item.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

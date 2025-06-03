@@ -36,7 +36,6 @@ interface InvoiceItem {
     price: number; // Selling price
     costPrice: number; // Added: Cost price at the time of sale
     total: number;
-    profit: number; // Added: (price - costPrice) * quantity
 }
 
 // Interface for Shop in dropdown
@@ -105,6 +104,7 @@ export default function EditInvoice() {
     const [productStock, setProductStock] = useState<number | null>(null);
     const [invoiceNumber, setInvoiceNumber] = useState<string>('');
     const [sendSms, setSendSms] = useState<boolean>(false);
+    const [customPrice, setCustomPrice] = useState<number>(0);
 
     // Handle changes to quantity or price of an existing line item
     const handleItemDetailChange = (itemId: string | number, field: 'quantity' | 'price', value: string) => {
@@ -118,13 +118,11 @@ export default function EditInvoice() {
                     const newPrice = field === 'price' ? (numericValue >= 0 ? numericValue : item.price) : item.price;
                     // item.costPrice is already set from DB or when item was added, should not change here.
                     const newTotal = newQuantity * newPrice;
-                    const newProfit = (newPrice - item.costPrice) * newQuantity; // Recalculate profit
                     return {
                         ...item,
                         quantity: newQuantity,
                         price: newPrice,
                         total: newTotal,
-                        profit: newProfit,
                     };
                 }
                 return item;
@@ -366,21 +364,24 @@ export default function EditInvoice() {
                         (invItem: any) => invItem.shop_id === formData.shopId // Assuming shopId on inventoryItem is number
                     )?.quantity || 0;
                     setProductStock(shopStock);
-                    // Do not reset customPrice here, as user might be adding a new item
+                    setCustomPrice(0); // Reset custom price when product is selected
                 } else {
                     setSelectedProduct(product);
                     setCurrentProductCost(product.weightedAverageCost || 0);
                     setProductStock(null);
+                    setCustomPrice(0); // Reset custom price when product is selected
                 }
             } else {
                 setSelectedProduct(product);
                 setCurrentProductCost(product.weightedAverageCost || 0);
                 setProductStock(null);
+                setCustomPrice(0); // Reset custom price when product is selected
             }
         } catch (error) {
             setSelectedProduct(product);
             setCurrentProductCost(product.weightedAverageCost || 0);
             setProductStock(null);
+            setCustomPrice(0); // Reset custom price when product is selected
             console.error('Error fetching product stock and cost for new item:', error);
         }
         setProductSearch('');
@@ -404,10 +405,9 @@ export default function EditInvoice() {
             return;
         }
 
-        const sellingPrice = selectedProduct.price; // For newly added item, use its default price or allow edit before add
+        const sellingPrice = customPrice > 0 ? customPrice : selectedProduct.price; // Use custom price if set, otherwise default price
         const costPrice = currentProductCost;       // Cost for the new item
         const itemTotal = sellingPrice * quantity;
-        const itemProfit = (sellingPrice - costPrice) * quantity;
 
         const newItem: InvoiceItem = {
             id: Date.now().toString(), // Temporary ID for UI
@@ -417,7 +417,6 @@ export default function EditInvoice() {
             price: sellingPrice,
             costPrice: costPrice,
             total: itemTotal,
-            profit: itemProfit,
         };
 
         setFormData({
@@ -429,6 +428,7 @@ export default function EditInvoice() {
         setSelectedProduct(null);
         setProductStock(null);
         setQuantity(1);
+        setCustomPrice(0);
     };
 
     // Remove line item from invoice
@@ -801,18 +801,48 @@ export default function EditInvoice() {
                                     <div className="md:col-span-3 relative">
                                         <input
                                             type="text"
+                                            id="productSearchInput"
                                             placeholder="Search for a product..."
                                             value={selectedProduct ? selectedProduct.name : productSearch}
                                             onChange={(e) => {
-                                                if (!selectedProduct) {
-                                                    setProductSearch(e.target.value);
-                                                    setShowProductDropdown(true);
+                                                const newSearchTerm = e.target.value;
+                                                if (selectedProduct && selectedProduct.name !== newSearchTerm) {
+                                                    setSelectedProduct(null);
+                                                    setProductStock(null);
                                                 }
+                                                setProductSearch(newSearchTerm);
+                                                setShowProductDropdown(true);
                                             }}
-                                            onFocus={() => setShowProductDropdown(true)}
-                                            className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
+                                            onFocus={() => {
+                                                setShowProductDropdown(true);
+                                            }}
+                                            className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900 pr-10"
                                         />
-                                        {showProductDropdown && !selectedProduct && (
+                                        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                                            {selectedProduct ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSelectedProduct(null);
+                                                        setProductStock(null);
+                                                        setProductSearch('');
+                                                        setShowProductDropdown(true);
+                                                    }}
+                                                    className="text-gray-400 hover:text-gray-500"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowProductDropdown(!showProductDropdown)}
+                                                    className="text-gray-400 hover:text-gray-500"
+                                                >
+                                                    {showProductDropdown ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                                </button>
+                                            )}
+                                        </div>
+                                        {showProductDropdown && (
                                             <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
                                                 {filteredProducts.length > 0 ? (
                                                     <ul className="py-1 text-sm text-gray-700">
@@ -854,14 +884,24 @@ export default function EditInvoice() {
                                             </div>
                                         )}
                                     </div>
-                                    <div className="md:col-span-1">
+                                    <div className="md:col-span-1 relative">
                                         <input
-                                            type="text"
+                                            type="number"
                                             placeholder="Price"
-                                            value={selectedProduct ? selectedProduct.price.toLocaleString() : ''}
-                                            disabled
-                                            className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900 bg-gray-100"
+                                            value={customPrice > 0 ? customPrice : (selectedProduct ? selectedProduct.price : '')}
+                                            onChange={(e) => {
+                                                const value = parseFloat(e.target.value) || 0;
+                                                setCustomPrice(value);
+                                            }}
+                                            className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
+                                            min="0"
+                                            step="0.01"
                                         />
+                                        {selectedProduct && (
+                                            <div className="absolute text-xs mt-1 text-gray-500">
+                                                Retail: Rs. {selectedProduct.price.toLocaleString()}
+                                            </div>
+                                        )}
                                     </div>
                                     <div>
                                         <Button
@@ -887,7 +927,7 @@ export default function EditInvoice() {
                                             <th className="py-2 px-3 text-left text-sm font-semibold text-gray-700">Product</th>
                                             <th className="py-2 px-3 text-center text-sm font-semibold text-gray-700">Qty</th>
                                             <th className="py-2 px-3 text-right text-sm font-semibold text-gray-700">Price (Rs.)</th>
-                                            <th className="py-2 px-3 text-right text-sm font-semibold text-gray-700">Item Profit (Rs.)</th>
+
                                             <th className="py-2 px-3 text-right text-sm font-semibold text-gray-700">Total (Rs.)</th>
                                             <th className="py-2 px-3 text-center text-sm font-semibold text-gray-700">Actions</th>
                                         </tr>
@@ -919,9 +959,7 @@ export default function EditInvoice() {
                                                             step="0.01"
                                                         />
                                                     </td>
-                                                    <td className="py-2 px-3 border-b border-gray-200 text-sm text-gray-700 text-right">
-                                                        {(item.profit || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                    </td>
+
                                                     <td className="py-2 px-3 border-b border-gray-200 text-sm text-gray-700 text-right">
                                                         {item.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </td>
