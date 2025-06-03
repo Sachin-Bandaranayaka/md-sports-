@@ -137,9 +137,18 @@ export async function DELETE(
             );
         }
 
-        // Delete receipt
-        await prisma.receipt.delete({
-            where: { id }
+        // Delete receipt and update invoice status back to Pending
+        await prisma.$transaction(async (tx) => {
+            // Delete the receipt
+            await tx.receipt.delete({
+                where: { id }
+            });
+
+            // Update the invoice status back to Pending
+            await tx.invoice.update({
+                where: { id: existingReceipt.payment.invoiceId },
+                data: { status: 'Pending' }
+            });
         });
 
         return NextResponse.json({ success: true });
@@ -150,4 +159,4 @@ export async function DELETE(
             { status: 500 }
         );
     }
-} 
+}

@@ -56,8 +56,15 @@ async function getReceipts(page = 1, limit = 10, search = '') {
             } : {}
         });
 
+        // Convert receiptDate from Date to string to match the Receipt interface
+        const formattedReceipts = receipts.map(receipt => ({
+            ...receipt,
+            receiptDate: receipt.receiptDate.toISOString().split('T')[0] // Convert Date to YYYY-MM-DD string
+        }));
+
         return {
-            receipts,
+            receipts: formattedReceipts,
+            totalReceipts,
             totalPages: Math.ceil(totalReceipts / limit),
             currentPage: page
         };
@@ -83,7 +90,7 @@ export default async function ReceiptsPage({
     return (
         <MainLayout>
             <div>
-                <h1 className="text-2xl font-bold mb-8">Payment Receipts</h1>
+                <h1 className="text-2xl font-bold text-black mb-6">Payment Receipts</h1>
 
                 <Suspense fallback={<LoadingSpinner />}>
                     <ReceiptsClientWrapper

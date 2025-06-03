@@ -179,38 +179,39 @@ export function SimplePaymentClientForm() {
                         >
                             <ArrowLeft size={20} />
                         </button>
-                        <h1 className="text-xl font-bold">Record Payment</h1>
+                        <h1 className="text-xl font-bold text-black">Record Payment</h1>
                     </div>
 
                     {invoice && (
-                        <div className="bg-gray-50 p-4 rounded mb-6">
-                            <h3 className="font-medium mb-2">Invoice #{invoice.invoiceNumber}</h3>
-                            <p className="text-sm text-gray-600">Customer: {invoice.customer?.name}</p>
-                            <p className="text-sm text-gray-600">Total: ${invoice.total?.toFixed(2)}</p>
+                        <div className="bg-red-50 border border-red-200 p-4 rounded-lg mb-6">
+                            <h3 className="font-semibold text-black mb-2">Invoice #{invoice.invoiceNumber}</h3>
+                            <p className="text-sm text-black">Customer: {invoice.customer?.name}</p>
+                            <p className="text-sm text-black font-medium">Total: Rs {invoice.total?.toFixed(2)}</p>
                         </div>
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                            <label className="block text-sm font-medium text-black mb-1">Amount (Rs)</label>
                             <input
                                 type="number"
                                 name="amount"
                                 value={paymentData.amount}
                                 onChange={handleInputChange}
-                                className="w-full p-2 border border-gray-300 rounded"
+                                className="w-full p-3 border border-gray-300 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 text-black"
                                 required
                                 step="0.01"
+                                placeholder="0.00"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                            <label className="block text-sm font-medium text-black mb-1">Payment Method</label>
                             <select
                                 name="paymentMethod"
                                 value={paymentData.paymentMethod}
                                 onChange={handleInputChange}
-                                className="w-full p-2 border border-gray-300 rounded"
+                                className="w-full p-3 border border-gray-300 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 text-black bg-white"
                                 required
                             >
                                 <option value="Cash">Cash</option>
@@ -222,25 +223,25 @@ export function SimplePaymentClientForm() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Reference Number</label>
+                            <label className="block text-sm font-medium text-black mb-1">Reference Number</label>
                             <input
                                 type="text"
                                 name="referenceNumber"
                                 value={paymentData.referenceNumber}
                                 onChange={handleInputChange}
-                                className="w-full p-2 border border-gray-300 rounded"
+                                className="w-full p-3 border border-gray-300 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 text-black"
                                 placeholder="Optional"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Receipt Date</label>
+                            <label className="block text-sm font-medium text-black mb-1">Receipt Date</label>
                             <input
                                 type="date"
                                 name="receiptDate"
                                 value={paymentData.receiptDate}
                                 onChange={handleInputChange}
-                                className="w-full p-2 border border-gray-300 rounded"
+                                className="w-full p-3 border border-gray-300 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 text-black"
                                 required
                             />
                         </div>
@@ -248,23 +249,23 @@ export function SimplePaymentClientForm() {
                         {showBankFields && (
                             <>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name</label>
+                                    <label className="block text-sm font-medium text-black mb-1">Bank Name</label>
                                     <input
                                         type="text"
                                         name="bankName"
                                         value={paymentData.bankName}
                                         onChange={handleInputChange}
-                                        className="w-full p-2 border border-gray-300 rounded"
+                                        className="w-full p-3 border border-gray-300 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 text-black"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Account Number</label>
+                                    <label className="block text-sm font-medium text-black mb-1">Account Number</label>
                                     <input
                                         type="text"
                                         name="accountNumber"
                                         value={paymentData.accountNumber}
                                         onChange={handleInputChange}
-                                        className="w-full p-2 border border-gray-300 rounded"
+                                        className="w-full p-3 border border-gray-300 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 text-black"
                                     />
                                 </div>
                             </>
@@ -273,23 +274,23 @@ export function SimplePaymentClientForm() {
                         {showChequeFields && (
                             <>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name</label>
+                                    <label className="block text-sm font-medium text-black mb-1">Bank Name</label>
                                     <input
                                         type="text"
                                         name="bankName"
                                         value={paymentData.bankName}
                                         onChange={handleInputChange}
-                                        className="w-full p-2 border border-gray-300 rounded"
+                                        className="w-full p-3 border border-gray-300 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 text-black"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Cheque Number</label>
+                                    <label className="block text-sm font-medium text-black mb-1">Cheque Number</label>
                                     <input
                                         type="text"
                                         name="chequeNumber"
                                         value={paymentData.chequeNumber}
                                         onChange={handleInputChange}
-                                        className="w-full p-2 border border-gray-300 rounded"
+                                        className="w-full p-3 border border-gray-300 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 text-black"
                                     />
                                 </div>
                             </>
@@ -297,40 +298,40 @@ export function SimplePaymentClientForm() {
 
                         {showCardFields && (
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Transaction ID</label>
+                                <label className="block text-sm font-medium text-black mb-1">Transaction ID</label>
                                 <input
                                     type="text"
                                     name="transactionId"
                                     value={paymentData.transactionId}
                                     onChange={handleInputChange}
-                                    className="w-full p-2 border border-gray-300 rounded"
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 text-black"
                                     placeholder="Optional payment gateway transaction ID"
                                 />
                             </div>
                         )}
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                            <label className="block text-sm font-medium text-black mb-1">Notes</label>
                             <textarea
                                 name="notes"
                                 value={paymentData.notes}
                                 onChange={handleInputChange}
-                                className="w-full p-2 border border-gray-300 rounded"
+                                className="w-full p-3 border border-gray-300 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 text-black resize-none"
                                 rows={3}
                                 placeholder="Optional payment notes"
                             />
                         </div>
 
-                        <div className="pt-2">
+                        <div className="pt-4">
                             <button
                                 type="submit"
                                 className={cn(
-                                    "w-full py-2 px-4 rounded text-white font-semibold",
-                                    isSubmitting ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+                                    "w-full py-3 px-4 rounded-lg text-white font-semibold transition-colors duration-200",
+                                    isSubmitting ? "bg-gray-400 cursor-not-allowed" : "bg-primary hover:bg-primary-700 focus:ring-2 focus:ring-primary/20"
                                 )}
                                 disabled={isSubmitting}
                             >
-                                {isSubmitting ? 'Submitting...' : 'Record Payment'}
+                                {isSubmitting ? 'Recording Payment...' : 'Record Payment'}
                             </button>
                         </div>
                     </form>
@@ -352,4 +353,4 @@ export function Loading() {
             </div>
         </MainLayout>
     );
-} 
+}

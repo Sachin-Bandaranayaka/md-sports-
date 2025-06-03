@@ -106,35 +106,36 @@ export default function ReceiptsClientWrapper({
     return (
         <div className="space-y-6">
             {/* Search Bar */}
-            <div className="bg-tertiary p-4 rounded-lg shadow-sm border border-gray-200">
-                <form onSubmit={handleSearch} className="flex items-center gap-2">
+            <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                <form onSubmit={handleSearch} className="flex items-center gap-3">
                     <div className="relative flex-1">
                         <input
                             type="text"
                             placeholder="Search by receipt number, customer name, or invoice number..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full rounded-md border border-gray-300 pl-10 pr-4 py-2 text-sm focus:ring-primary focus:border-primary"
+                            className="w-full rounded-lg border-2 border-gray-300 pl-12 pr-4 py-3 text-sm text-black placeholder-gray-500 focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
                         />
-                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                        <Search className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
                     </div>
-                    <Button type="submit" variant="primary">Search</Button>
+                    <Button type="submit" variant="primary" className="px-6 py-3 bg-primary hover:bg-red-700 text-white font-medium rounded-lg transition-colors duration-200">Search</Button>
                 </form>
             </div>
 
             {/* Delete Confirmation Dialog */}
             {confirmDelete && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-tertiary rounded-lg p-6 max-w-md w-full shadow-lg">
-                        <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Delete</h3>
-                        <p className="text-gray-600 mb-6">
+                    <div className="bg-white rounded-xl p-8 max-w-md w-full shadow-2xl border border-gray-200">
+                        <h3 className="text-xl font-semibold text-black mb-4">Confirm Delete</h3>
+                        <p className="text-gray-600 mb-8 leading-relaxed">
                             Are you sure you want to delete this receipt? This action cannot be undone.
                         </p>
-                        <div className="flex justify-end space-x-3">
+                        <div className="flex justify-end space-x-4">
                             <Button
                                 variant="outline"
                                 onClick={handleCancelDelete}
                                 disabled={deleteLoading}
+                                className="px-6 py-2 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
                             >
                                 Cancel
                             </Button>
@@ -142,6 +143,7 @@ export default function ReceiptsClientWrapper({
                                 variant="destructive"
                                 onClick={handleConfirmDelete}
                                 disabled={deleteLoading}
+                                className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors duration-200"
                             >
                                 {deleteLoading ? 'Deleting...' : 'Delete'}
                             </Button>
@@ -151,100 +153,103 @@ export default function ReceiptsClientWrapper({
             )}
 
             {/* Receipts Table */}
-            <div className="bg-tertiary rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
                 {loading ? (
-                    <div className="p-8 text-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                        <p className="mt-2 text-gray-500">Loading receipts...</p>
+                    <div className="p-12 text-center">
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-3 border-primary mx-auto"></div>
+                        <p className="mt-4 text-gray-600 font-medium">Loading receipts...</p>
                     </div>
                 ) : error ? (
-                    <div className="p-8 text-center">
-                        <p className="text-red-500">{error}</p>
+                    <div className="p-12 text-center">
+                        <p className="text-red-600 font-medium">{error}</p>
                     </div>
                 ) : receipts.length === 0 ? (
-                    <div className="p-8 text-center">
-                        <p className="text-gray-500">No receipts found</p>
+                    <div className="p-12 text-center">
+                        <p className="text-gray-600 font-medium">No receipts found</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
+                            <thead className="bg-gray-100">
                                 <tr>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         Receipt Number
                                     </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         Date
                                     </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         Invoice
                                     </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         Customer
                                     </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         Amount
                                     </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         Payment Method
                                     </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         Reference
                                     </th>
-                                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         Actions
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-tertiary divide-y divide-gray-200">
+                            <tbody className="bg-white divide-y divide-gray-200">
                                 {receipts.map((receipt) => (
-                                    <tr key={receipt.id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    <tr key={receipt.id} className="hover:bg-gray-50 transition-colors duration-150">
+                                        <td className="px-6 py-5 whitespace-nowrap text-sm font-semibold text-black">
                                             {receipt.receiptNumber}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                        <td className="px-6 py-5 whitespace-nowrap text-sm text-black">
                                             {formatDate(receipt.receiptDate)}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                        <td className="px-6 py-5 whitespace-nowrap text-sm text-black">
                                             {receipt.payment.invoice.invoiceNumber}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                        <td className="px-6 py-5 whitespace-nowrap text-sm text-black">
                                             {receipt.payment.customer.name}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        <td className="px-6 py-5 whitespace-nowrap text-sm font-semibold text-primary">
                                             {formatCurrency(receipt.payment.amount)}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                        <td className="px-6 py-5 whitespace-nowrap text-sm text-black">
                                             {receipt.payment.paymentMethod}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                        <td className="px-6 py-5 whitespace-nowrap text-sm text-black">
                                             {receipt.payment.referenceNumber || 'N/A'}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <div className="flex items-center justify-end space-x-2">
+                                        <td className="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
+                                            <div className="flex items-center justify-end space-x-3">
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
                                                     onClick={() => router.push(`/receipts/${receipt.id}`)}
                                                     title="View Receipt"
+                                                    className="p-2 hover:bg-blue-50 rounded-lg transition-colors duration-200"
                                                 >
-                                                    <Eye className="h-4 w-4 text-primary" />
+                                                    <Eye className="h-5 w-5 text-blue-600" />
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
                                                     onClick={() => router.push(`/receipts/edit/${receipt.id}`)}
                                                     title="Edit Receipt"
+                                                    className="p-2 hover:bg-yellow-50 rounded-lg transition-colors duration-200"
                                                 >
-                                                    <Edit className="h-4 w-4 text-yellow-600" />
+                                                    <Edit className="h-5 w-5 text-yellow-600" />
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
                                                     onClick={() => handleDeleteClick(receipt.id)}
                                                     title="Delete Receipt"
+                                                    className="p-2 hover:bg-red-50 rounded-lg transition-colors duration-200"
                                                 >
-                                                    <Trash2 className="h-4 w-4 text-red-600" />
+                                                    <Trash2 className="h-5 w-5 text-red-600" />
                                                 </Button>
                                             </div>
                                         </td>
@@ -257,22 +262,22 @@ export default function ReceiptsClientWrapper({
 
                 {/* Pagination */}
                 {!loading && !error && receipts.length > 0 && (
-                    <div className="px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                    <div className="px-6 py-4 flex items-center justify-between border-t border-gray-200 bg-gray-50">
                         <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                             <div>
-                                <p className="text-sm text-gray-700">
-                                    Showing page <span className="font-medium">{currentPage}</span> of{' '}
-                                    <span className="font-medium">{totalPages}</span>
+                                <p className="text-sm text-black font-medium">
+                                    Showing page <span className="font-semibold text-primary">{currentPage}</span> of{' '}
+                                    <span className="font-semibold text-primary">{totalPages}</span>
                                 </p>
                             </div>
                             <div>
-                                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                <nav className="relative z-0 inline-flex rounded-lg shadow-sm -space-x-px" aria-label="Pagination">
                                     <Button
                                         variant="outline"
                                         size="sm"
                                         onClick={() => handlePageChange(currentPage - 1)}
                                         disabled={currentPage === 1}
-                                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-tertiary text-sm font-medium text-gray-500 hover:bg-gray-50"
+                                        className="relative inline-flex items-center px-3 py-2 rounded-l-lg border-2 border-gray-300 bg-white text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors duration-200"
                                     >
                                         <ChevronLeft className="h-4 w-4" />
                                     </Button>
@@ -294,7 +299,11 @@ export default function ReceiptsClientWrapper({
                                                 variant={currentPage === pageNum ? 'primary' : 'outline'}
                                                 size="sm"
                                                 onClick={() => handlePageChange(pageNum)}
-                                                className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-tertiary text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                                className={`relative inline-flex items-center px-4 py-2 border-2 text-sm font-medium transition-colors duration-200 ${
+                                                    currentPage === pageNum
+                                                        ? 'border-primary bg-primary text-white hover:bg-red-700'
+                                                        : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                                                }`}
                                             >
                                                 {pageNum}
                                             </Button>
@@ -305,7 +314,7 @@ export default function ReceiptsClientWrapper({
                                         size="sm"
                                         onClick={() => handlePageChange(currentPage + 1)}
                                         disabled={currentPage === totalPages}
-                                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-tertiary text-sm font-medium text-gray-500 hover:bg-gray-50"
+                                        className="relative inline-flex items-center px-3 py-2 rounded-r-lg border-2 border-gray-300 bg-white text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors duration-200"
                                     >
                                         <ChevronRight className="h-4 w-4" />
                                     </Button>
@@ -317,4 +326,4 @@ export default function ReceiptsClientWrapper({
             </div>
         </div>
     );
-} 
+}
