@@ -848,6 +848,16 @@ export default function InventoryClientWrapper({
                                                     View
                                                 </Button>
                                                 <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        router.push(`/inventory/${item.id}/edit`);
+                                                    }}
+                                                >
+                                                    Edit
+                                                </Button>
+                                                <Button
                                                     variant="destructive"
                                                     size="sm"
                                                     onClick={(e) => handleDeleteProduct(e, item.id)}
