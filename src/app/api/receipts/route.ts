@@ -1,5 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
+import { Prisma } from '@prisma/client';
 
 // Get all receipts with pagination and optional filtering
 export async function GET(request: Request) {
@@ -12,11 +15,11 @@ export async function GET(request: Request) {
         const skip = (page - 1) * limit;
 
         // Build the where condition for search
-        const where = search ? {
+        const where: Prisma.ReceiptWhereInput = search ? {
             OR: [
-                { receiptNumber: { contains: search, mode: 'insensitive' } },
-                { payment: { referenceNumber: { contains: search, mode: 'insensitive' } } },
-                { payment: { customer: { name: { contains: search, mode: 'insensitive' } } } }
+                { receiptNumber: { contains: search, mode: Prisma.QueryMode.insensitive } },
+                { payment: { referenceNumber: { contains: search, mode: Prisma.QueryMode.insensitive } } },
+                { payment: { customer: { name: { contains: search, mode: Prisma.QueryMode.insensitive } } } }
             ]
         } : {};
 
@@ -95,37 +98,104 @@ export async function POST(request: Request) {
         // Generate a unique receipt number
         const receiptNumber = `REC-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-        // Create receipt
-        const receipt = await prisma.receipt.create({
-            data: {
-                paymentId: receiptData.paymentId,
-                receiptNumber,
-                receiptDate: receiptData.receiptDate ? new Date(receiptData.receiptDate) : new Date(),
-                bankName: receiptData.bankName || null,
-                accountNumber: receiptData.accountNumber || null,
-                chequeNumber: receiptData.chequeNumber || null,
-                transactionId: receiptData.transactionId || null,
-                notes: receiptData.notes || null,
-                confirmedBy: receiptData.confirmedBy || null
-            },
-            include: {
-                payment: {
-                    include: {
-                        customer: true,
-                        invoice: true
-                    }
+        // Use a transaction to ensure data consistency
+        const result = await prisma.$transaction(async (tx) => {
+            // Create receipt
+            const receipt = await tx.receipt.create({
+                data: {
+                    paymentId: receiptData.paymentId,
+                    receiptNumber,
+                    receiptDate: receiptData.receiptDate ? new Date(receiptData.receiptDate) : new Date(),
+                    bankName: receiptData.bankName || null,
+                    accountNumber: receiptData.accountNumber || null,
+                    chequeNumber: receiptData.chequeNumber || null,
+                    transactionId: receiptData.transactionId || null,
+                    notes: receiptData.notes || null,
+                    confirmedBy: receiptData.confirmedBy || null
                 },
-                confirmedByUser: true
+                include: {
+                    payment: {
+                        include: {
+                            customer: true,
+                            invoice: true
+                        }
+                    },
+                    confirmedByUser: true
+                }
+            });
+
+            // Make sure the invoice is marked as paid
+            await tx.invoice.update({
+                where: { id: existingPayment.invoiceId },
+                data: { status: 'Paid' }
+            });
+
+            // Determine the appropriate account based on payment method
+            const paymentMethod = existingPayment.paymentMethod.toLowerCase();
+            let accountName = '';
+            let accountType = 'asset';
+
+            if (paymentMethod.includes('cash')) {
+                accountName = 'Cash in Hand';
+            } else if (paymentMethod.includes('bank') || paymentMethod.includes('transfer')) {
+                accountName = 'Cash in Bank';
+            } else if (paymentMethod.includes('card') || paymentMethod.includes('credit')) {
+                accountName = 'Cash in Bank';
+            } else if (paymentMethod.includes('check') || paymentMethod.includes('cheque')) {
+                accountName = 'Cash in Bank';
+            } else {
+                // Default to cash in bank for other payment methods
+                accountName = 'Cash in Bank';
             }
+
+            // Find or create the appropriate account
+            let account = await tx.account.findFirst({
+                where: {
+                    name: accountName,
+                    type: accountType
+                }
+            });
+
+            if (!account) {
+                // Create the account if it doesn't exist
+                account = await tx.account.create({
+                    data: {
+                        name: accountName,
+                        type: accountType,
+                        balance: 0,
+                        description: `Auto-created account for ${paymentMethod} payments`,
+                        isActive: true
+                    }
+                });
+            }
+
+            // Create accounting transaction for the income
+            await tx.transaction.create({
+                data: {
+                    date: receiptData.receiptDate ? new Date(receiptData.receiptDate) : new Date(),
+                    description: `Payment received from ${receipt.payment.customer.name} - Invoice ${receipt.payment.invoice.invoiceNumber}`,
+                    accountId: account.id,
+                    type: 'income',
+                    amount: existingPayment.amount,
+                    reference: receiptNumber,
+                    category: 'Sales Revenue'
+                }
+            });
+
+            // Update account balance
+            await tx.account.update({
+                where: { id: account.id },
+                data: {
+                    balance: {
+                        increment: existingPayment.amount
+                    }
+                }
+            });
+
+            return receipt;
         });
 
-        // Make sure the invoice is marked as paid
-        await prisma.invoice.update({
-            where: { id: existingPayment.invoiceId },
-            data: { status: 'Paid' }
-        });
-
-        return NextResponse.json(receipt, { status: 201 });
+        return NextResponse.json(result, { status: 201 });
     } catch (error) {
         console.error('Error creating receipt:', error);
         return NextResponse.json(

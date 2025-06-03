@@ -139,6 +139,32 @@ export async function DELETE(
 
         // Delete receipt and update invoice status back to Pending
         await prisma.$transaction(async (tx) => {
+            // Find the related accounting transaction to reverse it
+            const relatedTransaction = await tx.transaction.findFirst({
+                where: {
+                    reference: existingReceipt.receiptNumber,
+                    type: 'income'
+                },
+                include: { account: true }
+            });
+
+            if (relatedTransaction) {
+                // Reverse the account balance
+                await tx.account.update({
+                    where: { id: relatedTransaction.accountId },
+                    data: {
+                        balance: {
+                            decrement: relatedTransaction.amount
+                        }
+                    }
+                });
+
+                // Delete the accounting transaction
+                await tx.transaction.delete({
+                    where: { id: relatedTransaction.id }
+                });
+            }
+
             // Delete the receipt
             await tx.receipt.delete({
                 where: { id }
