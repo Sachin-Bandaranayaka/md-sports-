@@ -4,10 +4,9 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Search, X, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { authDelete, authFetch } from '@/utils/api';
+import { authDelete } from '@/utils/api';
 import AddInventoryModal from '@/components/inventory/AddInventoryModal';
-import { useInventoryUpdates } from '@/hooks/useWebSocket';
-import { WEBSOCKET_EVENTS } from '@/lib/websocket';
+import { useInventory } from '@/hooks/useQueries';
 import { debounce } from '@/lib/utils';
 
 // Define proper types for our data
@@ -77,34 +76,66 @@ export default function InventoryClientWrapper({
     const searchParams = useSearchParams();
 
     // State
-    const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(initialInventoryItems);
-    const [categories, setCategories] = useState<Category[]>(initialCategories);
     const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
     const [categoryFilter, setCategoryFilter] = useState(initialCategoryFilter);
     const [statusFilter, setStatusFilter] = useState(initialStatusFilter);
-    const [error, setError] = useState<string | null>(null);
     const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
     const [showFilterPanel, setShowFilterPanel] = useState(false);
     const [showAddInventoryModal, setShowAddInventoryModal] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<{ id: number, name: string } | null>(null);
-    const [isWebSocketUpdate, setIsWebSocketUpdate] = useState(false);
+    const [pendingOperations, setPendingOperations] = useState<Set<string>>(new Set());
 
-    // Memoize formatted inventory data
-    const formattedInventoryData = useMemo(() => {
-        return inventoryItems.map(item => ({
-            ...item,
-            statusColor: item.status === 'In Stock' ? 'text-green-600' :
-                item.status === 'Low Stock' ? 'text-yellow-600' : 'text-red-600',
-            formattedRetailPrice: new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: 'USD'
-            }).format(item.retailPrice || 0),
-            formattedWeightedCost: new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: 'USD'
-            }).format(item.weightedAverageCost || 0)
-        }));
-    }, [inventoryItems]);
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(initialPagination.page);
+    const [itemsPerPage, setItemsPerPage] = useState(initialPagination.limit);
+
+    // React Query for data fetching
+    const {
+        data: inventoryData,
+        isLoading,
+        error,
+        refetch
+    } = useInventory({
+        page: currentPage,
+        limit: itemsPerPage,
+        search: searchTerm,
+        category: categoryFilter,
+        status: statusFilter
+    });
+
+    const inventoryItems = inventoryData?.data || initialInventoryItems;
+    const totalPages = inventoryData?.pagination?.totalPages || initialPagination.totalPages;
+    const totalItems = inventoryData?.pagination?.total || initialPagination.total;
+    const categories = initialCategories;
+
+    // Auto-refresh settings
+    const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
+    const [autoRefreshInterval, setAutoRefreshInterval] = useState(60); // seconds
+    const autoRefreshTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+
+    // Refetch when filters change
+    useEffect(() => {
+        refetch();
+        setLastRefreshed(new Date());
+    }, [searchTerm, categoryFilter, statusFilter, currentPage, refetch]);
+
+    // Set up auto-refresh timer
+    useEffect(() => {
+        if (autoRefreshEnabled) {
+            autoRefreshTimerRef.current = setInterval(() => {
+                console.log('Auto-refreshing inventory data...');
+                refetch();
+                setLastRefreshed(new Date());
+            }, autoRefreshInterval * 1000);
+        }
+
+        return () => {
+            if (autoRefreshTimerRef.current) {
+                clearInterval(autoRefreshTimerRef.current);
+            }
+        };
+    }, [autoRefreshEnabled, autoRefreshInterval, refetch]);
 
     // Memoize filter options
     const filterOptions = useMemo(() => ({
@@ -116,216 +147,6 @@ export default function InventoryClientWrapper({
             { value: 'Out of Stock', label: 'Out of Stock' }
         ]
     }), [categories]);
-
-    // Auto-refresh settings
-    const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
-    const [autoRefreshInterval, setAutoRefreshInterval] = useState(60); // seconds - increased from 30 to 60
-    const [pendingOperations, setPendingOperations] = useState(new Set<string>()); // Track pending operations
-    const autoRefreshTimerRef = useRef<NodeJS.Timeout | null>(null);
-    const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
-
-    // Debounce mechanism for WebSocket updates
-    const pendingUpdatesRef = useRef<Map<number, any>>(new Map());
-    const updateTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-    // Pagination state
-    const [currentPage, setCurrentPage] = useState(initialPagination.page);
-    const [totalPages, setTotalPages] = useState(initialPagination.totalPages);
-    const [totalItems, setTotalItems] = useState(initialPagination.total);
-    const [itemsPerPage, setItemsPerPage] = useState(initialPagination.limit);
-
-    // Process pending updates with debounce
-    const processPendingUpdates = useCallback(() => {
-        if (pendingUpdatesRef.current.size === 0) return;
-
-        console.log(`Processing ${pendingUpdatesRef.current.size} pending inventory updates`);
-
-        setInventoryItems(prevItems => {
-            return prevItems.map(item => {
-                const pendingUpdate = pendingUpdatesRef.current.get(item.id);
-                if (pendingUpdate) {
-                    // Apply the pending update
-                    return {
-                        ...item,
-                        ...pendingUpdate,
-                        status: pendingUpdate.stock > 0
-                            ? (pendingUpdate.stock < 10 ? 'Low Stock' : 'In Stock')
-                            : 'Out of Stock'
-                    };
-                }
-                return item;
-            });
-        });
-
-        // Clear pending updates after processing
-        pendingUpdatesRef.current.clear();
-    }, []);
-
-    // Set up debounce effect
-    useEffect(() => {
-        if (updateTimerRef.current) {
-            clearTimeout(updateTimerRef.current);
-        }
-
-        if (pendingUpdatesRef.current.size > 0) {
-            updateTimerRef.current = setTimeout(() => {
-                processPendingUpdates();
-                updateTimerRef.current = null;
-            }, 300); // 300ms debounce delay
-        }
-
-        return () => {
-            if (updateTimerRef.current) {
-                clearTimeout(updateTimerRef.current);
-            }
-        };
-    }, [processPendingUpdates, pendingUpdatesRef.current.size]);
-
-    // Memoized callback for WebSocket updates with improved reliability
-    const handleInventoryUpdate = useCallback((eventData: any) => {
-        console.log('Received event via useInventoryUpdates (memoized):', eventData);
-        setIsWebSocketUpdate(true);
-
-        const { type, ...payload } = eventData;
-
-        try {
-            if (type === WEBSOCKET_EVENTS.INVENTORY_UPDATE && payload.items) {
-                // Full inventory update - only apply if no pending operations
-                if (pendingOperations.size === 0) {
-                    setInventoryItems(payload.items);
-                    if (payload.pagination) {
-                        setTotalPages(payload.pagination.totalPages);
-                        setTotalItems(payload.pagination.total);
-                    }
-                } else {
-                    console.log('Skipping full inventory update due to pending operations');
-                }
-            } else if (type === WEBSOCKET_EVENTS.INVENTORY_ITEM_UPDATE && payload.item) {
-                // Single item update - only apply if no pending operations for this item
-                const hasRelatedPendingOp = Array.from(pendingOperations).some(op => 
-                    op.includes(`-${payload.item.id}`)
-                );
-                if (!hasRelatedPendingOp) {
-                    setInventoryItems(prev =>
-                        prev.map(item => item.id === payload.item.id ? payload.item : item)
-                    );
-                } else {
-                    console.log(`Skipping item update for ${payload.item.id} due to pending operation`);
-                }
-            } else if (type === WEBSOCKET_EVENTS.INVENTORY_ITEM_CREATE && payload.item) {
-                // Item creation - no debounce needed
-                setInventoryItems(prevItems => {
-                    // Add to the beginning if on the first page and not exceeding itemsPerPage
-                    const newItems = [payload.item, ...prevItems];
-                    if (currentPage === 1) {
-                        return newItems.slice(0, itemsPerPage);
-                    }
-                    return prevItems; // If not on page 1, data will be fetched on navigation
-                });
-                setTotalItems(prev => prev + 1);
-                // Recalculate totalPages based on new totalItems and itemsPerPage
-                setTotalPages(Math.ceil((totalItems + 1) / itemsPerPage));
-            } else if (type === WEBSOCKET_EVENTS.INVENTORY_ITEM_DELETE && (payload.itemId || payload.productId)) {
-                // Item deletion - only apply if no pending operations for this item
-                const idToRemove = payload.itemId || payload.productId;
-                const hasRelatedPendingOp = Array.from(pendingOperations).some(op => 
-                    op.includes(`-${idToRemove}`)
-                );
-                if (!hasRelatedPendingOp) {
-                    setInventoryItems(prev => prev.filter(item => item.id !== idToRemove));
-                    setTotalItems(prev => prev - 1);
-                    setTotalPages(Math.ceil((totalItems - 1) / itemsPerPage));
-                } else {
-                    console.log(`Skipping item deletion for ${idToRemove} due to pending operation`);
-                }
-            } else if (type === WEBSOCKET_EVENTS.INVENTORY_LEVEL_UPDATED && payload.productId) {
-            console.log('Handling INVENTORY_LEVEL_UPDATED (memoized):', payload);
-
-            // Use the updater function for setInventoryItems to access the latest inventoryItems
-            setInventoryItems(prevInventoryItems => {
-                const currentItem = prevInventoryItems.find(item => item.id === payload.productId);
-                if (!currentItem) {
-                    console.warn(`Item with ID ${payload.productId} not found in current inventory items.`);
-                    return prevInventoryItems; // Return previous state if item not found
-                }
-
-                // Get or create pending update for this product
-                // Note: pendingUpdatesRef.current still refers to the ref, which is stable.
-                const existingUpdate = pendingUpdatesRef.current.get(payload.productId) || {
-                    ...currentItem,
-                    branchStock: [...currentItem.branchStock]
-                };
-
-                // Update the pending update with new data
-                if (payload.shopId !== undefined && payload.newQuantity !== undefined) {
-                    const branchIndex = existingUpdate.branchStock.findIndex(
-                        (bs: any) => bs.shopId === payload.shopId
-                    );
-
-                    if (branchIndex !== -1) {
-                        existingUpdate.branchStock[branchIndex] = {
-                            ...existingUpdate.branchStock[branchIndex],
-                            quantity: payload.newQuantity
-                        };
-                    } else {
-                        existingUpdate.branchStock.push({
-                            shopId: payload.shopId,
-                            shopName: `Shop ${payload.shopId}`, // Consider fetching actual shop name if available
-                            quantity: payload.newQuantity
-                        });
-                    }
-
-                    // Recalculate total stock
-                    existingUpdate.stock = existingUpdate.branchStock.reduce(
-                        (sum: number, bs: any) => sum + bs.quantity, 0
-                    );
-                } else if (payload.newTotalStock !== undefined) {
-                    existingUpdate.stock = payload.newTotalStock;
-                } else if (payload.quantityChange !== undefined) {
-                    // Ensure stock does not go below zero due to quantityChange
-                    existingUpdate.stock = Math.max(0, existingUpdate.stock + payload.quantityChange);
-                }
-
-                // Store the pending update
-                pendingUpdatesRef.current.set(payload.productId, existingUpdate);
-                return prevInventoryItems; // Return previous state, debounce will handle the actual update
-            });
-
-            } else {
-                console.log('Received unhandled WebSocket event type or payload (memoized):', type, payload);
-            }
-        } catch (error) {
-            console.error('Error handling WebSocket event:', error, eventData);
-            // Don't crash the component on WebSocket errors
-        }
-    }, [currentPage, itemsPerPage, totalItems, WEBSOCKET_EVENTS, processPendingUpdates, pendingOperations]);
-
-    // Subscribe to inventory updates via WebSocket
-    useInventoryUpdates(handleInventoryUpdate);
-
-    // Effect to synchronize state with props when they change (but not for WebSocket updates)
-    useEffect(() => {
-        if (!isWebSocketUpdate) {
-            setInventoryItems(initialInventoryItems);
-            setCategories(initialCategories);
-            setCurrentPage(initialPagination.page);
-            setTotalPages(initialPagination.totalPages);
-            setTotalItems(initialPagination.total);
-            setItemsPerPage(initialPagination.limit);
-            setSearchTerm(initialSearchTerm);
-            setCategoryFilter(initialCategoryFilter);
-            setStatusFilter(initialStatusFilter);
-        }
-        setIsWebSocketUpdate(false); // Reset flag after processing or initial load
-    }, [
-        initialInventoryItems,
-        initialCategories,
-        initialPagination,
-        initialSearchTerm,
-        initialCategoryFilter,
-        initialStatusFilter,
-        isWebSocketUpdate
-    ]);
 
     // Update URL when filters or pagination changes
     useEffect(() => {
@@ -406,7 +227,7 @@ export default function InventoryClientWrapper({
         const operationId = `delete-product-${productId}`;
         setDeleteLoading(productId);
         setPendingOperations(prev => new Set(prev).add(operationId));
-        
+
         // Temporarily disable auto-refresh during deletion
         const wasAutoRefreshEnabled = autoRefreshEnabled;
         setAutoRefreshEnabled(false);
@@ -415,14 +236,14 @@ export default function InventoryClientWrapper({
             // Optimistic update - immediately remove from UI
             const originalItems = inventoryItems;
             setInventoryItems(prevItems => prevItems.filter(item => item.id !== productId));
-            
+
             const response = await authDelete(`/api/products/${productId}`);
             const data = await response.json();
 
             if (data.success) {
                 // Success - keep the item removed
                 console.log(`Product ${productId} deleted successfully`);
-                
+
                 // Wait a bit before re-enabling auto-refresh to ensure DB consistency
                 setTimeout(() => {
                     setAutoRefreshEnabled(wasAutoRefreshEnabled);
@@ -652,10 +473,9 @@ export default function InventoryClientWrapper({
                         </select>
                     </div>
                     <div className="flex items-center">
-                        <div className={`w-2 h-2 rounded-full mr-2 ${
-                            pendingOperations.size > 0 ? 'bg-yellow-500 animate-pulse' :
+                        <div className={`w-2 h-2 rounded-full mr-2 ${pendingOperations.size > 0 ? 'bg-yellow-500 animate-pulse' :
                             autoRefreshEnabled ? 'bg-green-500 animate-pulse' : 'bg-gray-300'
-                        }`}></div>
+                            }`}></div>
                         <div className="text-xs text-gray-500">
                             {pendingOperations.size > 0 ? (
                                 <span className="text-yellow-600 font-medium">
@@ -892,7 +712,6 @@ export default function InventoryClientWrapper({
                             size="sm"
                             onClick={() => {
                                 setCurrentPage(prev => Math.max(prev - 1, 1));
-                                setTimeout(() => refreshInventory(), 100);
                             }}
                             disabled={currentPage <= 1}
                         >
@@ -903,7 +722,6 @@ export default function InventoryClientWrapper({
                             size="sm"
                             onClick={() => {
                                 setCurrentPage(prev => Math.min(prev + 1, totalPages));
-                                setTimeout(() => refreshInventory(), 100);
                             }}
                             disabled={currentPage >= totalPages}
                         >
@@ -938,13 +756,8 @@ export default function InventoryClientWrapper({
                                         if (categoryFilter) params.set('category', categoryFilter);
                                         if (statusFilter) params.set('status', statusFilter);
 
-                                        // Update URL and refresh data
+                                        // Update URL
                                         router.push(`${pathname}?${params.toString()}`);
-
-                                        // Add a small delay to ensure state is updated before refresh
-                                        setTimeout(() => {
-                                            refreshInventory();
-                                        }, 100);
                                     }}
                                 >
                                     <option value="5">5</option>
@@ -962,7 +775,6 @@ export default function InventoryClientWrapper({
                                     className="rounded-l-md"
                                     onClick={() => {
                                         setCurrentPage(1);
-                                        setTimeout(() => refreshInventory(), 100);
                                     }}
                                     disabled={currentPage <= 1}
                                 >
@@ -973,7 +785,6 @@ export default function InventoryClientWrapper({
                                     size="sm"
                                     onClick={() => {
                                         setCurrentPage(prev => Math.max(prev - 1, 1));
-                                        setTimeout(() => refreshInventory(), 100);
                                     }}
                                     disabled={currentPage <= 1}
                                 >
@@ -1002,7 +813,6 @@ export default function InventoryClientWrapper({
                                                 size="sm"
                                                 onClick={() => {
                                                     setCurrentPage(pageNum);
-                                                    setTimeout(() => refreshInventory(), 100);
                                                 }}
                                                 className="mx-1"
                                             >
@@ -1017,7 +827,6 @@ export default function InventoryClientWrapper({
                                     size="sm"
                                     onClick={() => {
                                         setCurrentPage(prev => Math.min(prev + 1, totalPages));
-                                        setTimeout(() => refreshInventory(), 100);
                                     }}
                                     disabled={currentPage >= totalPages}
                                 >
@@ -1029,7 +838,6 @@ export default function InventoryClientWrapper({
                                     className="rounded-r-md"
                                     onClick={() => {
                                         setCurrentPage(totalPages);
-                                        setTimeout(() => refreshInventory(), 100);
                                     }}
                                     disabled={currentPage >= totalPages}
                                 >

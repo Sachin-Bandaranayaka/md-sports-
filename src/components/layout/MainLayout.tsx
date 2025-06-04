@@ -4,7 +4,7 @@ import React, { ReactNode, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { SocketProvider } from '@/context/SocketContext';
+import { QueryProvider } from '@/context/QueryProvider';
 import {
     Home,
     Package,
@@ -151,7 +151,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
     const authorizedNavItems = getAuthorizedNavItems();
 
     return (
-        <SocketProvider>
+        <QueryProvider>
             <div className="min-h-screen bg-gray-100">
                 <Toaster position="top-right" richColors />
                 {/* Sidebar */}
@@ -325,6 +325,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     <main className="p-6">{children}</main>
                 </div>
             </div>
-        </SocketProvider>
+        </QueryProvider>
     );
-} 
+}

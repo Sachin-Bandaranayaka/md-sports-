@@ -1,8 +1,9 @@
 /** @type {import('next').NextConfig} */
+const webpack = require('webpack');
 
 const nextConfig = {
   webpack: (config, { isServer }) => {
-    // Fixes npm packages that depend on `pg` module
+    // Fixes npm packages that depend on `pg` module and axios compatibility
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
@@ -10,7 +11,28 @@ const nextConfig = {
         fs: false,
         net: false,
         tls: false,
+        http: false,
+        https: false,
+        url: false,
+        assert: false,
+        stream: false,
+        util: false,
+        buffer: require.resolve('buffer'),
+        process: require.resolve('process/browser'),
+        zlib: false,
+        querystring: false,
+        path: false,
+        crypto: false,
+        os: false,
       };
+      
+      // Add plugins for polyfills
+      config.plugins.push(
+        new webpack.ProvidePlugin({
+          Buffer: ['buffer', 'Buffer'],
+          process: 'process/browser',
+        })
+      );
     }
     
     return config;

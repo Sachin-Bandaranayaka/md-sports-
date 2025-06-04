@@ -5,8 +5,7 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Search, Plus, Edit, Trash, FileText, ExternalLink, Calendar, DollarSign, X, RefreshCw } from 'lucide-react';
 import { PurchaseInvoice, Supplier } from '@/types';
-import { usePurchaseUpdates } from '@/hooks/useWebSocket';
-import { WEBSOCKET_EVENTS } from '@/lib/websocket';
+import { usePurchaseInvoices, useDeletePurchaseInvoice } from '@/hooks/useQueries';
 import { toast } from 'sonner';
 // InvoiceFormModal import removed - using separate pages for forms
 
@@ -41,23 +40,37 @@ export default function PurchaseListClient({
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
-    const [purchaseInvoices, setPurchaseInvoices] = useState<PurchaseInvoice[]>(initialPurchaseInvoices);
-    const [suppliers, setSuppliers] = useState<Supplier[]>(initialSuppliers);
-    const [loading, setLoading] = useState<boolean>(false); // Initial load handled by server
-    const [error, setError] = useState<string | null>(null);
-    const [isRefreshing, setIsRefreshing] = useState(false);
-    const [isWebSocketUpdate, setIsWebSocketUpdate] = useState(false);
-    const [lastRefreshed, setLastRefreshed] = useState<Date | null>(new Date());
-
     const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
-    const [currentPage, setCurrentPage] = useState(initialCurrentPage);
-    const [totalPages, setTotalPages] = useState(initialTotalPages);
-
-    // New filter states
     const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
     const [supplierFilter, setSupplierFilter] = useState(searchParams.get('supplierId') || '');
     const [startDateFilter, setStartDateFilter] = useState(searchParams.get('startDate') || '');
     const [endDateFilter, setEndDateFilter] = useState(searchParams.get('endDate') || '');
+    const [currentPage, setCurrentPage] = useState(initialCurrentPage);
+    const itemsPerPage = 10;
+
+    // React Query for data fetching
+    const {
+        data: purchasesData,
+        isLoading: loading,
+        error,
+        refetch
+    } = usePurchaseInvoices({
+        page: currentPage,
+        limit: itemsPerPage,
+        search: searchTerm,
+        supplier: supplierFilter,
+        status: statusFilter,
+        startDate: startDateFilter,
+        endDate: endDateFilter
+    });
+
+    const deleteInvoiceMutation = useDeletePurchaseInvoice();
+
+    const purchaseInvoices = purchasesData?.data || initialPurchaseInvoices;
+    const totalPages = purchasesData?.pagination?.totalPages || initialTotalPages;
+    const suppliers = initialSuppliers;
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [lastRefreshed, setLastRefreshed] = useState<Date | null>(new Date());
 
     // Modal states removed - using separate pages for detail and edit views
 
@@ -95,59 +108,18 @@ export default function PurchaseListClient({
 
     // Update state if initial props change (e.g. due to navigation)
     useEffect(() => {
-        if (!isWebSocketUpdate) {
-            setPurchaseInvoices(initialPurchaseInvoices);
-            setSuppliers(initialSuppliers);
-            setTotalPages(initialTotalPages);
-            setCurrentPage(initialCurrentPage);
-            setSearchTerm(searchParams.get('search') || '');
-            // Initialize new filters from searchParams as well
-            setStatusFilter(searchParams.get('status') || '');
-            setSupplierFilter(searchParams.get('supplierId') || '');
-            setStartDateFilter(searchParams.get('startDate') || '');
-            setEndDateFilter(searchParams.get('endDate') || '');
-            setLastRefreshed(new Date());
-        }
-        setIsWebSocketUpdate(false);
-    }, [initialPurchaseInvoices, initialSuppliers, initialTotalPages, initialCurrentPage, searchParams, isWebSocketUpdate]);
+        setSearchTerm(searchParams.get('search') || '');
+        setStatusFilter(searchParams.get('status') || '');
+        setSupplierFilter(searchParams.get('supplierId') || '');
+        setStartDateFilter(searchParams.get('startDate') || '');
+        setEndDateFilter(searchParams.get('endDate') || '');
+        setLastRefreshed(new Date());
+    }, [searchParams]);
 
-    // WebSocket handler for purchase updates
-    const handlePurchaseUpdate = useCallback((eventData: any) => {
-        console.log('Received purchase update via WebSocket:', eventData);
-        setIsWebSocketUpdate(true);
-
-        const { type, ...payload } = eventData;
-
-        if (type === WEBSOCKET_EVENTS.PURCHASE_INVOICE_CREATED && payload.invoice) {
-            console.log('Adding new purchase invoice to list:', payload.invoice);
-            setPurchaseInvoices(prev => {
-                // Add to beginning of list if on first page
-                if (currentPage === 1) {
-                    return [payload.invoice, ...prev];
-                }
-                // If not on page 1, or to simply refresh to show correct total/pagination:
-                // router.refresh(); // Option: refresh if created item should appear on other pages or affect totals
-                return prev;
-            });
-            setLastRefreshed(new Date());
-        } else if (type === WEBSOCKET_EVENTS.PURCHASE_INVOICE_UPDATED && payload.invoice) {
-            console.log('Updating purchase invoice in list:', payload.invoice);
-            setPurchaseInvoices(prev =>
-                prev.map(invoice => invoice.id === payload.invoice.id ? payload.invoice : invoice)
-            );
-            setLastRefreshed(new Date());
-            // Optionally, refresh if an update could affect sorting or filtering that's partially server-managed
-            // router.refresh();
-        } else if (type === WEBSOCKET_EVENTS.PURCHASE_INVOICE_DELETED && payload.id) {
-            console.log('Removing purchase invoice from list:', payload.id);
-            setPurchaseInvoices(prev => prev.filter(invoice => invoice.id !== payload.id));
-            setLastRefreshed(new Date());
-            router.refresh();
-        }
-    }, [currentPage, router]);
-
-    // Subscribe to purchase updates via WebSocket
-    usePurchaseUpdates(handlePurchaseUpdate);
+    // Refetch when filters change
+    useEffect(() => {
+        refetch();
+    }, [searchTerm, statusFilter, supplierFilter, startDateFilter, endDateFilter, currentPage, refetch]);
 
     // Function to manually refresh data
     const refreshData = useCallback(async () => {
@@ -211,26 +183,16 @@ export default function PurchaseListClient({
     };
 
     const handleDeleteInvoice = async (id: string) => {
-        try {
-            setLoading(true);
-            const response = await fetch(`/api/purchases/${id}`, {
-                method: 'DELETE'
-            });
+        if (!confirm('Are you sure you want to delete this purchase invoice?')) {
+            return;
+        }
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                // Expect standardized error: { error: { message: "..." } }
-                const message = errorData.error?.message || 'Failed to delete purchase invoice';
-                throw new Error(message);
-            }
-            // Remove manual local state update - let WebSocket handle UI update for consistency
-            // The PURCHASE_INVOICE_DELETED event will automatically update the UI
+        try {
+            await deleteInvoiceMutation.mutateAsync(id);
             toast.success('Invoice deleted successfully.');
         } catch (err: any) {
             console.error('Error deleting purchase invoice:', err);
-            setError(err.message || 'Failed to delete purchase invoice. Please try again.');
-        } finally {
-            setLoading(false);
+            toast.error('Failed to delete purchase invoice. Please try again.');
         }
     };
 
@@ -390,8 +352,8 @@ export default function PurchaseListClient({
             {loading && <div className="text-center py-4">Loading...</div>}
             {error && (
                 <div className="text-center py-4 text-red-500">
-                    <p>{error}</p>
-                    <Button variant="outline" size="sm" onClick={() => router.refresh()} className="mt-2">Retry</Button>
+                    <p>{error instanceof Error ? error.message : 'An error occurred'}</p>
+                    <Button variant="outline" size="sm" onClick={() => refetch()} className="mt-2">Retry</Button>
                 </div>
             )}
 

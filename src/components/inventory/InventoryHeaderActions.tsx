@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Filter, ArrowUpDown, ShoppingBag, PlusCircle, Package, Store, Download, Upload, Loader2, RefreshCw, RotateCw } from 'lucide-react';
+import { Filter, ArrowUpDown, ShoppingBag, PlusCircle, Package, Store, Download, Upload, Loader2, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import AddInventoryModal from '@/components/inventory/AddInventoryModal';
 import React from 'react';
-import { useSocket } from '@/context/SocketContext';
+import { useInventory } from '@/hooks/useQueries';
 
 export default function InventoryHeaderActions() {
     const router = useRouter();
@@ -15,9 +15,8 @@ export default function InventoryHeaderActions() {
     const [isUploading, setIsUploading] = useState(false);
     const [uploadError, setUploadError] = useState<string | null>(null);
     const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
-    const [isReconnecting, setIsReconnecting] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
-    const { reconnect, isConnected } = useSocket();
+    const { refetch } = useInventory();
 
     const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -50,26 +49,13 @@ export default function InventoryHeaderActions() {
         }
     };
 
-    // Handle manual WebSocket reconnection
-    const handleReconnect = async () => {
-        setIsReconnecting(true);
-        try {
-            reconnect();
-            // Add a small delay to show the reconnecting state
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        } finally {
-            setIsReconnecting(false);
-        }
-    };
-
     // Handle manual data refresh
     const handleRefreshData = async () => {
         setIsRefreshing(true);
         try {
-            // Dispatch custom event to trigger inventory refresh
-            window.dispatchEvent(new CustomEvent('refresh-inventory'));
+            await refetch();
             // Add a small delay to show the refreshing state
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 500));
         } finally {
             setIsRefreshing(false);
         }
@@ -109,7 +95,7 @@ export default function InventoryHeaderActions() {
                 throw new Error(result?.message || 'Bulk import failed. Please check the file and try again.');
             }
             setUploadSuccess(result.message || 'Products imported successfully!');
-            router.refresh(); // Refresh inventory list
+            await refetch(); // Refresh inventory list
         } catch (err: any) {
             console.error('Error uploading file:', err);
             setUploadError(err.message || 'An unexpected error occurred during upload.');
@@ -146,18 +132,7 @@ export default function InventoryHeaderActions() {
                     <Filter className="w-4 h-4" />
                     <span className="hidden sm:inline">Filter</span>
                 </Button>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleReconnect}
-                    disabled={isReconnecting}
-                    className={`flex items-center gap-1 ${!isConnected ? 'border-red-500 text-red-500 hover:bg-red-50' : ''}`}
-                >
-                    <RefreshCw className={`w-4 h-4 ${isReconnecting ? 'animate-spin' : ''}`} />
-                    <span className="hidden sm:inline">
-                        {isReconnecting ? 'Reconnecting...' : isConnected ? 'Connected' : 'Reconnect'}
-                    </span>
-                </Button>
+
                 <Button
                     variant="outline"
                     size="sm"
@@ -250,4 +225,4 @@ export default function InventoryHeaderActions() {
             />
         </>
     );
-} 
+}

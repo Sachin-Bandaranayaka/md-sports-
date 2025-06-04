@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { Package, Truck, CreditCard, AlertTriangle, Tag, TrendingUp, TrendingDown } from 'lucide-react';
-import { useDashboardUpdates } from '@/hooks/useWebSocket';
+import { useDashboardMetrics } from '@/hooks/useQueries';
 
 // Types for our data
 interface SummaryItem {
@@ -26,19 +26,11 @@ interface DashboardMetricsProps {
 }
 
 export default function DashboardMetrics({ summaryData: initialSummaryData }: DashboardMetricsProps) {
-    // State to track the current summary data
-    const [summaryData, setSummaryData] = useState<SummaryItem[] | null>(initialSummaryData);
+    // Use React Query to fetch dashboard metrics
+    const { data: dashboardData, isLoading, error } = useDashboardMetrics();
 
-    // Memoized callback for WebSocket updates
-    const handleDashboardUpdate = useCallback((data: any) => {
-        if (data && data.summaryData) {
-            console.log('Received dashboard metrics update (memoized):', data.summaryData);
-            setSummaryData(data.summaryData);
-        }
-    }, []); // Empty dependency array as setSummaryData is stable and data is from the event
-
-    // Subscribe to dashboard updates via WebSocket
-    useDashboardUpdates(handleDashboardUpdate);
+    // Use React Query data if available, otherwise fall back to initial data
+    const summaryData = dashboardData?.summaryData || initialSummaryData;
 
     // Map icon names to components
     const iconMap: Record<string, React.ElementType> = {
@@ -52,6 +44,21 @@ export default function DashboardMetrics({ summaryData: initialSummaryData }: Da
 
     // Use provided data or fallback to dummy data
     const displayData = summaryData || dummySummaryData;
+
+    // Show loading state if data is being fetched
+    if (isLoading && !summaryData) {
+        return (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {Array.from({ length: 4 }).map((_, index) => (
+                    <div key={index} className="bg-tertiary p-6 rounded-lg shadow-sm border border-gray-200 animate-pulse">
+                        <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
+                        <div className="h-8 bg-gray-300 rounded w-1/2 mb-2"></div>
+                        <div className="h-4 bg-gray-300 rounded w-1/4"></div>
+                    </div>
+                ))}
+            </div>
+        );
+    }
 
     // Filter out "Total Retail Value" card
     const filteredDisplayData = displayData.filter(item => item.title !== 'Total Retail Value');
