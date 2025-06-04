@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/utils/middleware';
 import { prisma, safeQuery } from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
+import { transferCacheService } from '@/lib/transferCache';
+import { trackTransferOperation } from '@/lib/transferPerformanceMonitor';
+import { deduplicateRequest } from '@/lib/request-deduplication';
 
 // Default fallback data for transfers
 const defaultTransfersData = [
@@ -12,81 +15,110 @@ const defaultTransfersData = [
 
 // GET: Fetch all inventory transfers
 export async function GET(req: NextRequest) {
+    const operation = trackTransferOperation('list');
+
     console.log('GET /api/inventory/transfers - Checking permission: inventory:view');
     // Check for inventory:view permission
     const permissionError = await requirePermission('inventory:view')(req);
     if (permissionError) {
         console.error('Permission denied for inventory:view:', permissionError.status);
+        operation.end(false, 'unauthorized');
         return permissionError;
     }
 
     try {
         console.log('Executing query to fetch transfers...');
 
-        const transfers = await safeQuery(
-            async () => {
-                const result = await prisma.inventoryTransfer.findMany({
-                    select: {
-                        id: true,
-                        status: true,
-                        createdAt: true,
-                        updatedAt: true,
-                        notes: true,
-                        fromShop: {
-                            select: {
-                                id: true,
-                                name: true
-                            }
-                        },
-                        toShop: {
-                            select: {
-                                id: true,
-                                name: true
-                            }
-                        },
-                        fromUser: {
-                            select: {
-                                id: true,
-                                name: true
-                            }
-                        },
-                        transferItems: {
-                            select: {
-                                id: true,
-                                quantity: true
-                            }
-                        }
-                    },
-                    orderBy: {
-                        createdAt: 'desc'
-                    }
-                });
+        // Generate cache key based on request parameters
+        const { searchParams } = new URL(req.url);
+        const cacheKey = transferCacheService.generateCacheKey('list', {
+            searchParams: searchParams.toString()
+        });
 
-                // Format the data to match the expected format from the SQL query
-                return result.map(transfer => ({
-                    id: transfer.id,
-                    status: transfer.status,
-                    created_at: transfer.createdAt.toISOString(),
-                    completed_at: null, // This field doesn't exist in Prisma schema, could be added later
-                    source_shop_name: transfer.fromShop.name,
-                    destination_shop_name: transfer.toShop.name,
-                    initiated_by: transfer.fromUser.name,
-                    item_count: transfer.transferItems.length,
-                    total_items: transfer.transferItems.reduce((sum, item) => sum + item.quantity, 0)
-                }));
-            },
-            defaultTransfersData,
-            'Failed to fetch inventory transfers'
+        // Try to get from cache first
+        const cached = await transferCacheService.get(cacheKey);
+        if (cached) {
+            operation.end(true, undefined, true);
+            return NextResponse.json(cached);
+        }
+
+        // Use request deduplication for identical requests
+        const result = await deduplicateRequest(
+            cacheKey,
+            async () => {
+                const transfers = await safeQuery(
+                    async () => {
+                        const result = await prisma.inventoryTransfer.findMany({
+                            select: {
+                                id: true,
+                                status: true,
+                                createdAt: true,
+                                updatedAt: true,
+                                notes: true,
+                                fromShop: {
+                                    select: {
+                                        id: true,
+                                        name: true
+                                    }
+                                },
+                                toShop: {
+                                    select: {
+                                        id: true,
+                                        name: true
+                                    }
+                                },
+                                fromUser: {
+                                    select: {
+                                        id: true,
+                                        name: true
+                                    }
+                                },
+                                transferItems: {
+                                    select: {
+                                        id: true,
+                                        quantity: true
+                                    }
+                                }
+                            },
+                            orderBy: {
+                                createdAt: 'desc'
+                            }
+                        });
+
+                        // Format the data to match the expected format from the SQL query
+                        return result.map(transfer => ({
+                            id: transfer.id,
+                            status: transfer.status,
+                            created_at: transfer.createdAt.toISOString(),
+                            completed_at: null, // This field doesn't exist in Prisma schema, could be added later
+                            source_shop_name: transfer.fromShop.name,
+                            destination_shop_name: transfer.toShop.name,
+                            initiated_by: transfer.fromUser.name,
+                            item_count: transfer.transferItems.length,
+                            total_items: transfer.transferItems.reduce((sum, item) => sum + item.quantity, 0)
+                        }));
+                    },
+                    defaultTransfersData,
+                    'Failed to fetch inventory transfers'
+                );
+
+                return {
+                    success: true,
+                    data: transfers
+                };
+            }
         );
 
-        console.log('Query executed successfully. Results:', transfers);
-        console.log(`Retrieved ${transfers.length} transfers successfully`);
-        return NextResponse.json({
-            success: true,
-            data: transfers
-        });
+        // Cache the result
+        await transferCacheService.set(cacheKey, result);
+
+        console.log('Query executed successfully. Results:', result.data);
+        console.log(`Retrieved ${result.data.length} transfers successfully`);
+        operation.end(true, undefined, false);
+        return NextResponse.json(result);
     } catch (error) {
         console.error('Error fetching transfers:', error);
+        operation.end(false, 'fetch_error');
         return NextResponse.json({
             success: false,
             message: 'Error fetching transfers',
@@ -97,11 +129,14 @@ export async function GET(req: NextRequest) {
 
 // POST: Create a new inventory transfer
 export async function POST(req: NextRequest) {
+    const operation = trackTransferOperation('create');
+
     console.log('POST /api/inventory/transfers - Checking permission: inventory:transfer');
     // Check for inventory:transfer permission
     const permissionError = await requirePermission('inventory:transfer')(req);
     if (permissionError) {
         console.error('Permission denied for inventory:transfer:', permissionError.status);
+        operation.end(false, 'unauthorized');
         return permissionError;
     }
 
@@ -109,9 +144,15 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
         const { sourceShopId, destinationShopId, items } = body;
 
+        operation.timer.metadata = {
+            itemCount: items?.length || 0,
+            shopCount: 2 // source + destination
+        };
+
         // Get user ID from authorization token
         const authHeader = req.headers.get('authorization');
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            operation.end(false, 'unauthorized');
             return NextResponse.json({
                 success: false,
                 message: 'Authentication required'
@@ -122,6 +163,7 @@ export async function POST(req: NextRequest) {
         const decodedToken = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
 
         if (typeof decodedToken !== 'object' || !decodedToken.sub) {
+            operation.end(false, 'unauthorized');
             return NextResponse.json({
                 success: false,
                 message: 'Invalid token'
@@ -133,6 +175,7 @@ export async function POST(req: NextRequest) {
 
         // Validate request data
         if (!sourceShopId || !destinationShopId || !items || !items.length) {
+            operation.end(false, 'validation_error');
             return NextResponse.json({
                 success: false,
                 message: 'Missing required fields'
@@ -176,7 +219,15 @@ export async function POST(req: NextRequest) {
             throw new Error('Failed to create transfer');
         }
 
+        // Invalidate relevant caches
+        await Promise.all([
+            transferCacheService.invalidateShopTransfers(sourceShopId),
+            transferCacheService.invalidateShopTransfers(destinationShopId),
+            transferCacheService.invalidateUserTransfers(userId)
+        ]);
+
         console.log('Transfer created successfully with ID:', result.id);
+        operation.end(true);
         return NextResponse.json({
             success: true,
             message: 'Inventory transfer created successfully',
@@ -186,10 +237,11 @@ export async function POST(req: NextRequest) {
         }, { status: 201 });
     } catch (error) {
         console.error('Error creating transfer:', error);
+        operation.end(false, 'creation_error');
         return NextResponse.json({
             success: false,
             message: 'Error creating transfer',
             error: error instanceof Error ? error.message : String(error)
         }, { status: 500 });
     }
-} 
+}

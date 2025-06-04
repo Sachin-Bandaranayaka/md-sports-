@@ -235,5 +235,6 @@ export const measureSync = <T>(
   metadata?: Record<string, any>
 ) => performanceMonitor.measureSync(name, fn, metadata);
 
-// Export types
+// Export types and classes
 export type { PerformanceMetric };
+export { PerformanceMonitor };

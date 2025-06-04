@@ -21,6 +21,7 @@ interface ShopStock {
     shopId: number;
     shopName: string;
     quantity: number;
+    shopSpecificCost: number;
 }
 
 interface ProductStock {
@@ -103,7 +104,8 @@ export default function InventoryDistribution() {
                             branchStock.push({
                                 shopId: inv.shop_id,
                                 shopName: inv.shop_name,
-                                quantity: inv.quantity
+                                quantity: inv.quantity,
+                                shopSpecificCost: parseFloat(inv.shop_specific_cost) || 0
                             });
                         });
                     }
@@ -396,7 +398,10 @@ export default function InventoryDistribution() {
                                     </th>
                                     {shopList.map(shop => (
                                         <th key={shop.id} scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            {shop.name}
+                                            <div className="text-center">
+                                                <div>{shop.name}</div>
+                                                <div className="text-xs text-gray-400 font-normal">Qty / WAC</div>
+                                            </div>
                                         </th>
                                     ))}
                                     <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -450,7 +455,12 @@ export default function InventoryDistribution() {
                                                             ${!isLowestStock && !isHighestStock ? 'text-black' : ''}
                                                         `}
                                                     >
-                                                        {quantity}
+                                                        <div className="text-center">
+                                                            <div className="font-semibold">{quantity}</div>
+                                                            <div className="text-xs text-gray-500">
+                                                                Rs. {stockInShop ? stockInShop.shopSpecificCost.toLocaleString() : '0'}
+                                                            </div>
+                                                        </div>
                                                     </td>
                                                 );
                                             })}
@@ -596,4 +606,4 @@ export default function InventoryDistribution() {
             </div>
         </MainLayout>
     );
-} 
+}
