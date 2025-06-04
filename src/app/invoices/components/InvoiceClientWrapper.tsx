@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Search, Plus, Filter, FileText, Download, Eye, CheckCircle, Trash2, Edit, Loader2, X } from 'lucide-react';
+import { InvoiceCreateModal, InvoiceEditModal, InvoiceViewModal } from '@/components/invoices';
+import type { InvoiceData } from '@/components/invoices';
 
 // Interface for Invoice (should match what the API provides or what page.tsx transforms)
 interface Invoice {
@@ -67,6 +69,12 @@ export default function InvoiceClientWrapper({
     const [statistics, setStatistics] = useState(initialStatistics);
     const [loading, setLoading] = useState<boolean>(false); // For client-side actions like payment, delete
     const [error, setError] = useState<string | null>(null);
+
+    // Modal states
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
+    const [isViewModalOpen, setIsViewModalOpen] = useState<boolean>(false);
+    const [selectedInvoice, setSelectedInvoice] = useState<InvoiceData | null>(null);
 
     // Filters state - initialized from URL search params if present
     const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('status') || '');
@@ -153,6 +161,61 @@ export default function InvoiceClientWrapper({
         }
     };
 
+    // Modal handlers
+    const handleViewInvoice = async (invoiceId: string | number) => {
+        try {
+            setLoading(true);
+            const response = await fetch(`/api/invoices/${invoiceId}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch invoice details');
+            }
+            const invoiceData = await response.json();
+            setSelectedInvoice(invoiceData);
+            setIsViewModalOpen(true);
+        } catch (err: any) {
+            console.error('Error fetching invoice:', err);
+            setError(err.message || 'Failed to load invoice details');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleEditInvoice = async (invoiceId: string | number) => {
+        try {
+            setLoading(true);
+            const response = await fetch(`/api/invoices/${invoiceId}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch invoice details');
+            }
+            const invoiceData = await response.json();
+            setSelectedInvoice(invoiceData);
+            setIsEditModalOpen(true);
+        } catch (err: any) {
+            console.error('Error fetching invoice:', err);
+            setError(err.message || 'Failed to load invoice details');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCreateSuccess = () => {
+        setIsCreateModalOpen(false);
+        router.refresh(); // Refresh the page to show new invoice
+    };
+
+    const handleEditSuccess = () => {
+        setIsEditModalOpen(false);
+        setSelectedInvoice(null);
+        router.refresh(); // Refresh the page to show updated invoice
+    };
+
+    const handleCloseModals = () => {
+        setIsCreateModalOpen(false);
+        setIsEditModalOpen(false);
+        setIsViewModalOpen(false);
+        setSelectedInvoice(null);
+    };
+
     // Format date string for display (if not already formatted)
     const formatDate = (dateString: string | Date) => {
         if (!dateString) return 'N/A';
@@ -163,7 +226,7 @@ export default function InvoiceClientWrapper({
     // Calculate countdown or overdue days for due date
     const getDueDateStatus = (invoice: Invoice) => {
         let dueDate: Date;
-        
+
         if (invoice.dueDate) {
             dueDate = new Date(invoice.dueDate);
         } else {
@@ -171,14 +234,14 @@ export default function InvoiceClientWrapper({
             dueDate = new Date(invoice.createdAt);
             dueDate.setDate(dueDate.getDate() + 30);
         }
-        
+
         const today = new Date();
         today.setHours(0, 0, 0, 0); // Reset time to start of day
         dueDate.setHours(0, 0, 0, 0); // Reset time to start of day
-        
+
         const diffTime = dueDate.getTime() - today.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
+
         if (diffDays > 0) {
             return {
                 text: `${diffDays} day${diffDays === 1 ? '' : 's'} left`,
@@ -212,7 +275,7 @@ export default function InvoiceClientWrapper({
             <div className="mb-6">
                 <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                     <h1 className="text-3xl font-bold text-gray-800">Manage Invoices</h1>
-                    <Button variant="primary" onClick={() => router.push('/invoices/new')} className="flex items-center">
+                    <Button variant="primary" onClick={() => setIsCreateModalOpen(true)} className="flex items-center">
                         <Plus size={18} className="mr-2" /> Create New Invoice
                     </Button>
                 </div>
@@ -369,7 +432,7 @@ export default function InvoiceClientWrapper({
                         <tbody className="bg-white divide-y divide-gray-200">
                             {invoices.map((invoice) => (
                                 <tr key={invoice.id} className="hover:bg-gray-50 transition-colors duration-150">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-600 hover:text-indigo-800 cursor-pointer" onClick={() => router.push(`/invoices/${invoice.id}`)}>{invoice.invoiceNumber}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-600 hover:text-indigo-800 cursor-pointer" onClick={() => handleViewInvoice(invoice.id)}>{invoice.invoiceNumber}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{invoice.customerName}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">{formatDate(invoice.createdAt)}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm hidden lg:table-cell">
@@ -387,16 +450,16 @@ export default function InvoiceClientWrapper({
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div className="flex items-center space-x-1">
-                                            <Button variant="ghost" size="icon" onClick={() => router.push(`/invoices/${invoice.id}`)} title="View Invoice">
-                                                <Eye size={16} className="text-blue-600" />
+                                            <Button variant="ghost" size="icon" onClick={() => handleViewInvoice(invoice.id)} title="View Invoice" disabled={loading}>
+                                                {loading ? <Loader2 className="animate-spin h-4 w-4" /> : <Eye size={16} className="text-blue-600" />}
                                             </Button>
                                             {invoice.status.toLowerCase() === 'pending' && (
                                                 <Button variant="ghost" size="icon" onClick={() => handleRecordPayment(invoice.id)} title="Record Payment" disabled={loading}>
                                                     {loading ? <Loader2 className="animate-spin h-4 w-4" /> : <CheckCircle size={16} className="text-green-600" />}
                                                 </Button>
                                             )}
-                                            <Button variant="ghost" size="icon" onClick={() => router.push(`/invoices/edit/${invoice.id}`)} title="Edit Invoice" disabled={loading}>
-                                                <Edit size={16} className="text-yellow-600" />
+                                            <Button variant="ghost" size="icon" onClick={() => handleEditInvoice(invoice.id)} title="Edit Invoice" disabled={loading}>
+                                                {loading ? <Loader2 className="animate-spin h-4 w-4" /> : <Edit size={16} className="text-yellow-600" />}
                                             </Button>
                                             <Button variant="ghost" size="icon" onClick={() => handleDeleteInvoice(invoice.id)} title="Delete Invoice" disabled={loading}>
                                                 {loading ? <Loader2 className="animate-spin h-4 w-4" /> : <Trash2 size={16} className="text-red-600" />}
@@ -442,6 +505,30 @@ export default function InvoiceClientWrapper({
                     </Button>
                 </div>
             )}
+
+            {/* Modal Components */}
+            <InvoiceCreateModal
+                isOpen={isCreateModalOpen}
+                onClose={handleCloseModals}
+                onSuccess={handleCreateSuccess}
+            />
+
+            <InvoiceEditModal
+                isOpen={isEditModalOpen}
+                onClose={handleCloseModals}
+                onSuccess={handleEditSuccess}
+                invoice={selectedInvoice}
+            />
+
+            <InvoiceViewModal
+                isOpen={isViewModalOpen}
+                onClose={handleCloseModals}
+                onEdit={() => {
+                    setIsViewModalOpen(false);
+                    setIsEditModalOpen(true);
+                }}
+                invoice={selectedInvoice}
+            />
         </>
     );
 }
