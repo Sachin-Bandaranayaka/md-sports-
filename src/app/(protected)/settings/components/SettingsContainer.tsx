@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Button } from '@/components/ui/Button';
+import { Loader2 } from 'lucide-react';
+import UsersList from '@/components/settings/UsersList';
 
 export default function SettingsContainer() {
     const router = useRouter();
@@ -350,38 +353,7 @@ export default function SettingsContainer() {
             )}
 
             {activeTab === 'users' && (
-                <div className="space-y-6">
-                    <h3 className="text-lg font-medium text-gray-900">Users & Permissions</h3>
-                    <p className="text-gray-500">
-                        Manage user accounts, roles, and permissions.
-                    </p>
-
-                    <div className="bg-white p-6 rounded-lg border border-gray-200">
-                        <div className="flex justify-between items-center mb-4">
-                            <h4 className="text-md font-medium text-gray-900">User Management</h4>
-                            <button
-                                onClick={() => router.push('/settings/users/add')}
-                                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark"
-                            >
-                                Add New User
-                            </button>
-                        </div>
-                        <p className="text-gray-600">Click "Add New User" to create new user accounts and assign roles.</p>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-lg border border-gray-200">
-                        <div className="flex justify-between items-center mb-4">
-                            <h4 className="text-md font-medium text-gray-900">Role Management</h4>
-                            <button
-                                onClick={() => router.push('/settings/roles/add')}
-                                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark"
-                            >
-                                Add New Role
-                            </button>
-                        </div>
-                        <p className="text-gray-600">Create and manage user roles with specific permissions.</p>
-                    </div>
-                </div>
+                <UsersList onAddUser={() => router.push('/settings/users/add')} />
             )}
 
             {activeTab === 'shops' && (
@@ -542,8 +514,8 @@ export default function SettingsContainer() {
                             </div>
                             {testSmsStatus && (
                                 <div className={`mt-3 p-3 rounded-md ${testSmsStatus.success === true ? 'bg-green-50 text-green-800' :
-                                        testSmsStatus.success === false ? 'bg-red-50 text-red-800' :
-                                            'bg-blue-50 text-blue-800'
+                                    testSmsStatus.success === false ? 'bg-red-50 text-red-800' :
+                                        'bg-blue-50 text-blue-800'
                                     }`}>
                                     {testSmsStatus.message}
                                 </div>
@@ -614,8 +586,8 @@ export default function SettingsContainer() {
                             </button>
                             {testAiStatus && (
                                 <div className={`mt-3 p-3 rounded-md ${testAiStatus.success === true ? 'bg-green-50 text-green-800' :
-                                        testAiStatus.success === false ? 'bg-red-50 text-red-800' :
-                                            'bg-blue-50 text-blue-800'
+                                    testAiStatus.success === false ? 'bg-red-50 text-red-800' :
+                                        'bg-blue-50 text-blue-800'
                                     }`}>
                                     {testAiStatus.message}
                                 </div>

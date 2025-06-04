@@ -30,6 +30,12 @@ export async function GET(req: NextRequest) {
                         id: true,
                         name: true
                     }
+                },
+                shop: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
                 }
             }
         });
@@ -82,42 +88,17 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        if (!userData.role) {
+        if (!userData.shop) {
             return NextResponse.json(
-                { success: false, message: 'Role is required' },
+                { success: false, message: 'Shop assignment is required' },
                 { status: 400 }
             );
         }
 
-        // Get or create a role based on the role name
-        let roleId;
-
-        try {
-            // Check if there's an existing role with this name
-            const existingRole = await prisma.role.findFirst({
-                where: { name: userData.role }
-            });
-
-            console.log('Existing role:', existingRole); // Log the role lookup result
-
-            if (existingRole) {
-                roleId = existingRole.id;
-            } else {
-                // Create a new role with the provided name
-                const newRole = await prisma.role.create({
-                    data: {
-                        name: userData.role,
-                        description: `Role for ${userData.role}`
-                    }
-                });
-                roleId = newRole.id;
-                console.log('Created new role:', newRole); // Log the new role
-            }
-        } catch (roleError) {
-            console.error('Error with role:', roleError);
+        if (!userData.permissions || userData.permissions.length === 0) {
             return NextResponse.json(
-                { success: false, message: 'Error creating or finding role' },
-                { status: 500 }
+                { success: false, message: 'At least one permission is required' },
+                { status: 400 }
             );
         }
 
@@ -129,8 +110,8 @@ export async function POST(req: NextRequest) {
             name: userData.name,
             email: userData.email,
             password: hashedPassword,
-            roleId: roleId,
-            roleName: userData.role,
+            roleId: null, // No role assignment needed
+            roleName: null, // No role name needed
             shopId: userData.shop ? parseInt(userData.shop) : null,
             permissions: userData.permissions || [],
             isActive: true
@@ -145,11 +126,15 @@ export async function POST(req: NextRequest) {
                 id: true,
                 name: true,
                 email: true,
-                roleId: true,
-                roleName: true,
                 shopId: true,
                 permissions: true,
-                createdAt: true
+                createdAt: true,
+                shop: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
+                }
             }
         });
 
@@ -166,4 +151,4 @@ export async function POST(req: NextRequest) {
             { status: 500 }
         );
     }
-} 
+}

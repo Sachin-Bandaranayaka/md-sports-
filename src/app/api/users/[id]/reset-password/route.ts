@@ -24,18 +24,9 @@ export async function POST(
             );
         }
 
-        // Get the request body
-        const { newPassword } = await req.json();
-
-        if (!newPassword) {
-            return NextResponse.json(
-                { success: false, message: 'New password is required' },
-                { status: 400 }
-            );
-        }
-
-        // Hash the password
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        // Generate a new temporary password
+        const newPassword = generateTemporaryPassword();
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
 
         // Update user password using Prisma
         const updatedUser = await prisma.user.update({
@@ -52,13 +43,35 @@ export async function POST(
 
         return NextResponse.json({
             success: true,
-            message: 'Password reset successfully'
+            message: 'Password reset successfully',
+            newPassword: newPassword // In production, this should be sent via email instead
         });
     } catch (error) {
         console.error('Error resetting password:', error);
         return NextResponse.json(
-            { success: false, message: 'Error resetting password' },
+            { success: false, message: 'Failed to reset password' },
             { status: 500 }
         );
     }
-} 
+}
+
+// Generate a temporary password
+function generateTemporaryPassword(): string {
+    const length = 12;
+    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+    let password = '';
+
+    // Ensure at least one of each type
+    password += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 26)];
+    password += 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)];
+    password += '0123456789'[Math.floor(Math.random() * 10)];
+    password += '!@#$%^&*'[Math.floor(Math.random() * 8)];
+
+    // Fill the rest randomly
+    for (let i = password.length; i < length; i++) {
+        password += charset[Math.floor(Math.random() * charset.length)];
+    }
+
+    // Shuffle the password
+    return password.split('').sort(() => Math.random() - 0.5).join('');
+}

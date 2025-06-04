@@ -15,7 +15,6 @@ export default function AddUserPage() {
     const [userForm, setUserForm] = useState({
         name: '',
         email: '',
-        role: '',
         shop: '',
         password: '',
         confirmPassword: '',
@@ -233,52 +232,34 @@ export default function AddUserPage() {
                             />
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
-                                    Role <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    id="role"
-                                    name="role"
-                                    value={userForm.role}
-                                    onChange={handleFormChange}
-                                    placeholder="e.g. Store Manager, Admin, Cashier"
-                                    className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
-                                    required
-                                />
-                            </div>
-
-                            <div>
-                                <label htmlFor="shop" className="block text-sm font-medium text-gray-700 mb-1">
-                                    Shop <span className="text-red-500">*</span>
-                                </label>
-                                <select
-                                    id="shop"
-                                    name="shop"
-                                    value={userForm.shop}
-                                    onChange={handleFormChange}
-                                    className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
-                                    required
-                                    disabled={shopsLoading}
-                                >
-                                    {shopsLoading ? (
-                                        <option value="">Loading shops...</option>
-                                    ) : (
-                                        <>
-                                            <option value="">Select a shop</option>
-                                            {dynamicShops.length > 0 ? (
-                                                dynamicShops.map(shop => (
-                                                    <option key={shop.id} value={shop.id}>{shop.name}</option>
-                                                ))
-                                            ) : (
-                                                <option value="" disabled>No shops available</option>
-                                            )}
-                                        </>
-                                    )}
-                                </select>
-                            </div>
+                        <div>
+                            <label htmlFor="shop" className="block text-sm font-medium text-gray-700 mb-1">
+                                Shop Assignment <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                                id="shop"
+                                name="shop"
+                                value={userForm.shop}
+                                onChange={handleFormChange}
+                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                                required
+                                disabled={shopsLoading}
+                            >
+                                {shopsLoading ? (
+                                    <option value="">Loading shops...</option>
+                                ) : (
+                                    <>
+                                        <option value="">Select a shop</option>
+                                        {dynamicShops.length > 0 ? (
+                                            dynamicShops.map(shop => (
+                                                <option key={shop.id} value={shop.id}>{shop.name}</option>
+                                            ))
+                                        ) : (
+                                            <option value="" disabled>No shops available</option>
+                                        )}
+                                    </>
+                                )}
+                            </select>
                         </div>
 
                         <div>
@@ -387,4 +368,4 @@ export default function AddUserPage() {
             </div>
         </div>
     );
-} 
+}
