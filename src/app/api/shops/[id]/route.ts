@@ -7,14 +7,7 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
-        const id = parseInt(params.id);
-
-        if (isNaN(id)) {
-            return NextResponse.json({
-                success: false,
-                message: 'Invalid shop ID'
-            }, { status: 400 });
-        }
+        const id = params.id;
 
         // Get the shop with its inventory and manager
         const shop = await prisma.shop.findUnique({
@@ -81,15 +74,8 @@ export async function PUT(
     { params }: { params: { id: string } }
 ) {
     try {
-        const id = parseInt(params.id);
+        const id = params.id;
         const body = await request.json();
-
-        if (isNaN(id)) {
-            return NextResponse.json({
-                success: false,
-                message: 'Invalid shop ID'
-            }, { status: 400 });
-        }
 
         // Validate required fields
         if (!body.name) {

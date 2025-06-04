@@ -6,6 +6,7 @@ import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
 import { safeQuery } from '@/lib/prisma';
 import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
 import { validateTokenPermission } from '@/lib/auth';
+import { emitInventoryItemCreate } from '@/lib/utils/websocket';
 
 // Default fallback data for products
 const defaultProductsData = [
@@ -160,7 +161,7 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
 export async function POST(request: NextRequest) {
     try {
         // Validate token and permissions
-        const authResult = await validateTokenPermission(request, 'create_products');
+        const authResult = await validateTokenPermission(request, 'inventory:manage');
         if (!authResult.isValid) {
             return NextResponse.json({ error: authResult.message }, { status: 401 });
         }
@@ -200,17 +201,8 @@ export async function POST(request: NextRequest) {
         // Invalidate inventory cache
         await cacheService.invalidateInventory();
 
-        // Emit WebSocket event for real-time updates
-        const io = getSocketIO();
-        if (io) {
-            io.emit(WEBSOCKET_EVENTS.INVENTORY_ITEM_CREATE, {
-                type: 'product_create',
-                payload: {
-                    product: product
-                }
-            });
-            console.log('Emitted product creation event via WebSocket');
-        }
+        // Emit WebSocket event for real-time updates using utility function
+        emitInventoryItemCreate(product);
 
         return NextResponse.json({
             success: true,

@@ -49,9 +49,9 @@ export const useInventory = (filters?: any) => {
       if (filters?.category) params.append('category', filters.category);
       if (filters?.shop) params.append('shop', filters.shop);
 
-      return fetchApi<PaginatedResponse<any>>(`/api/inventory?${params.toString()}`);
+      return fetchApi<PaginatedResponse<any>>(`/api/inventory/summary?${params.toString()}`);
     },
-    staleTime: 1000 * 60 * 2, // 2 minutes for inventory data
+    staleTime: 1000 * 10, // 10 seconds for inventory data (reduced from 2 minutes)
   });
 };
 

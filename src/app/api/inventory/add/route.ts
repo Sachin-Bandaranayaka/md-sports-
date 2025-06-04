@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { emitInventoryLevelUpdated, emitInventoryUpdate } from '@/lib/utils/websocket';
 
 export async function POST(request: NextRequest) {
     try {
@@ -59,18 +60,25 @@ export async function POST(request: NextRequest) {
         });
 
         let result;
+        let previousQuantity = 0;
+        let newQuantity = 0;
 
         if (existingInventory) {
             // Update existing inventory
+            previousQuantity = existingInventory.quantity;
+            newQuantity = existingInventory.quantity + quantityNum;
+
             result = await prisma.inventoryItem.update({
                 where: { id: existingInventory.id },
                 data: {
-                    quantity: existingInventory.quantity + quantityNum,
+                    quantity: newQuantity,
                     updatedAt: new Date()
                 }
             });
         } else {
             // Create new inventory item
+            newQuantity = quantityNum;
+
             result = await prisma.inventoryItem.create({
                 data: {
                     productId: productIdNum,
@@ -100,6 +108,22 @@ export async function POST(request: NextRequest) {
             console.error('Error creating audit log:', auditError);
             // Continue with the request even if audit logging fails
         }
+
+        // Emit WebSocket event for real-time updates
+        emitInventoryLevelUpdated(productIdNum, {
+            shopId: shopIdNum,
+            newQuantity: newQuantity,
+            quantityChange: quantityNum,
+            source: 'direct_add'
+        });
+
+        // Also emit a general inventory update event
+        emitInventoryUpdate({
+            type: 'item_updated',
+            productId: productIdNum,
+            shopId: shopIdNum,
+            timestamp: new Date()
+        });
 
         return NextResponse.json({
             success: true,

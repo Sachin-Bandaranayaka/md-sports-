@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/context/QueryProvider';
 
 interface NewProductModalProps {
     isOpen: boolean;
@@ -26,6 +28,7 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
     const [error, setError] = useState<string | null>(null);
     const [categories, setCategories] = useState<Category[]>([]);
     const [categoriesLoading, setCategoriesLoading] = useState(true);
+    const queryClient = useQueryClient();
 
     // Form fields
     const [name, setName] = useState('');
@@ -83,11 +86,12 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
         try {
             setIsSubmitting(true);
 
-            // Create the product
+            // Create the product using authPost for proper authentication
             const productResponse = await fetch('/api/products', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
                 },
                 body: JSON.stringify({
                     name,
@@ -102,6 +106,18 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
             const productData = await productResponse.json();
 
             if (productData.success) {
+                // Invalidate relevant queries to force a refresh
+                queryClient.invalidateQueries({ queryKey: queryKeys.products });
+                queryClient.invalidateQueries({ queryKey: queryKeys.productsList() });
+                queryClient.invalidateQueries({ queryKey: queryKeys.inventory });
+                queryClient.invalidateQueries({ queryKey: queryKeys.inventoryList() });
+
+                // If the product was created successfully and we have the product ID,
+                // we can trigger the onAddToInventory callback if provided
+                if (productData.data && productData.data.id && onAddToInventory) {
+                    onAddToInventory(productData.data.id, name);
+                }
+
                 resetForm();
                 onSuccess();
                 onClose();
@@ -288,4 +304,4 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
             </div>
         </div>
     );
-} 
+}

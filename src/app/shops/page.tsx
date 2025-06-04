@@ -238,7 +238,11 @@ export default function Shops() {
 
         try {
             setIsDeleting(true);
-            const response = await fetch(`/api/shops/${selectedShop.id}`, {
+
+            // ID is already a string, no parsing needed
+            const shopId = selectedShop.id;
+
+            const response = await fetch(`/api/shops/${shopId}`, {
                 method: 'DELETE'
             });
 

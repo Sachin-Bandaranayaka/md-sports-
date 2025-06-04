@@ -32,13 +32,19 @@ interface NewPurchaseInvoiceFormProps {
     initialProducts: Product[];
     initialCategories: Category[];
     initialShops: Shop[];
+    isModal?: boolean;
+    onSuccess?: () => void;
+    onCancel?: () => void;
 }
 
 export default function NewPurchaseInvoiceForm({
     initialSuppliers,
     initialProducts,
     initialCategories,
-    initialShops
+    initialShops,
+    isModal = false,
+    onSuccess,
+    onCancel
 }: NewPurchaseInvoiceFormProps) {
     const router = useRouter();
     const [submitting, setSubmitting] = useState(false);
@@ -315,8 +321,13 @@ export default function NewPurchaseInvoiceForm({
             const createdInvoice = await createInvoiceMutation.mutateAsync(preparedData);
             console.log('Purchase invoice created:', createdInvoice);
 
-            // Redirect to the purchase invoices list with a success parameter
-            router.push('/purchases?success=true&action=created&id=' + createdInvoice.id);
+            // If in modal mode, call onSuccess callback
+            if (isModal && onSuccess) {
+                onSuccess();
+            } else {
+                // Otherwise redirect to the purchase invoices list
+                router.push('/purchases?success=true&action=created&id=' + createdInvoice.id);
+            }
 
         } catch (err) {
             console.error('Error creating purchase invoice:', err);
@@ -361,6 +372,7 @@ export default function NewPurchaseInvoiceForm({
                             value={formData.supplierId || ''}
                             onChange={(value) => setFormData(prev => ({ ...prev, supplierId: value }))}
                             placeholder="Select Supplier"
+                            searchable={true}
                         />
                     </div>
                     <div>
@@ -419,7 +431,7 @@ export default function NewPurchaseInvoiceForm({
                                     onChange={(value) => handleItemChange({ target: { name: 'productId', value } } as any, index)}
                                     onSearch={handleProductSearch}
                                     placeholder="Search or Select Product"
-                                    searchable
+                                    searchable={true}
                                 />
                             </div>
                             <div className="md:col-span-2">
@@ -472,6 +484,7 @@ export default function NewPurchaseInvoiceForm({
                                     value={newProductData.categoryId}
                                     onChange={value => setNewProductData({ ...newProductData, categoryId: value })}
                                     placeholder="Select Category"
+                                    searchable={true}
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
@@ -536,12 +549,32 @@ export default function NewPurchaseInvoiceForm({
                     </motion.div>
                 </AnimatePresence>
             )}
-            <div className="flex justify-end gap-3 pt-8">
-                <Button type="button" variant="outline" onClick={() => router.back()} disabled={submitting}>
-                    <XCircle className="w-4 h-4 mr-2" /> Cancel
+            <div className="flex justify-end space-x-3 mt-8">
+                <Button
+                    type="button"
+                    variant="outline"
+                    disabled={submitting}
+                    onClick={isModal ? onCancel : () => router.push('/purchases')}
+                >
+                    Cancel
                 </Button>
-                <Button type="submit" variant="primary" disabled={submitting || !formData.items || formData.items.length === 0} className="min-w-[120px]">
-                    {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />} Save Invoice
+                <Button
+                    type="submit"
+                    variant="primary"
+                    disabled={submitting}
+                    className="flex items-center gap-2"
+                >
+                    {submitting ? (
+                        <>
+                            <Loader2 className="animate-spin h-4 w-4" />
+                            Saving...
+                        </>
+                    ) : (
+                        <>
+                            <Save className="h-4 w-4" />
+                            Save Invoice
+                        </>
+                    )}
                 </Button>
             </div>
         </form>

@@ -45,9 +45,16 @@ export default function NewProductPage() {
     const [categoryId, setCategoryId] = useState('');
 
     useEffect(() => {
+        // Check for auth token on component mount
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+            router.push('/login?redirect=/inventory/new'); // Redirect to login if no token
+            return; // Stop further execution in this effect
+        }
+
         fetchCategories();
         fetchShops();
-    }, []);
+    }, [router]); // Add router to dependency array
 
     const fetchCategories = async () => {
         try {

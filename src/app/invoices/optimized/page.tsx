@@ -1,0 +1,465 @@
+'use client';
+
+import React, { useState, useCallback, useMemo } from 'react';
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { Toaster } from 'react-hot-toast';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Plus, RefreshCw, Download, Settings } from 'lucide-react';
+import { useInvoicesOptimized } from '@/hooks/useInvoicesOptimized';
+import InvoiceListOptimized from '@/components/invoices/InvoiceListOptimized';
+import InvoiceFiltersOptimized from '@/components/invoices/InvoiceFiltersOptimized';
+import InvoiceStatisticsOptimized from '@/components/invoices/InvoiceStatisticsOptimized';
+import InvoiceCreateModal from '@/components/invoices/InvoiceCreateModal';
+import InvoiceEditModal from '@/components/invoices/InvoiceEditModal';
+import InvoiceViewModal from '@/components/invoices/InvoiceViewModal';
+import { cn } from '@/lib/utils';
+
+// Types
+interface Invoice {
+    id: string | number;
+    invoiceNumber: string;
+    customerId: number;
+    customerName?: string;
+    total: number;
+    totalProfit?: number;
+    profitMargin?: number;
+    status: string;
+    paymentMethod: string;
+    createdAt: Date | string;
+    updatedAt: Date | string;
+    date?: string;
+    dueDate?: string;
+    itemCount?: number;
+}
+
+interface Customer {
+    id: number;
+    name: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+}
+
+interface Product {
+    id: number;
+    name: string;
+    sku: string;
+    price: number;
+    description?: string;
+    category_name?: string;
+}
+
+// Create a query client with optimized settings
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            staleTime: 30000, // 30 seconds
+            cacheTime: 300000, // 5 minutes
+            refetchOnWindowFocus: false,
+            refetchOnReconnect: true,
+            retry: (failureCount, error: any) => {
+                // Don't retry on 4xx errors
+                if (error?.status >= 400 && error?.status < 500) {
+                    return false;
+                }
+                return failureCount < 3;
+            }
+        },
+        mutations: {
+            retry: 1
+        }
+    }
+});
+
+// Main invoice page component
+function InvoicePageContent() {
+    // Modal states
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+    const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+    const [viewMode, setViewMode] = useState<'list' | 'infinite'>('list');
+    const [showDetailedStats, setShowDetailedStats] = useState(false);
+
+    // Initialize the optimized hook with default filters
+    const {
+        invoices,
+        statistics,
+        filters,
+        selectedInvoices,
+        isLoading,
+        isLoadingStatistics,
+        isFetchingNextPage,
+        error,
+        hasNextPage,
+        fetchNextPage,
+        updateFilters,
+        refetch,
+        refetchInfinite,
+        createInvoice,
+        updateInvoice,
+        deleteInvoice,
+        recordPayment,
+        bulkUpdate,
+        toggleInvoiceSelection,
+        selectAllInvoices,
+        clearSelection,
+        isCreating,
+        isUpdating,
+        isDeleting,
+        isBulkUpdating
+    } = useInvoicesOptimized({
+        sortBy: 'createdAt_desc'
+    });
+
+    // Fetch customers data
+    const { data: customers = [], isLoading: isLoadingCustomers } = useQuery({
+        queryKey: ['customers'],
+        queryFn: async () => {
+            const response = await fetch('/api/customers');
+            if (!response.ok) {
+                throw new Error('Failed to fetch customers');
+            }
+            const data = await response.json();
+            console.log('Customers API response:', data);
+            // Handle different response formats
+            return Array.isArray(data) ? data : (data.success ? data.data : data.customers || []);
+        },
+        staleTime: 300000, // 5 minutes
+        cacheTime: 600000, // 10 minutes
+    });
+
+    // Fetch products data
+    const { data: products = [], isLoading: isLoadingProducts } = useQuery({
+        queryKey: ['products'],
+        queryFn: async () => {
+            const response = await fetch('/api/products');
+            if (!response.ok) {
+                throw new Error('Failed to fetch products');
+            }
+            const data = await response.json();
+            console.log('Products API response:', data);
+            // The API returns data in { success: true, data: [...] } format
+            return data.success ? data.data : [];
+        },
+        staleTime: 300000, // 5 minutes
+        cacheTime: 600000, // 10 minutes
+    });
+
+    // Modal handlers
+    const handleCreateInvoice = useCallback(() => {
+        setIsCreateModalOpen(true);
+    }, []);
+
+    const handleViewInvoice = useCallback((invoice: Invoice) => {
+        setSelectedInvoice(invoice);
+        setIsViewModalOpen(true);
+    }, []);
+
+    const handleEditInvoice = useCallback((invoice: Invoice) => {
+        setSelectedInvoice(invoice);
+        setIsEditModalOpen(true);
+    }, []);
+
+    const handleDeleteInvoice = useCallback(async (invoiceId: string | number) => {
+        if (window.confirm('Are you sure you want to delete this invoice?')) {
+            try {
+                await deleteInvoice(invoiceId);
+            } catch (error) {
+                console.error('Failed to delete invoice:', error);
+            }
+        }
+    }, [deleteInvoice]);
+
+    const handleRecordPayment = useCallback(async (invoiceId: string | number) => {
+        try {
+            await recordPayment(invoiceId);
+        } catch (error) {
+            console.error('Failed to record payment:', error);
+        }
+    }, [recordPayment]);
+
+    // Bulk operations
+    const handleBulkDelete = useCallback(async () => {
+        if (selectedInvoices.size === 0) return;
+
+        const confirmed = window.confirm(
+            `Are you sure you want to delete ${selectedInvoices.size} invoice(s)?`
+        );
+
+        if (confirmed) {
+            try {
+                await bulkUpdate({
+                    invoiceIds: Array.from(selectedInvoices),
+                    operation: 'delete',
+                    data: {}
+                });
+            } catch (error) {
+                console.error('Failed to delete invoices:', error);
+            }
+        }
+    }, [selectedInvoices, bulkUpdate]);
+
+    const handleExport = useCallback(() => {
+        // Implementation for exporting invoices
+        console.log('Exporting invoices:', Array.from(selectedInvoices));
+    }, [selectedInvoices]);
+
+    // Refresh handlers
+    const handleRefresh = useCallback(() => {
+        if (viewMode === 'infinite') {
+            refetchInfinite();
+        } else {
+            refetch();
+        }
+    }, [viewMode, refetch, refetchInfinite]);
+
+    // Load more for infinite scroll
+    const handleLoadMore = useCallback(() => {
+        if (hasNextPage && !isFetchingNextPage) {
+            fetchNextPage();
+        }
+    }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+    // Modal close handlers
+    const handleCloseModals = useCallback(() => {
+        setIsCreateModalOpen(false);
+        setIsEditModalOpen(false);
+        setIsViewModalOpen(false);
+        setSelectedInvoice(null);
+    }, []);
+
+    // Success handlers
+    const handleInvoiceCreated = useCallback(() => {
+        handleCloseModals();
+        // Refetch will be handled by React Query automatically
+    }, [handleCloseModals]);
+
+    const handleInvoiceUpdated = useCallback(() => {
+        handleCloseModals();
+        // Refetch will be handled by React Query automatically
+    }, [handleCloseModals]);
+
+    // Error display
+    if (error) {
+        return (
+            <div className="container mx-auto px-4 py-8">
+                <Card className="border-red-200 bg-red-50">
+                    <CardContent className="p-6">
+                        <div className="text-center">
+                            <h3 className="text-lg font-semibold text-red-800 mb-2">
+                                Error Loading Invoices
+                            </h3>
+                            <p className="text-red-600 mb-4">
+                                {error.message || 'An unexpected error occurred'}
+                            </p>
+                            <Button onClick={handleRefresh} variant="outline">
+                                <RefreshCw className="h-4 w-4 mr-2" />
+                                Try Again
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+
+    return (
+        <div className="container mx-auto px-4 py-6 space-y-6">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Sales Invoices</h1>
+                    <p className="text-gray-600">
+                        Manage and track your sales invoices efficiently
+                    </p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowDetailedStats(!showDetailedStats)}
+                    >
+                        <Settings className="h-4 w-4 mr-2" />
+                        {showDetailedStats ? 'Simple View' : 'Detailed View'}
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRefresh}
+                        disabled={isLoading}
+                    >
+                        <RefreshCw className={cn('h-4 w-4 mr-2', isLoading && 'animate-spin')} />
+                        Refresh
+                    </Button>
+                    <Button onClick={handleCreateInvoice} disabled={isCreating}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        New Invoice
+                    </Button>
+                </div>
+            </div>
+
+            {/* Statistics */}
+            <InvoiceStatisticsOptimized
+                statistics={statistics}
+                isLoading={isLoadingStatistics}
+                showDetailed={showDetailedStats}
+            />
+
+            {/* Main Content */}
+            <Card>
+                <CardHeader>
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <CardTitle className="flex items-center gap-2">
+                            Invoices
+                            {invoices.length > 0 && (
+                                <Badge variant="secondary">
+                                    {invoices.length} total
+                                </Badge>
+                            )}
+                        </CardTitle>
+                        <div className="flex items-center gap-2">
+                            <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'list' | 'infinite')}>
+                                <TabsList>
+                                    <TabsTrigger value="list">Paginated</TabsTrigger>
+                                    <TabsTrigger value="infinite">Infinite Scroll</TabsTrigger>
+                                </TabsList>
+                            </Tabs>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {/* Filters */}
+                    <InvoiceFiltersOptimized
+                        filters={filters}
+                        onFiltersChange={updateFilters}
+                        customers={customers}
+                        selectedCount={selectedInvoices.size}
+                        onBulkDelete={handleBulkDelete}
+                        onExport={handleExport}
+                        isLoading={isLoading}
+                    />
+
+                    {/* Invoice List */}
+                    <div className="space-y-4">
+                        <InvoiceListOptimized
+                            invoices={invoices}
+                            selectedInvoices={selectedInvoices}
+                            onToggleSelection={toggleInvoiceSelection}
+                            onSelectAll={selectAllInvoices}
+                            onClearSelection={clearSelection}
+                            onView={handleViewInvoice}
+                            onEdit={handleEditInvoice}
+                            onDelete={handleDeleteInvoice}
+                            onRecordPayment={handleRecordPayment}
+                            isLoading={isLoading}
+                            height={600}
+                        />
+
+                        {/* Load More Button for Infinite Scroll */}
+                        {viewMode === 'infinite' && hasNextPage && (
+                            <div className="text-center">
+                                <Button
+                                    variant="outline"
+                                    onClick={handleLoadMore}
+                                    disabled={isFetchingNextPage}
+                                >
+                                    {isFetchingNextPage ? (
+                                        <>
+                                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                            Loading more...
+                                        </>
+                                    ) : (
+                                        'Load More'
+                                    )}
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Modals */}
+            <InvoiceCreateModal
+                isOpen={isCreateModalOpen}
+                onClose={handleCloseModals}
+                onSuccess={handleInvoiceCreated}
+                customers={customers}
+                products={products}
+                isLoading={isLoadingCustomers || isLoadingProducts}
+            />
+
+            {selectedInvoice && (
+                <>
+                    <InvoiceEditModal
+                        isOpen={isEditModalOpen}
+                        onClose={handleCloseModals}
+                        onSuccess={handleInvoiceUpdated}
+                        invoice={selectedInvoice}
+                    />
+
+                    <InvoiceViewModal
+                        isOpen={isViewModalOpen}
+                        onClose={handleCloseModals}
+                        invoice={selectedInvoice}
+                    />
+                </>
+            )}
+
+            {/* Loading Overlay */}
+            {(isCreating || isUpdating || isDeleting || isBulkUpdating) && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <Card className="p-6">
+                        <div className="flex items-center gap-3">
+                            <RefreshCw className="h-5 w-5 animate-spin" />
+                            <span>
+                                {isCreating && 'Creating invoice...'}
+                                {isUpdating && 'Updating invoice...'}
+                                {isDeleting && 'Deleting invoice...'}
+                                {isBulkUpdating && 'Processing bulk operation...'}
+                            </span>
+                        </div>
+                    </Card>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// Main page component with providers
+export default function OptimizedInvoicesPage() {
+    return (
+        <QueryClientProvider client={queryClient}>
+            <InvoicePageContent />
+            <Toaster
+                position="top-right"
+                toastOptions={{
+                    duration: 4000,
+                    style: {
+                        background: '#363636',
+                        color: '#fff',
+                    },
+                    success: {
+                        duration: 3000,
+                        iconTheme: {
+                            primary: '#4ade80',
+                            secondary: '#fff',
+                        },
+                    },
+                    error: {
+                        duration: 5000,
+                        iconTheme: {
+                            primary: '#ef4444',
+                            secondary: '#fff',
+                        },
+                    },
+                }}
+            />
+            <ReactQueryDevtools initialIsOpen={false} />
+        </QueryClientProvider>
+    );
+}

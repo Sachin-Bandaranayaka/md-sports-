@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/context/QueryProvider';
 
 interface AddInventoryModalProps {
     isOpen: boolean;
@@ -32,6 +34,7 @@ export default function AddInventoryModal({ isOpen, onClose, onSuccess, preselec
     const [quantity, setQuantity] = useState<string>('1');
     const [shopsLoading, setShopsLoading] = useState(true);
     const [productsLoading, setProductsLoading] = useState(true);
+    const queryClient = useQueryClient();
 
     // Set preselected product when it changes
     useEffect(() => {
@@ -118,6 +121,11 @@ export default function AddInventoryModal({ isOpen, onClose, onSuccess, preselec
             const data = await response.json();
 
             if (data.success) {
+                // Invalidate relevant queries to force a refresh
+                queryClient.invalidateQueries({ queryKey: queryKeys.inventory });
+                queryClient.invalidateQueries({ queryKey: queryKeys.inventoryList() });
+
+                // Notify parent component
                 onSuccess();
                 resetForm();
                 onClose();

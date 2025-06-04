@@ -2,7 +2,8 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import DashboardClientWrapper from './components/DashboardClientWrapper';
-import { Loader2 } from 'lucide-react';
+import DashboardClientWrapperOptimized from './components/DashboardClientWrapperOptimized';
+import { Loader2, Zap, Settings } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 
@@ -13,6 +14,7 @@ export default function DashboardPage() {
     const [initialData, setInitialData] = useState(null);
     const [dataLoading, setDataLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [useOptimized, setUseOptimized] = useState(true); // Default to optimized version
 
     // Redirect if not authenticated
     useEffect(() => {
@@ -127,16 +129,58 @@ export default function DashboardPage() {
     // Show dashboard if data is loaded
     if (initialData) {
         return (
-            <Suspense fallback={
-                <div className="h-full flex items-center justify-center p-20">
-                    <div className="text-center">
-                        <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
-                        <p className="text-gray-500">Loading dashboard...</p>
+            <div className="space-y-6">
+                {/* Performance Toggle */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Settings className="h-5 w-5 text-blue-600" />
+                            <h2 className="text-lg font-semibold text-blue-900">Dashboard Mode</h2>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={useOptimized}
+                                    onChange={(e) => setUseOptimized(e.target.checked)}
+                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                                />
+                                <span className="text-sm font-medium text-blue-700">
+                                    Use Optimized Dashboard
+                                </span>
+                            </label>
+                            {useOptimized && (
+                                <div className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                                    <Zap className="h-3 w-3" />
+                                    Enhanced Performance
+                                </div>
+                            )}
+                        </div>
                     </div>
+                    <p className="text-sm text-blue-700 mt-2">
+                        {useOptimized
+                            ? 'Using optimized dashboard with smart caching, background refresh, and progressive loading'
+                            : 'Using standard dashboard implementation'
+                        }
+                    </p>
                 </div>
-            }>
-                <DashboardClientWrapper initialData={initialData} />
-            </Suspense>
+
+                {/* Dashboard Content */}
+                <Suspense fallback={
+                    <div className="h-full flex items-center justify-center p-20">
+                        <div className="text-center">
+                            <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
+                            <p className="text-gray-500">Loading dashboard...</p>
+                        </div>
+                    </div>
+                }>
+                    {useOptimized ? (
+                        <DashboardClientWrapperOptimized initialData={initialData} />
+                    ) : (
+                        <DashboardClientWrapper initialData={initialData} />
+                    )}
+                </Suspense>
+            </div>
         );
     }
 

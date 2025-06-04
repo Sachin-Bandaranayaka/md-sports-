@@ -235,15 +235,15 @@ const InvoiceEditModal: React.FC<InvoiceEditModalProps> = ({
         onClose();
     };
 
-    const customerOptions = customers.map(customer => ({
+    const customerOptions = Array.isArray(customers) ? customers.map(customer => ({
         value: customer.id.toString(),
         label: customer.name
-    }));
+    })) : [];
 
-    const productOptions = products.map(product => ({
+    const productOptions = Array.isArray(products) ? products.map(product => ({
         value: product.id.toString(),
         label: `${product.name} - LKR ${product.price.toFixed(2)}`
-    }));
+    })) : [];
 
     const footer = (
         <div className="flex justify-between items-center">

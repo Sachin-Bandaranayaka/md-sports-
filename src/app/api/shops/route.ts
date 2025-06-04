@@ -34,23 +34,73 @@ export async function GET(req: NextRequest) {
         }
         // --- End Authentication/Authorization ---
 
-        const shops = await getShopsFromDataSource();
+        // Fetch shops from the database with proper numeric IDs
+        const shops = await prisma.shop.findMany({
+            orderBy: {
+                name: 'asc'
+            },
+            select: {
+                id: true,
+                name: true,
+                location: true,
+                contact_person: true,
+                phone: true,
+                email: true,
+                is_active: true,
+                opening_time: true,
+                closing_time: true,
+                manager_id: true,
+                opening_date: true,
+                status: true,
+                address_line1: true,
+                address_line2: true,
+                city: true,
+                state: true,
+                postal_code: true,
+                country: true,
+                latitude: true,
+                longitude: true,
+                tax_rate: true,
+                createdAt: true,
+                updatedAt: true,
+                manager: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        phone: true
+                    }
+                },
+                _count: {
+                    select: {
+                        InventoryItem: true
+                    }
+                }
+            }
+        });
 
-        if (!shops || shops.length === 0) {
-            // You might want to distinguish between an error and no shops found
-            // For now, returning success true with empty data if no shops are found.
+        // Transform the data to include total_inventory count
+        const shopsWithInventory = shops.map(shop => {
+            const { _count, ...restOfShop } = shop;
+            return {
+                ...restOfShop,
+                total_inventory: _count.InventoryItem
+            };
+        });
+
+        if (!shopsWithInventory || shopsWithInventory.length === 0) {
             return NextResponse.json({ success: true, data: [] });
         }
 
-        return NextResponse.json({ success: true, data: shops });
+        return NextResponse.json({ success: true, data: shopsWithInventory });
 
     } catch (error) {
         console.error('[API/SHOPS_GET] Error fetching shops:', error);
         // It's good practice to avoid sending detailed internal error messages to the client.
         let errorMessage = 'An unexpected error occurred while fetching shops.';
         if (error instanceof Error) {
+            errorMessage = error.message;
             // You could log error.message for server-side debugging
-            // but not necessarily send it to client.
         }
         return NextResponse.json({ success: false, message: errorMessage }, { status: 500 });
     }

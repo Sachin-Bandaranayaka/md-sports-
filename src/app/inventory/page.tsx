@@ -4,8 +4,8 @@ import MainLayout from '@/components/layout/MainLayout';
 import InventoryClientWrapper from '@/components/inventory/InventoryClientWrapper';
 import InventoryHeaderActions from '@/components/inventory/InventoryHeaderActions';
 
-// Add revalidation - cache inventory page for 10 seconds (reduced from 60)
-export const revalidate = 10;
+// Add revalidation - cache inventory page for 5 seconds (reduced from 10)
+export const revalidate = 5;
 
 // Define proper types for our data
 interface BranchStock {

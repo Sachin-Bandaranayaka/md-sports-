@@ -7,6 +7,7 @@ import { Search, Plus, Edit, Trash, FileText, ExternalLink, Calendar, DollarSign
 import { PurchaseInvoice, Supplier } from '@/types';
 import { usePurchaseInvoices, useDeletePurchaseInvoice } from '@/hooks/useQueries';
 import { toast } from 'sonner';
+import NewPurchaseInvoiceModal from '@/components/purchases/NewPurchaseInvoiceModal';
 // InvoiceFormModal import removed - using separate pages for forms
 
 // Status badge colors (can be utility)
@@ -71,6 +72,7 @@ export default function PurchaseListClient({
     const suppliers = initialSuppliers;
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [lastRefreshed, setLastRefreshed] = useState<Date | null>(new Date());
+    const [showNewInvoiceModal, setShowNewInvoiceModal] = useState(false);
 
     // Modal states removed - using separate pages for detail and edit views
 
@@ -172,7 +174,19 @@ export default function PurchaseListClient({
         router.push(`${pathname}?${params.toString()}`);
     };
 
-    const handleAddInvoice = () => { router.push('/purchases/new'); };
+    const handleAddInvoice = () => {
+        // Open modal instead of redirecting
+        setShowNewInvoiceModal(true);
+    };
+
+    // Function to handle successful invoice creation
+    const handleInvoiceCreated = () => {
+        // Close the modal
+        setShowNewInvoiceModal(false);
+        // Refresh the data
+        refetch();
+        // Note: Success message is shown by the form component
+    };
 
     const handleEditInvoice = (invoice: PurchaseInvoice) => {
         router.push(`/purchases/${invoice.id}/edit`);
@@ -264,8 +278,13 @@ export default function PurchaseListClient({
                         <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
                         {isRefreshing ? 'Refreshing...' : 'Refresh'}
                     </Button>
-                    <Button variant="primary" size="sm" onClick={handleAddInvoice}>
-                        <Plus className="w-4 h-4 mr-2" />
+                    <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={handleAddInvoice}
+                        className="flex items-center gap-2"
+                    >
+                        <Plus size={16} />
                         New Purchase Invoice
                     </Button>
                 </div>
@@ -441,7 +460,13 @@ export default function PurchaseListClient({
                 </div>
             )}
 
-            {/* Modals removed - using separate pages for detail and edit views */}
+            {/* New Purchase Invoice Modal */}
+            <NewPurchaseInvoiceModal
+                isOpen={showNewInvoiceModal}
+                onClose={() => setShowNewInvoiceModal(false)}
+                onSuccess={handleInvoiceCreated}
+                suppliers={suppliers}
+            />
         </>
     );
 }

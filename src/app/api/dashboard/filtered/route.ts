@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchInventoryData } from '../inventory/route';
+import { fetchInventoryDistributionData } from '../inventory/route';
 import { fetchProductsData } from '../products/route';
 import { fetchCustomersData } from '../customers/route';
 import { fetchSalesDataFiltered } from '../sales/route';
@@ -34,7 +34,7 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
             salesResult,
             shopsResult
         ] = await Promise.all([
-            fetchInventoryData(context.isFiltered ? context.shopId : null),
+            fetchInventoryDistributionData(context.isFiltered ? context.shopId : null),
             fetchProductsData(context.isFiltered ? context.shopId : null),
             fetchCustomersData(context.isFiltered ? context.shopId : null),
             fetchSalesDataFiltered(startDate, endDate, context.isFiltered ? context.shopId : null),

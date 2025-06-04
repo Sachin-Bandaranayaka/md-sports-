@@ -4,9 +4,10 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Search, X, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { authDelete } from '@/utils/api';
+import { authDelete, authFetch } from '@/utils/api';
 import AddInventoryModal from '@/components/inventory/AddInventoryModal';
 import { useInventory } from '@/hooks/useQueries';
+import { useInventoryUpdates } from '@/hooks/useWebSocket';
 import { debounce } from '@/lib/utils';
 
 // Define proper types for our data
@@ -84,6 +85,12 @@ export default function InventoryClientWrapper({
     const [showAddInventoryModal, setShowAddInventoryModal] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<{ id: number, name: string } | null>(null);
     const [pendingOperations, setPendingOperations] = useState<Set<string>>(new Set());
+    // Local error state for manual operations
+    const [localError, setLocalError] = useState<string | null>(null);
+    // Add state for inventory items if needed for manual updates
+    const [localInventoryItems, setInventoryItems] = useState<InventoryItem[]>(initialInventoryItems);
+    const [totalPagesState, setTotalPages] = useState<number>(initialPagination.totalPages);
+    const [totalItemsState, setTotalItems] = useState<number>(initialPagination.total);
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(initialPagination.page);
@@ -113,6 +120,27 @@ export default function InventoryClientWrapper({
     const [autoRefreshInterval, setAutoRefreshInterval] = useState(60); // seconds
     const autoRefreshTimerRef = useRef<NodeJS.Timeout | null>(null);
     const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+
+    // WebSocket integration for real-time updates
+    useInventoryUpdates((data) => {
+        console.log('Received inventory update via WebSocket:', data);
+
+        // Handle different types of inventory updates
+        switch (data.type) {
+            case 'inventory_update':
+            case 'inventory_item_update':
+            case 'inventory_item_create':
+            case 'inventory_item_delete':
+            case 'inventory_level_updated':
+                // Refresh data when inventory changes
+                console.log('Refreshing inventory due to WebSocket update');
+                refetch();
+                setLastRefreshed(new Date());
+                break;
+            default:
+                console.log('Unknown inventory update type:', data.type);
+        }
+    });
 
     // Refetch when filters change
     useEffect(() => {
@@ -234,7 +262,7 @@ export default function InventoryClientWrapper({
 
         try {
             // Optimistic update - immediately remove from UI
-            const originalItems = inventoryItems;
+            const originalItems = localInventoryItems;
             setInventoryItems(prevItems => prevItems.filter(item => item.id !== productId));
 
             const response = await authDelete(`/api/products/${productId}`);
@@ -251,14 +279,14 @@ export default function InventoryClientWrapper({
             } else {
                 // Rollback optimistic update on failure
                 setInventoryItems(originalItems);
-                setError(data.message || 'Failed to delete product');
+                setLocalError(data.message || 'Failed to delete product');
                 setAutoRefreshEnabled(wasAutoRefreshEnabled); // Re-enable immediately on error
             }
         } catch (err) {
             console.error('Error deleting product:', err);
             // Rollback optimistic update on error
             setInventoryItems(inventoryItems);
-            setError('Failed to delete product. Please try again later.');
+            setLocalError('Failed to delete product. Please try again later.');
             setAutoRefreshEnabled(wasAutoRefreshEnabled); // Re-enable immediately on error
         } finally {
             setDeleteLoading(null);
@@ -272,7 +300,9 @@ export default function InventoryClientWrapper({
 
     // Handle inventory added
     const handleInventoryAdded = () => {
-        router.refresh(); // Refresh the page to get updated data
+        console.log('Inventory added, refreshing data');
+        refetch();
+        setLastRefreshed(new Date());
     };
 
     // Debounced search function
@@ -310,18 +340,7 @@ export default function InventoryClientWrapper({
         }
 
         try {
-            setError(null);
-
-            // Build query parameters
-            const params = new URLSearchParams();
-            params.set('page', currentPage.toString());
-            params.set('limit', itemsPerPage.toString());
-            if (searchTerm) params.set('search', searchTerm);
-            if (categoryFilter) params.set('category', categoryFilter);
-            if (statusFilter) params.set('status', statusFilter);
-
-            // Add a timestamp to bust cache
-            params.set('_t', Date.now().toString());
+            setLocalError(null);
 
             console.log('Refreshing inventory data...', {
                 page: currentPage,
@@ -330,43 +349,20 @@ export default function InventoryClientWrapper({
                 category: categoryFilter,
                 status: statusFilter,
                 pendingOperations: Array.from(pendingOperations),
-                forced: force,
-                queryParams: params.toString()
+                forced: force
             });
 
-            const response = await authFetch(`/api/inventory/summary?${params.toString()}`);
+            // Use React Query's refetch function instead of manual fetching
+            await refetch();
 
-            if (!response.ok) {
-                throw new Error(`Failed to refresh inventory: ${response.status}`);
-            }
+            // Update last refreshed timestamp
+            setLastRefreshed(new Date());
 
-            const data = await response.json();
-
-            if (data.success) {
-                console.log('Inventory refresh successful:', {
-                    itemCount: data.data.length,
-                    pagination: data.pagination
-                });
-
-                // Only update if no pending operations or if forced
-                if (force || pendingOperations.size === 0) {
-                    setInventoryItems(data.data);
-                    if (data.pagination) {
-                        setTotalPages(data.pagination.totalPages);
-                        setTotalItems(data.pagination.total);
-                    }
-                }
-
-                // Update last refreshed timestamp
-                setLastRefreshed(new Date());
-            } else {
-                throw new Error(data.message || 'Failed to refresh inventory');
-            }
         } catch (err) {
             console.error('Error refreshing inventory:', err);
-            setError(err instanceof Error ? err.message : 'Failed to refresh inventory');
+            setLocalError(err instanceof Error ? err.message : 'Failed to refresh inventory');
         }
-    }, [currentPage, itemsPerPage, searchTerm, categoryFilter, statusFilter, pendingOperations]);
+    }, [currentPage, itemsPerPage, searchTerm, categoryFilter, statusFilter, pendingOperations, refetch]);
 
     // Optimized auto-refresh with exponential backoff
     useEffect(() => {
@@ -441,9 +437,9 @@ export default function InventoryClientWrapper({
 
     return (
         <>
-            {error && (
+            {(localError || error) && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-                    {error}
+                    {localError ?? (error instanceof Error ? error.message : String(error))}
                 </div>
             )}
 
@@ -631,8 +627,8 @@ export default function InventoryClientWrapper({
                             </tr>
                         </thead>
                         <tbody>
-                            {formattedInventoryData.length > 0 ? (
-                                formattedInventoryData.map((item) => (
+                            {(inventoryData?.data || localInventoryItems).length > 0 ? (
+                                (inventoryData?.data || localInventoryItems).map((item) => (
                                     <tr
                                         key={item.id}
                                         className="border-b hover:bg-gray-50 cursor-pointer"

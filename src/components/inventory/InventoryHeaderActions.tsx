@@ -5,18 +5,23 @@ import { useRouter } from 'next/navigation';
 import { Filter, ArrowUpDown, ShoppingBag, PlusCircle, Package, Store, Download, Upload, Loader2, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import AddInventoryModal from '@/components/inventory/AddInventoryModal';
+import NewProductModal from '@/components/inventory/NewProductModal';
 import React from 'react';
 import { useInventory } from '@/hooks/useQueries';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/context/QueryProvider';
 
 export default function InventoryHeaderActions() {
     const router = useRouter();
     const [showAddInventoryModal, setShowAddInventoryModal] = useState(false);
+    const [showNewProductModal, setShowNewProductModal] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<{ id: number, name: string } | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadError, setUploadError] = useState<string | null>(null);
     const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const { refetch } = useInventory();
+    const queryClient = useQueryClient();
 
     const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -39,8 +44,22 @@ export default function InventoryHeaderActions() {
     };
 
     // Handle successful inventory addition
-    const handleInventoryAdded = () => {
-        router.refresh();
+    const handleInventoryAdded = async () => {
+        // Use React Query's refetch instead of router.refresh()
+        await refetch();
+    };
+
+    // Handle successful product creation
+    const handleProductCreated = async () => {
+        // Use React Query's refetch instead of router.refresh()
+        await refetch();
+    };
+
+    // Handle product created and add to inventory
+    const handleProductCreatedAndAddToInventory = (productId: number, productName: string) => {
+        setSelectedProduct({ id: productId, name: productName });
+        setShowNewProductModal(false);
+        setShowAddInventoryModal(true);
     };
 
     const handleImportButtonClick = () => {
@@ -53,7 +72,11 @@ export default function InventoryHeaderActions() {
     const handleRefreshData = async () => {
         setIsRefreshing(true);
         try {
+            // Invalidate all relevant queries
+            await queryClient.invalidateQueries({ queryKey: queryKeys.inventory });
+            await queryClient.invalidateQueries({ queryKey: queryKeys.products });
             await refetch();
+
             // Add a small delay to show the refreshing state
             await new Promise(resolve => setTimeout(resolve, 500));
         } finally {
@@ -95,7 +118,11 @@ export default function InventoryHeaderActions() {
                 throw new Error(result?.message || 'Bulk import failed. Please check the file and try again.');
             }
             setUploadSuccess(result.message || 'Products imported successfully!');
-            await refetch(); // Refresh inventory list
+
+            // Invalidate queries and refetch data
+            queryClient.invalidateQueries({ queryKey: queryKeys.products });
+            queryClient.invalidateQueries({ queryKey: queryKeys.inventory });
+            await refetch();
         } catch (err: any) {
             console.error('Error uploading file:', err);
             setUploadError(err.message || 'An unexpected error occurred during upload.');
@@ -156,7 +183,7 @@ export default function InventoryHeaderActions() {
                 <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => router.push('/inventory/new')}
+                    onClick={() => setShowNewProductModal(true)}
                 >
                     <ShoppingBag className="w-4 h-4 mr-2" />
                     New Product
@@ -222,6 +249,14 @@ export default function InventoryHeaderActions() {
                 onClose={() => setShowAddInventoryModal(false)}
                 onSuccess={handleInventoryAdded}
                 preselectedProduct={selectedProduct}
+            />
+
+            {/* New Product Modal */}
+            <NewProductModal
+                isOpen={showNewProductModal}
+                onClose={() => setShowNewProductModal(false)}
+                onSuccess={handleProductCreated}
+                onAddToInventory={handleProductCreatedAndAddToInventory}
             />
         </>
     );

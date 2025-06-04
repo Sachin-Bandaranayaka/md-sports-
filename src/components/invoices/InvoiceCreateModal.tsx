@@ -50,7 +50,8 @@ interface InvoiceFormData {
 interface InvoiceCreateModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (invoiceData: InvoiceFormData) => Promise<void>;
+    onSave?: (invoice: any) => void;
+    onSuccess?: () => void;
     customers: Customer[];
     products: Product[];
     isLoading?: boolean;
@@ -60,8 +61,9 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
     isOpen,
     onClose,
     onSave,
-    customers,
-    products,
+    onSuccess,
+    customers = [],
+    products = [],
     isLoading = false
 }) => {
     const [formData, setFormData] = useState<InvoiceFormData>({
@@ -210,10 +212,42 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
 
         setSubmitting(true);
         try {
-            await onSave(formData);
+            const invoiceData = {
+                ...formData,
+                items: formData.items.map(item => ({
+                    productId: item.productId,
+                    quantity: item.quantity,
+                    price: item.price,
+                    total: item.total
+                }))
+            };
+
+            const response = await fetch('/api/invoices', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(invoiceData),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to create invoice');
+            }
+
+            const result = await response.json();
+
+            if (onSave) {
+                onSave(result);
+            }
+
+            if (onSuccess) {
+                onSuccess();
+            }
+
             handleClose();
         } catch (error) {
-            console.error('Error saving invoice:', error);
+            console.error('Error creating invoice:', error);
+            alert('Failed to create invoice. Please try again.');
         } finally {
             setSubmitting(false);
         }
@@ -236,15 +270,15 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
         onClose();
     };
 
-    const customerOptions = customers.map(customer => ({
+    const customerOptions = Array.isArray(customers) ? customers.map(customer => ({
         value: customer.id.toString(),
         label: customer.name
-    }));
+    })) : [];
 
-    const productOptions = products.map(product => ({
+    const productOptions = Array.isArray(products) ? products.map(product => ({
         value: product.id.toString(),
         label: `${product.name} - LKR ${product.price.toFixed(2)}`
-    }));
+    })) : [];
 
     const footer = (
         <div className="flex justify-between items-center">
@@ -262,7 +296,7 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                     disabled={submitting || isLoading}
                 >
                     <Save className="w-4 h-4 mr-2" />
-                    Create Invoice
+                    {submitting ? 'Creating...' : 'Create Invoice'}
                 </Button>
             </div>
         </div>
@@ -278,15 +312,15 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
         >
             <div className="space-y-6">
                 {/* Invoice Header */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <Label htmlFor="customer">Customer *</Label>
+                        <Label htmlFor="customer" className="text-black font-semibold">Customer *</Label>
                         <Combobox
                             options={customerOptions}
                             value={formData.customerId}
                             onChange={handleCustomerSelect}
                             placeholder="Select a customer"
-                            className={errors.customerId ? 'border-red-500' : ''}
+                            className={errors.customerId ? 'border-red-500' : 'border-gray-300'}
                         />
                         {errors.customerId && (
                             <p className="text-red-500 text-sm mt-1">{errors.customerId}</p>
@@ -294,12 +328,12 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                     </div>
 
                     <div>
-                        <Label htmlFor="invoiceNumber">Invoice Number *</Label>
+                        <Label htmlFor="invoiceNumber" className="text-black font-semibold">Invoice Number *</Label>
                         <Input
                             id="invoiceNumber"
                             value={formData.invoiceNumber}
                             onChange={(e) => setFormData(prev => ({ ...prev, invoiceNumber: e.target.value }))}
-                            className={errors.invoiceNumber ? 'border-red-500' : ''}
+                            className={`text-black ${errors.invoiceNumber ? 'border-red-500' : 'border-gray-300'}`}
                         />
                         {errors.invoiceNumber && (
                             <p className="text-red-500 text-sm mt-1">{errors.invoiceNumber}</p>
@@ -307,13 +341,13 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                     </div>
 
                     <div>
-                        <Label htmlFor="dueDate">Due Date *</Label>
+                        <Label htmlFor="dueDate" className="text-black font-semibold">Due Date *</Label>
                         <Input
                             id="dueDate"
                             type="date"
                             value={formData.dueDate}
                             onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
-                            className={errors.dueDate ? 'border-red-500' : ''}
+                            className={`text-black ${errors.dueDate ? 'border-red-500' : 'border-gray-300'}`}
                         />
                         {errors.dueDate && (
                             <p className="text-red-500 text-sm mt-1">{errors.dueDate}</p>
@@ -321,12 +355,12 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                     </div>
 
                     <div>
-                        <Label htmlFor="paymentMethod">Payment Method</Label>
+                        <Label htmlFor="paymentMethod" className="text-black font-semibold">Payment Method</Label>
                         <select
                             id="paymentMethod"
                             value={formData.paymentMethod}
                             onChange={(e) => setFormData(prev => ({ ...prev, paymentMethod: e.target.value }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
                         >
                             <option value="cash">Cash</option>
                             <option value="card">Card</option>
@@ -339,8 +373,8 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                 {/* Invoice Items */}
                 <div>
                     <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-semibold">Invoice Items</h3>
-                        <Button variant="outline" size="sm" onClick={addItem}>
+                        <h3 className="text-lg font-semibold text-black">Invoice Items</h3>
+                        <Button variant="outline" size="sm" onClick={addItem} className="text-black border-gray-300">
                             <Plus className="w-4 h-4 mr-2" />
                             Add Item
                         </Button>
@@ -358,16 +392,16 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                                     initial={{ opacity: 0, y: -10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: -10 }}
-                                    className="grid grid-cols-12 gap-2 items-end p-4 border border-gray-200 rounded-lg"
+                                    className="grid grid-cols-12 gap-3 items-end p-4 border border-gray-200 rounded-lg bg-gray-50"
                                 >
                                     <div className="col-span-4">
-                                        <Label>Product *</Label>
+                                        <Label className="text-black font-medium">Product *</Label>
                                         <Combobox
                                             options={productOptions}
                                             value={item.productId}
                                             onChange={(value) => updateItem(item.id, 'productId', value)}
                                             placeholder="Select product"
-                                            className={errors[`item-${index}-product`] ? 'border-red-500' : ''}
+                                            className={errors[`item-${index}-product`] ? 'border-red-500' : 'border-gray-300'}
                                         />
                                         {errors[`item-${index}-product`] && (
                                             <p className="text-red-500 text-xs mt-1">{errors[`item-${index}-product`]}</p>
@@ -375,13 +409,13 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                                     </div>
 
                                     <div className="col-span-2">
-                                        <Label>Quantity *</Label>
+                                        <Label className="text-black font-medium">Quantity *</Label>
                                         <Input
                                             type="number"
                                             min="1"
                                             value={item.quantity}
                                             onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 0)}
-                                            className={errors[`item-${index}-quantity`] ? 'border-red-500' : ''}
+                                            className={`text-black ${errors[`item-${index}-quantity`] ? 'border-red-500' : 'border-gray-300'}`}
                                         />
                                         {errors[`item-${index}-quantity`] && (
                                             <p className="text-red-500 text-xs mt-1">{errors[`item-${index}-quantity`]}</p>
@@ -389,14 +423,14 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                                     </div>
 
                                     <div className="col-span-2">
-                                        <Label>Price *</Label>
+                                        <Label className="text-black font-medium">Price *</Label>
                                         <Input
                                             type="number"
                                             min="0"
                                             step="0.01"
                                             value={item.price}
                                             onChange={(e) => updateItem(item.id, 'price', parseFloat(e.target.value) || 0)}
-                                            className={errors[`item-${index}-price`] ? 'border-red-500' : ''}
+                                            className={`text-black ${errors[`item-${index}-price`] ? 'border-red-500' : 'border-gray-300'}`}
                                         />
                                         {errors[`item-${index}-price`] && (
                                             <p className="text-red-500 text-xs mt-1">{errors[`item-${index}-price`]}</p>
@@ -404,8 +438,8 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                                     </div>
 
                                     <div className="col-span-3">
-                                        <Label>Total</Label>
-                                        <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md">
+                                        <Label className="text-black font-medium">Total</Label>
+                                        <div className="px-3 py-2 bg-white border border-gray-300 rounded-md text-black font-semibold">
                                             LKR {item.total.toFixed(2)}
                                         </div>
                                     </div>
@@ -415,6 +449,7 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                                             variant="destructive"
                                             size="sm"
                                             onClick={() => removeItem(item.id)}
+                                            className="bg-red-500 hover:bg-red-600 text-white"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </Button>
@@ -425,25 +460,28 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                     </div>
 
                     {formData.items.length === 0 && (
-                        <div className="text-center py-8 text-gray-500">
-                            No items added yet. Click "Add Item" to get started.
+                        <div className="text-center py-8 text-gray-600 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="text-gray-400 mb-2">
+                                <Plus className="w-8 h-8 mx-auto" />
+                            </div>
+                            <p className="text-black">No items added yet. Click "Add Item" to get started.</p>
                         </div>
                     )}
                 </div>
 
                 {/* Invoice Summary */}
                 {formData.items.length > 0 && (
-                    <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                         <div className="space-y-2">
-                            <div className="flex justify-between">
-                                <span>Subtotal:</span>
-                                <span>LKR {formData.subtotal.toFixed(2)}</span>
+                            <div className="flex justify-between text-black">
+                                <span className="font-medium">Subtotal:</span>
+                                <span className="font-semibold">LKR {formData.subtotal.toFixed(2)}</span>
                             </div>
-                            <div className="flex justify-between">
-                                <span>Tax (10%):</span>
-                                <span>LKR {formData.tax.toFixed(2)}</span>
+                            <div className="flex justify-between text-black">
+                                <span className="font-medium">Tax (10%):</span>
+                                <span className="font-semibold">LKR {formData.tax.toFixed(2)}</span>
                             </div>
-                            <div className="flex justify-between font-semibold text-lg border-t pt-2">
+                            <div className="flex justify-between font-bold text-lg border-t border-blue-300 pt-2 text-black">
                                 <span>Total:</span>
                                 <span>LKR {formData.total.toFixed(2)}</span>
                             </div>
@@ -453,13 +491,14 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
 
                 {/* Notes */}
                 <div>
-                    <Label htmlFor="notes">Notes</Label>
+                    <Label htmlFor="notes" className="text-black font-semibold">Notes</Label>
                     <Textarea
                         id="notes"
                         value={formData.notes}
                         onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                         placeholder="Additional notes or comments..."
                         rows={3}
+                        className="text-black border-gray-300 focus:border-blue-500"
                     />
                 </div>
             </div>

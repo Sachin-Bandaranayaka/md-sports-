@@ -16,6 +16,8 @@ interface ComboboxProps {
     disabled?: boolean;
     required?: boolean;
     name?: string;
+    searchable?: boolean;
+    onSearch?: (query: string) => void;
 }
 
 export function Combobox({
@@ -26,7 +28,9 @@ export function Combobox({
     className = '',
     disabled = false,
     required = false,
-    name
+    name,
+    searchable = false,
+    onSearch
 }: ComboboxProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -50,7 +54,12 @@ export function Combobox({
         );
 
         setFilteredOptions(filtered);
-    }, [searchTerm, options]);
+
+        // If onSearch is provided, call it with the search term
+        if (onSearch && searchable) {
+            onSearch(searchTerm);
+        }
+    }, [searchTerm, options, onSearch, searchable]);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -74,6 +83,21 @@ export function Combobox({
         onChange(option.value);
         setIsOpen(false);
         setSearchTerm('');
+    };
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setSearchTerm(value);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' && filteredOptions.length > 0) {
+            e.preventDefault();
+            handleOptionClick(filteredOptions[0]);
+        } else if (e.key === 'Escape') {
+            setIsOpen(false);
+            setSearchTerm('');
+        }
     };
 
     return (
@@ -109,7 +133,8 @@ export function Combobox({
                             type="text"
                             className="flex-1 outline-none bg-transparent text-black"
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={handleInputChange}
+                            onKeyDown={handleKeyDown}
                             placeholder="Search..."
                             onClick={(e) => e.stopPropagation()}
                             disabled={disabled}
@@ -119,7 +144,9 @@ export function Combobox({
                     </div>
                 ) : (
                     <div className="flex items-center justify-between w-full text-black">
-                        <span className="truncate">{selectedOption ? selectedOption.label : placeholder}</span>
+                        <span className={clsx("truncate", !selectedOption && "text-gray-500")}>
+                            {selectedOption ? selectedOption.label : placeholder}
+                        </span>
                         <Search className="w-4 h-4 text-black ml-2 flex-shrink-0" />
                     </div>
                 )}

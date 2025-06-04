@@ -69,6 +69,8 @@ export default function InvoiceClientWrapper({
     const [statistics, setStatistics] = useState(initialStatistics);
     const [loading, setLoading] = useState<boolean>(false); // For client-side actions like payment, delete
     const [error, setError] = useState<string | null>(null);
+    const [customers, setCustomers] = useState<{ id: number; name: string }[]>([]);
+    const [products, setProducts] = useState<{ id: number; name: string; price: number }[]>([]);
 
     // Modal states
     const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
@@ -103,6 +105,33 @@ export default function InvoiceClientWrapper({
             handleFilterChange();
         }
     }, [sortBy]);
+
+    // Fetch customers and products when needed
+    useEffect(() => {
+        if (isEditModalOpen || isCreateModalOpen) {
+            const fetchCustomersAndProducts = async () => {
+                try {
+                    // Fetch customers
+                    const customersResponse = await fetch('/api/customers');
+                    if (customersResponse.ok) {
+                        const customersData = await customersResponse.json();
+                        setCustomers(customersData);
+                    }
+
+                    // Fetch products
+                    const productsResponse = await fetch('/api/products');
+                    if (productsResponse.ok) {
+                        const productsData = await productsResponse.json();
+                        setProducts(productsData);
+                    }
+                } catch (err) {
+                    console.error('Error fetching customers or products:', err);
+                }
+            };
+
+            fetchCustomersAndProducts();
+        }
+    }, [isEditModalOpen, isCreateModalOpen]);
 
     const handleFilterChange = () => {
         const params = new URLSearchParams(searchParams);
@@ -198,15 +227,49 @@ export default function InvoiceClientWrapper({
         }
     };
 
-    const handleCreateSuccess = () => {
-        setIsCreateModalOpen(false);
-        router.refresh(); // Refresh the page to show new invoice
+    const handleCreateSuccess = async (newInvoice: any) => {
+        try {
+            const response = await fetch('/api/invoices', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(newInvoice),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to create invoice');
+            }
+
+            setIsCreateModalOpen(false);
+            router.refresh(); // Refresh the page to show new invoice
+        } catch (err: any) {
+            console.error('Error creating invoice:', err);
+            setError(err.message || 'Failed to create invoice');
+        }
     };
 
-    const handleEditSuccess = () => {
-        setIsEditModalOpen(false);
-        setSelectedInvoice(null);
-        router.refresh(); // Refresh the page to show updated invoice
+    const handleEditSuccess = async (updatedInvoice: any) => {
+        try {
+            const response = await fetch(`/api/invoices/${updatedInvoice.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updatedInvoice),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update invoice');
+            }
+
+            setIsEditModalOpen(false);
+            setSelectedInvoice(null);
+            router.refresh(); // Refresh the page to show updated invoice
+        } catch (err: any) {
+            console.error('Error updating invoice:', err);
+            setError(err.message || 'Failed to update invoice');
+        }
     };
 
     const handleCloseModals = () => {
@@ -510,14 +573,20 @@ export default function InvoiceClientWrapper({
             <InvoiceCreateModal
                 isOpen={isCreateModalOpen}
                 onClose={handleCloseModals}
-                onSuccess={handleCreateSuccess}
+                onSave={handleCreateSuccess}
+                customers={customers}
+                products={products}
+                isLoading={loading}
             />
 
             <InvoiceEditModal
                 isOpen={isEditModalOpen}
                 onClose={handleCloseModals}
-                onSuccess={handleEditSuccess}
-                invoice={selectedInvoice}
+                onSave={handleEditSuccess}
+                customers={customers}
+                products={products}
+                initialData={selectedInvoice}
+                isLoading={loading}
             />
 
             <InvoiceViewModal
