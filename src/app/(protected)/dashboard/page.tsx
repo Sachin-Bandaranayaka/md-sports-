@@ -17,9 +17,15 @@ export default async function DashboardPage() {
             const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
             const baseUrl = `${protocol}://${host}`;
 
-            // Get the accessToken from cookies
+            // Log all available cookies
             const cookieStore = await cookies();
+            const allCookies = cookieStore.getAll();
+            console.log('[DashboardPage] All cookies available to Server Component:', JSON.stringify(allCookies));
+
+            // Get the accessToken from cookies
             const accessToken = cookieStore.get('accessToken')?.value;
+
+            console.log('[DashboardPage] Retrieved accessToken from cookies:', accessToken ? `${accessToken.substring(0, 10)}...` : 'No accessToken cookie found');
 
             const fetchHeaders: HeadersInit = {
                 'Content-Type': 'application/json',
@@ -28,6 +34,8 @@ export default async function DashboardPage() {
             if (accessToken) {
                 fetchHeaders['Authorization'] = `Bearer ${accessToken}`;
             }
+
+            console.log('[DashboardPage] fetchHeaders for /api/dashboard/all:', JSON.stringify(fetchHeaders));
 
             // Fetch all dashboard data from the consolidated endpoint
             const response = await fetch(`${baseUrl}/api/dashboard/all`, {

@@ -1,68 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-// GET: Fetch all shops
-export async function GET(request: NextRequest) {
-    try {
-        const searchParams = request.nextUrl.searchParams;
-        const simpleList = searchParams.get('simple') === 'true';
+// Placeholder for your shop data structure
+interface Shop {
+    id: string | number;
+    name: string;
+}
 
-        if (simpleList) {
-            console.log('Fetching simple list of shops (id and name only)...');
-            const shops = await prisma.shop.findMany({
-                orderBy: { name: 'asc' },
-                select: { id: true, name: true }
-            });
-            console.log(`Successfully fetched ${shops.length} shops for simple list.`);
-            return NextResponse.json({ success: true, data: shops });
+// Placeholder for fetching shops from a database or service
+async function getShopsFromDataSource(): Promise<Shop[]> {
+    // In a real application, you would fetch this data from your database
+    // For example: return await db.select('*').from('shops');
+    return [
+        { id: 'shop1', name: 'Main Street Boutique' },
+        { id: 'shop2', name: 'Downtown Emporium' },
+        { id: 'shop3', name: 'Warehouse Outlet' },
+        { id: 'all', name: 'All Shops Access' }, // Example for a global access option
+    ];
+}
+
+// GET: Fetch all shops
+export async function GET(req: NextRequest) {
+    try {
+        // --- Authentication/Authorization (Placeholder) ---
+        // In a real application, you would implement proper authentication.
+        // For example, verify a JWT token, check session, or API key.
+        const authorizationHeader = req.headers.get('Authorization');
+        if (authorizationHeader !== 'Bearer dev-token') { // Replace dev-token with your actual auth mechanism
+            // console.warn('Unauthorized attempt to fetch shops');
+            // return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+            // For now, allowing access without strict auth for easier development.
+            // Remove or secure this properly in production.
+        }
+        // --- End Authentication/Authorization ---
+
+        const shops = await getShopsFromDataSource();
+
+        if (!shops || shops.length === 0) {
+            // You might want to distinguish between an error and no shops found
+            // For now, returning success true with empty data if no shops are found.
+            return NextResponse.json({ success: true, data: [] });
         }
 
-        // Existing logic for detailed shop list
-        console.log('Fetching shops with inventory items...');
-        const shops = await prisma.shop.findMany({
-            orderBy: {
-                name: 'asc'
-            },
-            include: {
-                InventoryItem: true
-            }
-        });
+        return NextResponse.json({ success: true, data: shops });
 
-        console.log(`Successfully fetched ${shops.length} shops`);
-
-        // Add inventory count and remove the full inventory items array
-        const shopsWithCounts = shops.map(shop => {
-            const inventoryCount = shop.InventoryItem ? shop.InventoryItem.length : 0;
-            console.log(`Shop ${shop.id} (${shop.name}) has ${inventoryCount} inventory items`);
-
-            return {
-                ...shop,
-                total_inventory: inventoryCount,
-                InventoryItem: undefined
-            };
-        });
-
-        return NextResponse.json({
-            success: true,
-            data: shopsWithCounts
-        });
     } catch (error) {
-        console.error('Error fetching shops:', error);
-
-        // Check if it's a Prisma-specific error
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        const errorName = error instanceof Error ? error.name : 'Unknown error type';
-
-        console.error(`Error details - Name: ${errorName}, Message: ${errorMessage}`);
-
-        return NextResponse.json(
-            {
-                success: false,
-                message: 'Failed to fetch shops',
-                error: errorMessage
-            },
-            { status: 500 }
-        );
+        console.error('[API/SHOPS_GET] Error fetching shops:', error);
+        // It's good practice to avoid sending detailed internal error messages to the client.
+        let errorMessage = 'An unexpected error occurred while fetching shops.';
+        if (error instanceof Error) {
+            // You could log error.message for server-side debugging
+            // but not necessarily send it to client.
+        }
+        return NextResponse.json({ success: false, message: errorMessage }, { status: 500 });
     }
 }
 

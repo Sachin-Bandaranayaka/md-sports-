@@ -88,30 +88,56 @@ export async function PUT(
         }
 
         const body = await request.json();
-        const quotation = await prisma.quotation.findUnique({
-            where: {
-                id: quotationId
-            }
+
+        // Ensure the quotation exists before attempting to update
+        const existingQuotation = await prisma.quotation.findUnique({
+            where: { id: quotationId },
         });
 
-        if (!quotation) {
+        if (!existingQuotation) {
             return NextResponse.json(
                 { error: 'Quotation not found' },
                 { status: 404 }
             );
         }
 
-        // Extract items from the request
-        const { items, ...quotationData } = body;
+        const { items, ...quotationDetails } = body;
 
-        // Update the quotation and items in a transaction
+        // Prepare data for Quotation update, only including valid fields
+        const dataToUpdate: any = {};
+
+        if (quotationDetails.quotationNumber !== undefined) {
+            dataToUpdate.quotationNumber = String(quotationDetails.quotationNumber);
+        }
+        if (quotationDetails.customerId !== undefined) {
+            dataToUpdate.customerId = parseInt(String(quotationDetails.customerId), 10);
+            if (isNaN(dataToUpdate.customerId)) {
+                return NextResponse.json({ error: 'Invalid customerId format' }, { status: 400 });
+            }
+        }
+        if (quotationDetails.total !== undefined) {
+            dataToUpdate.total = parseFloat(String(quotationDetails.total));
+            if (isNaN(dataToUpdate.total)) {
+                return NextResponse.json({ error: 'Invalid total format' }, { status: 400 });
+            }
+        }
+        if (quotationDetails.status !== undefined) {
+            dataToUpdate.status = String(quotationDetails.status);
+        }
+        if (quotationDetails.expiryDate !== undefined) { // Frontend sends expiryDate
+            dataToUpdate.validUntil = quotationDetails.expiryDate ? new Date(quotationDetails.expiryDate) : null;
+        }
+        // Note: We don't update createdAt. updatedAt is handled by Prisma.
+        // Fields like notes, subtotal, tax, discount are not in the current Quotation Prisma schema.
+        // If they need to be stored, the schema needs to be updated.
+
         const updatedQuotation = await prisma.$transaction(async (tx) => {
             // Update the quotation
             await tx.quotation.update({
                 where: {
                     id: quotationId
                 },
-                data: quotationData
+                data: dataToUpdate // Use the prepared data
             });
 
             // Handle items update if provided
@@ -125,10 +151,23 @@ export async function PUT(
 
                 // Create new items
                 for (const item of items) {
+                    const productId = parseInt(String(item.productId), 10);
+                    const quantity = parseInt(String(item.quantity), 10);
+                    // Prisma schema uses 'price', frontend might send 'unitPrice' or 'price'
+                    const price = parseFloat(String(item.unitPrice ?? item.price));
+                    const itemTotal = parseFloat(String(item.total));
+
+                    if (isNaN(productId) || isNaN(quantity) || isNaN(price) || isNaN(itemTotal)) {
+                        throw new Error('Invalid item data: All item numeric fields must be valid numbers.');
+                    }
+
                     await tx.quotationItem.create({
                         data: {
-                            ...item,
-                            quotationId: quotationId
+                            quotationId: quotationId,
+                            productId: productId,
+                            quantity: quantity,
+                            price: price, // Ensure this matches schema field name
+                            total: itemTotal
                         }
                     });
                 }
@@ -151,10 +190,17 @@ export async function PUT(
         });
 
         return NextResponse.json(updatedQuotation);
-    } catch (error) {
+    } catch (error: any) { // Catch specific error types if needed
         console.error(`Error updating quotation ${params.id}:`, error);
+        // Provide a more specific error message if it's our custom validation error
+        if (error.message.startsWith('Invalid item data:')) {
+            return NextResponse.json(
+                { error: error.message },
+                { status: 400 }
+            );
+        }
         return NextResponse.json(
-            { error: 'Failed to update quotation' },
+            { error: 'Failed to update quotation', details: error.message },
             { status: 500 }
         );
     }

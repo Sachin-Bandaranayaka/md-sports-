@@ -1,9 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Loader2 } from 'lucide-react';
+
+interface Shop {
+    id: string | number;
+    name: string;
+}
 
 export default function AddUserPage() {
     const router = useRouter();
@@ -19,13 +24,46 @@ export default function AddUserPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [formError, setFormError] = useState('');
     const [formSuccess, setFormSuccess] = useState('');
+    const [dynamicShops, setDynamicShops] = useState<Shop[]>([]);
+    const [shopsLoading, setShopsLoading] = useState(true);
 
-    // Available shops
-    const shops = [
-        { id: 1, name: 'All Shops' },
-        { id: 2, name: 'Main Store' },
-        { id: 3, name: 'Warehouse' }
-    ];
+    // Available shops - This will be replaced by dynamic fetching
+    // const shops = [
+    //     { id: 1, name: 'All Shops' },
+    //     { id: 2, name: 'Main Store' },
+    //     { id: 3, name: 'Warehouse' }
+    // ];
+
+    useEffect(() => {
+        const fetchShops = async () => {
+            setShopsLoading(true);
+            try {
+                // TODO: Replace with actual token or auth mechanism
+                const response = await fetch('/api/shops', {
+                    headers: {
+                        'Authorization': 'Bearer dev-token', // Example authorization
+                    },
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to fetch shops');
+                }
+                const data = await response.json();
+                if (data.success) {
+                    setDynamicShops(data.data || []);
+                } else {
+                    console.error("Failed to fetch shops:", data.message);
+                    setDynamicShops([]); // Set to empty array on failure
+                }
+            } catch (error) {
+                console.error('Error fetching shops:', error);
+                setDynamicShops([]); // Set to empty array on error
+            } finally {
+                setShopsLoading(false);
+            }
+        };
+
+        fetchShops();
+    }, []);
 
     // Available permissions
     const availablePermissions = [
@@ -223,11 +261,22 @@ export default function AddUserPage() {
                                     onChange={handleFormChange}
                                     className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                                     required
+                                    disabled={shopsLoading}
                                 >
-                                    <option value="">Select a shop</option>
-                                    {shops.map(shop => (
-                                        <option key={shop.id} value={shop.id}>{shop.name}</option>
-                                    ))}
+                                    {shopsLoading ? (
+                                        <option value="">Loading shops...</option>
+                                    ) : (
+                                        <>
+                                            <option value="">Select a shop</option>
+                                            {dynamicShops.length > 0 ? (
+                                                dynamicShops.map(shop => (
+                                                    <option key={shop.id} value={shop.id}>{shop.name}</option>
+                                                ))
+                                            ) : (
+                                                <option value="" disabled>No shops available</option>
+                                            )}
+                                        </>
+                                    )}
                                 </select>
                             </div>
                         </div>

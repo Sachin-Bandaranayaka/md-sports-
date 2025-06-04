@@ -162,7 +162,15 @@ export default function ViewQuotation() {
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={handlePrintQuotation}
+                                onClick={() => {
+                                    if (printRef.current) {
+                                        handlePrintQuotation();
+                                    } else {
+                                        console.error("Attempted to print but printRef.current is null. This should not happen if the button is correctly disabled.");
+                                        // Optionally, you could alert the user or show a more formal notification
+                                        alert("Cannot print: a required component reference is missing. Please try reloading the page.");
+                                    }
+                                }}
                             >
                                 <Download className="w-4 h-4 mr-2" />
                                 Print / Download

@@ -8,6 +8,7 @@ const JWT_ACCESS_TOKEN_EXPIRES_IN = process.env.JWT_ACCESS_TOKEN_EXPIRES_IN || '
 const COOKIE_SECURE = process.env.NODE_ENV === 'production';
 
 export async function POST(req: NextRequest) {
+    console.log('[LoginRoute] POST /api/auth/login hit!');
     try {
         const body = await req.json();
         const { email, password } = body;
@@ -39,6 +40,9 @@ export async function POST(req: NextRequest) {
         const { token: accessToken, user } = authResult;
         console.log('User permissions:', user?.permissions);
 
+        console.log('[LoginRoute] COOKIE_SECURE value:', COOKIE_SECURE);
+        console.log('[LoginRoute] AccessToken value before setting cookie:', accessToken ? accessToken.substring(0, 20) + '...' : 'EMPTY/NULL');
+
         // Generate refresh token - with fallback if it fails
         let refreshToken = null;
         try {
@@ -59,7 +63,7 @@ export async function POST(req: NextRequest) {
 
         // Set HTTP-only cookies for tokens (more secure approach)
         response.cookies.set({
-            name: 'accessToken', value: accessToken || '',
+            name: 'accessToken',
             value: accessToken || '',
             httpOnly: true,
             secure: COOKIE_SECURE,
