@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { fetchSummaryData } from '../summary/route';
 import { fetchTotalRetailValueData } from '../total-retail-value/route';
 import { fetchShopsData } from '../shops/route';
@@ -6,38 +6,59 @@ import { fetchInventoryDistributionData } from '../inventory/route';
 import { fetchSalesData } from '../sales/route';
 import { fetchTransfersData } from '../transfers/route';
 import { cacheService } from '@/lib/cache';
+import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
+import { validateTokenPermission } from '@/lib/auth';
 
-export async function GET() {
+export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest, context) => {
     try {
-        // Check cache first
-        const cacheKey = 'dashboard:all';
+        // Validate token and permissions
+        const authResult = await validateTokenPermission(request, 'view_dashboard');
+        if (!authResult.isValid) {
+            return NextResponse.json({ error: authResult.message }, { status: 401 });
+        }
+
+        // Check cache first with shop context
+        const cacheKey = `dashboard:all:${context.isFiltered ? context.shopId : 'all'}`;
         console.time('cache check');
         const cachedData = await cacheService.get(cacheKey);
         console.timeEnd('cache check');
 
         if (cachedData) {
             console.log('✅ Dashboard data served from cache');
-            return NextResponse.json(cachedData);
+            return NextResponse.json({
+                ...cachedData,
+                meta: {
+                    shopFiltered: context.isFiltered,
+                    shopId: context.shopId,
+                    fromCache: true
+                }
+            });
         }
 
-        console.log('🔄 Fetching fresh dashboard data');
+        console.log('🔄 Fetching fresh dashboard data with shop context:', {
+            shopId: context.shopId,
+            isFiltered: context.isFiltered
+        });
+
+        const shopId = context.isFiltered ? context.shopId : null;
+
         console.time('fetchSummaryData');
-        const p1 = fetchSummaryData().finally(() => console.timeEnd('fetchSummaryData'));
+        const p1 = fetchSummaryData(shopId).finally(() => console.timeEnd('fetchSummaryData'));
 
         console.time('fetchTotalRetailValueData');
-        const p2 = fetchTotalRetailValueData().finally(() => console.timeEnd('fetchTotalRetailValueData'));
+        const p2 = fetchTotalRetailValueData(shopId).finally(() => console.timeEnd('fetchTotalRetailValueData'));
 
         console.time('fetchShopsData');
-        const p3 = fetchShopsData().finally(() => console.timeEnd('fetchShopsData'));
+        const p3 = fetchShopsData(shopId).finally(() => console.timeEnd('fetchShopsData'));
 
         console.time('fetchInventoryDistributionData');
-        const p4 = fetchInventoryDistributionData().finally(() => console.timeEnd('fetchInventoryDistributionData'));
+        const p4 = fetchInventoryDistributionData(shopId).finally(() => console.timeEnd('fetchInventoryDistributionData'));
 
         console.time('fetchSalesData');
-        const p5 = fetchSalesData().finally(() => console.timeEnd('fetchSalesData'));
+        const p5 = fetchSalesData(shopId).finally(() => console.timeEnd('fetchSalesData'));
 
         console.time('fetchTransfersData');
-        const p6 = fetchTransfersData().finally(() => console.timeEnd('fetchTransfersData'));
+        const p6 = fetchTransfersData(shopId).finally(() => console.timeEnd('fetchTransfersData'));
 
         console.time('Promise.all dashboard data');
         const [
@@ -74,6 +95,11 @@ export async function GET() {
             inventoryDistribution: inventoryResult.success ? inventoryResult.data : null,
             monthlySales: salesResult.success ? salesResult.data : null,
             recentTransfers: transfersResult.success ? transfersResult.data : null,
+            meta: {
+                shopFiltered: context.isFiltered,
+                shopId: context.shopId,
+                fromCache: false
+            },
             // You might want to include individual success statuses or error messages if needed
             errors: [
                 !summaryResult.success ? 'Failed to fetch summary data' : null,
@@ -99,9 +125,13 @@ export async function GET() {
             {
                 success: false,
                 message: 'Failed to load all dashboard data',
-                error: error instanceof Error ? error.message : String(error)
+                error: error instanceof Error ? error.message : String(error),
+                meta: {
+                    shopFiltered: context.isFiltered,
+                    shopId: context.shopId
+                }
             },
             { status: 500 }
         );
     }
-}
+});

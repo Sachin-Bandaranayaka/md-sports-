@@ -23,6 +23,35 @@ const getStatusBadgeClass = (status: string) => {
     }
 };
 
+const getExpiryCountdown = (expiryDate?: string, status?: string): string => {
+    if (status && ['expired', 'accepted', 'rejected'].includes(status.toLowerCase())) {
+        return status.charAt(0).toUpperCase() + status.slice(1);
+    }
+
+    if (!expiryDate) {
+        return 'No expiry date';
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const expiry = new Date(expiryDate);
+    expiry.setHours(0, 0, 0, 0);
+
+    const diffTime = expiry.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+        return 'Expired'; // Should be handled by status, but as a fallback
+    }
+    if (diffDays === 0) {
+        return 'Expires today';
+    }
+    if (diffDays === 1) {
+        return 'Expires in 1 day';
+    }
+    return `Expires in ${diffDays} days`;
+};
+
 export default function Quotations() {
     const router = useRouter();
     const [quotations, setQuotations] = useState<SalesQuotation[]>([]);
@@ -41,8 +70,19 @@ export default function Quotations() {
                 if (!quotationsResponse.ok) {
                     throw new Error('Failed to fetch quotations');
                 }
-                const quotationsData = await quotationsResponse.json();
-                setQuotations(quotationsData);
+                const apiQuotations = await quotationsResponse.json();
+
+                // Transform API data to match SalesQuotation frontend type
+                const transformedQuotations = apiQuotations.map((q: any) => ({
+                    ...q,
+                    customerName: q.customer?.name || 'N/A', // Map from nested customer object
+                    date: q.createdAt, // Use createdAt for the main 'date'
+                    expiryDate: q.validUntil, // Map validUntil to expiryDate
+                    // Ensure all fields from SalesQuotation are present, copying from q
+                    // id, quotationNumber, customerId, items, subtotal, tax, discount, total, notes, status, createdAt are already in q
+                }));
+
+                setQuotations(transformedQuotations);
 
                 setError(null);
             } catch (err) {
@@ -246,9 +286,27 @@ export default function Quotations() {
                                                     <div className="text-sm text-black">
                                                         {new Date(quotation.date).toLocaleDateString()}
                                                     </div>
-                                                    <div className="text-sm text-black">
-                                                        Expires: {new Date(quotation.expiryDate).toLocaleDateString()}
-                                                    </div>
+                                                    {(() => {
+                                                        const expiryText = getExpiryCountdown(quotation.expiryDate, quotation.status);
+                                                        let textColorClass = 'text-black font-normal'; // Default class
+
+                                                        if (expiryText === 'Expires today' || expiryText === 'Expires in 1 day') {
+                                                            textColorClass = 'text-orange-600 font-medium';
+                                                        } else if (expiryText.startsWith('Expires in')) { // Covers > 1 day
+                                                            textColorClass = 'text-green-600 font-medium';
+                                                        } else if (expiryText === 'Expired') { // Covers "Expired" from date calc or status
+                                                            textColorClass = 'text-red-700 font-medium';
+                                                        } else if (expiryText === 'No expiry date') {
+                                                            textColorClass = 'text-gray-500 font-normal';
+                                                        }
+                                                        // For "Accepted", "Rejected" from status, they will take text-black font-normal (default)
+
+                                                        return (
+                                                            <div className={`text-sm ${textColorClass}`}>
+                                                                {expiryText}
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="text-sm font-medium text-black">

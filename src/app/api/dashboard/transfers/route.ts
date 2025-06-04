@@ -1,9 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma, safeQuery } from '@/lib/prisma';
 import { cacheService } from '@/lib/cache';
+import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
+import { validateTokenPermission } from '@/lib/auth';
 
 // Filtered version of fetchTransfersData with date range support
-export async function fetchTransfersDataFiltered(startDate?: string | null, endDate?: string | null) {
+export async function fetchTransfersDataFiltered(startDate?: string | null, endDate?: string | null, shopId?: string | null) {
     // Build date filter
     const dateFilter: any = {};
     if (startDate) {
@@ -15,7 +17,19 @@ export async function fetchTransfersDataFiltered(startDate?: string | null, endD
         dateFilter.lte = endDateTime;
     }
 
-    // Fetch inventory transfers with date filtering
+    // Build where clause with date and shop filtering
+    const whereClause: any = {};
+    if (Object.keys(dateFilter).length > 0) {
+        whereClause.createdAt = dateFilter;
+    }
+    if (shopId) {
+        whereClause.OR = [
+            { fromShopId: shopId },
+            { toShopId: shopId }
+        ];
+    }
+
+    // Fetch inventory transfers with date and shop filtering
     const transfers = await safeQuery(
         () => prisma.inventoryTransfer.findMany({
             select: {
@@ -32,9 +46,7 @@ export async function fetchTransfersDataFiltered(startDate?: string | null, endD
                     select: { id: true }
                 }
             },
-            where: Object.keys(dateFilter).length > 0 ? {
-                createdAt: dateFilter
-            } : undefined,
+            where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
             orderBy: {
                 createdAt: 'desc'
             },
@@ -60,7 +72,15 @@ export async function fetchTransfersDataFiltered(startDate?: string | null, endD
     };
 }
 
-export async function fetchTransfersData() {
+export async function fetchTransfersData(shopId?: string | null) {
+    // Build where clause for shop filtering
+    const whereClause = shopId ? {
+        OR: [
+            { fromShopId: shopId },
+            { toShopId: shopId }
+        ]
+    } : undefined;
+
     // Fetch recent inventory transfers using Prisma
     const transfers = await safeQuery(
         () => prisma.inventoryTransfer.findMany({
@@ -78,6 +98,7 @@ export async function fetchTransfersData() {
                     select: { id: true } // Selecting id to count items
                 }
             },
+            where: whereClause,
             orderBy: {
                 createdAt: 'desc'
             },
@@ -104,32 +125,62 @@ export async function fetchTransfersData() {
 }
 
 // GET: Fetch recent inventory transfers
-export async function GET() {
+export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest, context) => {
     try {
-        // Check cache first
-        const cacheKey = 'dashboard:transfers';
+        // Validate token and permissions
+        const authResult = await validateTokenPermission(request, 'view_dashboard');
+        if (!authResult.isValid) {
+            return NextResponse.json({ error: authResult.message }, { status: 401 });
+        }
+
+        // Check cache first with shop context
+        const cacheKey = `dashboard:transfers:${context.isFiltered ? context.shopId : 'all'}`;
         const cachedData = await cacheService.get(cacheKey);
 
         if (cachedData) {
             console.log('✅ Transfers data served from cache');
-            return NextResponse.json(cachedData);
+            return NextResponse.json({
+                ...cachedData,
+                meta: {
+                    shopFiltered: context.isFiltered,
+                    shopId: context.shopId,
+                    fromCache: true
+                }
+            });
         }
 
-        console.log('🔄 Fetching fresh transfers data');
-        const transfersResult = await fetchTransfersData();
+        console.log('🔄 Fetching fresh transfers data with shop context:', {
+            shopId: context.shopId,
+            isFiltered: context.isFiltered
+        });
+        const transfersResult = await fetchTransfersData(context.isFiltered ? context.shopId : null);
+
+        // Add metadata to response
+        const responseData = {
+            ...transfersResult,
+            meta: {
+                shopFiltered: context.isFiltered,
+                shopId: context.shopId,
+                fromCache: false
+            }
+        };
 
         // Cache for 2 minutes (transfers change frequently)
-        await cacheService.set(cacheKey, transfersResult, 120);
+        await cacheService.set(cacheKey, responseData, 120);
         console.log('💾 Transfers data cached for 2 minutes');
 
-        return NextResponse.json(transfersResult);
+        return NextResponse.json(responseData);
     } catch (error) {
         console.error('Error fetching transfer data:', error);
         // Return empty array instead of error, consistent with original
         return NextResponse.json({
             success: true, // Or false
             data: [],
-            message: error instanceof Error ? error.message : 'Unknown error'
+            message: error instanceof Error ? error.message : 'Unknown error',
+            meta: {
+                shopFiltered: context.isFiltered,
+                shopId: context.shopId
+            }
         });
     }
-}
+});

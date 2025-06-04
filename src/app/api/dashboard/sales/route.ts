@@ -1,9 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma, safeQuery } from '@/lib/prisma';
 import { cacheService } from '@/lib/cache';
+import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
+import { validateTokenPermission } from '@/lib/auth';
 
-// Filtered version of fetchSalesData with date range support
-export async function fetchSalesDataFiltered(startDate?: string | null, endDate?: string | null) {
+// Filtered version of fetchSalesData with date range and shop support
+export async function fetchSalesDataFiltered(startDate?: string | null, endDate?: string | null, shopId?: number | null) {
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
     if (startDate && endDate) {
@@ -29,7 +31,8 @@ export async function fetchSalesDataFiltered(startDate?: string | null, endDate?
                         createdAt: {
                             gte: actualStart,
                             lte: actualEnd
-                        }
+                        },
+                        ...(shopId ? { shopId } : {})
                     },
                     _sum: {
                         total: true
@@ -58,7 +61,7 @@ export async function fetchSalesDataFiltered(startDate?: string | null, endDate?
     }
 }
 
-export async function fetchSalesData() {
+export async function fetchSalesData(shopId?: number | null) {
     // Get current month and year
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -89,7 +92,8 @@ export async function fetchSalesData() {
                     createdAt: {
                         gte: startDate,
                         lte: endDate
-                    }
+                    },
+                    ...(shopId ? { shopId } : {})
                 },
                 _sum: {
                     total: true
@@ -111,26 +115,53 @@ export async function fetchSalesData() {
     };
 }
 
-// GET: Fetch monthly sales data
-export async function GET() {
+// GET: Fetch monthly sales data with shop-based filtering
+export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest, context) => {
     try {
-        // Check cache first
-        const cacheKey = 'dashboard:sales';
+        // Validate token and permissions
+        const authResult = await validateTokenPermission(request, 'view_sales');
+        if (!authResult.isValid) {
+            return NextResponse.json({ error: authResult.message }, { status: 401 });
+        }
+
+        console.log('Sales API - Shop context:', {
+            shopId: context.shopId,
+            isFiltered: context.isFiltered,
+            isAdmin: context.isAdmin,
+            userShopId: context.userShopId
+        });
+
+        // Create cache key that includes shop context
+        const cacheKey = context.isFiltered ? `dashboard:sales:shop:${context.shopId}` : 'dashboard:sales:all';
         const cachedData = await cacheService.get(cacheKey);
 
         if (cachedData) {
             console.log('✅ Sales data served from cache');
-            return NextResponse.json(cachedData);
+            return NextResponse.json({
+                ...cachedData,
+                meta: {
+                    shopFiltered: context.isFiltered,
+                    shopId: context.shopId,
+                    fromCache: true
+                }
+            });
         }
 
         console.log('🔄 Fetching fresh sales data');
-        const salesResult = await fetchSalesData();
+        const salesResult = await fetchSalesData(context.isFiltered ? context.shopId : null);
 
         // Cache for 5 minutes (sales data changes less frequently)
         await cacheService.set(cacheKey, salesResult, 300);
         console.log('💾 Sales data cached for 5 minutes');
 
-        return NextResponse.json(salesResult);
+        return NextResponse.json({
+            ...salesResult,
+            meta: {
+                shopFiltered: context.isFiltered,
+                shopId: context.shopId,
+                fromCache: false
+            }
+        });
     } catch (error) {
         console.error('Error generating sales data:', error);
 
@@ -152,7 +183,12 @@ export async function GET() {
         return NextResponse.json({
             success: true, // Or false
             data: emptyMonths,
-            message: error instanceof Error ? error.message : 'Unknown error'
+            message: error instanceof Error ? error.message : 'Unknown error',
+            meta: {
+                shopFiltered: context.isFiltered,
+                shopId: context.shopId,
+                error: true
+            }
         });
     }
-}
+});

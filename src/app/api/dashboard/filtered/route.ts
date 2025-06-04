@@ -1,75 +1,80 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchSummaryDataFiltered } from '../summary/route';
-import { fetchShopsDataFiltered } from '../shops/route';
-import { fetchInventoryDistributionData } from '../inventory/route';
+import { fetchInventoryData } from '../inventory/route';
+import { fetchProductsData } from '../products/route';
+import { fetchCustomersData } from '../customers/route';
 import { fetchSalesDataFiltered } from '../sales/route';
-import { fetchTransfersDataFiltered } from '../transfers/route';
-import { cacheService } from '@/lib/cache';
+import { fetchShopsData } from '../shops/route';
+import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
+import { validateTokenPermission } from '@/lib/auth';
 
-export async function GET(request: NextRequest) {
+export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest, context) => {
     try {
+        // Validate token and permissions
+        const authResult = await validateTokenPermission(request, 'view_dashboard');
+        if (!authResult.isValid) {
+            return NextResponse.json({ error: authResult.message }, { status: 401 });
+        }
+
         const { searchParams } = new URL(request.url);
         const startDate = searchParams.get('startDate');
         const endDate = searchParams.get('endDate');
 
-        // Create cache key based on date parameters
-        const cacheKey = `dashboard:filtered:${startDate || 'null'}:${endDate || 'null'}`;
+        console.log('🔄 Fetching filtered dashboard data with date range and shop context:', {
+            startDate,
+            endDate,
+            shopId: context.shopId,
+            isFiltered: context.isFiltered
+        });
 
-        // Check cache first
-        const cachedData = await cacheService.get(cacheKey);
-        if (cachedData) {
-            console.log('✅ Filtered dashboard data served from cache');
-            return NextResponse.json(cachedData);
-        }
-
-        console.log('🔄 Fetching fresh filtered dashboard data', { startDate, endDate });
-
-        // Fetch all dashboard data with date filtering
+        // Fetch all data in parallel with shop context
         const [
-            summaryResult,
-            shopsResult,
             inventoryResult,
+            productsResult,
+            customersResult,
             salesResult,
-            transfersResult
+            shopsResult
         ] = await Promise.all([
-            fetchSummaryDataFiltered(startDate, endDate),
-            fetchShopsDataFiltered(startDate, endDate),
-            fetchInventoryDistributionData(), // Inventory distribution doesn't need date filtering
-            fetchSalesDataFiltered(startDate, endDate),
-            fetchTransfersDataFiltered(startDate, endDate)
+            fetchInventoryData(context.isFiltered ? context.shopId : null),
+            fetchProductsData(context.isFiltered ? context.shopId : null),
+            fetchCustomersData(context.isFiltered ? context.shopId : null),
+            fetchSalesDataFiltered(startDate, endDate, context.isFiltered ? context.shopId : null),
+            fetchShopsData(context.isFiltered ? context.shopId : null)
         ]);
 
-        const responseData = {
+        console.log('✅ All filtered dashboard data fetched successfully');
+
+        return NextResponse.json({
             success: true,
-            summaryData: summaryResult.success ? summaryResult.data : null,
-            shopPerformance: shopsResult.success ? shopsResult.data : null,
-            inventoryDistribution: inventoryResult.success ? inventoryResult.data : null,
-            monthlySales: salesResult.success ? salesResult.data : null,
-            recentTransfers: transfersResult.success ? transfersResult.data : null,
-            errors: [
-                !summaryResult.success ? 'Failed to fetch summary data' : null,
-                !shopsResult.success ? 'Failed to fetch shops data' : null,
-                !inventoryResult.success ? 'Failed to fetch inventory data' : null,
-                !salesResult.success ? 'Failed to fetch sales data' : null,
-                !transfersResult.success ? 'Failed to fetch transfers data' : null,
-            ].filter(e => e !== null)
-        };
-
-        // Cache the response for 2 minutes
-        await cacheService.set(cacheKey, responseData, 120);
-        console.log('💾 Filtered dashboard data cached for 2 minutes');
-
-        return NextResponse.json(responseData);
-
-    } catch (error) {
-        console.error('Error fetching filtered dashboard data:', error);
-        return NextResponse.json(
-            {
-                success: false,
-                message: 'Failed to fetch filtered dashboard data',
-                error: error instanceof Error ? error.message : 'Unknown error'
+            data: {
+                monthlyInventory: inventoryResult.success ? inventoryResult.data : null,
+                monthlyProducts: productsResult.success ? productsResult.data : null,
+                monthlyCustomers: customersResult.success ? customersResult.data : null,
+                monthlySales: salesResult.success ? salesResult.data : null,
+                monthlyShops: shopsResult.success ? shopsResult.data : null
             },
-            { status: 500 }
-        );
+            dateRange: { startDate, endDate },
+            meta: {
+                shopFiltered: context.isFiltered,
+                shopId: context.shopId
+            },
+            errors: [
+                !inventoryResult.success ? 'Failed to fetch inventory data' : null,
+                !productsResult.success ? 'Failed to fetch products data' : null,
+                !customersResult.success ? 'Failed to fetch customers data' : null,
+                !salesResult.success ? 'Failed to fetch sales data' : null,
+                !shopsResult.success ? 'Failed to fetch shops data' : null
+            ].filter(Boolean)
+        });
+    } catch (error) {
+        console.error('❌ Error in filtered dashboard API:', error);
+        return NextResponse.json({
+            success: false,
+            message: 'Failed to fetch filtered dashboard data',
+            error: error instanceof Error ? error.message : String(error),
+            meta: {
+                shopFiltered: context.isFiltered,
+                shopId: context.shopId
+            }
+        }, { status: 500 });
     }
-}
+});

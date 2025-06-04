@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma, safeQuery } from '@/lib/prisma';
 import { cacheService } from '@/lib/cache';
+import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
+import { validateTokenPermission } from '@/lib/auth';
 
-export async function fetchTotalRetailValueData() {
-    // Get all inventory items
-    const inventoryItems = await prisma.inventoryItem.findMany();
+export async function fetchTotalRetailValueData(shopId?: string | null) {
+    // Get inventory items with optional shop filtering
+    const inventoryItems = await prisma.inventoryItem.findMany({
+        where: shopId ? { shopId } : {}
+    });
 
     // Get all products to access their retail prices
     const productIds = inventoryItems.map(item => item.productId);
@@ -62,30 +66,60 @@ export async function fetchTotalRetailValueData() {
     };
 }
 
-export async function GET(request: NextRequest) {
+export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest, context) => {
     try {
-        // Check cache first
-        const cacheKey = 'dashboard:total-retail-value';
+        // Validate token and permissions
+        const authResult = await validateTokenPermission(request, 'view_dashboard');
+        if (!authResult.isValid) {
+            return NextResponse.json({ error: authResult.message }, { status: 401 });
+        }
+
+        // Check cache first with shop context
+        const cacheKey = `dashboard:total-retail-value:${context.isFiltered ? context.shopId : 'all'}`;
         const cachedData = await cacheService.get(cacheKey);
 
         if (cachedData) {
             console.log('✅ Total retail value served from cache');
-            return NextResponse.json(cachedData);
+            return NextResponse.json({
+                ...cachedData,
+                meta: {
+                    shopFiltered: context.isFiltered,
+                    shopId: context.shopId,
+                    fromCache: true
+                }
+            });
         }
 
-        console.log('🔄 Fetching fresh total retail value');
-        const retailValueData = await fetchTotalRetailValueData();
+        console.log('🔄 Fetching fresh total retail value with shop context:', {
+            shopId: context.shopId,
+            isFiltered: context.isFiltered
+        });
+        const retailValueData = await fetchTotalRetailValueData(context.isFiltered ? context.shopId : null);
+
+        // Add metadata to response
+        const responseData = {
+            ...retailValueData,
+            meta: {
+                shopFiltered: context.isFiltered,
+                shopId: context.shopId,
+                fromCache: false
+            }
+        };
 
         // Cache for 3 minutes (retail value changes moderately)
-        await cacheService.set(cacheKey, retailValueData, 180);
+        await cacheService.set(cacheKey, responseData, 180);
         console.log('💾 Total retail value cached for 3 minutes');
 
-        return NextResponse.json(retailValueData);
+        return NextResponse.json(responseData);
     } catch (error) {
         console.error('Error calculating total retail value:', error);
         return NextResponse.json({
             success: false,
-            message: 'Failed to calculate total retail value'
+            message: 'Failed to calculate total retail value',
+            meta: {
+                shopFiltered: context.isFiltered,
+                shopId: context.shopId
+            }
         }, { status: 500 });
     }
-}
+});

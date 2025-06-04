@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { verifyToken } from '@/lib/auth';
-import { emitInventoryUpdate, getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
-import { sendSMS } from '@/lib/sms';
-import { cacheService, CACHE_CONFIG } from '@/lib/cache';
+import { validateTokenPermission } from '@/lib/auth';
+import { revalidateTag } from 'next/cache';
+import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
+import { emitInvoiceCreated } from '@/lib/utils/websocket';
+import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
 import { measureAsync } from '@/lib/performance';
 
 const prisma = new PrismaClient();
@@ -11,18 +12,21 @@ const CACHE_DURATION = 60; // 60 seconds
 
 const ITEMS_PER_PAGE = 15;
 
-export async function GET(request: NextRequest) {
+export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest, context) => {
     return measureAsync('invoices-api', async () => {
         try {
-            const token = request.headers.get('authorization')?.replace('Bearer ', '');
-            if (!token) {
-                return NextResponse.json({ error: 'No token provided' }, { status: 401 });
+            // Validate token and permissions
+            const authResult = await validateTokenPermission(request, 'view_invoices');
+            if (!authResult.isValid) {
+                return NextResponse.json({ error: authResult.message }, { status: 401 });
             }
 
-            const decoded = verifyToken(token);
-            if (!decoded) {
-                return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-            }
+            console.log('Invoices API - Shop context:', {
+                shopId: context.shopId,
+                isFiltered: context.isFiltered,
+                isAdmin: context.isAdmin,
+                userShopId: context.userShopId
+            });
 
             const searchParams = request.nextUrl.searchParams;
             const page = parseInt(searchParams.get('page') || '1', 10);
@@ -51,8 +55,8 @@ export async function GET(request: NextRequest) {
                 return response;
             }
 
-            // Build optimized where clause
-            let whereClause: any = {};
+            // Build optimized where clause with shop filtering
+            let whereClause = ShopAccessControl.buildShopFilter(context);
 
             if (status) {
                 whereClause.status = status;
@@ -63,6 +67,8 @@ export async function GET(request: NextRequest) {
             if (shopId) {
                 whereClause.shopId = parseInt(shopId);
             }
+
+            console.log('Invoices where clause:', JSON.stringify(whereClause, null, 2));
             if (searchQuery) {
                 whereClause.OR = [
                     { invoiceNumber: { contains: searchQuery, mode: 'insensitive' } },
@@ -186,6 +192,10 @@ export async function GET(request: NextRequest) {
                     totalOutstanding: totalOutstanding._sum.total || 0,
                     paidThisMonth: paidThisMonth._sum.total || 0,
                     overdueCount
+                },
+                meta: {
+                    shopFiltered: context.isFiltered,
+                    shopId: context.shopId
                 }
             };
 
@@ -210,23 +220,27 @@ export async function GET(request: NextRequest) {
             );
         }
     }, { endpoint: 'invoices' });
-}
+});
 
-export async function POST(request: NextRequest) {
+export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest, context) => {
     return measureAsync('create-invoice-api', async () => {
         try {
-            const token = request.headers.get('authorization')?.replace('Bearer ', '');
-            if (!token) {
-                return NextResponse.json({ error: 'No token provided' }, { status: 401 });
-            }
-
-            const decoded = verifyToken(token);
-            if (!decoded) {
-                return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+            // Validate token and permissions
+            const authResult = await validateTokenPermission(request, 'create_invoices');
+            if (!authResult.isValid) {
+                return NextResponse.json({ error: authResult.message }, { status: 401 });
             }
 
             const invoiceData = await request.json();
             const { sendSms, ...invoiceDetails } = invoiceData;
+
+            // Validate shop access for the target shop
+            if (invoiceDetails.shopId) {
+                const shopAccessResult = await ShopAccessControl.validateShopAccess(request, invoiceDetails.shopId);
+                if (!shopAccessResult.hasAccess) {
+                    return ShopAccessControl.createAccessDeniedResponse(shopAccessResult.error);
+                }
+            }
 
             const inventoryUpdatesForEvent: Array<{ productId: number, shopId: number, newQuantity: number, oldQuantity: number }> = [];
 
@@ -421,4 +435,4 @@ export async function POST(request: NextRequest) {
             );
         }
     }, { endpoint: 'create-invoice' });
-}
+});

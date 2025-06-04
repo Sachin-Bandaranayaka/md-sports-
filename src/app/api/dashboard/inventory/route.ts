@@ -1,8 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma, safeQuery } from '@/lib/prisma';
 import { cacheService } from '@/lib/cache';
+import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
+import { validateTokenPermission } from '@/lib/auth';
 
-export async function fetchInventoryDistributionData() {
+export async function fetchInventoryDistributionData(shopId?: string | null) {
     // Get all categories
     const categories = await safeQuery(
         () => prisma.category.findMany(),
@@ -10,9 +12,10 @@ export async function fetchInventoryDistributionData() {
         'Failed to fetch categories'
     );
 
-    // Get all inventory items with their products and categories
+    // Get inventory items with their products and categories, with optional shop filtering
     const inventoryItems = await safeQuery(
         () => prisma.inventoryItem.findMany({
+            where: shopId ? { shopId } : {},
             include: {
                 product: {
                     include: {
@@ -65,32 +68,62 @@ export async function fetchInventoryDistributionData() {
 }
 
 // GET: Fetch inventory distribution by category
-export async function GET() {
+export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest, context) => {
     try {
-        // Check cache first
-        const cacheKey = 'dashboard:inventory';
+        // Validate token and permissions
+        const authResult = await validateTokenPermission(request, 'view_dashboard');
+        if (!authResult.isValid) {
+            return NextResponse.json({ error: authResult.message }, { status: 401 });
+        }
+
+        // Check cache first with shop context
+        const cacheKey = `dashboard:inventory:${context.isFiltered ? context.shopId : 'all'}`;
         const cachedData = await cacheService.get(cacheKey);
 
         if (cachedData) {
             console.log('✅ Inventory data served from cache');
-            return NextResponse.json(cachedData);
+            return NextResponse.json({
+                ...cachedData,
+                meta: {
+                    shopFiltered: context.isFiltered,
+                    shopId: context.shopId,
+                    fromCache: true
+                }
+            });
         }
 
-        console.log('🔄 Fetching fresh inventory data');
-        const inventoryResult = await fetchInventoryDistributionData();
+        console.log('🔄 Fetching fresh inventory data with shop context:', {
+            shopId: context.shopId,
+            isFiltered: context.isFiltered
+        });
+        const inventoryResult = await fetchInventoryDistributionData(context.isFiltered ? context.shopId : null);
+
+        // Add metadata to response
+        const responseData = {
+            ...inventoryResult,
+            meta: {
+                shopFiltered: context.isFiltered,
+                shopId: context.shopId,
+                fromCache: false
+            }
+        };
 
         // Cache for 3 minutes (inventory changes moderately)
-        await cacheService.set(cacheKey, inventoryResult, 180);
+        await cacheService.set(cacheKey, responseData, 180);
         console.log('💾 Inventory data cached for 3 minutes');
 
-        return NextResponse.json(inventoryResult);
+        return NextResponse.json(responseData);
     } catch (error) {
         console.error('Error fetching inventory distribution:', error);
         // Return empty array on error, consistent with original logic
         return NextResponse.json({
             success: true, // Or false, depending on desired error signaling
             data: [],
-            message: error instanceof Error ? error.message : 'Unknown error'
+            message: error instanceof Error ? error.message : 'Unknown error',
+            meta: {
+                shopFiltered: context.isFiltered,
+                shopId: context.shopId
+            }
         });
     }
-}
+});

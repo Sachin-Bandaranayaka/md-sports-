@@ -1,58 +1,72 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { ArrowLeft, Plus, Trash } from 'lucide-react';
-import { SalesQuotation, QuotationItem } from '@/types';
+import { ArrowLeft, Plus, Trash, Search } from 'lucide-react';
+import { SalesQuotation, QuotationItem, Customer, Product } from '@/types';
 
 export default function CreateQuotation() {
     const router = useRouter();
-    const [customers, setCustomers] = useState<any[]>([]);
-    const [products, setProducts] = useState<any[]>([]);
+    const [customers, setCustomers] = useState<Customer[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Add state for customer search dropdown
+    const [customerSearch, setCustomerSearch] = useState('');
+    const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+    const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
+    const customerDropdownRef = useRef<HTMLDivElement>(null);
+
     // Initialize form with empty quotation
-    const [formData, setFormData] = useState<Partial<SalesQuotation>>({
+    const [formData, setFormData] = useState<Partial<SalesQuotation> & { customerName?: string }>({
         customerId: '',
         customerName: '',
         date: new Date().toISOString().split('T')[0],
-        expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         items: [],
         subtotal: 0,
-        tax: 0,
         discount: 0,
         total: 0,
         notes: '',
-        status: 'pending'
+        status: 'pending',
+        customerName: ''
     });
 
     // Initialize items state
-    const [items, setItems] = useState<Partial<QuotationItem>[]>([
-        {
+    const [items, setItems] = useState<Partial<QuotationItem>[]>([{
             productId: '',
-            productName: '',
-            quantity: 1,
-            unitPrice: 0,
+        quantity: '',
+        unitPrice: '',
             total: 0
-        }
-    ]);
+    }]);
 
-    // Fetch customers and products
+    // Fetch initial data
     useEffect(() => {
         const fetchData = async () => {
+            setLoading(true);
+            setError(null);
             try {
-                setLoading(true);
-
                 // Fetch customers for the form
                 const customersResponse = await fetch('/api/customers');
                 if (!customersResponse.ok) {
                     throw new Error('Failed to fetch customers');
                 }
                 const customersData = await customersResponse.json();
+                console.log('Customers API response:', customersData);
+
+                // The customers API returns the array directly, not wrapped in a data property
+                if (Array.isArray(customersData)) {
                 setCustomers(customersData);
+                    setFilteredCustomers(customersData);
+                } else {
+                    console.error('Unexpected customers data format:', customersData);
+                    setError('Customers data is in an unexpected format.');
+                    setCustomers([]);
+                    setFilteredCustomers([]);
+                }
 
                 // Fetch products for the form
                 const productsResponse = await fetch('/api/products');
@@ -60,12 +74,24 @@ export default function CreateQuotation() {
                     throw new Error('Failed to fetch products');
                 }
                 const productsData = await productsResponse.json();
-                setProducts(productsData);
+                console.log('Products API response:', productsData);
 
-                setError(null);
-            } catch (err) {
-                console.error('Error fetching data:', err);
-                setError('Failed to load data. Please try again later.');
+                // Handle different response formats and ensure products is always an array
+                if (productsData && productsData.data && Array.isArray(productsData.data)) {
+                    console.log('Setting products from productsData.data');
+                    setProducts(productsData.data);
+                } else if (Array.isArray(productsData)) {
+                    console.log('Setting products directly from productsData array');
+                setProducts(productsData);
+                } else {
+                    console.error('Unexpected products data format:', productsData);
+                    setError('Products data is in an unexpected format.');
+                    setProducts([]);
+                }
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                setError(error instanceof Error ? error.message : 'An error occurred');
+                setProducts([]); // Ensure products is always an array
             } finally {
                 setLoading(false);
             }
@@ -74,20 +100,70 @@ export default function CreateQuotation() {
         fetchData();
     }, []);
 
+    // Add effect for filtering customers based on search term
+    useEffect(() => {
+        if (customerSearch.trim() === '') {
+            setFilteredCustomers(customers);
+        } else {
+            const filtered = customers.filter(customer =>
+                customer.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
+                (customer.email && customer.email.toLowerCase().includes(customerSearch.toLowerCase())) ||
+                (customer.phone && customer.phone.toLowerCase().includes(customerSearch.toLowerCase()))
+            );
+            setFilteredCustomers(filtered);
+        }
+    }, [customerSearch, customers]);
+
+    // Add effect to close dropdown when clicking outside
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (customerDropdownRef.current && !customerDropdownRef.current.contains(event.target as Node)) {
+                setShowCustomerDropdown(false);
+            }
+        }
+
+        // Add event listener when dropdown is open
+        if (showCustomerDropdown) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        // Clean up event listener
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showCustomerDropdown]);
+
+    // Add handler for selecting a customer
+    const handleSelectCustomer = (customer: Customer) => {
+        setFormData({
+            ...formData,
+            customerId: customer.id.toString(),
+            customerName: customer.name
+        });
+        setCustomerSearch('');
+        setShowCustomerDropdown(false);
+    };
+
     // Handle form field changes
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
 
-        if (name === 'customerId') {
-            const selectedCustomer = customers.find(customer => customer.id === value);
+        // If changing customerName manually, clear customerId to allow selecting a new customer
+        if (name === 'customerName') {
             setFormData({
                 ...formData,
-                customerId: value,
-                customerName: selectedCustomer?.name || ''
+                customerName: value,
+                customerId: '' // Clear the customer ID
             });
-        } else {
-            setFormData({ ...formData, [name]: value });
+            setCustomerSearch(value);
+            setShowCustomerDropdown(true);
+            return;
         }
+
+        setFormData({
+            ...formData,
+            [name]: value
+        });
     };
 
     // Handle item field changes
@@ -101,7 +177,7 @@ export default function CreateQuotation() {
                 ...updatedItems[index],
                 productId: value,
                 productName: selectedProduct?.name || '',
-                unitPrice: selectedProduct?.retailPrice || 0
+                unitPrice: selectedProduct?.price || '' // Use price instead of retailPrice and set as empty string
             };
         } else {
             updatedItems[index] = {
@@ -112,8 +188,8 @@ export default function CreateQuotation() {
 
         // Recalculate total for this item
         if (name === 'quantity' || name === 'unitPrice' || name === 'productId') {
-            const quantity = Number(updatedItems[index].quantity) || 0;
-            const unitPrice = Number(updatedItems[index].unitPrice) || 0;
+            const quantity = value === '' || isNaN(Number(updatedItems[index].quantity)) ? 0 : Number(updatedItems[index].quantity);
+            const unitPrice = value === '' || isNaN(Number(updatedItems[index].unitPrice)) ? 0 : Number(updatedItems[index].unitPrice);
             updatedItems[index].total = quantity * unitPrice;
         }
 
@@ -130,8 +206,8 @@ export default function CreateQuotation() {
             {
                 productId: '',
                 productName: '',
-                quantity: 1,
-                unitPrice: 0,
+                quantity: '',
+                unitPrice: '',
                 total: 0
             }
         ]);
@@ -144,8 +220,8 @@ export default function CreateQuotation() {
             const resetItems = [{
                 productId: '',
                 productName: '',
-                quantity: 1,
-                unitPrice: 0,
+                quantity: '',
+                unitPrice: '',
                 total: 0
             }];
             setItems(resetItems);
@@ -161,14 +237,12 @@ export default function CreateQuotation() {
     // Update totals based on items
     const updateTotals = (currentItems: Partial<QuotationItem>[]) => {
         const subtotal = currentItems.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
-        const tax = Math.round(subtotal * 0.17); // 17% tax
         const discount = Number(formData.discount) || 0;
-        const total = subtotal + tax - discount;
+        const total = subtotal - discount;
 
         setFormData(prev => ({
             ...prev,
             subtotal,
-            tax,
             total
         }));
     };
@@ -262,18 +336,53 @@ export default function CreateQuotation() {
                                 <label className="block text-sm font-medium text-black mb-1">
                                     Customer*
                                 </label>
-                                <select
-                                    name="customerId"
-                                    value={formData.customerId || ''}
-                                    onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                <div className="relative" ref={customerDropdownRef}>
+                                    <input
+                                        type="text"
+                                        name="customerName"
+                                        placeholder="Search for a customer..."
+                                        value={formData.customerName || customerSearch}
+                                        onChange={(e) => {
+                                            if (!formData.customerId) {
+                                                setCustomerSearch(e.target.value);
+                                                setShowCustomerDropdown(true);
+                                            } else {
+                                                // If already selected a customer, clear it to enable searching
+                                                handleChange(e);
+                                            }
+                                        }}
+                                        onFocus={() => setShowCustomerDropdown(true)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-black pr-10"
                                     required
-                                >
-                                    <option value="">Select a customer</option>
-                                    {customers.map((customer) => (
-                                        <option key={customer.id} value={customer.id}>{customer.name}</option>
-                                    ))}
-                                </select>
+                                    />
+                                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                        <Search className="h-4 w-4 text-gray-500" />
+                                    </div>
+
+                                    {showCustomerDropdown && (
+                                        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                            {filteredCustomers.length > 0 ? (
+                                                <ul className="py-1 text-sm text-black">
+                                                    {filteredCustomers.map((customer) => (
+                                                        <li
+                                                            key={customer.id}
+                                                            className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                                                            onClick={() => handleSelectCustomer(customer)}
+                                                        >
+                                                            <div className="font-medium">{customer.name}</div>
+                                                            <div className="text-xs text-gray-500">
+                                                                {customer.email} {customer.phone && `• ${customer.phone}`}
+                                                            </div>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            ) : (
+                                                <div className="px-4 py-2 text-sm text-gray-500">No customers found</div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                                <input type="hidden" name="customerId" value={formData.customerId || ''} required />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-black mb-1">
@@ -284,7 +393,7 @@ export default function CreateQuotation() {
                                     name="date"
                                     value={formData.date || ''}
                                     onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
                                     required
                                 />
                             </div>
@@ -297,7 +406,7 @@ export default function CreateQuotation() {
                                     name="expiryDate"
                                     value={formData.expiryDate || ''}
                                     onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
                                     required
                                 />
                             </div>
@@ -313,7 +422,7 @@ export default function CreateQuotation() {
                                         handleChange(e);
                                         updateTotals(items);
                                     }}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
                                     min="0"
                                 />
                             </div>
@@ -326,7 +435,7 @@ export default function CreateQuotation() {
                                     value={formData.notes || ''}
                                     onChange={handleChange}
                                     rows={3}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
                                     placeholder="Add any additional information or terms..."
                                 ></textarea>
                             </div>
@@ -366,24 +475,28 @@ export default function CreateQuotation() {
                                                         name="productId"
                                                         value={item.productId || ''}
                                                         onChange={(e) => handleItemChange(index, e)}
-                                                        className="w-full px-2 py-1 border border-gray-300 rounded-md"
+                                                        className="w-full px-2 py-1 border border-gray-300 rounded-md text-black"
                                                         required
                                                     >
                                                         <option value="">Select a product</option>
-                                                        {products.map((product) => (
+                                                        {Array.isArray(products) ?
+                                                            products.map((product) => (
                                                             <option key={product.id} value={product.id}>
                                                                 {product.name}
                                                             </option>
-                                                        ))}
+                                                            ))
+                                                            :
+                                                            <option value="">No products available</option>
+                                                        }
                                                     </select>
                                                 </td>
                                                 <td className="p-3">
                                                     <input
                                                         type="number"
                                                         name="quantity"
-                                                        value={item.quantity || 1}
+                                                        value={item.quantity || ''}
                                                         onChange={(e) => handleItemChange(index, e)}
-                                                        className="w-full px-2 py-1 border border-gray-300 rounded-md"
+                                                        className="w-full px-2 py-1 border border-gray-300 rounded-md text-black"
                                                         min="1"
                                                         required
                                                     />
@@ -392,9 +505,9 @@ export default function CreateQuotation() {
                                                     <input
                                                         type="number"
                                                         name="unitPrice"
-                                                        value={item.unitPrice || 0}
+                                                        value={item.unitPrice || ''}
                                                         onChange={(e) => handleItemChange(index, e)}
-                                                        className="w-full px-2 py-1 border border-gray-300 rounded-md"
+                                                        className="w-full px-2 py-1 border border-gray-300 rounded-md text-black"
                                                         min="0"
                                                         required
                                                     />
@@ -426,10 +539,6 @@ export default function CreateQuotation() {
                                 <div className="flex justify-between">
                                     <span className="text-black">Subtotal:</span>
                                     <span className="text-black font-medium">{(formData.subtotal || 0).toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-black">Tax (17%):</span>
-                                    <span className="text-black font-medium">{(formData.tax || 0).toLocaleString()}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-black">Discount:</span>

@@ -1,9 +1,11 @@
-import { NextResponse } from 'next/server';
-import { prisma, safeQuery } from '@/lib/prisma';
+import { NextRequest, NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
 import { getShopId } from '@/lib/utils/middleware';
-import { NextRequest } from 'next/server';
-import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
 import { cacheService } from '@/lib/cache';
+import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
+import { safeQuery } from '@/lib/prisma';
+import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
+import { validateTokenPermission } from '@/lib/auth';
 
 // Default fallback data for products
 const defaultProductsData = [
@@ -14,94 +16,155 @@ const defaultProductsData = [
     { id: 5, name: 'Tennis Racket', sku: 'TR001', description: 'Professional tennis racket', price: 12000, weightedAverageCost: 8400, category_name: 'Tennis' }
 ];
 
-export async function GET(request: NextRequest) {
+export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest, context) => {
     try {
-        // Get shop ID from token if user is restricted to a specific shop
-        const tokenShopId = await getShopId(request);
-        console.log('Products API - Shop ID from token:', tokenShopId);
-
-        // Check for shopId query parameter
         const { searchParams } = new URL(request.url);
-        const queryShopId = searchParams.get('shopId');
-        console.log('Products API - Shop ID from query:', queryShopId);
+        const categoryId = searchParams.get('categoryId');
+        const search = searchParams.get('search');
+        const includeInactive = searchParams.get('includeInactive') === 'true';
+        const page = parseInt(searchParams.get('page') || '1');
+        const limit = parseInt(searchParams.get('limit') || '50');
 
-        // Use query shopId if provided, otherwise use token shopId
-        const shopId = queryShopId ? queryShopId : tokenShopId ? String(tokenShopId) : null;
+        console.log('Products API - Shop context:', {
+            shopId: context.shopId,
+            isFiltered: context.isFiltered,
+            isAdmin: context.isAdmin,
+            userShopId: context.userShopId
+        });
 
-        // Fetch products using Prisma
-        const products = await safeQuery(
-            async () => {
-                let productsQuery;
+        const skip = (page - 1) * limit;
 
-                if (shopId) {
-                    console.log(`Fetching products for shop ID: ${shopId}`);
-                    // Only show products that have inventory in the specified shop
-                    productsQuery = await prisma.product.findMany({
+        // Build where clause
+        const where: any = {};
+
+        if (categoryId) {
+            where.categoryId = parseInt(categoryId);
+        }
+
+        if (search) {
+            where.OR = [
+                {
+                    name: {
+                        contains: search,
+                        mode: 'insensitive'
+                    }
+                },
+                {
+                    sku: {
+                        contains: search,
+                        mode: 'insensitive'
+                    }
+                },
+                {
+                    barcode: {
+                        contains: search,
+                        mode: 'insensitive'
+                    }
+                }
+            ];
+        }
+
+        // Apply shop-based filtering for inventory
+        let products;
+        if (context.isFiltered && context.shopId) {
+            console.log(`Filtering products by shopId: ${context.shopId}`);
+            products = await prisma.product.findMany({
+                where: {
+                    ...where,
+                    inventoryItems: {
+                        some: {
+                            shopId: context.shopId
+                        }
+                    }
+                },
+                include: {
+                    category: {
+                        select: {
+                            id: true,
+                            name: true
+                        }
+                    },
+                    inventoryItems: {
                         where: {
-                            inventoryItems: {
-                                some: {
-                                    shopId: shopId,
-                                    quantity: {
-                                        gt: 0  // Only show products with available stock
-                                    }
+                            shopId: context.shopId
+                        },
+                        include: {
+                            shop: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    location: true
                                 }
                             }
-                        },
-                        include: {
-                            category: true
-                        },
-                        orderBy: {
-                            name: 'asc'
                         }
-                    });
-                    console.log(`Found ${productsQuery.length} products with inventory for shop ${shopId}`);
-                } else {
-                    console.log('No shop restriction - fetching all products');
-                    // Administrator or manager with full access - show all products
-                    productsQuery = await prisma.product.findMany({
-                        include: {
-                            category: true
-                        },
-                        orderBy: {
-                            name: 'asc'
+                    }
+                },
+                orderBy: {
+                    name: 'asc'
+                },
+                skip,
+                take: limit
+            });
+        } else {
+            console.log('Fetching all products (admin or no shop filter)');
+            products = await prisma.product.findMany({
+                where,
+                include: {
+                    category: {
+                        select: {
+                            id: true,
+                            name: true
                         }
-                    });
-                    console.log(`Found ${productsQuery.length} total products`);
-                }
+                    },
+                    inventoryItems: {
+                        include: {
+                            shop: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    location: true
+                                }
+                            }
+                        }
+                    }
+                },
+                orderBy: {
+                    name: 'asc'
+                },
+                skip,
+                take: limit
+            });
+        }
 
-                // Don't fall back to all products when filtering by shop
-                // If no products found for a shop, return empty array
-
-                // Format the products data
-                const formattedProducts = productsQuery.map(product => ({
-                    ...product,
-                    category_name: product.category?.name || null
-                }));
-
-                console.log('Returning formatted products:', formattedProducts.length);
-                return formattedProducts;
-            },
-            defaultProductsData,
-            'Failed to fetch products'
-        );
+        console.log(`Found ${products.length} products`);
 
         return NextResponse.json({
             success: true,
-            data: products
+            data: products,
+            meta: {
+                shopFiltered: context.isFiltered,
+                shopId: context.shopId,
+                totalItems: products.length
+            }
         });
     } catch (error) {
         console.error('Error fetching products:', error);
-
-        // Return default data instead of error
         return NextResponse.json({
-            success: true,
-            data: defaultProductsData
-        });
+            success: false,
+            message: 'Error fetching products',
+            error: error instanceof Error ? error.message : String(error)
+        }, { status: 500 });
     }
-}
+});
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
     try {
+        // Validate token and permissions
+        const authResult = await validateTokenPermission(request, 'create_products');
+        if (!authResult.isValid) {
+            return NextResponse.json({ error: authResult.message }, { status: 401 });
+        }
+
         const productData = await request.json();
         console.log('Received productData:', productData);
         console.log('productData.basePrice type:', typeof productData.basePrice);

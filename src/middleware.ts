@@ -1,4 +1,5 @@
-import { NextResponse, NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { validateTokenPermission, getUserIdFromToken, getShopIdFromToken } from '@/lib/auth';
 
 // Generate UUID using Web Crypto API instead of Node.js crypto
 function generateUUID() {
@@ -12,6 +13,80 @@ function generateUUID() {
         const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
         return v.toString(16);
     });
+}
+
+// Shop-specific API routes that need shop-based filtering
+const SHOP_RESTRICTED_ROUTES = [
+    '/api/products',
+    '/api/inventory',
+    '/api/invoices',
+    '/api/purchases',
+    '/api/dashboard',
+    '/api/reports'
+];
+
+// Routes that allow cross-shop access for admins
+const ADMIN_CROSS_SHOP_ROUTES = [
+    '/api/shops',
+    '/api/users',
+    '/api/settings',
+    '/api/reports/shop-performance',
+    '/api/reports/shop-comparison'
+];
+
+/**
+ * Check if user has permission to access data from a specific shop
+ */
+async function validateShopAccess(req: NextRequest, targetShopId?: string | number): Promise<boolean> {
+    try {
+        const userShopId = await getShopIdFromToken(req);
+        const userId = await getUserIdFromToken(req);
+
+        // Development mode - allow all access
+        const token = req.headers.get('authorization')?.split(' ')[1];
+        if (token === 'dev-token') {
+            return true;
+        }
+
+        // If no target shop specified, allow access
+        if (!targetShopId) {
+            return true;
+        }
+
+        // Check if user has admin permissions for cross-shop access
+        const hasAdminAccess = await validateTokenPermission(req, 'shop:manage') ||
+            await validateTokenPermission(req, 'admin:all');
+
+        if (hasAdminAccess) {
+            return true;
+        }
+
+        // Check if user belongs to the target shop
+        const targetShopIdNum = typeof targetShopId === 'string' ? parseInt(targetShopId) : targetShopId;
+        return userShopId === targetShopIdNum;
+
+    } catch (error) {
+        console.error('Error validating shop access:', error);
+        return false;
+    }
+}
+
+/**
+ * Add shop context to request headers for API routes
+ */
+async function addShopContext(req: NextRequest, response: NextResponse): Promise<NextResponse> {
+    const userShopId = await getShopIdFromToken(req);
+    const userId = await getUserIdFromToken(req);
+
+    if (userShopId) {
+        response.headers.set('X-User-Shop-Id', userShopId.toString());
+    }
+
+    if (userId) {
+        response.headers.set('X-User-Id', userId.toString());
+    }
+
+    return response;
 }
 
 // In-memory store for rate limiting (use Redis in production)
@@ -67,7 +142,7 @@ if (typeof setInterval !== 'undefined') {
     setInterval(cleanupRateLimitStore, 60000);
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
     const pathname = request.nextUrl.pathname;
 
     // Skip middleware for static assets and non-critical paths
@@ -82,9 +157,40 @@ export function middleware(request: NextRequest) {
         return NextResponse.next();
     }
 
-    const response = NextResponse.next();
+    let response = NextResponse.next();
 
-    // Get IP address for rate limiting
+    // Add shop-based access control for API routes
+    if (pathname.startsWith('/api/')) {
+        // Check if this is a shop-restricted route
+        const isShopRestricted = SHOP_RESTRICTED_ROUTES.some(route => pathname.startsWith(route));
+        const isAdminRoute = ADMIN_CROSS_SHOP_ROUTES.some(route => pathname.startsWith(route));
+
+        if (isShopRestricted && !isAdminRoute) {
+            // Extract shopId from query parameters if present
+            const url = new URL(request.url);
+            const queryShopId = url.searchParams.get('shopId');
+
+            // Validate shop access
+            const hasShopAccess = await validateShopAccess(request, queryShopId || undefined);
+
+            if (!hasShopAccess) {
+                return new NextResponse(JSON.stringify({
+                    success: false,
+                    message: 'Access denied: You can only access data from your assigned shop'
+                }), {
+                    status: 403,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+            }
+        }
+
+        // Add shop context to response headers
+        response = await addShopContext(request, response);
+    }
+
+    // Get IP address from X-Forwarded-For header or remote address for rate limiting
     const ip = request.ip || 'unknown';
 
     // Only rate limit specific API endpoints
@@ -201,4 +307,4 @@ export const config = {
         '/:path*',
         '/:path*/:subpath*',
     ],
-}; 
+};

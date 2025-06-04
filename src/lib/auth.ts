@@ -1,22 +1,28 @@
 import { NextRequest } from 'next/server';
-import jwt from 'jsonwebtoken';
+// import jwt from 'jsonwebtoken'; replaced
+import * as jose from 'jose';
 import prisma from '@/lib/prisma';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-key-for-development';
+const secretKey = new TextEncoder().encode(JWT_SECRET);
 
 /**
  * Verify a JWT token
  */
-export const verifyToken = (token: string) => {
+export const verifyToken = async (token: string): Promise<jose.JWTPayload | null> => {
     try {
-        return jwt.verify(token, JWT_SECRET);
-    } catch (error) {
-        if (error instanceof jwt.TokenExpiredError) {
-            console.error('Token expired:', error.expiredAt);
-        } else if (error instanceof jwt.JsonWebTokenError) {
+        const { payload } = await jose.jwtVerify(token, secretKey, {
+            // Assuming HS256 algorithm, adjust if different
+            // algorithms: ['HS256'] 
+        });
+        return payload;
+    } catch (error: any) {
+        if (error.code === 'ERR_JWT_EXPIRED') {
+            console.error('Token expired:', error.message);
+        } else if (error.code === 'ERR_JWS_INVALID' || error.code === 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED' || error.code === 'ERR_JWT_CLAIM_VALIDATION_FAILED') {
             console.error('Invalid token:', error.message);
         } else {
-            console.error('Token verification error:', error);
+            console.error('Token verification error:', error.message);
         }
         return null;
     }
@@ -37,30 +43,30 @@ export const extractToken = (req: NextRequest): string | null => {
  * Validate if a user has a specific permission
  * @param req - Next.js request object
  * @param permission - Permission string to check
- * @returns Boolean indicating if user has permission
+ * @returns Object with isValid flag and optional error message
  */
-export const validateTokenPermission = async (req: NextRequest, permission: string): Promise<boolean> => {
+export const validateTokenPermission = async (req: NextRequest, permission: string): Promise<{ isValid: boolean; message?: string }> => {
     try {
         const token = extractToken(req);
         console.log(`Checking permission "${permission}" with token: ${token ? `${token.substring(0, 10)}...` : 'none'}`);
 
         if (!token) {
             console.error('No token provided when checking permission:', permission);
-            return false;
+            return { isValid: false, message: 'Authentication required' };
         }
 
         // Special case for development token
         if (token === 'dev-token') {
             console.log(`Development mode: granting permission '${permission}'`);
-            return true;
+            return { isValid: true };
         }
 
-        const payload = verifyToken(token);
+        const payload = await verifyToken(token);
         console.log('Token payload:', payload);
 
         if (!payload || typeof payload !== 'object' || !('sub' in payload)) {
             console.error('Invalid token payload when checking permission:', permission);
-            return false;
+            return { isValid: false, message: 'Invalid authentication token' };
         }
 
         const userId = Number(payload.sub);
@@ -79,17 +85,17 @@ export const validateTokenPermission = async (req: NextRequest, permission: stri
 
         if (!user) {
             console.error(`User not found for ID: ${userId}`);
-            return false;
+            return { isValid: false, message: 'User not found' };
         }
 
         if (!user.role) {
             console.error(`User ${userId} has no role assigned`);
-            return false;
+            return { isValid: false, message: 'User has no role assigned' };
         }
 
         if (!user.role.permissions || !Array.isArray(user.role.permissions)) {
             console.error(`User ${userId} with role ${user.roleId} has no permissions`);
-            return false;
+            return { isValid: false, message: 'User has no permissions' };
         }
 
         // Check if user has the required permission
@@ -98,17 +104,20 @@ export const validateTokenPermission = async (req: NextRequest, permission: stri
         const hasPermission = permissions.includes(permission);
         console.log(`Permission check result for "${permission}": ${hasPermission ? 'GRANTED' : 'DENIED'}`);
 
-        return hasPermission;
+        return {
+            isValid: hasPermission,
+            message: hasPermission ? undefined : `Permission denied: '${permission}' is required`
+        };
     } catch (error) {
         console.error(`Error checking permission ${permission}:`, error);
-        return false;
+        return { isValid: false, message: `Error checking permission: ${error instanceof Error ? error.message : String(error)}` };
     }
 };
 
 /**
  * Get user ID from token
  */
-export const getUserIdFromToken = (req: NextRequest): number | null => {
+export const getUserIdFromToken = async (req: NextRequest): Promise<number | null> => {
     const token = extractToken(req);
 
     if (!token) {
@@ -120,7 +129,7 @@ export const getUserIdFromToken = (req: NextRequest): number | null => {
         return 1; // Development user ID
     }
 
-    const payload = verifyToken(token);
+    const payload = await verifyToken(token);
 
     if (!payload || typeof payload !== 'object' || !('sub' in payload)) {
         return null;
@@ -132,7 +141,7 @@ export const getUserIdFromToken = (req: NextRequest): number | null => {
 /**
  * Get shop ID from token
  */
-export const getShopIdFromToken = (req: NextRequest): number | null => {
+export const getShopIdFromToken = async (req: NextRequest): Promise<number | null> => {
     const token = extractToken(req);
 
     if (!token) {
@@ -144,7 +153,7 @@ export const getShopIdFromToken = (req: NextRequest): number | null => {
         return null; // Development user might not have a shop
     }
 
-    const payload = verifyToken(token);
+    const payload = await verifyToken(token);
 
     if (!payload || typeof payload !== 'object') {
         return null;

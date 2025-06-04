@@ -1,6 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma, safeQuery } from '@/lib/prisma';
 import { cacheService } from '@/lib/cache';
+import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
+import { validateTokenPermission } from '@/lib/auth';
 
 // Default fallback data for shops (can be removed if not needed after refactor)
 // const defaultShopsData = [
@@ -27,15 +29,19 @@ export async function fetchShopsDataFiltered(startDate?: string | null, endDate?
         endOfPeriod = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
     }
 
-    // 1. Fetch all shops and their inventory in one go
+    // 1. Fetch shops and their inventory with optional shop filtering
     const shopsWithInventory = await safeQuery(
-        () => prisma.shop.findMany({
-            include: {
-                InventoryItem: {
-                    select: { quantity: true } // Only select quantity for stock calculation
+        () => {
+            const where = shopId ? { id: shopId } : {};
+            return prisma.shop.findMany({
+                where,
+                include: {
+                    InventoryItem: {
+                        select: { quantity: true } // Only select quantity for stock calculation
+                    }
                 }
-            }
-        }),
+            });
+        },
         [],
         'Failed to fetch shops data'
     );
@@ -93,21 +99,25 @@ export async function fetchShopsDataFiltered(startDate?: string | null, endDate?
     };
 }
 
-export async function fetchShopsData() {
+export async function fetchShopsData(shopId?: string | null) {
     // Get current month's start and end dates
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
-    // 1. Fetch all shops and their inventory in one go
+    // 1. Fetch shops and their inventory with optional shop filtering
     const shopsWithInventory = await safeQuery(
-        () => prisma.shop.findMany({
-            include: {
-                InventoryItem: {
-                    select: { quantity: true } // Only select quantity for stock calculation
+        () => {
+            const where = shopId ? { id: shopId } : {};
+            return prisma.shop.findMany({
+                where,
+                include: {
+                    InventoryItem: {
+                        select: { quantity: true } // Only select quantity for stock calculation
+                    }
                 }
-            }
-        }),
+            });
+        },
         [],
         'Failed to fetch shops data'
     );
@@ -171,31 +181,61 @@ export async function fetchShopsData() {
 }
 
 // GET: Fetch shop performance data
-export async function GET() {
+export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest, context) => {
     try {
-        // Check cache first
-        const cacheKey = 'dashboard:shops';
+        // Validate token and permissions
+        const authResult = await validateTokenPermission(request, 'view_dashboard');
+        if (!authResult.isValid) {
+            return NextResponse.json({ error: authResult.message }, { status: 401 });
+        }
+
+        // Check cache first with shop context
+        const cacheKey = `dashboard:shops:${context.isFiltered ? context.shopId : 'all'}`;
         const cachedData = await cacheService.get(cacheKey);
 
         if (cachedData) {
             console.log('✅ Shops data served from cache');
-            return NextResponse.json(cachedData);
+            return NextResponse.json({
+                ...cachedData,
+                meta: {
+                    shopFiltered: context.isFiltered,
+                    shopId: context.shopId,
+                    fromCache: true
+                }
+            });
         }
 
-        console.log('🔄 Fetching fresh shops data');
-        const shopsResult = await fetchShopsData();
+        console.log('🔄 Fetching fresh shops data with shop context:', {
+            shopId: context.shopId,
+            isFiltered: context.isFiltered
+        });
+        const shopsResult = await fetchShopsData(context.isFiltered ? context.shopId : null);
+
+        // Add metadata to response
+        const responseData = {
+            ...shopsResult,
+            meta: {
+                shopFiltered: context.isFiltered,
+                shopId: context.shopId,
+                fromCache: false
+            }
+        };
 
         // Cache for 5 minutes (shop data changes less frequently)
-        await cacheService.set(cacheKey, shopsResult, 300);
+        await cacheService.set(cacheKey, responseData, 300);
         console.log('💾 Shops data cached for 5 minutes');
 
-        return NextResponse.json(shopsResult);
+        return NextResponse.json(responseData);
     } catch (error) {
         console.error('Error fetching shop performance data:', error);
         return NextResponse.json({
             success: false, // Signal error more clearly
             data: [],
-            message: error instanceof Error ? error.message : 'Unknown error'
+            message: error instanceof Error ? error.message : 'Unknown error',
+            meta: {
+                shopFiltered: context.isFiltered,
+                shopId: context.shopId
+            }
         }, { status: 500 });
     }
-}
+});

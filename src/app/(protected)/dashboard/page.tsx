@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import DashboardClientWrapper from './components/DashboardClientWrapper';
 import { Loader2 } from 'lucide-react';
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 
 // Add revalidation - cache dashboard page for 30 seconds (shorter time for more real-time feel)
 export const revalidate = 30;
@@ -17,13 +17,29 @@ export default async function DashboardPage() {
             const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
             const baseUrl = `${protocol}://${host}`;
 
+            // Get the accessToken from cookies
+            const cookieStore = await cookies();
+            const accessToken = cookieStore.get('accessToken')?.value;
+
+            const fetchHeaders: HeadersInit = {
+                'Content-Type': 'application/json',
+            };
+
+            if (accessToken) {
+                fetchHeaders['Authorization'] = `Bearer ${accessToken}`;
+            }
+
             // Fetch all dashboard data from the consolidated endpoint
             const response = await fetch(`${baseUrl}/api/dashboard/all`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: fetchHeaders,
                 cache: 'no-store'
             });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`Error response from dashboard API: ${response.status} ${errorText}`);
+                throw new Error(`Failed to load dashboard data: ${response.status} ${response.statusText}`);
+            }
 
             const result = await response.json();
 
@@ -41,10 +57,8 @@ export default async function DashboardPage() {
             };
         } catch (error) {
             console.error('Error fetching initial dashboard data:', error);
-            return {
-                summaryData: null,
-                recentTransfers: null
-            };
+            // Instead of returning null data, rethrow the error to trigger error boundary
+            throw error;
         }
     }
 

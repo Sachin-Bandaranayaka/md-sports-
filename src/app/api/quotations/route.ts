@@ -72,7 +72,29 @@ export async function GET(request: NextRequest) {
             }
         });
 
-        return NextResponse.json(quotations);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Normalize today to the start of the day for comparison
+
+        const updatedQuotations = await Promise.all(quotations.map(async (quotation) => {
+            if (quotation.validUntil && new Date(quotation.validUntil) < today && quotation.status === 'pending') {
+                // Update in the database
+                try {
+                    await prisma.quotation.update({
+                        where: { id: quotation.id },
+                        data: { status: 'expired' },
+                    });
+                    // Update the status in the object to be returned
+                    return { ...quotation, status: 'expired' };
+                } catch (dbError) {
+                    console.error(`Failed to update status for quotation ${quotation.id}:`, dbError);
+                    // Return original quotation if DB update fails
+                    return quotation;
+                }
+            }
+            return quotation;
+        }));
+
+        return NextResponse.json(updatedQuotations);
     } catch (error) {
         console.error('Error fetching quotations:', error);
         return NextResponse.json(
@@ -95,6 +117,50 @@ export async function POST(request: NextRequest) {
         // Extract items from the request
         const { items, ...quotationData } = body;
 
+        // Ensure customerId is an integer
+        if (quotationData.customerId && typeof quotationData.customerId === 'string') {
+            quotationData.customerId = parseInt(quotationData.customerId, 10);
+        } else if (quotationData.customerId && typeof quotationData.customerId !== 'number') {
+            // Potentially return an error if customerId is not a parsable string or number
+            console.error("Invalid customerId format:", quotationData.customerId);
+            // return NextResponse.json({ error: 'Invalid customerId format' }, { status: 400 });
+        }
+
+        // Remove customerName as it's not a direct field of Quotation model
+        if ('customerName' in quotationData) {
+            delete quotationData.customerName;
+        }
+
+        // Remove date as createdAt is automatically handled by Prisma
+        if ('date' in quotationData) {
+            delete quotationData.date;
+        }
+
+        // Rename expiryDate to validUntil and convert to Date object
+        if (quotationData.expiryDate) {
+            quotationData.validUntil = new Date(quotationData.expiryDate);
+            delete quotationData.expiryDate;
+        } else {
+            // Set validUntil to null or a default if expiryDate is not provided and it's optional
+            // Based on schema (DateTime?), it's optional. So, if not provided, it can be omitted or explicitly null.
+            // If you want to ensure it's always set, you might add a default here or make it required in the request.
+            quotationData.validUntil = null; // Or simply don't set it if not provided, Prisma handles optional fields
+            delete quotationData.expiryDate; // Ensure it's removed if it was an empty string or similar
+        }
+
+        // Remove subtotal and discount as they are not direct fields of the Quotation model
+        if ('subtotal' in quotationData) {
+            delete quotationData.subtotal;
+        }
+        if ('discount' in quotationData) {
+            delete quotationData.discount;
+        }
+
+        // Remove notes as it is not a direct field of the Quotation model
+        if ('notes' in quotationData) {
+            delete quotationData.notes;
+        }
+
         // Create the quotation with items in a transaction
         const quotation = await prisma.$transaction(async (tx) => {
             // Create the quotation
@@ -105,11 +171,21 @@ export async function POST(request: NextRequest) {
             // Create the quotation items
             if (items && Array.isArray(items)) {
                 for (const item of items) {
+                    const itemData: any = {
+                        quotationId: createdQuotation.id,
+                        productId: parseInt(item.productId, 10),
+                        quantity: parseInt(item.quantity, 10),
+                        price: parseFloat(item.unitPrice || item.price), // Handle if it's already price or unitPrice
+                        total: parseFloat(item.total) // Ensure total is also a float
+                    };
+
+                    // Remove productName if it exists, as it's not part of QuotationItem schema
+                    // The actual product details are linked via productId
+                    // We also remove unitPrice explicitly if it was the original field name
+                    // and any other unexpected fields that might have come from `...item` spread previously.
+
                     await tx.quotationItem.create({
-                        data: {
-                            ...item,
-                            quotationId: createdQuotation.id
-                        }
+                        data: itemData
                     });
                 }
             }

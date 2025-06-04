@@ -37,12 +37,12 @@ export async function POST(req: NextRequest) {
         }
 
         const { token: accessToken, user } = authResult;
-        console.log('User permissions:', user.permissions);
+        console.log('User permissions:', user?.permissions);
 
         // Generate refresh token - with fallback if it fails
         let refreshToken = null;
         try {
-            refreshToken = await generateRefreshToken(user.id);
+            refreshToken = user ? await generateRefreshToken(user.id) : null;
             console.log('Successfully generated refresh token');
         } catch (error) {
             console.error('Failed to generate refresh token, continuing with login without refresh token:', error);
@@ -59,8 +59,8 @@ export async function POST(req: NextRequest) {
 
         // Set HTTP-only cookies for tokens (more secure approach)
         response.cookies.set({
-            name: 'accessToken',
-            value: accessToken,
+            name: 'accessToken', value: accessToken || '',
+            value: accessToken || '',
             httpOnly: true,
             secure: COOKIE_SECURE,
             sameSite: 'strict',
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        console.log('Login successful for user:', user.username);
+        console.log('Login successful for user:', user?.username);
         return response;
     } catch (error) {
         console.error('Login error:', error);

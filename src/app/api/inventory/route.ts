@@ -1,17 +1,24 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import db from '@/utils/db';
 import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
 import { emitInventoryLevelUpdated } from '@/lib/utils/websocket';
+import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
 
-// GET: Fetch all inventory items with optional filtering
-export async function GET(request: Request) {
+// GET: Fetch all inventory items with shop-based filtering
+export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest, context) => {
     try {
         // Parse query parameters
         const { searchParams } = new URL(request.url);
-        const shopId = searchParams.get('shopId');
         const productId = searchParams.get('productId');
         const categoryId = searchParams.get('categoryId');
         const lowStock = searchParams.get('lowStock') === 'true';
+
+        console.log('Inventory API - Shop context:', {
+            shopId: context.shopId,
+            isFiltered: context.isFiltered,
+            isAdmin: context.isAdmin,
+            userShopId: context.userShopId
+        });
 
         // Build the query with possible filters
         let query = `
@@ -44,13 +51,14 @@ export async function GET(request: Request) {
                 AND s.is_active = true
         `;
 
-        // Add filters based on query parameters
+        // Add filters based on query parameters and shop access
         const params: any[] = [];
         let paramIndex = 1;
 
-        if (shopId) {
+        // Apply shop filtering based on user permissions
+        if (context.isFiltered && context.shopId) {
             query += ` AND i.shop_id = $${paramIndex}`;
-            params.push(parseInt(shopId));
+            params.push(context.shopId);
             paramIndex++;
         }
 
@@ -73,12 +81,20 @@ export async function GET(request: Request) {
         // Add sorting
         query += ` ORDER BY s.name, p.name`;
 
+        console.log('Inventory query:', query);
+        console.log('Inventory params:', params);
+
         // Execute the query
         const result = await db.query(query, params);
 
         return NextResponse.json({
             success: true,
-            data: result.rows
+            data: result.rows,
+            meta: {
+                shopFiltered: context.isFiltered,
+                shopId: context.shopId,
+                totalItems: result.rows.length
+            }
         });
     } catch (error) {
         console.error('Error fetching inventory items:', error);
@@ -88,10 +104,10 @@ export async function GET(request: Request) {
             error: error instanceof Error ? error.message : String(error)
         }, { status: 500 });
     }
-}
+});
 
-// POST: Create or update inventory items
-export async function POST(request: Request) {
+// POST: Create or update inventory items with shop validation
+export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest, context) => {
     try {
         const { shopId, productId, quantity, reorderLevel } = await request.json();
 
@@ -99,8 +115,14 @@ export async function POST(request: Request) {
         if (!shopId || !productId || quantity === undefined) {
             return NextResponse.json({
                 success: false,
-                message: 'Shop ID, product ID, and quantity are required'
+                message: 'Missing required fields: shopId, productId, and quantity are required'
             }, { status: 400 });
+        }
+
+        // Validate shop access for the target shop
+        const shopAccessResult = await ShopAccessControl.validateShopAccess(request, shopId);
+        if (!shopAccessResult.hasAccess) {
+            return ShopAccessControl.createAccessDeniedResponse(shopAccessResult.error);
         }
 
         // Check if shop exists
@@ -183,4 +205,4 @@ export async function POST(request: Request) {
             error: error instanceof Error ? error.message : String(error)
         }, { status: 500 });
     }
-}
+});

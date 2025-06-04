@@ -64,7 +64,7 @@ export default function EditQuotation() {
                     throw new Error('Failed to fetch products');
                 }
                 const productsData = await productsResponse.json();
-                setProducts(productsData);
+                setProducts(productsData.data || []);
 
                 setError(null);
             } catch (err) {

@@ -37,7 +37,32 @@ export async function GET(
             );
         }
 
-        return NextResponse.json(quotation);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Normalize today to the start of the day for comparison
+
+        let updatedQuotationData = { ...quotation };
+
+        if (quotation.validUntil && new Date(quotation.validUntil) < today && quotation.status === 'pending') {
+            try {
+                updatedQuotationData = await prisma.quotation.update({
+                    where: { id: quotationId },
+                    data: { status: 'expired' },
+                    include: {
+                        customer: true,
+                        items: {
+                            include: {
+                                product: true
+                            }
+                        }
+                    }
+                });
+            } catch (dbError) {
+                console.error(`Failed to update status for quotation ${quotationId}:`, dbError);
+                // If DB update fails, we'll return the original quotation data but log the error
+            }
+        }
+
+        return NextResponse.json(updatedQuotationData);
     } catch (error) {
         console.error(`Error fetching quotation ${params.id}:`, error);
         return NextResponse.json(

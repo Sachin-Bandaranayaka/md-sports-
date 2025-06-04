@@ -1,19 +1,33 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma, safeQuery } from '@/lib/prisma';
 import { cacheService } from '@/lib/cache';
+import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
+import { validateTokenPermission } from '@/lib/auth';
 
 // Extracted function to fetch dashboard summary data
-export async function fetchSummaryData() {
+export async function fetchSummaryData(shopId?: string | null) {
     // 1. Calculate Total Inventory Value using Prisma Raw Query
     console.time('calculateInventoryValueRaw');
     const totalValueResult = await safeQuery<Array<{ totalinventoryvalue: bigint | number | null }>>(
-        () => prisma.$queryRaw`
-            SELECT SUM(p.weightedaveragecost * i.quantity) as "totalinventoryvalue"
-            FROM "InventoryItem" i
-            JOIN "Product" p ON i."productId" = p.id
-            WHERE i.quantity > 0 AND p.weightedaveragecost IS NOT NULL AND p.weightedaveragecost > 0;
-        `,
-        [{ totalinventoryvalue: 0n }], // Fallback with BigInt 0
+        () => {
+            if (shopId) {
+                return prisma.$queryRaw`
+                    SELECT SUM(p.weightedaveragecost * i.quantity) as "totalinventoryvalue"
+                    FROM "InventoryItem" i
+                    JOIN "Product" p ON i."productId" = p.id
+                    WHERE i.quantity > 0 AND p.weightedaveragecost IS NOT NULL AND p.weightedaveragecost > 0
+                    AND i."shopId" = ${shopId};
+                `;
+            } else {
+                return prisma.$queryRaw`
+                    SELECT SUM(p.weightedaveragecost * i.quantity) as "totalinventoryvalue"
+                    FROM "InventoryItem" i
+                    JOIN "Product" p ON i."productId" = p.id
+                    WHERE i.quantity > 0 AND p.weightedaveragecost IS NOT NULL AND p.weightedaveragecost > 0;
+                `;
+            }
+        },
+        [{ totalinventoryvalue: 0 }], // Fallback with regular number 0
         'Failed to calculate total inventory value via raw query'
     );
     console.timeEnd('calculateInventoryValueRaw');
@@ -40,24 +54,37 @@ export async function fetchSummaryData() {
     const transfersTrendData = getRandomTrend(false);
     const lowStockTrendData = getRandomTrend(false);
 
-    // 3. Count pending transfers (remains the same)
+    // 3. Count pending transfers with shop filtering
     console.time('countPendingTransfers');
     const pendingTransfers = await safeQuery(
-        () => prisma.inventoryTransfer.count({
-            where: { status: 'pending' }
-        }),
+        () => {
+            const where: any = { status: 'pending' };
+            if (shopId) {
+                where.OR = [
+                    { fromShopId: shopId },
+                    { toShopId: shopId }
+                ];
+            }
+            return prisma.inventoryTransfer.count({ where });
+        },
         0,
         'Failed to count pending transfers'
     );
     console.timeEnd('countPendingTransfers');
 
-    // 4. Calculate Outstanding Invoices Value & Trend (remains the same)
+    // 4. Calculate Outstanding Invoices Value & Trend with shop filtering
     console.time('calculateOutstandingInvoices');
     const outstandingInvoices = await safeQuery(
-        () => prisma.invoice.aggregate({
-            where: { status: { not: 'Paid' } },
-            _sum: { total: true }
-        }),
+        () => {
+            const where: any = { status: { not: 'Paid' } };
+            if (shopId) {
+                where.shopId = shopId;
+            }
+            return prisma.invoice.aggregate({
+                where,
+                _sum: { total: true }
+            });
+        },
         { _sum: { total: null } },
         'Failed to calculate outstanding invoices'
     );
@@ -75,13 +102,19 @@ export async function fetchSummaryData() {
         previousMonthEnd.setHours(23, 59, 59, 999);
 
         const previousMonthInvoices = await safeQuery(
-            () => prisma.invoice.aggregate({
-                where: {
+            () => {
+                const where: any = {
                     status: { not: 'Paid' },
                     createdAt: { gte: previousMonthStart, lte: previousMonthEnd }
-                },
-                _sum: { total: true }
-            }),
+                };
+                if (shopId) {
+                    where.shopId = shopId;
+                }
+                return prisma.invoice.aggregate({
+                    where,
+                    _sum: { total: true }
+                });
+            },
             { _sum: { total: null } },
             'Failed to calculate previous month invoices'
         );
@@ -97,12 +130,16 @@ export async function fetchSummaryData() {
     }
     console.timeEnd('calculateOutstandingInvoices');
 
-    // 5. Count Low Stock Items (remains the same)
+    // 5. Count Low Stock Items with shop filtering
     console.time('countLowStockItems');
     const lowStockItems = await safeQuery(
-        () => prisma.inventoryItem.count({
-            where: { quantity: { lte: 10 } }
-        }),
+        () => {
+            const where: any = { quantity: { lte: 10 } };
+            if (shopId) {
+                where.shopId = shopId;
+            }
+            return prisma.inventoryItem.count({ where });
+        },
         0,
         'Failed to count low stock items'
     );
@@ -110,13 +147,19 @@ export async function fetchSummaryData() {
 
     const formattedValue = totalValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
-    // 6. Calculate Total Profit from Invoices
+    // 6. Calculate Total Profit from Invoices with shop filtering
     console.time('calculateTotalProfit');
     const totalProfitResult = await safeQuery(
-        () => prisma.invoice.aggregate({
-            where: { status: 'Paid' },
-            _sum: { totalProfit: true }
-        }),
+        () => {
+            const where: any = {};
+            if (shopId) {
+                where.shopId = shopId;
+            }
+            return prisma.invoice.aggregate({
+                where,
+                _sum: { totalProfit: true }
+            });
+        },
         { _sum: { totalProfit: null } },
         'Failed to calculate total profit'
     );
@@ -135,13 +178,18 @@ export async function fetchSummaryData() {
         previousMonthEnd.setHours(23, 59, 59, 999);
 
         const previousMonthProfit = await safeQuery(
-            () => prisma.invoice.aggregate({
-                where: {
-                    status: 'Paid',
+            () => {
+                const where: any = {
                     createdAt: { gte: previousMonthStart, lte: previousMonthEnd }
-                },
-                _sum: { totalProfit: true }
-            }),
+                };
+                if (shopId) {
+                    where.shopId = shopId;
+                }
+                return prisma.invoice.aggregate({
+                    where,
+                    _sum: { totalProfit: true }
+                });
+            },
             { _sum: { totalProfit: null } },
             'Failed to calculate previous month profit'
         );
@@ -199,7 +247,7 @@ export async function fetchSummaryDataFiltered(startDate?: string | null, endDat
             JOIN "Product" p ON i."productId" = p.id
             WHERE i.quantity > 0 AND p.weightedaveragecost IS NOT NULL AND p.weightedaveragecost > 0;
         `,
-        [{ totalinventoryvalue: 0n }],
+        [{ totalinventoryvalue: 0 }],
         'Failed to calculate total inventory value via raw query'
     );
     console.timeEnd('calculateInventoryValueRaw');
@@ -268,12 +316,12 @@ export async function fetchSummaryDataFiltered(startDate?: string | null, endDat
     const invoicesTrend = getRandomTrend(true);
     const stockTrend = getRandomTrend(false);
 
-    // 5. Calculate Total Profit with date filter
+    // 5. Calculate Total Profit with date filter (including all invoices, not just paid ones)
     console.time('calculateTotalProfit');
     const totalProfitResult = await safeQuery(
         () => prisma.invoice.aggregate({
             where: {
-                status: 'Paid',
+                // Removed status filter to include all invoices (paid and unpaid)
                 ...(Object.keys(dateFilter).length > 0 && { createdAt: dateFilter })
             },
             _sum: { totalProfit: true }
@@ -329,33 +377,63 @@ export async function fetchSummaryDataFiltered(startDate?: string | null, endDat
     };
 }
 
-export async function GET() {
+export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest, context) => {
     try {
-        // Check cache first
-        const cacheKey = 'dashboard:summary';
+        // Validate token and permissions
+        const authResult = await validateTokenPermission(request, 'view_dashboard');
+        if (!authResult.isValid) {
+            return NextResponse.json({ error: authResult.message }, { status: 401 });
+        }
+
+        // Check cache first with shop context
+        const cacheKey = `dashboard:summary:${context.isFiltered ? context.shopId : 'all'}`;
         const cachedData = await cacheService.get(cacheKey);
 
         if (cachedData) {
             console.log('✅ Summary data served from cache');
-            return NextResponse.json(cachedData);
+            return NextResponse.json({
+                ...cachedData,
+                meta: {
+                    shopFiltered: context.isFiltered,
+                    shopId: context.shopId,
+                    fromCache: true
+                }
+            });
         }
 
-        console.log('🔄 Fetching fresh summary data');
+        console.log('🔄 Fetching fresh summary data with shop context:', {
+            shopId: context.shopId,
+            isFiltered: context.isFiltered
+        });
         console.time('fetchSummaryDataOverall');
-        const summaryResult = await fetchSummaryData();
+        const summaryResult = await fetchSummaryData(context.isFiltered ? context.shopId : null);
         console.timeEnd('fetchSummaryDataOverall');
 
+        // Add metadata to response
+        const responseData = {
+            ...summaryResult,
+            meta: {
+                shopFiltered: context.isFiltered,
+                shopId: context.shopId,
+                fromCache: false
+            }
+        };
+
         // Cache for 1 minute (summary data changes frequently)
-        await cacheService.set(cacheKey, summaryResult, 60);
+        await cacheService.set(cacheKey, responseData, 60);
         console.log('💾 Summary data cached for 1 minute');
 
-        return NextResponse.json(summaryResult);
+        return NextResponse.json(responseData);
     } catch (error) {
         console.error('Error fetching dashboard summary data:', error);
         return NextResponse.json({
             success: false,
             message: 'Error fetching dashboard summary data',
-            error: error instanceof Error ? error.message : String(error)
+            error: error instanceof Error ? error.message : String(error),
+            meta: {
+                shopFiltered: context.isFiltered,
+                shopId: context.shopId
+            }
         }, { status: 500 });
     }
-}
+});
