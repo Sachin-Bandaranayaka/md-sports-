@@ -89,7 +89,10 @@ const InvoiceEditModal: React.FC<InvoiceEditModalProps> = ({
         if (isOpen && initialData) {
             setFormData({
                 ...initialData,
-                dueDate: initialData.dueDate ? new Date(initialData.dueDate).toISOString().split('T')[0] : ''
+                dueDate: initialData.dueDate ? new Date(initialData.dueDate).toISOString().split('T')[0] : '',
+                subtotal: initialData.subtotal || 0,
+                tax: initialData.tax || 0,
+                total: initialData.total || 0
             });
         }
     }, [isOpen, initialData]);
@@ -445,7 +448,7 @@ const InvoiceEditModal: React.FC<InvoiceEditModalProps> = ({
                     </div>
 
                     {formData.items.length === 0 && (
-                        <div className="text-center py-8 text-gray-500">
+                        <div className="text-center py-8 text-black">
                             No items added yet. Click "Add Item" to get started.
                         </div>
                     )}
@@ -457,15 +460,15 @@ const InvoiceEditModal: React.FC<InvoiceEditModalProps> = ({
                         <div className="space-y-2">
                             <div className="flex justify-between">
                                 <span>Subtotal:</span>
-                                <span>LKR {formData.subtotal.toFixed(2)}</span>
+                                <span>LKR {(formData.subtotal || 0).toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span>Tax (10%):</span>
-                                <span>LKR {formData.tax.toFixed(2)}</span>
+                                <span>LKR {(formData.tax || 0).toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between font-semibold text-lg border-t pt-2">
                                 <span>Total:</span>
-                                <span>LKR {formData.total.toFixed(2)}</span>
+                                <span>LKR {(formData.total || 0).toFixed(2)}</span>
                             </div>
                         </div>
                     </div>

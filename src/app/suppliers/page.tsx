@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
 import { Search, Plus, Edit, Trash, Phone, Mail, ExternalLink, X } from 'lucide-react';
 import { Supplier } from '@/types';
+import { queryKeys } from '@/context/QueryProvider';
 
 export default function Suppliers() {
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -15,6 +17,7 @@ export default function Suppliers() {
     const [showViewModal, setShowViewModal] = useState(false);
     const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
     const [isEditMode, setIsEditMode] = useState(false);
+    const queryClient = useQueryClient();
 
     // Fetch suppliers from API
     useEffect(() => {
@@ -75,6 +78,10 @@ export default function Suppliers() {
                 }
 
                 setSuppliers(suppliers.filter(supplier => supplier.id !== id));
+                
+                // Invalidate suppliers cache
+                queryClient.invalidateQueries({ queryKey: queryKeys.suppliers });
+                queryClient.invalidateQueries({ queryKey: queryKeys.suppliersList() });
             } catch (err) {
                 console.error('Error deleting supplier:', err);
                 alert('Failed to delete supplier. Please try again.');
@@ -100,6 +107,10 @@ export default function Suppliers() {
 
                 const updatedSupplier = await response.json();
                 setSuppliers(suppliers.map(s => s.id === updatedSupplier.id ? updatedSupplier : s));
+                
+                // Invalidate suppliers cache
+                queryClient.invalidateQueries({ queryKey: queryKeys.suppliers });
+                queryClient.invalidateQueries({ queryKey: queryKeys.suppliersList() });
             } else {
                 // Create new supplier
                 const response = await fetch('/api/suppliers', {
@@ -116,6 +127,10 @@ export default function Suppliers() {
 
                 const newSupplier = await response.json();
                 setSuppliers([...suppliers, newSupplier]);
+                
+                // Invalidate suppliers cache
+                queryClient.invalidateQueries({ queryKey: queryKeys.suppliers });
+                queryClient.invalidateQueries({ queryKey: queryKeys.suppliersList() });
             }
             setShowAddModal(false);
         } catch (err) {
@@ -540,4 +555,4 @@ function SupplierDetailsModal({ supplier, onClose, onEdit }: SupplierDetailsModa
             </div>
         </div>
     );
-} 
+}

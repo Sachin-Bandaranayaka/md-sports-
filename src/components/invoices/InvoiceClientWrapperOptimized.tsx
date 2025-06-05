@@ -162,6 +162,7 @@ const QUERY_KEYS = {
     invoices: (filters: any) => ['invoices', filters],
     customers: ['customers'],
     products: ['products'],
+    shops: ['shops'],
     statistics: ['invoice-statistics']
 };
 
@@ -188,7 +189,14 @@ const fetchProducts = async () => {
     const response = await fetch('/api/inventory?limit=1000');
     if (!response.ok) throw new Error('Failed to fetch products');
     const data = await response.json();
-    return data.items || [];
+    return data.data || [];
+};
+
+const fetchShops = async () => {
+    const response = await fetch('/api/shops');
+    if (!response.ok) throw new Error('Failed to fetch shops');
+    const data = await response.json();
+    return data.success ? data.data : [];
 };
 
 export default function InvoiceClientWrapperOptimized({
@@ -256,6 +264,14 @@ export default function InvoiceClientWrapperOptimized({
     const { data: products = [] } = useQuery({
         queryKey: QUERY_KEYS.products,
         queryFn: fetchProducts,
+        staleTime: 600000, // 10 minutes
+        cacheTime: 1800000, // 30 minutes
+    });
+
+    // React Query for shops (prefetch)
+    const { data: shops = [] } = useQuery({
+        queryKey: QUERY_KEYS.shops,
+        queryFn: fetchShops,
         staleTime: 600000, // 10 minutes
         cacheTime: 1800000, // 30 minutes
     });
@@ -551,6 +567,7 @@ export default function InvoiceClientWrapperOptimized({
                 onSuccess={handleCreateSuccess}
                 customers={customers}
                 products={products}
+                shops={shops}
             />
 
             <InvoiceEditModal

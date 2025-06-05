@@ -17,48 +17,70 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
             return NextResponse.json({ error: authResult.message }, { status: 401 });
         }
 
-        // Check cache first with shop context
-        const cacheKey = `dashboard:all:${context.isFiltered ? context.shopId : 'all'}`;
+        // Extract date range from query parameters
+        const { searchParams } = new URL(request.url);
+        const startDateParam = searchParams.get('startDate');
+        const endDateParam = searchParams.get('endDate');
+        
+        // Default to last 7 days if no dates provided
+        const endDate = endDateParam ? new Date(endDateParam) : new Date();
+        const startDate = startDateParam ? new Date(startDateParam) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        
+        // Calculate period days for backward compatibility with existing functions
+        const periodDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+
+        // Validate period parameter
+        if (![7, 30].includes(periodDays)) {
+            return NextResponse.json({ 
+                success: false, 
+                message: 'Invalid period. Must be 7 or 30 days.' 
+            }, { status: 400 });
+        }
+
+        // Create cache key based on shop and date range
+        const dateRangeKey = `${startDate.toISOString().split('T')[0]}-${endDate.toISOString().split('T')[0]}`;
+        const cacheKey = `dashboard:all:${context.isFiltered ? context.shopId : 'all'}:${dateRangeKey}`;
         console.time('cache check');
         const cachedData = await cacheService.get(cacheKey);
         console.timeEnd('cache check');
 
         if (cachedData) {
-            console.log('✅ Dashboard data served from cache');
+            console.log('✅ Dashboard data served from cache for period:', periodDays, 'days');
             return NextResponse.json({
                 ...cachedData,
                 meta: {
-                    shopFiltered: context.isFiltered,
-                    shopId: context.shopId,
+                    ...cachedData.meta,
+                    period: periodDays,
                     fromCache: true
                 }
             });
         }
 
-        console.log('🔄 Fetching fresh dashboard data with shop context:', {
+        console.log('🔄 Fetching fresh dashboard data with shop context and period:', {
             shopId: context.shopId,
-            isFiltered: context.isFiltered
+            isFiltered: context.isFiltered,
+            period: periodDays
         });
 
         const shopId = context.isFiltered ? context.shopId : null;
 
         console.time('fetchSummaryData');
-        const p1 = fetchSummaryData(shopId).finally(() => console.timeEnd('fetchSummaryData'));
+        const p1 = fetchSummaryData(shopId, periodDays).finally(() => console.timeEnd('fetchSummaryData'));
 
         console.time('fetchTotalRetailValueData');
-        const p2 = fetchTotalRetailValueData(shopId).finally(() => console.timeEnd('fetchTotalRetailValueData'));
+        const p2 = fetchTotalRetailValueData(shopId, periodDays).finally(() => console.timeEnd('fetchTotalRetailValueData'));
 
         console.time('fetchShopsData');
-        const p3 = fetchShopsData(shopId).finally(() => console.timeEnd('fetchShopsData'));
+        const p3 = fetchShopsData(shopId, periodDays).finally(() => console.timeEnd('fetchShopsData'));
 
         console.time('fetchInventoryDistributionData');
-        const p4 = fetchInventoryDistributionData(shopId).finally(() => console.timeEnd('fetchInventoryDistributionData'));
+        const p4 = fetchInventoryDistributionData(shopId, periodDays).finally(() => console.timeEnd('fetchInventoryDistributionData'));
 
         console.time('fetchSalesData');
-        const p5 = fetchSalesData(shopId).finally(() => console.timeEnd('fetchSalesData'));
+        const p5 = fetchSalesData(shopId, periodDays).finally(() => console.timeEnd('fetchSalesData'));
 
         console.time('fetchTransfersData');
-        const p6 = fetchTransfersData(shopId).finally(() => console.timeEnd('fetchTransfersData'));
+        const p6 = fetchTransfersData(shopId, periodDays).finally(() => console.timeEnd('fetchTransfersData'));
 
         console.time('Promise.all dashboard data');
         const [
@@ -68,7 +90,14 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
             inventoryResult,
             salesResult,
             transfersResult
-        ] = await Promise.all([p1, p2, p3, p4, p5, p6]);
+        ] = await Promise.all([
+             fetchSummaryData(context.shopId, periodDays, startDate, endDate),
+             fetchTotalRetailValueData(context.shopId, periodDays, startDate, endDate),
+             fetchShopsData(context.shopId, periodDays, startDate, endDate),
+             fetchInventoryDistributionData(context.shopId, periodDays, startDate, endDate),
+             fetchSalesData(context.shopId, periodDays, startDate, endDate),
+             fetchTransfersData(context.shopId, periodDays, startDate, endDate)
+         ]);
         console.timeEnd('Promise.all dashboard data');
 
         // The summaryData expects totalRetailValue to be part of its structure.
@@ -98,6 +127,7 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
             meta: {
                 shopFiltered: context.isFiltered,
                 shopId: context.shopId,
+                period: periodDays,
                 fromCache: false
             },
             // You might want to include individual success statuses or error messages if needed
@@ -111,11 +141,11 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
             ].filter(e => e !== null)
         };
 
-        // Cache the response for 2 minutes
+        // Cache the response for 2 minutes with period-specific key
         console.time('cache set');
         await cacheService.set(cacheKey, responseData, 120);
         console.timeEnd('cache set');
-        console.log('💾 Dashboard data cached for 2 minutes');
+        console.log('💾 Dashboard data cached for 2 minutes with date range:', dateRangeKey);
 
         return NextResponse.json(responseData);
 

@@ -150,6 +150,23 @@ function InvoicePageContent() {
         cacheTime: 600000, // 10 minutes
     });
 
+    // Fetch shops data
+    const { data: shops = [], isLoading: isLoadingShops } = useQuery({
+        queryKey: ['shops'],
+        queryFn: async () => {
+            const response = await fetch('/api/shops');
+            if (!response.ok) {
+                throw new Error('Failed to fetch shops');
+            }
+            const data = await response.json();
+            console.log('Shops API response:', data);
+            // The API returns data in { success: true, data: [...] } format
+            return data.success ? data.data : [];
+        },
+        staleTime: 300000, // 5 minutes
+        cacheTime: 600000, // 10 minutes
+    });
+
     // Modal handlers
     const handleCreateInvoice = useCallback(() => {
         setIsCreateModalOpen(true);
@@ -390,7 +407,8 @@ function InvoicePageContent() {
                 onSuccess={handleInvoiceCreated}
                 customers={customers}
                 products={products}
-                isLoading={isLoadingCustomers || isLoadingProducts}
+                shops={shops}
+                isLoading={isLoadingCustomers || isLoadingProducts || isLoadingShops}
             />
 
             {selectedInvoice && (

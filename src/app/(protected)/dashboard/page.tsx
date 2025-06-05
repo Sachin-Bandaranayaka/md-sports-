@@ -1,20 +1,27 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
-import DashboardClientWrapper from './components/DashboardClientWrapper';
-import DashboardClientWrapperOptimized from './components/DashboardClientWrapperOptimized';
-import { Loader2, Zap, Settings } from 'lucide-react';
+import { Loader2, Calendar } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
+import DashboardMetrics from './components/DashboardMetrics';
+import DashboardTransfers from './components/DashboardTransfers';
 
-// Client Component for the Dashboard
+// Simple dashboard without dual modes or complex optimizations
 export default function DashboardPage() {
     const { user, isLoading, isAuthenticated } = useAuth();
     const router = useRouter();
-    const [initialData, setInitialData] = useState(null);
+    const [dashboardData, setDashboardData] = useState(null);
     const [dataLoading, setDataLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [useOptimized, setUseOptimized] = useState(true); // Default to optimized version
+    const [startDate, setStartDate] = useState<string>(() => {
+        const date = new Date();
+        date.setDate(date.getDate() - 7); // Default to 7 days ago
+        return date.toISOString().split('T')[0];
+    });
+    const [endDate, setEndDate] = useState<string>(() => {
+        return new Date().toISOString().split('T')[0]; // Default to today
+    });
 
     // Redirect if not authenticated
     useEffect(() => {
@@ -23,66 +30,90 @@ export default function DashboardPage() {
         }
     }, [isLoading, isAuthenticated, router]);
 
-    // Fetch initial dashboard data client-side
-    useEffect(() => {
-        const fetchInitialDashboardData = async () => {
-            if (!isAuthenticated || isLoading) return;
+    // Fetch dashboard data with real-time updates
+    const fetchDashboardData = async (customStartDate?: string, customEndDate?: string) => {
+        if (!isAuthenticated || isLoading) return;
 
-            try {
-                setDataLoading(true);
-                setError(null);
+        try {
+            setDataLoading(true);
+            setError(null);
 
-                // Get the accessToken from localStorage
-                const accessToken = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
+            const accessToken = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
+            
+            const fetchHeaders: HeadersInit = {
+                'Content-Type': 'application/json',
+            };
 
-                console.log('[DashboardPage] Retrieved accessToken from localStorage:', accessToken ? `${accessToken.substring(0, 10)}...` : 'No accessToken found');
-
-                const fetchHeaders: HeadersInit = {
-                    'Content-Type': 'application/json',
-                };
-
-                if (accessToken) {
-                    fetchHeaders['Authorization'] = `Bearer ${accessToken}`;
-                }
-
-                console.log('[DashboardPage] fetchHeaders for /api/dashboard/all:', JSON.stringify(fetchHeaders));
-
-                // Fetch all dashboard data from the consolidated endpoint
-                const response = await fetch('/api/dashboard/all', {
-                    headers: fetchHeaders,
-                    cache: 'no-store'
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error(`Error response from dashboard API: ${response.status} ${errorText}`);
-                    throw new Error(`Failed to load dashboard data: ${response.status} ${response.statusText}`);
-                }
-
-                const result = await response.json();
-
-                if (!result.success) {
-                    // Log the errors if any individual fetch failed
-                    if (result.errors && result.errors.length > 0) {
-                        console.error('Errors fetching dashboard data:', result.errors.join('; '));
-                    }
-                    throw new Error(result.message || 'Failed to load dashboard data from /api/dashboard/all');
-                }
-
-                setInitialData({
-                    summaryData: result.summaryData,
-                    recentTransfers: result.recentTransfers,
-                });
-            } catch (error) {
-                console.error('Error fetching initial dashboard data:', error);
-                setError(error instanceof Error ? error.message : 'Failed to load dashboard data');
-            } finally {
-                setDataLoading(false);
+            if (accessToken) {
+                fetchHeaders['Authorization'] = `Bearer ${accessToken}`;
             }
-        };
 
-        fetchInitialDashboardData();
+            // Use custom dates or current state dates
+            const queryStartDate = customStartDate || startDate;
+            const queryEndDate = customEndDate || endDate;
+
+            // Fetch fresh data every time - no caching, with custom date range filter
+            const response = await fetch(`/api/dashboard/all?startDate=${queryStartDate}&endDate=${queryEndDate}`, {
+                headers: fetchHeaders,
+                cache: 'no-store'
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to load dashboard data: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (!result.success) {
+                throw new Error(result.message || 'Failed to load dashboard data');
+            }
+
+            setDashboardData({
+                summaryData: result.summaryData,
+                recentTransfers: result.recentTransfers,
+            });
+        } catch (error) {
+            console.error('Error fetching dashboard data:', error);
+            setError(error instanceof Error ? error.message : 'Failed to load dashboard data');
+        } finally {
+            setDataLoading(false);
+        }
+    };
+
+    // Handle date range change
+    const handleDateRangeChange = (newStartDate: string, newEndDate: string) => {
+        setStartDate(newStartDate);
+        setEndDate(newEndDate);
+        fetchDashboardData(newStartDate, newEndDate);
+    };
+
+    // Quick date range presets
+    const setQuickRange = (days: number) => {
+        const end = new Date();
+        const start = new Date();
+        start.setDate(start.getDate() - days);
+        
+        const newStartDate = start.toISOString().split('T')[0];
+        const newEndDate = end.toISOString().split('T')[0];
+        
+        handleDateRangeChange(newStartDate, newEndDate);
+    };
+
+    // Initial data fetch
+    useEffect(() => {
+        fetchDashboardData();
     }, [isAuthenticated, isLoading]);
+
+    // Auto-refresh every 30 seconds for real-time updates
+    useEffect(() => {
+        if (!isAuthenticated || isLoading) return;
+
+        const interval = setInterval(() => {
+            fetchDashboardData();
+        }, 30000); // 30 seconds
+
+        return () => clearInterval(interval);
+    }, [isAuthenticated, isLoading, startDate, endDate]);
 
     // Show loading while auth is being checked
     if (isLoading) {
@@ -116,7 +147,7 @@ export default function DashboardPage() {
                     <div className="text-red-500 mb-4">Error loading dashboard</div>
                     <p className="text-gray-500">{error}</p>
                     <button
-                        onClick={() => window.location.reload()}
+                        onClick={() => fetchDashboardData()}
                         className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                     >
                         Retry
@@ -127,42 +158,66 @@ export default function DashboardPage() {
     }
 
     // Show dashboard if data is loaded
-    if (initialData) {
+    if (dashboardData) {
         return (
             <div className="space-y-6">
-                {/* Performance Toggle */}
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
-                    <div className="flex items-center justify-between">
+                {/* Header with date range filters and refresh button */}
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                    <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                        {/* Quick Date Range Presets */}
                         <div className="flex items-center gap-2">
-                            <Settings className="h-5 w-5 text-blue-600" />
-                            <h2 className="text-lg font-semibold text-blue-900">Dashboard Mode</h2>
+                            <span className="text-sm text-gray-600">Quick:</span>
+                            <div className="flex bg-gray-100 rounded-lg p-1">
+                                <button
+                                    onClick={() => setQuickRange(7)}
+                                    className="px-3 py-1 text-sm rounded-md transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-200"
+                                >
+                                    7 Days
+                                </button>
+                                <button
+                                    onClick={() => setQuickRange(30)}
+                                    className="px-3 py-1 text-sm rounded-md transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-200"
+                                >
+                                    30 Days
+                                </button>
+                                <button
+                                    onClick={() => setQuickRange(90)}
+                                    className="px-3 py-1 text-sm rounded-md transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-200"
+                                >
+                                    90 Days
+                                </button>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={useOptimized}
-                                    onChange={(e) => setUseOptimized(e.target.checked)}
-                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                                />
-                                <span className="text-sm font-medium text-blue-700">
-                                    Use Optimized Dashboard
-                                </span>
-                            </label>
-                            {useOptimized && (
-                                <div className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
-                                    <Zap className="h-3 w-3" />
-                                    Enhanced Performance
-                                </div>
-                            )}
+                        
+                        {/* Custom Date Range */}
+                        <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-gray-500" />
+                            <span className="text-sm text-gray-600">From:</span>
+                            <input
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => handleDateRangeChange(e.target.value, endDate)}
+                                className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-600">To:</span>
+                            <input
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => handleDateRangeChange(startDate, e.target.value)}
+                                className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
                         </div>
+                        
+                        {/* Refresh Button */}
+                        <button
+                            onClick={() => fetchDashboardData()}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                        >
+                            <Loader2 className="h-4 w-4" />
+                            Refresh
+                        </button>
                     </div>
-                    <p className="text-sm text-blue-700 mt-2">
-                        {useOptimized
-                            ? 'Using optimized dashboard with smart caching, background refresh, and progressive loading'
-                            : 'Using standard dashboard implementation'
-                        }
-                    </p>
                 </div>
 
                 {/* Dashboard Content */}
@@ -174,11 +229,8 @@ export default function DashboardPage() {
                         </div>
                     </div>
                 }>
-                    {useOptimized ? (
-                        <DashboardClientWrapperOptimized initialData={initialData} />
-                    ) : (
-                        <DashboardClientWrapper initialData={initialData} />
-                    )}
+                    <DashboardMetrics summaryData={dashboardData.summaryData} />
+                    <DashboardTransfers recentTransfers={dashboardData.recentTransfers} />
                 </Suspense>
             </div>
         );

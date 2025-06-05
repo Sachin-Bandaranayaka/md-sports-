@@ -4,7 +4,7 @@ import { cacheService } from '@/lib/cache';
 import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
 import { validateTokenPermission } from '@/lib/auth';
 
-export async function fetchInventoryDistributionData(shopId?: string | null) {
+export async function fetchInventoryDistributionData(shopId?: string | null, periodDays?: number, startDate?: Date, endDate?: Date) {
     // Get all categories
     const categories = await safeQuery(
         () => prisma.category.findMany(),

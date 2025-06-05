@@ -71,16 +71,19 @@ export const validateTokenPermission = async (req: NextRequest, permission: stri
 
         const userId = Number(payload.sub);
 
-        // Get user's role with permissions
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
-            include: {
-                role: {
-                    include: {
-                        permissions: true
-                    }
-                }
+        // Check if permission is in the token payload directly
+        if (payload.permissions && Array.isArray(payload.permissions)) {
+            const hasPermission = payload.permissions.includes(permission);
+            console.log(`Permission check from token for "${permission}": ${hasPermission ? 'GRANTED' : 'DENIED'}`);
+            
+            if (hasPermission) {
+                return { isValid: true };
             }
+        }
+
+        // If not in token or as fallback, get user with permissions from database
+        const user = await prisma.user.findUnique({
+            where: { id: userId }
         });
 
         if (!user) {
@@ -88,20 +91,14 @@ export const validateTokenPermission = async (req: NextRequest, permission: stri
             return { isValid: false, message: 'User not found' };
         }
 
-        if (!user.role) {
-            console.error(`User ${userId} has no role assigned`);
-            return { isValid: false, message: 'User has no role assigned' };
-        }
-
-        if (!user.role.permissions || !Array.isArray(user.role.permissions)) {
-            console.error(`User ${userId} with role ${user.roleId} has no permissions`);
+        if (!user.permissions || !Array.isArray(user.permissions)) {
+            console.error(`User ${userId} has no permissions array`);
             return { isValid: false, message: 'User has no permissions' };
         }
 
         // Check if user has the required permission
-        const permissions = user.role.permissions.map(p => p.name);
-        console.log(`User ${userId} permissions:`, permissions);
-        const hasPermission = permissions.includes(permission);
+        console.log(`User ${userId} permissions:`, user.permissions);
+        const hasPermission = user.permissions.includes(permission);
         console.log(`Permission check result for "${permission}": ${hasPermission ? 'GRANTED' : 'DENIED'}`);
 
         return {

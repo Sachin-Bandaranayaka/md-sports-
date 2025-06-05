@@ -2,6 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/hooks/useAuth';
+import { SocketProvider } from '@/context/SocketContext';
 import ApiInitializer from '@/components/ApiInitializer';
 import DevTools from '@/components/DevTools';
 import { ChatbotWrapper } from '@/components/chatbot/ChatbotWrapper';
@@ -22,11 +23,13 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <AuthProvider>
-          <Toaster />
-          <ApiInitializer />
-          {children}
-          <ChatbotWrapper />
-          <DevTools />
+          <SocketProvider>
+            <Toaster />
+            <ApiInitializer />
+            {children}
+            <ChatbotWrapper />
+            <DevTools />
+          </SocketProvider>
         </AuthProvider>
       </body>
     </html>

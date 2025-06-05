@@ -1,214 +1,120 @@
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
+    console.log('Starting database seeding...');
+
     // Create permissions
     const permissions = [
         { name: 'user:view', description: 'View users' },
-        { name: 'user:manage', description: 'Manage users' },
+        { name: 'user:manage', description: 'Create, update, delete users' },
         { name: 'inventory:view', description: 'View inventory' },
         { name: 'inventory:manage', description: 'Manage inventory' },
         { name: 'sales:view', description: 'View sales' },
         { name: 'sales:manage', description: 'Manage sales' },
         { name: 'reports:view', description: 'View reports' },
-        { name: 'settings:manage', description: 'Manage settings' },
+        { name: 'settings:manage', description: 'Manage system settings' },
+        { name: 'view_dashboard', description: 'View dashboard' },
+        { name: 'view_sales', description: 'View sales dashboard' },
+        { name: 'manage_dashboard', description: 'Manage dashboard' },
+        { name: 'view_transfers', description: 'View inventory transfers' },
+        { name: 'category:create', description: 'Create categories' },
+        { name: 'category:update', description: 'Update categories' },
+        { name: 'category:delete', description: 'Delete categories' },
+        { name: 'admin:all', description: 'Full admin access' },
+        { name: 'shop:manage', description: 'Manage shops' },
     ];
 
+    console.log('Creating permissions...');
     for (const permission of permissions) {
         await prisma.permission.upsert({
             where: { name: permission.name },
             update: {},
-            create: {
-                name: permission.name,
-                description: permission.description,
-            },
+            create: permission,
         });
     }
 
-    console.log('Created permissions');
-
-    // Create roles
+    // Create admin role
+    console.log('Creating admin role...');
     const adminRole = await prisma.role.upsert({
-        where: { name: 'Administrator' },
-        update: {},
+        where: { name: 'Admin' },
+        update: {
+            description: 'Administrator with full access',
+        },
         create: {
-            name: 'Administrator',
-            description: 'Full system access',
+            name: 'Admin',
+            description: 'Administrator with full access',
+        },
+    });
+
+    // Associate all permissions with admin role
+    console.log('Associating permissions with admin role...');
+    const allPermissions = await prisma.permission.findMany();
+    await prisma.role.update({
+        where: { id: adminRole.id },
+        data: {
             permissions: {
-                connect: permissions.map(p => ({ name: p.name })),
+                connect: allPermissions.map(p => ({ id: p.id })),
             },
         },
     });
-
-    const managerRole = await prisma.role.upsert({
-        where: { name: 'Manager' },
-        update: {},
-        create: {
-            name: 'Manager',
-            description: 'Manage inventory and sales',
-            permissions: {
-                connect: [
-                    { name: 'inventory:view' },
-                    { name: 'inventory:manage' },
-                    { name: 'sales:view' },
-                    { name: 'sales:manage' },
-                    { name: 'reports:view' },
-                ],
-            },
-        },
-    });
-
-    const staffRole = await prisma.role.upsert({
-        where: { name: 'Staff' },
-        update: {},
-        create: {
-            name: 'Staff',
-            description: 'Basic operations',
-            permissions: {
-                connect: [
-                    { name: 'inventory:view' },
-                    { name: 'sales:view' },
-                ],
-            },
-        },
-    });
-
-    console.log('Created roles');
-
-    // Create shop
-    const mainShop = await prisma.shop.upsert({
-        where: { id: 1 },
-        update: {},
-        create: {
-            name: 'Main Store',
-            location: 'Colombo',
-        },
-    });
-
-    const warehouseShop = await prisma.shop.upsert({
-        where: { id: 2 },
-        update: {},
-        create: {
-            name: 'Warehouse',
-            location: 'Gampaha',
-        },
-    });
-
-    console.log('Created shops');
 
     // Create admin user
-    const password = await bcrypt.hash('admin123', 10);
-    const adminUser = await prisma.user.upsert({
-        where: { email: 'admin@example.com' },
-        update: {},
+    console.log('Creating admin user...');
+    const hashedPassword = await bcrypt.hash('admin123', 10);
+    
+    // Get permission names for direct assignment
+    const permissionNames = allPermissions.map(p => p.name);
+
+    await prisma.user.upsert({
+        where: { email: 'admin@mssports.lk' },
+        update: {
+            password: hashedPassword,
+            roleId: adminRole.id,
+            roleName: 'Admin',
+            permissions: permissionNames,
+            isActive: true,
+        },
         create: {
             name: 'Admin User',
-            email: 'admin@example.com',
-            password,
+            email: 'admin@mssports.lk',
+            password: hashedPassword,
             roleId: adminRole.id,
+            roleName: 'Admin',
+            permissions: permissionNames,
+            isActive: true,
         },
     });
 
-    const staffUser = await prisma.user.upsert({
-        where: { email: 'staff@example.com' },
-        update: {},
+    // Also create the user with the typo in email that was attempted in the logs
+    await prisma.user.upsert({
+        where: { email: 'admin@mssport.lk' },
+        update: {
+            password: hashedPassword,
+            roleId: adminRole.id,
+            roleName: 'Admin',
+            permissions: permissionNames,
+            isActive: true,
+        },
         create: {
-            name: 'Staff User',
-            email: 'staff@example.com',
-            password: await bcrypt.hash('staff123', 10),
-            roleId: staffRole.id,
-            shopId: mainShop.id,
+            name: 'Admin User (Alt)',
+            email: 'admin@mssport.lk',
+            password: hashedPassword,
+            roleId: adminRole.id,
+            roleName: 'Admin',
+            permissions: permissionNames,
+            isActive: true,
         },
     });
 
-    console.log('Created users');
-
-    // Create some categories
-    const sportsCategory = await prisma.category.upsert({
-        where: { id: 1 },
-        update: {},
-        create: {
-            name: 'Sports Equipment',
-            description: 'All sports equipment'
-        },
-    });
-
-    const clothingCategory = await prisma.category.upsert({
-        where: { id: 2 },
-        update: {},
-        create: {
-            name: 'Clothing',
-            description: 'Sports clothing and apparel',
-            parentId: sportsCategory.id
-        },
-    });
-
-    console.log('Created categories');
-
-    // Create some products
-    const product1 = await prisma.product.upsert({
-        where: { id: 1 },
-        update: {},
-        create: {
-            name: 'Basketball',
-            description: 'Official size basketball',
-            price: 2500,
-            cost: 1800,
-            sku: 'BB-001',
-            barcode: '1234567890',
-            categoryId: sportsCategory.id,
-            shopId: mainShop.id,
-        },
-    });
-
-    const product2 = await prisma.product.upsert({
-        where: { id: 2 },
-        update: {},
-        create: {
-            name: 'Sports T-Shirt',
-            description: 'Quick-dry sports t-shirt',
-            price: 1500,
-            cost: 900,
-            sku: 'TS-001',
-            barcode: '1234567891',
-            categoryId: clothingCategory.id,
-            shopId: mainShop.id,
-        },
-    });
-
-    console.log('Created products');
-
-    // Create inventory items
-    await prisma.inventoryItem.upsert({
-        where: { id: 1 },
-        update: {},
-        create: {
-            productId: product1.id,
-            quantity: 50,
-            shopId: mainShop.id,
-        },
-    });
-
-    await prisma.inventoryItem.upsert({
-        where: { id: 2 },
-        update: {},
-        create: {
-            productId: product2.id,
-            quantity: 100,
-            shopId: mainShop.id,
-        },
-    });
-
-    console.log('Created inventory items');
-
-    console.log('Database seeded successfully');
+    console.log('Database seeding completed successfully!');
 }
 
 main()
     .catch((e) => {
-        console.error(e);
+        console.error('Error during database seeding:', e);
         process.exit(1);
     })
     .finally(async () => {

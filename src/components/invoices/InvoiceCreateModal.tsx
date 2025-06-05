@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import Modal from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -9,6 +9,7 @@ import { Combobox } from '@/components/ui/Combobox';
 import { Textarea } from '@/components/ui/Textarea';
 import { Plus, Trash2, Save, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface Customer {
     id: number;
@@ -16,6 +17,9 @@ interface Customer {
     email?: string;
     phone?: string;
     address?: string;
+    customerType: 'wholesale' | 'retail';
+    creditLimit?: number;
+    creditPeriod?: number;
 }
 
 interface Product {
@@ -23,24 +27,39 @@ interface Product {
     name: string;
     price: number;
     description?: string;
+    sku?: string;
+    stock?: number;
+    weightedAverageCost?: number;
+    inventoryItems?: Array<{
+        shopId: string;
+        quantity: number;
+    }>;
+}
+
+interface Shop {
+    id: string;
+    name: string;
 }
 
 interface InvoiceItem {
     id: string;
-    productId: string;
+    productId: number;
     productName: string;
     quantity: number;
     price: number;
+    costPrice: number;
     total: number;
 }
 
 interface InvoiceFormData {
-    customerId: string;
+    customerId: number;
     customerName: string;
     invoiceNumber: string;
+    invoiceDate: string;
     dueDate: string;
     paymentMethod: string;
     notes: string;
+    shopId: string;
     items: InvoiceItem[];
     subtotal: number;
     tax: number;
@@ -54,6 +73,7 @@ interface InvoiceCreateModalProps {
     onSuccess?: () => void;
     customers: Customer[];
     products: Product[];
+    shops: Shop[];
     isLoading?: boolean;
 }
 
@@ -64,15 +84,18 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
     onSuccess,
     customers = [],
     products = [],
+    shops = [],
     isLoading = false
 }) => {
     const [formData, setFormData] = useState<InvoiceFormData>({
-        customerId: '',
+        customerId: 0,
         customerName: '',
         invoiceNumber: '',
+        invoiceDate: new Date().toISOString().split('T')[0],
         dueDate: '',
-        paymentMethod: 'cash',
+        paymentMethod: 'Cash',
         notes: '',
+        shopId: '',
         items: [],
         subtotal: 0,
         tax: 0,
@@ -81,11 +104,44 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
 
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [submitting, setSubmitting] = useState(false);
+    const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+    const [customerSearch, setCustomerSearch] = useState('');
+    const [productSearch, setProductSearch] = useState('');
+    const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+    const [showProductDropdown, setShowProductDropdown] = useState(false);
+    
+    // Debounced search values for better performance
+    const debouncedCustomerSearch = useDebounce(customerSearch, 300);
+    const debouncedProductSearch = useDebounce(productSearch, 300);
+    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+    const [quantity, setQuantity] = useState<number>(1);
+    const [customPrice, setCustomPrice] = useState<number>(0);
+    const [productStock, setProductStock] = useState<number | null>(null);
+    const [showQuickCustomerModal, setShowQuickCustomerModal] = useState(false);
+    const [quickCustomerData, setQuickCustomerData] = useState({
+        name: '',
+        phone: '',
+        address: '',
+        customerType: 'retail' as 'retail' | 'wholesale',
+        creditLimit: 0,
+        creditPeriod: 0
+    });
+    const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
+
+    // Generate invoice number function
+    const generateInvoiceNumber = useCallback(() => {
+        const now = new Date();
+        const year = now.getFullYear().toString().slice(2);
+        const month = (now.getMonth() + 1).toString().padStart(2, '0');
+        const day = now.getDate().toString().padStart(2, '0');
+        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        return `INV-${year}${month}${day}-${random}`;
+    }, []);
 
     // Generate invoice number on modal open
     useEffect(() => {
         if (isOpen && !formData.invoiceNumber) {
-            const invoiceNumber = `INV-${Date.now()}`;
+            const invoiceNumber = generateInvoiceNumber();
             const defaultDueDate = new Date();
             defaultDueDate.setDate(defaultDueDate.getDate() + 30);
 
@@ -95,39 +151,112 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                 dueDate: defaultDueDate.toISOString().split('T')[0]
             }));
         }
-    }, [isOpen]);
+    }, [isOpen, generateInvoiceNumber]);
 
     // Calculate totals when items change
     useEffect(() => {
         const subtotal = formData.items.reduce((sum, item) => sum + item.total, 0);
-        const tax = subtotal * 0.1; // 10% tax
-        const total = subtotal + tax;
+        const total = subtotal; // No tax
 
         setFormData(prev => ({
             ...prev,
             subtotal,
-            tax,
+            tax: 0,
             total
         }));
     }, [formData.items]);
 
-    const handleCustomerSelect = (customerId: string) => {
+    const handleCustomerSelect = useCallback((customerId: string) => {
         const customer = customers.find(c => c.id.toString() === customerId);
+        if (customer) {
+            setSelectedCustomer(customer);
+            
+            // Calculate due date based on customer type and credit period
+            const today = new Date();
+            let dueDate = formData.invoiceDate; // Default due date
+            
+            if (customer.customerType === 'wholesale' && customer.creditPeriod) {
+                const dueDateObj = new Date(today);
+                dueDateObj.setDate(today.getDate() + customer.creditPeriod);
+                dueDate = dueDateObj.toISOString().split('T')[0];
+            }
+            
+            setFormData(prev => ({
+                ...prev,
+                customerId: customer.id,
+                customerName: customer.name,
+                dueDate: dueDate
+            }));
+            
+            setCustomerSearch('');
+            setShowCustomerDropdown(false);
+        }
+        setErrors(prev => ({ ...prev, customerId: '' }));
+    }, [customers, formData.invoiceDate]);
+
+    const handleAddLineItem = () => {
+        if (!selectedProduct || quantity <= 0) {
+            alert('Please select a product and enter a valid quantity.');
+            return;
+        }
+
+        // Check if shop is selected
+        if (!formData.shopId) {
+            alert('Please select a shop first.');
+            return;
+        }
+
+        // Check if sufficient stock is available in the selected shop
+        if (productStock !== null && quantity > productStock) {
+            alert(`Insufficient stock in the selected shop. Available: ${productStock}, Requested: ${quantity}`);
+            return;
+        }
+
+        // Use custom price if set, otherwise use product's default price
+        const finalPrice = customPrice > 0 ? customPrice : (selectedProduct.price || 0);
+        const costPrice = selectedProduct.weightedAverageCost || 0;
+        const itemTotal = finalPrice * quantity;
+
+        // Check credit limit for wholesale customers
+        if (selectedCustomer && selectedCustomer.customerType === 'wholesale' && selectedCustomer.creditLimit) {
+            const currentTotal = formData.items.reduce((sum, item) => sum + item.total, 0);
+            if (currentTotal + itemTotal > selectedCustomer.creditLimit) {
+                alert(`Adding this item exceeds the customer's credit limit of ${selectedCustomer.creditLimit}.`);
+                return;
+            }
+        }
+
+        const newLineItem: InvoiceItem = {
+            id: Date.now().toString(),
+            productId: selectedProduct.id,
+            productName: selectedProduct.name,
+            quantity: quantity,
+            price: finalPrice,
+            costPrice: costPrice,
+            total: itemTotal,
+        };
+
         setFormData(prev => ({
             ...prev,
-            customerId,
-            customerName: customer?.name || ''
+            items: [...prev.items, newLineItem]
         }));
-        setErrors(prev => ({ ...prev, customerId: '' }));
+
+        // Reset selection
+        setSelectedProduct(null);
+        setProductStock(null);
+        setQuantity(1);
+        setCustomPrice(0);
+        setProductSearch('');
     };
 
     const addItem = () => {
         const newItem: InvoiceItem = {
             id: `item-${Date.now()}`,
-            productId: '',
+            productId: 0,
             productName: '',
             quantity: 1,
             price: 0,
+            costPrice: 0,
             total: 0
         };
 
@@ -137,14 +266,88 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
         }));
     };
 
-    const removeItem = (itemId: string) => {
+    const removeItem = (id: string) => {
         setFormData(prev => ({
             ...prev,
-            items: prev.items.filter(item => item.id !== itemId)
+            items: prev.items.filter(item => item.id !== id)
         }));
     };
 
-    const updateItem = (itemId: string, field: keyof InvoiceItem, value: any) => {
+    const handleProductSelect = useCallback(async (product: Product) => {
+        setSelectedProduct(product);
+        setProductSearch(product.name);
+        setShowProductDropdown(false);
+        
+        // Fetch stock for the selected product in the selected shop
+        if (formData.shopId) {
+            try {
+                const response = await fetch(`/api/products/${product.id}/stock?shopId=${formData.shopId}`);
+                if (response.ok) {
+                    const stockData = await response.json();
+                    setProductStock(stockData.stock || 0);
+                } else {
+                    setProductStock(0);
+                }
+            } catch (error) {
+                console.error('Error fetching product stock:', error);
+                setProductStock(0);
+            }
+        }
+    }, [formData.shopId]);
+
+    const handleQuickCustomerCreate = async () => {
+        if (!quickCustomerData.name.trim()) {
+            alert('Customer name is required.');
+            return;
+        }
+
+        setIsCreatingCustomer(true);
+        try {
+            const response = await fetch('/api/customers', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(quickCustomerData),
+            });
+
+            if (response.ok) {
+                const newCustomer = await response.json();
+                // Add to customers list and select it
+                setSelectedCustomer(newCustomer);
+                setFormData(prev => ({
+                    ...prev,
+                    customerId: newCustomer.id,
+                    customerName: newCustomer.name
+                }));
+                
+                // Reset quick customer form
+                setQuickCustomerData({
+                    name: '',
+                    phone: '',
+                    address: '',
+                    customerType: 'retail',
+                    creditLimit: 0,
+                    creditPeriod: 0
+                });
+                setShowQuickCustomerModal(false);
+                
+                // Refresh customers list
+                if (onCustomerCreated) {
+                    onCustomerCreated();
+                }
+            } else {
+                alert('Failed to create customer.');
+            }
+        } catch (error) {
+            console.error('Error creating customer:', error);
+            alert('Error creating customer.');
+        } finally {
+            setIsCreatingCustomer(false);
+        }
+    };
+
+    const updateItem = useCallback((itemId: string, field: keyof InvoiceItem, value: any) => {
         setFormData(prev => ({
             ...prev,
             items: prev.items.map(item => {
@@ -168,9 +371,46 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                 return item;
             })
         }));
-    };
+    }, [products]);
 
-    const validateForm = (): boolean => {
+    // Memoized filtered customers based on debounced search
+    const filteredCustomers = useMemo(() => {
+        if (!debouncedCustomerSearch.trim()) return customers.slice(0, 50); // Limit initial results
+        
+        const searchTerm = debouncedCustomerSearch.toLowerCase();
+        return customers.filter(customer =>
+            customer.name.toLowerCase().includes(searchTerm) ||
+            customer.phone?.toLowerCase().includes(searchTerm) ||
+            customer.address?.toLowerCase().includes(searchTerm)
+        ).slice(0, 50); // Limit search results for performance
+    }, [customers, debouncedCustomerSearch]);
+
+    // Memoized filtered products based on debounced search and selected shop
+    const filteredProducts = useMemo(() => {
+        // Ensure products is always an array
+        const safeProducts = Array.isArray(products) ? products : [];
+        
+        // Filter products that have inventory in the selected shop
+        let shopFilteredProducts = safeProducts;
+        if (formData.shopId) {
+            shopFilteredProducts = safeProducts.filter(product => {
+                if (!product.inventoryItems || !Array.isArray(product.inventoryItems)) return false;
+                return product.inventoryItems.some(inv => 
+                    inv.shopId === formData.shopId && inv.quantity > 0
+                );
+            });
+        }
+        
+        if (!debouncedProductSearch.trim()) return shopFilteredProducts.slice(0, 50); // Limit initial results
+        
+        const searchTerm = debouncedProductSearch.toLowerCase();
+        return shopFilteredProducts.filter(product =>
+            product.name.toLowerCase().includes(searchTerm) ||
+            product.sku?.toLowerCase().includes(searchTerm)
+        ).slice(0, 50); // Limit search results for performance
+    }, [products, debouncedProductSearch, formData.shopId]);
+
+    const validateForm = useCallback((): boolean => {
         const newErrors: Record<string, string> = {};
 
         if (!formData.customerId) {
@@ -189,6 +429,10 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
             newErrors.items = 'At least one item is required';
         }
 
+        if (!formData.shopId) {
+            newErrors.shopId = 'Shop is required';
+        }
+
         formData.items.forEach((item, index) => {
             if (!item.productId) {
                 newErrors[`item-${index}-product`] = 'Product is required';
@@ -203,7 +447,7 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
-    };
+    }, [formData]);
 
     const handleSubmit = async () => {
         if (!validateForm()) {
@@ -222,11 +466,36 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                 }))
             };
 
+            // Get authentication token from localStorage
+            // Priority: dev-token > accessToken > authToken
+            let token = localStorage.getItem('dev-token') || 
+                       localStorage.getItem('accessToken') || 
+                       localStorage.getItem('authToken');
+            
+            // For development, check if we should use dev-token
+            if (!token || (token.startsWith('eyJ') && localStorage.getItem('dev-token'))) {
+                token = 'dev-token';
+                localStorage.setItem('accessToken', 'dev-token');
+                localStorage.setItem('authToken', 'dev-token');
+                console.log('🔧 Using development token');
+            }
+            
+            console.log('Auth token found:', token === 'dev-token' ? 'dev-token' : (token ? `${token.substring(0, 10)}...` : 'none'));
+            
+            if (!token) {
+                throw new Error('No authentication token found. Please run setDevToken() in console for development.');
+            }
+
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            };
+            
+            console.log('Request headers:', headers);
+            
             const response = await fetch('/api/invoices', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers,
                 body: JSON.stringify(invoiceData),
             });
 
@@ -254,31 +523,50 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
     };
 
     const handleClose = () => {
+        // Generate a new invoice number for the next time the modal opens
+        const newInvoiceNumber = generateInvoiceNumber();
+        const defaultDueDate = new Date();
+        defaultDueDate.setDate(defaultDueDate.getDate() + 30);
+        
         setFormData({
-            customerId: '',
+            customerId: 0,
             customerName: '',
-            invoiceNumber: '',
-            dueDate: '',
-            paymentMethod: 'cash',
+            invoiceNumber: newInvoiceNumber,
+            invoiceDate: new Date().toISOString().split('T')[0],
+            dueDate: defaultDueDate.toISOString().split('T')[0],
+            paymentMethod: 'Cash',
             notes: '',
+            shopId: '',
             items: [],
             subtotal: 0,
             tax: 0,
             total: 0
         });
         setErrors({});
+        setSelectedCustomer(null);
+        setCustomerSearch('');
+        setProductSearch('');
+        setSelectedProduct(null);
+        setQuantity(1);
+        setCustomPrice(0);
+        setProductStock(null);
         onClose();
     };
 
-    const customerOptions = Array.isArray(customers) ? customers.map(customer => ({
-        value: customer.id.toString(),
-        label: customer.name
-    })) : [];
+    // Memoized options for better performance
+    const customerOptions = useMemo(() => 
+        Array.isArray(customers) ? customers.map(customer => ({
+            value: customer.id.toString(),
+            label: customer.name
+        })) : [], [customers]
+    );
 
-    const productOptions = Array.isArray(products) ? products.map(product => ({
-        value: product.id.toString(),
-        label: `${product.name} - LKR ${product.price.toFixed(2)}`
-    })) : [];
+    const productOptions = useMemo(() => 
+        Array.isArray(products) ? products.map(product => ({
+            value: product.id.toString(),
+            label: `${product.name} - LKR ${product.price.toFixed(2)}`
+        })) : [], [products]
+    );
 
     const footer = (
         <div className="flex justify-between items-center">
@@ -303,72 +591,234 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
     );
 
     return (
-        <Modal
-            isOpen={isOpen}
-            onClose={handleClose}
-            title="Create New Invoice"
-            size="4xl"
-            footer={footer}
-        >
-            <div className="space-y-6">
-                {/* Invoice Header */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <>
+            <Modal
+                isOpen={isOpen}
+                onClose={handleClose}
+                title="Create New Invoice"
+                size="4xl"
+                footer={footer}
+            >
+                <div className="space-y-6">
+                    {/* Shop Selection */}
                     <div>
-                        <Label htmlFor="customer" className="text-black font-semibold">Customer *</Label>
-                        <Combobox
-                            options={customerOptions}
-                            value={formData.customerId}
-                            onChange={handleCustomerSelect}
-                            placeholder="Select a customer"
-                            className={errors.customerId ? 'border-red-500' : 'border-gray-300'}
-                        />
-                        {errors.customerId && (
-                            <p className="text-red-500 text-sm mt-1">{errors.customerId}</p>
-                        )}
-                    </div>
-
-                    <div>
-                        <Label htmlFor="invoiceNumber" className="text-black font-semibold">Invoice Number *</Label>
-                        <Input
-                            id="invoiceNumber"
-                            value={formData.invoiceNumber}
-                            onChange={(e) => setFormData(prev => ({ ...prev, invoiceNumber: e.target.value }))}
-                            className={`text-black ${errors.invoiceNumber ? 'border-red-500' : 'border-gray-300'}`}
-                        />
-                        {errors.invoiceNumber && (
-                            <p className="text-red-500 text-sm mt-1">{errors.invoiceNumber}</p>
-                        )}
-                    </div>
-
-                    <div>
-                        <Label htmlFor="dueDate" className="text-black font-semibold">Due Date *</Label>
-                        <Input
-                            id="dueDate"
-                            type="date"
-                            value={formData.dueDate}
-                            onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
-                            className={`text-black ${errors.dueDate ? 'border-red-500' : 'border-gray-300'}`}
-                        />
-                        {errors.dueDate && (
-                            <p className="text-red-500 text-sm mt-1">{errors.dueDate}</p>
-                        )}
-                    </div>
-
-                    <div>
-                        <Label htmlFor="paymentMethod" className="text-black font-semibold">Payment Method</Label>
+                        <Label htmlFor="shop" className="text-black font-semibold">Shop *</Label>
                         <select
-                            id="paymentMethod"
-                            value={formData.paymentMethod}
-                            onChange={(e) => setFormData(prev => ({ ...prev, paymentMethod: e.target.value }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+                            id="shop"
+                            value={formData.shopId || ''}
+                            onChange={(e) => setFormData(prev => ({ ...prev, shopId: e.target.value }))}
+                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white ${
+                                errors.shopId ? 'border-red-500' : 'border-gray-300'
+                            }`}
                         >
-                            <option value="cash">Cash</option>
-                            <option value="card">Card</option>
-                            <option value="bank_transfer">Bank Transfer</option>
-                            <option value="cheque">Cheque</option>
+                            <option value="">Select a shop</option>
+                            {Array.isArray(shops) && shops.map(shop => (
+                                <option key={shop.id} value={shop.id}>
+                                    {shop.name}
+                                </option>
+                            ))}
                         </select>
+                        {errors.shopId && (
+                            <p className="text-red-500 text-sm mt-1">{errors.shopId}</p>
+                        )}
                     </div>
-                </div>
+
+                    {/* Invoice Header */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Customer Selection with Search */}
+                        <div className="relative">
+                            <Label htmlFor="customer" className="text-black font-semibold">Customer *</Label>
+                            <div className="flex gap-2">
+                                <div className="flex-1 relative">
+                                    <Input
+                                        value={customerSearch}
+                                        onChange={(e) => {
+                                            setCustomerSearch(e.target.value);
+                                            setShowCustomerDropdown(true);
+                                        }}
+                                        onFocus={() => setShowCustomerDropdown(true)}
+                                        placeholder="Search customers..."
+                                        className={`text-black ${errors.customerId ? 'border-red-500' : 'border-gray-300'}`}
+                                    />
+                                    {showCustomerDropdown && filteredCustomers.length > 0 && (
+                                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                            {filteredCustomers.map(customer => (
+                                                <div
+                                                    key={customer.id}
+                                                    onClick={() => handleCustomerSelect(customer.id.toString())}
+                                                    className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-black"
+                                                >
+                                                    <div className="font-medium">{customer.name}</div>
+                                                    <div className="text-sm text-gray-600">{customer.phone} - {customer.address}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setShowQuickCustomerModal(true)}
+                                    className="text-black border-gray-300"
+                                >
+                                    Quick Add
+                                </Button>
+                            </div>
+                            {selectedCustomer && (
+                                <div className="mt-2 p-2 bg-blue-50 rounded border">
+                                    <div className="text-sm text-black">
+                                        <strong>{selectedCustomer.name}</strong> ({selectedCustomer.customerType})
+                                        {selectedCustomer.customerType === 'wholesale' && selectedCustomer.creditPeriod && (
+                                            <span className="ml-2 text-blue-600">Credit Period: {selectedCustomer.creditPeriod} days</span>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                            {errors.customerId && (
+                                <p className="text-red-500 text-sm mt-1">{errors.customerId}</p>
+                            )}
+                        </div>
+
+                        <div>
+                            <Label htmlFor="invoiceNumber" className="text-black font-semibold">Invoice Number *</Label>
+                            <Input
+                                id="invoiceNumber"
+                                value={formData.invoiceNumber}
+                                onChange={(e) => setFormData(prev => ({ ...prev, invoiceNumber: e.target.value }))}
+                                className={`text-black ${errors.invoiceNumber ? 'border-red-500' : 'border-gray-300'}`}
+                            />
+                            {errors.invoiceNumber && (
+                                <p className="text-red-500 text-sm mt-1">{errors.invoiceNumber}</p>
+                            )}
+                        </div>
+
+                        <div>
+                            <Label htmlFor="invoiceDate" className="text-black font-semibold">Invoice Date *</Label>
+                            <Input
+                                id="invoiceDate"
+                                type="date"
+                                value={formData.invoiceDate}
+                                onChange={(e) => setFormData(prev => ({ ...prev, invoiceDate: e.target.value }))}
+                                className="text-black border-gray-300"
+                            />
+                        </div>
+
+                        <div>
+                            <Label htmlFor="dueDate" className="text-black font-semibold">Due Date *</Label>
+                            <Input
+                                id="dueDate"
+                                type="date"
+                                value={formData.dueDate}
+                                onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
+                                className={`text-black ${errors.dueDate ? 'border-red-500' : 'border-gray-300'}`}
+                            />
+                            {errors.dueDate && (
+                                <p className="text-red-500 text-sm mt-1">{errors.dueDate}</p>
+                            )}
+                        </div>
+
+                        <div>
+                            <Label htmlFor="paymentMethod" className="text-black font-semibold">Payment Method</Label>
+                            <select
+                                id="paymentMethod"
+                                value={formData.paymentMethod}
+                                onChange={(e) => setFormData(prev => ({ ...prev, paymentMethod: e.target.value }))}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+                            >
+                                <option value="Cash">Cash</option>
+                                <option value="Card">Card</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="Cheque">Cheque</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Product Selection Section */}
+                    <div className="bg-gray-50 p-4 rounded-lg border">
+                        <h3 className="text-lg font-semibold text-black mb-4">Add Products</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                            <div className="relative">
+                                <Label className="text-black font-medium">Product *</Label>
+                                <Input
+                                    value={productSearch}
+                                    onChange={(e) => {
+                                        setProductSearch(e.target.value);
+                                        setShowProductDropdown(true);
+                                    }}
+                                    onFocus={() => setShowProductDropdown(true)}
+                                    placeholder="Search products..."
+                                    className="text-black border-gray-300"
+                                />
+                                {showProductDropdown && filteredProducts.length > 0 && (
+                                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                        {filteredProducts.map(product => (
+                                            <div
+                                                key={product.id}
+                                                onClick={() => handleProductSelect(product)}
+                                                className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-black"
+                                            >
+                                                <div className="font-medium">{product.name}</div>
+                                                <div className="text-sm text-gray-600">LKR {product.price?.toFixed(2)} - {product.sku}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div>
+                                <Label className="text-black font-medium">Quantity *</Label>
+                                <Input
+                                    type="number"
+                                    min="1"
+                                    value={quantity}
+                                    onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                                    className="text-black border-gray-300"
+                                />
+                            </div>
+
+                            <div>
+                                <Label className="text-black font-medium">Custom Price</Label>
+                                <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={customPrice}
+                                    onChange={(e) => setCustomPrice(parseFloat(e.target.value) || 0)}
+                                    placeholder="Override price"
+                                    className="text-black border-gray-300"
+                                />
+                            </div>
+
+                            <div>
+                                <Label className="text-black font-medium">Stock</Label>
+                                <div className="px-3 py-2 bg-white border border-gray-300 rounded-md text-black">
+                                    {productStock !== null ? productStock : 'N/A'}
+                                </div>
+                            </div>
+
+                            <Button
+                                type="button"
+                                onClick={handleAddLineItem}
+                                disabled={!selectedProduct}
+                                className="bg-blue-500 hover:bg-blue-600 text-white"
+                            >
+                                <Plus className="w-4 h-4 mr-2" />
+                                Add Item
+                            </Button>
+                        </div>
+
+                        {selectedProduct && (
+                            <div className="mt-3 p-2 bg-blue-50 rounded border">
+                                <div className="text-sm text-black">
+                                    <strong>{selectedProduct.name}</strong> - LKR {selectedProduct.price?.toFixed(2)}
+                                    {selectedProduct.weightedAverageCost && (
+                                        <span className="ml-2 text-gray-600">Cost: LKR {selectedProduct.weightedAverageCost.toFixed(2)}</span>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
 
                 {/* Invoice Items */}
                 <div>
@@ -477,10 +927,6 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                                 <span className="font-medium">Subtotal:</span>
                                 <span className="font-semibold">LKR {formData.subtotal.toFixed(2)}</span>
                             </div>
-                            <div className="flex justify-between text-black">
-                                <span className="font-medium">Tax (10%):</span>
-                                <span className="font-semibold">LKR {formData.tax.toFixed(2)}</span>
-                            </div>
                             <div className="flex justify-between font-bold text-lg border-t border-blue-300 pt-2 text-black">
                                 <span>Total:</span>
                                 <span>LKR {formData.total.toFixed(2)}</span>
@@ -503,6 +949,111 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                 </div>
             </div>
         </Modal>
+
+        {/* Quick Customer Creation Modal */}
+        <Modal
+            isOpen={showQuickCustomerModal}
+            onClose={() => setShowQuickCustomerModal(false)}
+            title="Quick Add Customer"
+            size="md"
+        >
+            <div className="space-y-4">
+                <div>
+                    <Label htmlFor="quickName" className="text-black font-semibold">Name *</Label>
+                    <Input
+                        id="quickName"
+                        value={quickCustomerData.name}
+                        onChange={(e) => setQuickCustomerData(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="Customer name"
+                        className="text-black border-gray-300"
+                    />
+                </div>
+
+                <div>
+                    <Label htmlFor="quickPhone" className="text-black font-semibold">Phone</Label>
+                    <Input
+                        id="quickPhone"
+                        value={quickCustomerData.phone}
+                        onChange={(e) => setQuickCustomerData(prev => ({ ...prev, phone: e.target.value }))}
+                        placeholder="Phone number"
+                        className="text-black border-gray-300"
+                    />
+                </div>
+
+                <div>
+                    <Label htmlFor="quickAddress" className="text-black font-semibold">Address</Label>
+                    <Input
+                        id="quickAddress"
+                        value={quickCustomerData.address}
+                        onChange={(e) => setQuickCustomerData(prev => ({ ...prev, address: e.target.value }))}
+                        placeholder="Address"
+                        className="text-black border-gray-300"
+                    />
+                </div>
+
+                <div>
+                    <Label htmlFor="quickCustomerType" className="text-black font-semibold">Customer Type</Label>
+                    <select
+                        id="quickCustomerType"
+                        value={quickCustomerData.customerType}
+                        onChange={(e) => setQuickCustomerData(prev => ({ ...prev, customerType: e.target.value as 'retail' | 'wholesale' }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+                    >
+                        <option value="retail">Retail</option>
+                        <option value="wholesale">Wholesale</option>
+                    </select>
+                </div>
+
+                {quickCustomerData.customerType === 'wholesale' && (
+                    <>
+                        <div>
+                            <Label htmlFor="quickCreditLimit" className="text-black font-semibold">Credit Limit</Label>
+                            <Input
+                                id="quickCreditLimit"
+                                type="number"
+                                min="0"
+                                value={quickCustomerData.creditLimit}
+                                onChange={(e) => setQuickCustomerData(prev => ({ ...prev, creditLimit: parseFloat(e.target.value) || 0 }))}
+                                placeholder="Credit limit"
+                                className="text-black border-gray-300"
+                            />
+                        </div>
+
+                        <div>
+                            <Label htmlFor="quickCreditPeriod" className="text-black font-semibold">Credit Period (days)</Label>
+                            <Input
+                                id="quickCreditPeriod"
+                                type="number"
+                                min="0"
+                                value={quickCustomerData.creditPeriod}
+                                onChange={(e) => setQuickCustomerData(prev => ({ ...prev, creditPeriod: parseInt(e.target.value) || 0 }))}
+                                placeholder="Credit period in days"
+                                className="text-black border-gray-300"
+                            />
+                        </div>
+                    </>
+                )}
+
+                <div className="flex justify-end space-x-3 pt-4">
+                    <Button
+                        variant="outline"
+                        onClick={() => setShowQuickCustomerModal(false)}
+                        disabled={isCreatingCustomer}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        onClick={handleQuickCustomerCreate}
+                        isLoading={isCreatingCustomer}
+                        disabled={isCreatingCustomer || !quickCustomerData.name.trim()}
+                        className="bg-blue-500 hover:bg-blue-600 text-white"
+                    >
+                        {isCreatingCustomer ? 'Creating...' : 'Create Customer'}
+                    </Button>
+                </div>
+            </div>
+        </Modal>
+    </>
     );
 };
 

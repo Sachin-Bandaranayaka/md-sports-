@@ -124,10 +124,32 @@ export async function POST(request: Request) {
                 }
             });
 
-            // Make sure the invoice is marked as paid
+            // Calculate total payments for the invoice to determine correct status
+            const totalPayments = await tx.payment.aggregate({
+                where: { invoiceId: existingPayment.invoiceId },
+                _sum: { amount: true }
+            });
+
+            const invoice = await tx.invoice.findUnique({
+                where: { id: existingPayment.invoiceId },
+                select: { total: true }
+            });
+
+            const totalPaid = totalPayments._sum.amount || 0;
+            const invoiceTotal = invoice?.total || 0;
+
+            // Determine the correct status based on payment amount
+            let newStatus = 'Pending';
+            if (totalPaid >= invoiceTotal) {
+                newStatus = 'Paid';
+            } else if (totalPaid > 0) {
+                newStatus = 'Partial';
+            }
+
+            // Update invoice status based on actual payment amount
             await tx.invoice.update({
                 where: { id: existingPayment.invoiceId },
-                data: { status: 'Paid' }
+                data: { status: newStatus }
             });
 
             // Determine the appropriate account based on payment method

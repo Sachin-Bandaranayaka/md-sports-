@@ -61,7 +61,7 @@ export async function fetchSalesDataFiltered(startDate?: string | null, endDate?
     }
 }
 
-export async function fetchSalesData(shopId?: number | null) {
+export async function fetchSalesData(shopId?: number | null, periodDays?: number, startDate?: Date, endDate?: Date) {
     // Get current month and year
     const now = new Date();
     const currentYear = now.getFullYear();

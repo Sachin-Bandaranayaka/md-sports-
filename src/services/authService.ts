@@ -81,8 +81,8 @@ export const authenticateUser = async (email: string, password: string) => {
             };
         }
 
-        // Get permissions from role
-        const permissions = user.role.permissions.map(p => p.name);
+        // Get permissions from role (handle case where user has no role)
+        const permissions = user.role?.permissions?.map(p => p.name) || user.permissions || [];
 
         // Generate JWT token
         const token = generateToken({
@@ -100,7 +100,7 @@ export const authenticateUser = async (email: string, password: string) => {
             fullName: user.name,
             email: user.email,
             roleId: user.roleId,
-            roleName: user.role.name,
+            roleName: user.role?.name || user.roleName || null,
             shopId: user.shopId,
             permissions,
             role: user.role

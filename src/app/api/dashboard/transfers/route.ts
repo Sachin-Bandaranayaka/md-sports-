@@ -72,14 +72,28 @@ export async function fetchTransfersDataFiltered(startDate?: string | null, endD
     };
 }
 
-export async function fetchTransfersData(shopId?: string | null) {
-    // Build where clause for shop filtering
-    const whereClause = shopId ? {
-        OR: [
+export async function fetchTransfersData(shopId?: string | null, periodDays?: number, startDate?: Date, endDate?: Date) {
+    // Build where clause for shop and date filtering
+    const whereClause: any = {};
+    
+    // Add shop filtering
+    if (shopId) {
+        whereClause.OR = [
             { fromShopId: shopId },
             { toShopId: shopId }
-        ]
-    } : undefined;
+        ];
+    }
+    
+    // Add date filtering based on period
+    if (periodDays) {
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - periodDays);
+        startDate.setHours(0, 0, 0, 0);
+        
+        whereClause.createdAt = {
+            gte: startDate
+        };
+    }
 
     // Fetch recent inventory transfers using Prisma
     const transfers = await safeQuery(
@@ -98,7 +112,7 @@ export async function fetchTransfersData(shopId?: string | null) {
                     select: { id: true } // Selecting id to count items
                 }
             },
-            where: whereClause,
+            where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
             orderBy: {
                 createdAt: 'desc'
             },
@@ -124,18 +138,24 @@ export async function fetchTransfersData(shopId?: string | null) {
     };
 }
 
-// GET: Fetch recent inventory transfers
 export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest, context) => {
     try {
         // Validate token and permissions
-        const authResult = await validateTokenPermission(request, 'view_dashboard');
+        const authResult = await validateTokenPermission(request, 'view_transfers');
         if (!authResult.isValid) {
             return NextResponse.json({ error: authResult.message }, { status: 401 });
         }
 
-        // Check cache first with shop context
-        const cacheKey = `dashboard:transfers:${context.isFiltered ? context.shopId : 'all'}`;
+        // Get query parameters
+        const { searchParams } = new URL(request.url);
+        const period = searchParams.get('period');
+        const periodDays = period ? parseInt(period) : undefined;
+
+        // Check cache first with shop context and period
+        const cacheKey = `dashboard:transfers:${context.isFiltered ? context.shopId : 'all'}${periodDays ? `:${periodDays}d` : ''}`;
+        console.time('cache check');
         const cachedData = await cacheService.get(cacheKey);
+        console.timeEnd('cache check');
 
         if (cachedData) {
             console.log('✅ Transfers data served from cache');
@@ -144,6 +164,7 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
                 meta: {
                     shopFiltered: context.isFiltered,
                     shopId: context.shopId,
+                    period: periodDays,
                     fromCache: true
                 }
             });
@@ -151,36 +172,64 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
 
         console.log('🔄 Fetching fresh transfers data with shop context:', {
             shopId: context.shopId,
-            isFiltered: context.isFiltered
+            isFiltered: context.isFiltered,
+            period: periodDays
         });
-        const transfersResult = await fetchTransfersData(context.isFiltered ? context.shopId : null);
 
-        // Add metadata to response
+        const shopId = context.isFiltered ? context.shopId : null;
+
+        // Fetch transfers data with period filtering
+        const result = await fetchTransfersData(shopId, periodDays);
+
+        if (!result.success) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: 'Failed to fetch transfers data',
+                    data: [],
+                    meta: {
+                        shopFiltered: context.isFiltered,
+                        shopId: context.shopId,
+                        period: periodDays
+                    }
+                },
+                { status: 500 }
+            );
+        }
+
         const responseData = {
-            ...transfersResult,
+            success: true,
+            data: result.data,
             meta: {
                 shopFiltered: context.isFiltered,
                 shopId: context.shopId,
+                period: periodDays,
                 fromCache: false
             }
         };
 
-        // Cache for 2 minutes (transfers change frequently)
+        // Cache the response for 2 minutes
+        console.time('cache set');
         await cacheService.set(cacheKey, responseData, 120);
+        console.timeEnd('cache set');
         console.log('💾 Transfers data cached for 2 minutes');
 
         return NextResponse.json(responseData);
+
     } catch (error) {
-        console.error('Error fetching transfer data:', error);
-        // Return empty array instead of error, consistent with original
-        return NextResponse.json({
-            success: true, // Or false
-            data: [],
-            message: error instanceof Error ? error.message : 'Unknown error',
-            meta: {
-                shopFiltered: context.isFiltered,
-                shopId: context.shopId
-            }
-        });
+        console.error('Error fetching transfers data:', error);
+        return NextResponse.json(
+            {
+                success: false,
+                message: 'Failed to load transfers data',
+                error: error instanceof Error ? error.message : String(error),
+                data: [], // Return empty array on error
+                meta: {
+                    shopFiltered: context.isFiltered,
+                    shopId: context.shopId
+                }
+            },
+            { status: 500 }
+        );
     }
 });

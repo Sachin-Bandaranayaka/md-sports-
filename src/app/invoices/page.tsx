@@ -22,6 +22,8 @@ interface Invoice {
     date?: string; // Formatted for display
     dueDate?: string; // Formatted for display
     itemCount?: number;
+    totalPaid?: number; // Total amount paid
+    dueAmount?: number; // Amount still due
 }
 
 const ITEMS_PER_PAGE = 15;
@@ -125,6 +127,11 @@ async function fetchInvoicesData(
                 notes: true,
                 shopId: true,
                 customer: true,
+                payments: {
+                    select: {
+                        amount: true
+                    }
+                },
                 _count: {
                     select: { items: true },
                 },
@@ -210,6 +217,10 @@ async function fetchInvoicesData(
                 displayDueDate = tempDueDate.toISOString().split('T')[0];
             }
 
+            // Calculate total paid and due amount
+            const totalPaid = inv.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
+            const dueAmount = Math.max(0, inv.total - totalPaid);
+
             return {
                 ...inv,
                 id: inv.id.toString(), // Ensure ID is string
@@ -218,7 +229,9 @@ async function fetchInvoicesData(
                 date: createdDate.toISOString().split('T')[0],
                 dueDate: displayDueDate, // Use the calculated or existing due date
                 totalProfit: inv.totalProfit || 0,
-                profitMargin: inv.profitMargin || 0
+                profitMargin: inv.profitMargin || 0,
+                totalPaid,
+                dueAmount
             };
         });
 

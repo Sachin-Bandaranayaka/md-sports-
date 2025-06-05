@@ -7,10 +7,9 @@ import { Plus, Minus, Save, X, Search, Calculator, Upload, Download } from 'luci
 import { PurchaseInvoice, Supplier, Product, Category, Shop } from '@/types';
 import {
   useCreatePurchaseInvoiceOptimized,
-  useUpdatePurchaseInvoiceOptimized,
-  useSuppliersOptimized
+  useUpdatePurchaseInvoiceOptimized
 } from '@/hooks/usePurchaseInvoicesOptimized';
-import { useProducts, useCategories, useShops } from '@/hooks/useQueries';
+import { useSuppliersOptimized, useProducts, useCategories, useShops } from '@/hooks/useQueries';
 import { toast } from 'sonner';
 import { debounce } from 'lodash';
 import { z } from 'zod';

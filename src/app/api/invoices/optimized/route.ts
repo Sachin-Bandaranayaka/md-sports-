@@ -308,6 +308,11 @@ export async function GET(request: NextRequest) {
                             name: true
                         }
                     },
+                    payments: {
+                        select: {
+                            amount: true
+                        }
+                    },
                     _count: {
                         select: {
                             items: true
@@ -331,14 +336,21 @@ export async function GET(request: NextRequest) {
             : null;
 
         // Format response
-        const formattedInvoices = resultInvoices.map(invoice => ({
-            ...invoice,
-            customerName: invoice.customer.name,
-            shopName: invoice.shop?.name,
-            itemCount: invoice._count.items,
-            date: invoice.createdAt.toISOString().split('T')[0],
-            dueDate: invoice.dueDate?.toISOString().split('T')[0]
-        }));
+        const formattedInvoices = resultInvoices.map(invoice => {
+            const totalPaid = invoice.payments.reduce((sum, payment) => sum + payment.amount, 0);
+            const dueAmount = Math.max(0, invoice.total - totalPaid);
+            
+            return {
+                ...invoice,
+                customerName: invoice.customer.name,
+                shopName: invoice.shop?.name,
+                itemCount: invoice._count.items,
+                date: invoice.createdAt.toISOString().split('T')[0],
+                dueDate: invoice.dueDate?.toISOString().split('T')[0],
+                totalPaid,
+                dueAmount
+            };
+        });
 
         const result = {
             invoices: formattedInvoices,

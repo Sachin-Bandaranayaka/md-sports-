@@ -11,19 +11,12 @@ interface Transfer {
 }
 
 interface DashboardTransfersProps {
-    transfers: Transfer[] | null;
+    recentTransfers: Transfer[] | null;
 }
 
-// Dummy data for fallback
-const dummyTransfers: Transfer[] = [
-    { id: 'TR-001', source: 'Colombo Shop', destination: 'Kandy Shop', status: 'Completed', date: '2025-05-20', items: 12 },
-    { id: 'TR-002', source: 'Galle Shop', destination: 'Colombo Shop', status: 'Pending', date: '2025-05-19', items: 8 },
-    { id: 'TR-003', source: 'Kandy Shop', destination: 'Jaffna Shop', status: 'In Transit', date: '2025-05-18', items: 15 },
-];
-
-export default function DashboardTransfers({ transfers }: DashboardTransfersProps) {
-    // Use provided data or fallback to dummy data
-    const transfersData = transfers || dummyTransfers;
+export default function DashboardTransfers({ recentTransfers }: DashboardTransfersProps) {
+    // Use provided data - no fallback to dummy data
+    const transfersData = recentTransfers || [];
 
     return (
         <div className="bg-tertiary rounded-lg shadow-sm border border-gray-200">
@@ -64,7 +57,12 @@ export default function DashboardTransfers({ transfers }: DashboardTransfersProp
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={6} className="px-6 py-4 text-sm text-gray-500 text-center">No recent transfers found</td>
+                                <td colSpan={6} className="px-6 py-8 text-center">
+                                    <div className="text-gray-500">
+                                        <p className="text-sm font-medium">No transfers found</p>
+                                        <p className="text-xs mt-1">Create your first inventory transfer to see it here</p>
+                                    </div>
+                                </td>
                             </tr>
                         )}
                     </tbody>
@@ -72,4 +70,4 @@ export default function DashboardTransfers({ transfers }: DashboardTransfersProp
             </div>
         </div>
     );
-} 
+}

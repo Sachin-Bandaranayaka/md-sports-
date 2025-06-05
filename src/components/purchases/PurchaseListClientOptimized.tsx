@@ -2,20 +2,22 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/Button';
 import { Search, Plus, Edit, Trash, FileText, ExternalLink, Calendar, DollarSign, X, RefreshCw, Filter, Download } from 'lucide-react';
 import { PurchaseInvoice, Supplier } from '@/types';
 import {
   usePurchaseInvoicesOptimized,
   usePurchaseInvoicesInfinite,
-  useSuppliersOptimized,
   useDeletePurchaseInvoiceOptimized,
   usePurchaseSearchSuggestions
 } from '@/hooks/usePurchaseInvoicesOptimized';
+import { useSuppliersOptimized } from '@/hooks/useQueries';
 import { toast } from 'sonner';
 import NewPurchaseInvoiceModal from '@/components/purchases/NewPurchaseInvoiceModal';
 import { FixedSizeList as List } from 'react-window';
 import { debounce } from 'lodash';
+import { queryKeys } from '@/context/QueryProvider';
 
 // Status badge colors
 const getStatusBadgeClass = (status: string) => {
@@ -174,6 +176,7 @@ export default function PurchaseListClientOptimized({
   const listRef = useRef<any>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
 
   // State management
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
@@ -723,6 +726,18 @@ export default function PurchaseListClientOptimized({
         <NewPurchaseInvoiceModal
           isOpen={showNewInvoiceModal}
           onClose={() => setShowNewInvoiceModal(false)}
+          onSuccess={() => {
+            // Refetch suppliers and purchase invoices when a new invoice is created
+            queryClient.invalidateQueries({ queryKey: queryKeys.suppliers });
+            queryClient.invalidateQueries({ queryKey: queryKeys.suppliersList() });
+            if (useInfiniteQuery) {
+              infiniteRefetch();
+            } else {
+              refetch();
+            }
+            setShowNewInvoiceModal(false);
+          }}
+          suppliers={suppliers}
         />
       )}
     </div>

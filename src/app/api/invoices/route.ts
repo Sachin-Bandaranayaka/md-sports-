@@ -6,6 +6,7 @@ import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
 import { emitInvoiceCreated } from '@/lib/utils/websocket';
 import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
 import { measureAsync } from '@/lib/performance';
+import { cacheService, CACHE_CONFIG } from '@/lib/cache';
 
 const prisma = new PrismaClient();
 const CACHE_DURATION = 60; // 60 seconds
@@ -16,7 +17,7 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
     return measureAsync('invoices-api', async () => {
         try {
             // Validate token and permissions
-            const authResult = await validateTokenPermission(request, 'view_invoices');
+            const authResult = await validateTokenPermission(request, 'sales:view');
             if (!authResult.isValid) {
                 return NextResponse.json({ error: authResult.message }, { status: 401 });
             }
@@ -226,13 +227,15 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
     return measureAsync('create-invoice-api', async () => {
         try {
             // Validate token and permissions
-            const authResult = await validateTokenPermission(request, 'create_invoices');
+            const authResult = await validateTokenPermission(request, 'sales:manage');
             if (!authResult.isValid) {
                 return NextResponse.json({ error: authResult.message }, { status: 401 });
             }
 
             const invoiceData = await request.json();
-            const { sendSms, ...invoiceDetails } = invoiceData;
+            console.log('Invoice data received:', JSON.stringify(invoiceData, null, 2));
+            const { sendSms, invoiceNumber, ...invoiceDetails } = invoiceData;
+            console.log('Invoice details after destructuring:', JSON.stringify(invoiceDetails, null, 2));
 
             // Validate shop access for the target shop
             if (invoiceDetails.shopId) {
@@ -249,7 +252,7 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
                     async (tx) => {
                         const createdInvoice = await tx.invoice.create({
                             data: {
-                                invoiceNumber: invoiceDetails.invoiceNumber,
+                                invoiceNumber: invoiceNumber,
                                 customerId: invoiceDetails.customerId,
                                 total: 0, // Will be updated after items are processed
                                 status: 'Pending',
@@ -276,8 +279,8 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
                         }
 
                         if (invoiceDetails.items && Array.isArray(invoiceDetails.items)) {
-                            // Get product costs for profit calculation
-                            const productIds = invoiceDetails.items.map((item: any) => item.productId);
+                            // Get product costs for profit calculation - optimized with specific field selection
+                            const productIds = invoiceDetails.items.map((item: any) => parseInt(item.productId, 10));
                             const products = await tx.product.findMany({
                                 where: { id: { in: productIds } },
                                 select: { id: true, weightedAverageCost: true }
@@ -285,31 +288,38 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
 
                             const productCostMap = new Map(products.map(p => [p.id, p.weightedAverageCost || 0]));
 
-                            let calculatedTotalInvoiceAmount = 0; // Added for server-side calculation
-
-                            for (const item of invoiceDetails.items) {
-                                const costPrice = productCostMap.get(item.productId) || 0;
-                                const itemSellingTotal = item.quantity * item.price; // Renamed for clarity
-                                const totalItemCost = costPrice * item.quantity; // Renamed for clarity
-                                const itemProfit = itemSellingTotal - totalItemCost; // Renamed for clarity
-
-                                await tx.invoiceItem.create({
-                                    data: {
-                                        invoiceId: createdInvoice.id,
-                                        productId: item.productId,
-                                        quantity: item.quantity,
-                                        price: item.price,
-                                        total: itemSellingTotal,
-                                        costPrice: costPrice,
-                                        profit: itemProfit
-                                    }
-                                });
-                                calculatedTotalInvoiceAmount += itemSellingTotal; // Accumulate server-calculated total
-                            }
+                            let calculatedTotalInvoiceAmount = 0;
+                            
+                            // Batch create invoice items for better performance
+                            const invoiceItemsData = invoiceDetails.items.map((item: any) => {
+                                const productId = parseInt(item.productId, 10);
+                                const costPrice = productCostMap.get(productId) || 0;
+                                const itemSellingTotal = item.quantity * item.price;
+                                const totalItemCost = costPrice * item.quantity;
+                                const itemProfit = itemSellingTotal - totalItemCost;
+                                
+                                calculatedTotalInvoiceAmount += itemSellingTotal;
+                                
+                                return {
+                                    invoiceId: createdInvoice.id,
+                                    productId: productId,
+                                    quantity: item.quantity,
+                                    price: item.price,
+                                    total: itemSellingTotal,
+                                    costPrice: costPrice,
+                                    profit: itemProfit
+                                };
+                            });
+                            
+                            // Batch insert all invoice items
+                            await tx.invoiceItem.createMany({
+                                data: invoiceItemsData
+                            });
 
                             // Calculate and update total profit and profit margin
                             const totalProfit = invoiceDetails.items.reduce((sum: number, item: any) => {
-                                const costPrice = productCostMap.get(item.productId) || 0;
+                                const productId = parseInt(item.productId, 10);
+                                const costPrice = productCostMap.get(productId) || 0;
                                 const itemSellingTotal = item.quantity * item.price;
                                 const totalItemCost = costPrice * item.quantity;
                                 const itemProfit = itemSellingTotal - totalItemCost;
@@ -329,25 +339,48 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
                             });
                         }
 
-                        // Check and update inventory levels for the selected shop
+                        // Optimized inventory check and update for the selected shop
                         if (invoiceDetails.shopId && invoiceDetails.items && Array.isArray(invoiceDetails.items)) {
+                            // Batch fetch all inventory items for all products in one query
+                            const productIds = invoiceDetails.items.map((item: any) => parseInt(item.productId, 10));
+                            const allInventoryItems = await tx.inventoryItem.findMany({
+                                where: {
+                                    productId: { in: productIds },
+                                    shopId: invoiceDetails.shopId
+                                },
+                                orderBy: { updatedAt: 'asc' },
+                                select: { id: true, productId: true, quantity: true, updatedAt: true }
+                            });
+                            
+                            // Group inventory items by product ID
+                            const inventoryByProduct = new Map<number, typeof allInventoryItems>();
+                            allInventoryItems.forEach(item => {
+                                if (!inventoryByProduct.has(item.productId)) {
+                                    inventoryByProduct.set(item.productId, []);
+                                }
+                                inventoryByProduct.get(item.productId)!.push(item);
+                            });
+                            
+                            // Validate inventory availability for all items first
                             for (const item of invoiceDetails.items) {
-                                // Check inventory only for the selected shop
-                                const inventoryItems = await tx.inventoryItem.findMany({
-                                    where: {
-                                        productId: item.productId,
-                                        shopId: invoiceDetails.shopId // Only check inventory for the selected shop
-                                    },
-                                    orderBy: { updatedAt: 'asc' }
-                                });
-                                let remainingQuantity = item.quantity;
+                                const productId = parseInt(item.productId, 10);
+                                const inventoryItems = inventoryByProduct.get(productId) || [];
                                 if (inventoryItems.length === 0) {
-                                    throw new Error(`No inventory for product ID ${item.productId} in the selected shop`);
+                                    throw new Error(`No inventory for product ID ${productId} in the selected shop`);
                                 }
                                 const totalInventory = inventoryItems.reduce((sum, inv) => sum + inv.quantity, 0);
-                                if (totalInventory < remainingQuantity) {
-                                    throw new Error(`Insufficient inventory for product ID ${item.productId} in the selected shop. Available: ${totalInventory}, Required: ${item.quantity}`);
+                                if (totalInventory < item.quantity) {
+                                    throw new Error(`Insufficient inventory for product ID ${productId} in the selected shop. Available: ${totalInventory}, Required: ${item.quantity}`);
                                 }
+                            }
+                            
+                            // Process inventory updates using FIFO
+                            const inventoryUpdates: Array<{ id: number; quantity: number }> = [];
+                            
+                            for (const item of invoiceDetails.items) {
+                                const productId = parseInt(item.productId, 10);
+                                const inventoryItems = inventoryByProduct.get(productId) || [];
+                                let remainingQuantity = item.quantity;
 
                                 for (const inventoryItem of inventoryItems) {
                                     if (remainingQuantity <= 0) break;
@@ -356,13 +389,13 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
                                         const oldShopQuantity = inventoryItem.quantity;
                                         const newShopQuantity = inventoryItem.quantity - deductAmount;
 
-                                        await tx.inventoryItem.update({
-                                            where: { id: inventoryItem.id },
-                                            data: { quantity: newShopQuantity, updatedAt: new Date() }
+                                        inventoryUpdates.push({
+                                            id: inventoryItem.id,
+                                            quantity: newShopQuantity
                                         });
 
                                         inventoryUpdatesForEvent.push({
-                                            productId: item.productId,
+                                            productId: productId,
                                             shopId: inventoryItem.shopId,
                                             newQuantity: newShopQuantity,
                                             oldQuantity: oldShopQuantity
@@ -370,6 +403,18 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
                                         remainingQuantity -= deductAmount;
                                     }
                                 }
+                            }
+
+                            // Batch update inventory items
+                            if (inventoryUpdates.length > 0) {
+                                await Promise.all(
+                                    inventoryUpdates.map(update =>
+                                        tx.inventoryItem.update({
+                                            where: { id: update.id },
+                                            data: { quantity: update.quantity, updatedAt: new Date() }
+                                        })
+                                    )
+                                );
                             }
                         }
                         return tx.invoice.findUnique({

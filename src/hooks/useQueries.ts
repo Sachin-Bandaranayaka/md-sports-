@@ -55,6 +55,9 @@ export const useInventory = (filters?: any) => {
   });
 };
 
+// Alias for optimized version
+export const useOptimizedInventory = useInventory;
+
 export const useInventoryItem = (id: string) => {
   return useQuery({
     queryKey: queryKeys.inventoryItem(id),
@@ -101,6 +104,9 @@ export const useSuppliers = (filters?: any) => {
   });
 };
 
+// Optimized suppliers hook (alias for useSuppliers)
+export const useSuppliersOptimized = useSuppliers;
+
 // Customers Hooks
 export const useCustomers = (filters?: any) => {
   return useQuery({
@@ -133,6 +139,36 @@ export const usePurchaseInvoices = (filters?: any) => {
   });
 };
 
+// Optimized Purchase Invoices Hooks
+export const usePurchaseInvoicesOptimized = usePurchaseInvoices;
+export const usePurchaseInvoicesInfinite = (filters?: any) => {
+  return useInfiniteQuery({
+    queryKey: queryKeys.purchaseInvoicesList(filters),
+    queryFn: ({ pageParam = 1 }) => {
+      const params = new URLSearchParams();
+      params.append('page', pageParam.toString());
+      if (filters?.limit) params.append('limit', filters.limit.toString());
+      if (filters?.search) params.append('search', filters.search);
+      if (filters?.supplier) params.append('supplier', filters.supplier);
+      if (filters?.status) params.append('status', filters.status);
+
+      return fetchApi<PaginatedResponse<any>>(`/api/purchases?${params.toString()}`);
+    },
+    getNextPageParam: (lastPage) => {
+      return lastPage.hasNextPage ? lastPage.currentPage + 1 : undefined;
+    },
+    staleTime: 1000 * 60 * 2,
+  });
+};
+export const usePurchaseSearchSuggestions = (searchTerm: string) => {
+  return useQuery({
+    queryKey: ['purchaseSearchSuggestions', searchTerm],
+    queryFn: () => fetchApi<ApiResponse<string[]>>(`/api/purchases/search-suggestions?q=${searchTerm}`),
+    enabled: !!searchTerm && searchTerm.length > 2,
+    staleTime: 1000 * 60 * 5,
+  });
+};
+
 export const usePurchaseInvoice = (id: string) => {
   return useQuery({
     queryKey: queryKeys.purchaseInvoice(id),
@@ -158,6 +194,9 @@ export const useInvoices = (filters?: any) => {
     staleTime: 1000 * 60 * 2, // 2 minutes for invoices
   });
 };
+
+// Alias for optimized version
+export const useInvoicesOptimized = useInvoices;
 
 export const useInvoice = (id: string) => {
   return useQuery({

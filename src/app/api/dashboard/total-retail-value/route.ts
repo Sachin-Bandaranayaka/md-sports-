@@ -4,7 +4,7 @@ import { cacheService } from '@/lib/cache';
 import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
 import { validateTokenPermission } from '@/lib/auth';
 
-export async function fetchTotalRetailValueData(shopId?: string | null) {
+export async function fetchTotalRetailValueData(shopId?: string | null, periodDays?: number) {
     // Get inventory items with optional shop filtering
     const inventoryItems = await prisma.inventoryItem.findMany({
         where: shopId ? { shopId } : {}
@@ -74,8 +74,20 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
             return NextResponse.json({ error: authResult.message }, { status: 401 });
         }
 
-        // Check cache first with shop context
-        const cacheKey = `dashboard:total-retail-value:${context.isFiltered ? context.shopId : 'all'}`;
+        // Extract period parameter from URL
+        const { searchParams } = new URL(request.url);
+        const period = searchParams.get('period');
+        let periodDays: number | undefined;
+        
+        if (period) {
+            const parsedPeriod = parseInt(period);
+            if (parsedPeriod === 7 || parsedPeriod === 30) {
+                periodDays = parsedPeriod;
+            }
+        }
+
+        // Check cache first with shop context and period
+        const cacheKey = `dashboard:total-retail-value:${context.isFiltered ? context.shopId : 'all'}:${periodDays || 'all'}`;
         const cachedData = await cacheService.get(cacheKey);
 
         if (cachedData) {
@@ -92,9 +104,10 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
 
         console.log('🔄 Fetching fresh total retail value with shop context:', {
             shopId: context.shopId,
-            isFiltered: context.isFiltered
+            isFiltered: context.isFiltered,
+            periodDays
         });
-        const retailValueData = await fetchTotalRetailValueData(context.isFiltered ? context.shopId : null);
+        const retailValueData = await fetchTotalRetailValueData(context.isFiltered ? context.shopId : null, periodDays);
 
         // Add metadata to response
         const responseData = {

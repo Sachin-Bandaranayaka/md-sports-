@@ -53,13 +53,12 @@ async function validateShopAccess(req: NextRequest, targetShopId?: string | numb
             return true;
         }
 
-        // Check if user has admin permissions for cross-shop access
-        const hasAdminAccess = await validateTokenPermission(req, 'shop:manage') ||
-            await validateTokenPermission(req, 'admin:all');
-
-        if (hasAdminAccess) {
-            return true;
-        }
+        // For Edge Runtime compatibility, we'll skip permission checks in middleware
+        // and rely on API route-level permission validation instead
+        // This is a temporary fix to avoid Prisma Edge Runtime issues
+        
+        // Allow access for now - permission checks will happen in API routes
+        // TODO: Implement edge-compatible permission checking if needed
 
         // Check if user belongs to the target shop
         const targetShopIdNum = typeof targetShopId === 'string' ? parseInt(targetShopId) : targetShopId;

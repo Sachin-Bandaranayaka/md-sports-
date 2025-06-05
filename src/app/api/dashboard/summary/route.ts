@@ -5,7 +5,7 @@ import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
 import { validateTokenPermission } from '@/lib/auth';
 
 // Extracted function to fetch dashboard summary data
-export async function fetchSummaryData(shopId?: string | null) {
+export async function fetchSummaryData(shopId?: string | null, periodDays?: number, startDate?: Date, endDate?: Date) {
     // 1. Calculate Total Inventory Value using Prisma Raw Query
     console.time('calculateInventoryValueRaw');
     const totalValueResult = await safeQuery<Array<{ totalinventoryvalue: bigint | number | null }>>(
@@ -54,7 +54,7 @@ export async function fetchSummaryData(shopId?: string | null) {
     const transfersTrendData = getRandomTrend(false);
     const lowStockTrendData = getRandomTrend(false);
 
-    // 3. Count pending transfers with shop filtering
+    // 3. Count pending transfers with shop filtering and optional date filtering
     console.time('countPendingTransfers');
     const pendingTransfers = await safeQuery(
         () => {
@@ -64,6 +64,13 @@ export async function fetchSummaryData(shopId?: string | null) {
                     { fromShopId: shopId },
                     { toShopId: shopId }
                 ];
+            }
+            // Add date filtering if periodDays is provided
+            if (periodDays) {
+                const startDate = new Date();
+                startDate.setDate(startDate.getDate() - periodDays);
+                startDate.setHours(0, 0, 0, 0);
+                where.createdAt = { gte: startDate };
             }
             return prisma.inventoryTransfer.count({ where });
         },
@@ -147,13 +154,20 @@ export async function fetchSummaryData(shopId?: string | null) {
 
     const formattedValue = totalValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
-    // 6. Calculate Total Profit from Invoices with shop filtering
+    // 6. Calculate Total Profit from Invoices with shop filtering and optional date filtering
     console.time('calculateTotalProfit');
     const totalProfitResult = await safeQuery(
         () => {
             const where: any = {};
             if (shopId) {
                 where.shopId = shopId;
+            }
+            // Add date filtering if periodDays is provided
+            if (periodDays) {
+                const startDate = new Date();
+                startDate.setDate(startDate.getDate() - periodDays);
+                startDate.setHours(0, 0, 0, 0);
+                where.createdAt = { gte: startDate };
             }
             return prisma.invoice.aggregate({
                 where,
@@ -385,8 +399,20 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
             return NextResponse.json({ error: authResult.message }, { status: 401 });
         }
 
-        // Check cache first with shop context
-        const cacheKey = `dashboard:summary:${context.isFiltered ? context.shopId : 'all'}`;
+        // Extract period parameter from URL
+        const { searchParams } = new URL(request.url);
+        const period = searchParams.get('period');
+        let periodDays: number | undefined;
+        
+        if (period) {
+            const parsedPeriod = parseInt(period);
+            if (parsedPeriod === 7 || parsedPeriod === 30) {
+                periodDays = parsedPeriod;
+            }
+        }
+
+        // Check cache first with shop context and period
+        const cacheKey = `dashboard:summary:${context.isFiltered ? context.shopId : 'all'}:${periodDays || 'all'}`;
         const cachedData = await cacheService.get(cacheKey);
 
         if (cachedData) {
@@ -403,10 +429,11 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
 
         console.log('🔄 Fetching fresh summary data with shop context:', {
             shopId: context.shopId,
-            isFiltered: context.isFiltered
+            isFiltered: context.isFiltered,
+            periodDays
         });
         console.time('fetchSummaryDataOverall');
-        const summaryResult = await fetchSummaryData(context.isFiltered ? context.shopId : null);
+        const summaryResult = await fetchSummaryData(context.isFiltered ? context.shopId : null, periodDays);
         console.timeEnd('fetchSummaryDataOverall');
 
         // Add metadata to response

@@ -1,7 +1,10 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
+
+// Dynamic import for socket.io-client to avoid SSR issues
+// We'll import it only when needed in the createSocketConnection function
 
 interface SocketContextType {
   socket: Socket | null;
@@ -32,8 +35,24 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Function to create a new socket connection
-  const createSocketConnection = () => {
+  const createSocketConnection = async () => {
     console.log('Creating new WebSocket connection...');
+
+    // Dynamic import of socket.io-client
+    let io: any;
+    try {
+      const module = await import('socket.io-client');
+      io = module.io;
+    } catch (error) {
+      console.error('Failed to load socket.io-client:', error);
+      return null;
+    }
+
+    // Check if io is available
+    if (typeof io === 'undefined' || !io) {
+      console.error('socket.io-client is not available');
+      return null;
+    }
 
     // Clear any existing reconnect timer
     if (reconnectTimerRef.current) {
@@ -93,17 +112,20 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
     console.log(`Attempting to reconnect in ${delay}ms (attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts})...`);
 
-    reconnectTimerRef.current = setTimeout(() => {
+    reconnectTimerRef.current = setTimeout(async () => {
       console.log('Reconnecting now...');
       if (socket) {
         socket.close();
       }
-      createSocketConnection();
+      const newSocket = await createSocketConnection();
+      if (!newSocket) {
+        console.error('Failed to create socket during reconnection attempt');
+      }
     }, delay);
   };
 
   // Manual reconnect function that can be called by consumers
-  const reconnect = () => {
+  const reconnect = async () => {
     console.log('Manual reconnection requested');
     reconnectAttemptsRef.current = 0;
     reconnectDelayRef.current = 1000;
@@ -111,20 +133,36 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     if (socket) {
       socket.close();
     }
-    createSocketConnection();
+    const newSocket = await createSocketConnection();
+    if (!newSocket) {
+      console.error('Failed to reconnect socket');
+    }
   };
 
   useEffect(() => {
     // Ensure this runs only on the client
     if (typeof window !== 'undefined') {
-      const newSocket = createSocketConnection();
+      let pingInterval: NodeJS.Timeout;
+      let newSocket: Socket | null = null;
 
-      // Set up a ping interval to keep the connection alive
-      const pingInterval = setInterval(() => {
-        if (newSocket && isConnected) {
-          newSocket.emit('ping', { timestamp: Date.now() });
+      const initializeSocket = async () => {
+        newSocket = await createSocketConnection();
+
+        // If socket creation failed, don't set up intervals
+        if (!newSocket) {
+          console.error('Failed to create socket connection');
+          return;
         }
-      }, 30000); // Ping every 30 seconds
+
+        // Set up a ping interval to keep the connection alive
+        pingInterval = setInterval(() => {
+          if (newSocket && isConnected) {
+            newSocket.emit('ping', { timestamp: Date.now() });
+          }
+        }, 30000); // Ping every 30 seconds
+      };
+
+      initializeSocket();
 
       // Set up a visibility change listener to reconnect when tab becomes visible again
       const handleVisibilityChange = () => {
@@ -160,4 +198,4 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       {children}
     </SocketContext.Provider>
   );
-}; 
+};

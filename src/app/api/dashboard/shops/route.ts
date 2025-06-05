@@ -99,7 +99,7 @@ export async function fetchShopsDataFiltered(startDate?: string | null, endDate?
     };
 }
 
-export async function fetchShopsData(shopId?: string | null) {
+export async function fetchShopsData(shopId?: string | null, periodDays?: number, startDate?: Date, endDate?: Date) {
     // Get current month's start and end dates
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);

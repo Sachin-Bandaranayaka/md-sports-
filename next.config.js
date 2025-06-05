@@ -24,6 +24,7 @@ const nextConfig = {
         path: false,
         crypto: false,
         os: false,
+        dns: false,
       };
       
       // Add plugins for polyfills

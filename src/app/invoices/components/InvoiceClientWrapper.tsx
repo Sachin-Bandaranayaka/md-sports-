@@ -23,6 +23,8 @@ interface Invoice {
     date?: string; // UI formatted date
     dueDate?: string; // UI formatted due date
     itemCount?: number; // Number of items in the invoice
+    totalPaid?: number; // Total amount paid
+    dueAmount?: number; // Amount still due
 }
 
 // Status badge colors
@@ -32,6 +34,8 @@ const getStatusBadgeClass = (status: string) => {
             return 'bg-green-100 text-green-800';
         case 'pending':
             return 'bg-yellow-100 text-yellow-800';
+        case 'partial':
+            return 'bg-blue-100 text-blue-800';
         case 'overdue':
             return 'bg-red-100 text-red-800';
         case 'cancelled':
@@ -71,6 +75,7 @@ export default function InvoiceClientWrapper({
     const [error, setError] = useState<string | null>(null);
     const [customers, setCustomers] = useState<{ id: number; name: string }[]>([]);
     const [products, setProducts] = useState<{ id: number; name: string; price: number }[]>([]);
+    const [shops, setShops] = useState<{ id: string; name: string; location: string }[]>([]);
 
     // Modal states
     const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
@@ -106,32 +111,47 @@ export default function InvoiceClientWrapper({
         }
     }, [sortBy]);
 
-    // Fetch customers and products when needed
+    // Fetch customers, products, and shops on component mount for better performance
     useEffect(() => {
-        if (isEditModalOpen || isCreateModalOpen) {
-            const fetchCustomersAndProducts = async () => {
-                try {
-                    // Fetch customers
-                    const customersResponse = await fetch('/api/customers');
-                    if (customersResponse.ok) {
-                        const customersData = await customersResponse.json();
-                        setCustomers(customersData);
-                    }
+        const fetchCustomersProductsAndShops = async () => {
+            try {
+                // Fetch customers
+                const customersResponse = await fetch('/api/customers');
+                if (customersResponse.ok) {
+                    const customersData = await customersResponse.json();
+                    setCustomers(customersData);
+                }
 
-                    // Fetch products
-                    const productsResponse = await fetch('/api/products');
-                    if (productsResponse.ok) {
-                        const productsData = await productsResponse.json();
+                // Fetch products
+                const productsResponse = await fetch('/api/products');
+                if (productsResponse.ok) {
+                    const productsData = await productsResponse.json();
+                    // Handle the API response structure
+                    if (productsData.success && productsData.data) {
+                        setProducts(productsData.data);
+                    } else {
                         setProducts(productsData);
                     }
-                } catch (err) {
-                    console.error('Error fetching customers or products:', err);
                 }
-            };
 
-            fetchCustomersAndProducts();
-        }
-    }, [isEditModalOpen, isCreateModalOpen]);
+                // Fetch shops
+                const shopsResponse = await fetch('/api/shops');
+                if (shopsResponse.ok) {
+                    const shopsData = await shopsResponse.json();
+                    // Handle the API response structure
+                    if (shopsData.success && shopsData.data) {
+                        setShops(shopsData.data);
+                    } else {
+                        setShops(shopsData);
+                    }
+                }
+            } catch (err) {
+                console.error('Error fetching customers, products, or shops:', err);
+            }
+        };
+
+        fetchCustomersProductsAndShops();
+    }, []); // Empty dependency array to run only on mount
 
     const handleFilterChange = () => {
         const params = new URLSearchParams(searchParams);
@@ -507,16 +527,23 @@ export default function InvoiceClientWrapper({
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-semibold">Rs. {(invoice.totalProfit || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">{invoice.itemCount}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(invoice.status)}`}>
-                                            {invoice.status}
-                                        </span>
+                                        <div className="flex flex-col space-y-1">
+                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(invoice.status)}`}>
+                                                {invoice.status}
+                                            </span>
+                                            {invoice.status.toLowerCase() === 'partial' && invoice.dueAmount !== undefined && (
+                                                <span className="text-xs text-gray-600">
+                                                    Due: Rs. {invoice.dueAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </span>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div className="flex items-center space-x-1">
                                             <Button variant="ghost" size="icon" onClick={() => handleViewInvoice(invoice.id)} title="View Invoice" disabled={loading}>
                                                 {loading ? <Loader2 className="animate-spin h-4 w-4" /> : <Eye size={16} className="text-blue-600" />}
                                             </Button>
-                                            {invoice.status.toLowerCase() === 'pending' && (
+                                            {(invoice.status.toLowerCase() === 'pending' || invoice.status.toLowerCase() === 'partial') && (
                                                 <Button variant="ghost" size="icon" onClick={() => handleRecordPayment(invoice.id)} title="Record Payment" disabled={loading}>
                                                     {loading ? <Loader2 className="animate-spin h-4 w-4" /> : <CheckCircle size={16} className="text-green-600" />}
                                                 </Button>
@@ -576,6 +603,7 @@ export default function InvoiceClientWrapper({
                 onSave={handleCreateSuccess}
                 customers={customers}
                 products={products}
+                shops={shops}
                 isLoading={loading}
             />
 
@@ -585,6 +613,7 @@ export default function InvoiceClientWrapper({
                 onSave={handleEditSuccess}
                 customers={customers}
                 products={products}
+                shops={shops}
                 initialData={selectedInvoice}
                 isLoading={loading}
             />

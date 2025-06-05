@@ -3,7 +3,7 @@
 import React from 'react';
 import Modal from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
-import { Eye, Download, Print, Edit, X } from 'lucide-react';
+import { Eye, Download, Printer, Edit, X } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
 
 interface Customer {
@@ -120,7 +120,7 @@ const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({
                 )}
                 {onPrint && (
                     <Button variant="outline" size="sm" onClick={onPrint}>
-                        <Print className="w-4 h-4 mr-2" />
+                        <Printer className="w-4 h-4 mr-2" />
                         Print
                     </Button>
                 )}

@@ -134,8 +134,9 @@ export async function PUT(
                     }
 
                     for (const item of invoiceData.items) {
-                        const existingQuantity = newItemsMap.get(item.productId) || 0;
-                        newItemsMap.set(item.productId, existingQuantity + item.quantity);
+                        const productId = parseInt(item.productId.toString());
+                        const existingQuantity = newItemsMap.get(productId) || 0;
+                        newItemsMap.set(productId, existingQuantity + item.quantity);
                     }
 
                     const allProductIds = new Set([
@@ -161,7 +162,7 @@ export async function PUT(
                             if (quantityChange > 0) { // Deduct (more items sold or added)
                                 if (affectedShopId) {
                                     const availableInventory = await tx.inventoryItem.findMany({
-                                        where: { productId: productId as number, shopId: affectedShopId }
+                                        where: { productId: parseInt(productId.toString()), shopId: affectedShopId }
                                     });
                                     const totalAvailable = availableInventory.reduce((sum, item) => sum + item.quantity, 0);
                                     if (totalAvailable < quantityChange) {
@@ -169,24 +170,24 @@ export async function PUT(
                                     }
                                     // This should ideally be a more robust way to pick which inventory item to decrement
                                     await tx.inventoryItem.updateMany({
-                                        where: { productId: productId as number, shopId: affectedShopId, quantity: { gte: quantityChange } }, // Simplistic update
+                                        where: { productId: parseInt(productId.toString()), shopId: affectedShopId, quantity: { gte: quantityChange } }, // Simplistic update
                                         data: { quantity: { decrement: quantityChange } }
                                     });
                                 } else {
                                     await tx.inventoryItem.updateMany({
-                                        where: { productId: productId as number, quantity: { gte: quantityChange } }, // Simplistic update
+                                        where: { productId: parseInt(productId.toString()), quantity: { gte: quantityChange } }, // Simplistic update
                                         data: { quantity: { decrement: quantityChange } }
                                     });
                                 }
                             } else { // Add back (fewer items sold or items removed)
                                 if (affectedShopId) {
                                     await tx.inventoryItem.updateMany({
-                                        where: { productId: productId as number, shopId: affectedShopId },
+                                        where: { productId: parseInt(productId.toString()), shopId: affectedShopId },
                                         data: { quantity: { increment: Math.abs(quantityChange) } }
                                     });
                                 } else {
                                     await tx.inventoryItem.updateMany({
-                                        where: { productId: productId as number },
+                                        where: { productId: parseInt(productId.toString()) },
                                         data: { quantity: { increment: Math.abs(quantityChange) } }
                                     });
                                 }
@@ -202,7 +203,7 @@ export async function PUT(
                     let newTotalInvoiceProfit = 0;
 
                     if (invoiceData.items && Array.isArray(invoiceData.items) && invoiceData.items.length > 0) {
-                        const productIdsForNewItems = invoiceData.items.map((item: any) => item.productId);
+                        const productIdsForNewItems = invoiceData.items.map((item: any) => parseInt(item.productId.toString()));
                         const productsData = await tx.product.findMany({
                             where: { id: { in: productIdsForNewItems } },
                             select: { id: true, weightedAverageCost: true }
@@ -210,7 +211,8 @@ export async function PUT(
                         const productCostMap = new Map(productsData.map(p => [p.id, p.weightedAverageCost || 0]));
 
                         for (const item of invoiceData.items) {
-                            const costPrice = productCostMap.get(item.productId) || 0;
+                            const productId = parseInt(item.productId.toString());
+                            const costPrice = productCostMap.get(productId) || 0;
                             const itemSellingTotal = item.quantity * item.price;
                             const totalItemCost = costPrice * item.quantity;
                             const itemProfit = itemSellingTotal - totalItemCost;
@@ -218,7 +220,7 @@ export async function PUT(
                             await tx.invoiceItem.create({
                                 data: {
                                     invoiceId: invoiceId,
-                                    productId: item.productId,
+                                    productId: productId,
                                     quantity: item.quantity,
                                     price: item.price,
                                     total: itemSellingTotal,
