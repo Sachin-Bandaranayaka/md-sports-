@@ -31,8 +31,15 @@ export async function GET(req: NextRequest) {
 
         // Generate cache key based on request parameters
         const { searchParams } = new URL(req.url);
-        const cacheKey = transferCacheService.generateCacheKey('list', {
-            searchParams: searchParams.toString()
+        const cacheKey = transferCacheService.generateTransferCacheKey('transfers:list', {
+            page: parseInt(searchParams.get('page') || '1'),
+            limit: parseInt(searchParams.get('limit') || '10'),
+            status: searchParams.get('status') || undefined,
+            sourceShopId: searchParams.get('sourceShopId') ? parseInt(searchParams.get('sourceShopId')!) : undefined,
+            destinationShopId: searchParams.get('destinationShopId') ? parseInt(searchParams.get('destinationShopId')!) : undefined,
+            search: searchParams.get('search') || undefined,
+            startDate: searchParams.get('startDate') || undefined,
+            endDate: searchParams.get('endDate') || undefined
         });
 
         // Try to get from cache first
@@ -44,7 +51,6 @@ export async function GET(req: NextRequest) {
 
         // Use request deduplication for identical requests
         const result = await deduplicateRequest(
-            cacheKey,
             async () => {
                 const transfers = await safeQuery(
                     async () => {
@@ -106,7 +112,9 @@ export async function GET(req: NextRequest) {
                     success: true,
                     data: transfers
                 };
-            }
+            },
+            cacheKey,
+            'GET'
         );
 
         // Cache the result

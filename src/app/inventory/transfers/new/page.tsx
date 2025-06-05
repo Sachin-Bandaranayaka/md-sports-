@@ -40,8 +40,8 @@ export default function CreateTransferPage() {
     const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
 
     // Form state
-    const [sourceShopId, setSourceShopId] = useState<number | ''>('');
-    const [destinationShopId, setDestinationShopId] = useState<number | ''>('');
+    const [sourceShopId, setSourceShopId] = useState<string>('');
+    const [destinationShopId, setDestinationShopId] = useState<string>('');
     const [transferItems, setTransferItems] = useState<TransferItem[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -87,7 +87,9 @@ export default function CreateTransferPage() {
 
     // When source shop changes, fetch inventory for that shop
     useEffect(() => {
-        if (!sourceShopId) {
+        console.log('useEffect triggered - sourceShopId:', sourceShopId, 'type:', typeof sourceShopId, 'products length:', products.length);
+        if (!sourceShopId || sourceShopId === '') {
+            console.log('No sourceShopId, clearing products');
             setFilteredProducts([]);
             setSelectedProducts([]);
             return;
@@ -345,7 +347,11 @@ export default function CreateTransferPage() {
                                 <select
                                     className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                                     value={sourceShopId}
-                                    onChange={(e) => setSourceShopId(Number(e.target.value) || '')}
+                                    onChange={(e) => {
+                                        console.log('Source shop onChange:', e.target.value, 'type:', typeof e.target.value);
+                                        setSourceShopId(e.target.value);
+                                        console.log('Setting sourceShopId to:', e.target.value);
+                                    }}
                                     disabled={submitting}
                                     required
                                 >
@@ -364,7 +370,7 @@ export default function CreateTransferPage() {
                             <div className="flex flex-col items-center justify-center">
                                 <div className="w-16 h-16 flex items-center justify-center rounded-full bg-blue-50 p-3 relative overflow-hidden">
                                     <ArrowLeftRight className="h-6 w-6 text-primary" />
-                                    {(sourceShopId && destinationShopId) && (
+                                    {(sourceShopId && sourceShopId !== '' && destinationShopId && destinationShopId !== '') && (
                                         <div className="absolute inset-0 bg-blue-100 opacity-50 animate-pulse"></div>
                                     )}
                                 </div>
@@ -378,7 +384,11 @@ export default function CreateTransferPage() {
                                 <select
                                     className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                                     value={destinationShopId}
-                                    onChange={(e) => setDestinationShopId(Number(e.target.value) || '')}
+                                    onChange={(e) => {
+                                        console.log('Destination shop onChange:', e.target.value, 'type:', typeof e.target.value);
+                                        setDestinationShopId(e.target.value);
+                                        console.log('Setting destinationShopId to:', e.target.value);
+                                    }}
                                     disabled={submitting}
                                     required
                                 >
@@ -401,7 +411,7 @@ export default function CreateTransferPage() {
                     </div>
 
                     {/* Available products (only shown when source shop is selected) */}
-                    {sourceShopId && (
+                    {sourceShopId && sourceShopId !== '' && (
                         <div className="bg-white p-6 rounded-lg shadow-sm">
                             <div className="flex items-center mb-4">
                                 <div className="p-2 bg-blue-50 rounded-md mr-3">
