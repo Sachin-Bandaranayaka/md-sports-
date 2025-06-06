@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { getShopId } from '@/lib/utils/middleware';
 import { cacheService } from '@/lib/cache';
 import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
-import { safeQuery } from '@/lib/prisma';
+import { safeQuery, prisma } from '@/lib/prisma';
 import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
 import { validateTokenPermission } from '@/lib/auth';
 import { emitInventoryItemCreate } from '@/lib/utils/websocket';

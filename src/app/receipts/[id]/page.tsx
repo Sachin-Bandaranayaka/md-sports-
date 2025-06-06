@@ -1,58 +1,94 @@
-import { notFound } from 'next/navigation';
-import { prisma } from '@/lib/prisma';
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import ReceiptClientWrapper from '../components/ReceiptClientWrapper';
-import { Metadata } from 'next';
 
-export const metadata: Metadata = {
-    title: 'Receipt Details | MS Sports',
-    description: 'View and edit receipt details'
-};
-
-async function getReceiptById(id: number) {
-    try {
-        const receipt = await prisma.receipt.findUnique({
-            where: { id },
-            include: {
-                payment: {
-                    include: {
-                        customer: true,
-                        invoice: {
-                            include: {
-                                items: {
-                                    include: {
-                                        product: true
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                confirmedByUser: true
-            }
-        });
-
-        return receipt;
-    } catch (error) {
-        console.error('Error fetching receipt:', error);
-        return null;
-    }
+interface Receipt {
+    id: number;
+    payment: {
+        customer: any;
+        invoice: {
+            items: {
+                product: any;
+            }[];
+        };
+    };
+    confirmedByUser: any;
 }
 
-export default async function ReceiptPage({
+export default function ReceiptPage({
     params
 }: {
     params: { id: string };
 }) {
+    const [receipt, setReceipt] = useState<Receipt | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const router = useRouter();
     const id = parseInt(params.id);
 
-    if (isNaN(id)) {
-        return notFound();
+    useEffect(() => {
+        if (isNaN(id)) {
+            router.push('/404');
+            return;
+        }
+
+        const fetchReceipt = async () => {
+            try {
+                setLoading(true);
+                const response = await fetch(`/api/receipts/${id}`);
+                
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        router.push('/404');
+                        return;
+                    }
+                    throw new Error(`Failed to fetch receipt: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                setReceipt(data);
+            } catch (err) {
+                setError(err instanceof Error ? err.message : 'Failed to load receipt');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchReceipt();
+    }, [id, router]);
+
+    if (loading) {
+        return (
+            <div className="container mx-auto py-8 px-4">
+                <div className="animate-pulse">
+                    <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+                    <div className="h-64 bg-gray-200 rounded"></div>
+                </div>
+            </div>
+        );
     }
 
-    const receipt = await getReceiptById(id);
+    if (error) {
+        return (
+            <div className="container mx-auto py-8 px-4">
+                <div className="text-center">
+                    <h1 className="text-2xl font-bold text-red-600 mb-4">Error</h1>
+                    <p className="text-gray-600 mb-4">{error}</p>
+                    <button 
+                        onClick={() => window.location.reload()}
+                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                    >
+                        Try Again
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     if (!receipt) {
-        return notFound();
+        return null;
     }
 
     return (
@@ -60,4 +96,4 @@ export default async function ReceiptPage({
             <ReceiptClientWrapper receipt={receipt} />
         </div>
     );
-} 
+}

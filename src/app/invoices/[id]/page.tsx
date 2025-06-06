@@ -324,8 +324,8 @@ export default function InvoiceDetail() {
     return (
         <MainLayout>
             <div className="max-w-5xl mx-auto py-6">
-                {/* Action Bar */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                {/* Action Bar - Compact version */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 print:hidden">
                     <div className="flex items-center">
                         <Button
                             variant="outline"
@@ -336,7 +336,7 @@ export default function InvoiceDetail() {
                             <ArrowLeft className="w-4 h-4 mr-2" />
                             Back
                         </Button>
-                        <h1 className="text-2xl font-bold text-gray-900">Invoice #{invoice.invoiceNumber}</h1>
+                        <h1 className="text-xl font-semibold text-gray-900">Invoice #{invoice.invoiceNumber}</h1>
                     </div>
 
                     <div className="flex flex-wrap gap-2">
@@ -376,6 +376,16 @@ export default function InvoiceDetail() {
                             >
                                 <Receipt className="w-4 h-4 mr-2" />
                                 Confirm Receipt
+                            </Button>
+                        )}
+
+                        {invoice.status.toLowerCase() !== 'paid' && (
+                            <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={() => router.push(`/payments/new?invoiceId=${invoice.id}`)}
+                            >
+                                Record Payment
                             </Button>
                         )}
 
@@ -420,7 +430,7 @@ export default function InvoiceDetail() {
 
                 {/* SMS Status Message */}
                 {smsStatus && (
-                    <div className={`mb-4 p-3 rounded-md ${smsStatus.success ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>
+                    <div className={`mb-4 p-3 rounded-md print:hidden ${smsStatus.success ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>
                         <p className="text-sm flex items-center">
                             {smsStatus.success ? (
                                 <CheckCircle className="w-4 h-4 mr-2" />
@@ -432,57 +442,8 @@ export default function InvoiceDetail() {
                     </div>
                 )}
 
-                {/* Status and Payment */}
-                <div className="bg-tertiary p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div className="flex flex-col gap-1">
-                            <span className="text-sm text-gray-900">Status</span>
-                            <StatusBadge status={invoice.status} />
-                        </div>
-
-                        <div className="flex flex-col gap-1">
-                            <span className="text-sm text-gray-900">Date</span>
-                            <span className="font-medium text-black">{formatDate(invoice.createdAt)}</span>
-                        </div>
-
-                        <div className="flex flex-col gap-1">
-                            <span className="text-sm text-gray-900">Due Date</span>
-                            <span className="font-medium text-black">{invoice.paymentMethod === 'Cash' ? 'N/A' : formatDate(dueDate.toISOString())}</span>
-                        </div>
-
-                        <div className="flex flex-col gap-1">
-                            <span className="text-sm text-gray-900">Amount</span>
-                            <span className="font-medium text-black">{formatCurrency(invoice.total)}</span>
-                        </div>
-
-                        <div className="flex flex-col gap-1">
-                            <span className="text-sm text-gray-900">Paid</span>
-                            <span className="font-medium text-black">{formatCurrency(paidAmount)}</span>
-                        </div>
-
-                        <div className="flex flex-col gap-1">
-                            <span className="text-sm text-gray-900">Balance</span>
-                            <span className={`font-medium ${remainingBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                {formatCurrency(remainingBalance)}
-                            </span>
-                        </div>
-
-                        {invoice.status !== 'Paid' && (
-                            <div>
-                                <Button
-                                    variant="primary"
-                                    size="sm"
-                                    onClick={() => router.push(`/payments/new?invoiceId=${invoice.id}`)}
-                                >
-                                    Record Payment
-                                </Button>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Printable Invoice */}
-                <div ref={printRef}>
+                {/* Invoice Template - Main Content */}
+                <div ref={printRef} className="bg-white">
                     <InvoiceTemplate invoice={invoice} />
                 </div>
             </div>

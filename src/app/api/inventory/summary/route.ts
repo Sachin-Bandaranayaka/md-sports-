@@ -15,9 +15,9 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'No token provided' }, { status: 401 });
       }
 
-      const decoded = verifyToken(token);
+      const decoded = await verifyToken(token);
       if (!decoded) {
-        return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+        return NextResponse.json({ error: 'Invalid token: signature verification failed' }, { status: 401 });
       }
 
       const { searchParams } = new URL(request.url);

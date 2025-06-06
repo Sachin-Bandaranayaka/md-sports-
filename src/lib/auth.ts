@@ -6,6 +6,31 @@ import prisma from '@/lib/prisma';
 const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-key-for-development';
 const secretKey = new TextEncoder().encode(JWT_SECRET);
 
+// Export authOptions for NextAuth
+export const authOptions = {
+  secret: JWT_SECRET,
+  session: {
+    strategy: 'jwt' as const,
+    maxAge: 24 * 60 * 60, // 24 hours
+  },
+  callbacks: {
+    async jwt({ token, user }: { token: any; user?: any }) {
+      if (user) {
+        token.id = user.id;
+        token.permissions = user.permissions;
+      }
+      return token;
+    },
+    async session({ session, token }: { session: any; token: any }) {
+      if (token && session.user) {
+        session.user.id = token.id;
+        session.user.permissions = token.permissions;
+      }
+      return session;
+    }
+  }
+};
+
 /**
  * Verify a JWT token
  */
@@ -138,7 +163,7 @@ export const getUserIdFromToken = async (req: NextRequest): Promise<number | nul
 /**
  * Get shop ID from token
  */
-export const getShopIdFromToken = async (req: NextRequest): Promise<number | null> => {
+export const getShopIdFromToken = async (req: NextRequest): Promise<string | null> => {
     const token = extractToken(req);
 
     if (!token) {
@@ -156,6 +181,6 @@ export const getShopIdFromToken = async (req: NextRequest): Promise<number | nul
         return null;
     }
 
-    // Extract shop ID from token 
-    return 'shopId' in payload ? Number(payload.shopId) : null;
-}; 
+    // Extract shop ID from token as string to match database schema
+    return 'shopId' in payload ? String(payload.shopId) : null;
+};

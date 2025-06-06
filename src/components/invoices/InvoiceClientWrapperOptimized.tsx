@@ -118,7 +118,7 @@ const InvoiceRow = memo(({ index, style, data }: { index: number; style: any; da
                     >
                         <Edit className="h-4 w-4" />
                     </Button>
-                    {invoice.status !== 'paid' && (
+                    {invoice.status.toLowerCase() !== 'paid' && (
                         <Button
                             variant="outline"
                             size="sm"

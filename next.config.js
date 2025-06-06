@@ -2,6 +2,25 @@
 const webpack = require('webpack');
 
 const nextConfig = {
+  // Disable static export due to server-side dependencies
+  // output: 'export',
+  // trailingSlash: true,
+  // skipTrailingSlashRedirect: true,
+  
+  // Disable static generation and export
+  output: 'standalone',
+  
+  // Disable static generation for dynamic pages
+  generateBuildId: async () => {
+    return 'build-' + Date.now()
+  },
+  
+  // Disable static optimization
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'recharts', 'framer-motion'],
+    forceSwcTransforms: true,
+  },
+  
   webpack: (config, { isServer }) => {
     // Fixes npm packages that depend on `pg` module and axios compatibility
     if (!isServer) {
@@ -52,10 +71,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   
-  // Enable performance optimizations
-  experimental: {
-    optimizePackageImports: ['lucide-react', 'recharts', 'framer-motion'],
-  },
+
   
   // Enable image optimization
   images: {
@@ -65,30 +81,7 @@ const nextConfig = {
   },
   
   // SWC minification is enabled by default in Next.js 15
-  
-  // Add caching-related headers
-  async headers() {
-    return [
-      {
-        source: '/_next/static/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-      {
-        source: '/images/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=86400, must-revalidate',
-          },
-        ],
-      },
-    ];
-  },
+  // Note: headers() is not compatible with static export
 };
 
 module.exports = nextConfig;

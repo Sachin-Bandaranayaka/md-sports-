@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/utils/middleware';
 import { prisma, safeQuery } from '@/lib/prisma';
-import jwt from 'jsonwebtoken';
+import { verifyToken } from '@/lib/auth';
 import { transferCacheService } from '@/lib/transferCache';
 import { trackTransferOperation } from '@/lib/transferPerformanceMonitor';
 import { deduplicateRequest } from '@/lib/request-deduplication';
@@ -137,25 +137,26 @@ export async function GET(req: NextRequest) {
 
 // POST: Create a new inventory transfer
 export async function POST(req: NextRequest) {
-    const operation = trackTransferOperation('create');
-
     console.log('POST /api/inventory/transfers - Checking permission: inventory:transfer');
     // Check for inventory:transfer permission
     const permissionError = await requirePermission('inventory:transfer')(req);
     if (permissionError) {
         console.error('Permission denied for inventory:transfer:', permissionError.status);
-        operation.end(false, 'unauthorized');
         return permissionError;
     }
 
+    // Create operation with metadata first
+    let operation: any;
+    
     try {
         const body = await req.json();
         const { sourceShopId, destinationShopId, items } = body;
 
-        operation.timer.metadata = {
+        const operationMetadata = {
             itemCount: items?.length || 0,
             shopCount: 2 // source + destination
         };
+        operation = trackTransferOperation('create', operationMetadata);
 
         // Get user ID from authorization token
         const authHeader = req.headers.get('authorization');
@@ -168,13 +169,13 @@ export async function POST(req: NextRequest) {
         }
 
         const token = authHeader.split(' ')[1];
-        const decodedToken = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+        const decodedToken = await verifyToken(token);
 
-        if (typeof decodedToken !== 'object' || !decodedToken.sub) {
+        if (!decodedToken || !decodedToken.sub) {
             operation.end(false, 'unauthorized');
             return NextResponse.json({
                 success: false,
-                message: 'Invalid token'
+                message: 'Invalid token: signature verification failed'
             }, { status: 401 });
         }
 
@@ -198,8 +199,8 @@ export async function POST(req: NextRequest) {
                         // Create the transfer record
                         const newTransfer = await tx.inventoryTransfer.create({
                             data: {
-                                fromShopId: parseInt(sourceShopId),
-                                toShopId: parseInt(destinationShopId),
+                                fromShopId: sourceShopId,
+                                toShopId: destinationShopId,
                                 fromUserId: userId,
                                 toUserId: userId, // Using the same user for both as we don't have separate users in the UI yet
                                 status: 'pending',
@@ -228,11 +229,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Invalidate relevant caches
-        await Promise.all([
-            transferCacheService.invalidateShopTransfers(sourceShopId),
-            transferCacheService.invalidateShopTransfers(destinationShopId),
-            transferCacheService.invalidateUserTransfers(userId)
-        ]);
+        await transferCacheService.invalidateTransferCache(result.id, [sourceShopId, destinationShopId]);
 
         console.log('Transfer created successfully with ID:', result.id);
         operation.end(true);
@@ -245,7 +242,9 @@ export async function POST(req: NextRequest) {
         }, { status: 201 });
     } catch (error) {
         console.error('Error creating transfer:', error);
-        operation.end(false, 'creation_error');
+        if (operation) {
+            operation.end(false, 'creation_error');
+        }
         return NextResponse.json({
             success: false,
             message: 'Error creating transfer',

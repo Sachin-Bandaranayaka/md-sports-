@@ -136,8 +136,8 @@ async function getStatistics(shopId?: string) {
             try {
                 const result = await prisma.$queryRaw`
                     SELECT 
-                        COALESCE(SUM(CASE WHEN status != 'paid' THEN total ELSE 0 END), 0) as total_outstanding,
-                        COALESCE(SUM(CASE WHEN status = 'paid' AND DATE_TRUNC('month', "createdAt") = DATE_TRUNC('month', CURRENT_DATE) THEN total ELSE 0 END), 0) as paid_this_month,
+                        COALESCE(SUM(CASE WHEN LOWER(status) != 'paid' THEN total ELSE 0 END), 0) as total_outstanding,
+                        COALESCE(SUM(CASE WHEN LOWER(status) = 'paid' AND DATE_TRUNC('month', "createdAt") = DATE_TRUNC('month', CURRENT_DATE) THEN total ELSE 0 END), 0) as paid_this_month,
                         COUNT(CASE WHEN status = 'overdue' THEN 1 END) as overdue_count,
                         COALESCE(SUM(CASE WHEN "paymentMethod" = 'credit' THEN total ELSE 0 END), 0) as total_credit_sales,
                         COALESCE(SUM(CASE WHEN "paymentMethod" != 'credit' THEN total ELSE 0 END), 0) as total_non_credit_sales
@@ -159,13 +159,13 @@ async function getStatistics(shopId?: string) {
                 // Fallback to individual queries
                 const [totalOutstanding, paidThisMonth, overdueCount, creditSales, nonCreditSales] = await Promise.all([
                     prisma.invoice.aggregate({
-                        where: { ...whereClause, status: { not: 'paid' } },
+                        where: { ...whereClause, status: { not: 'Paid' } },
                         _sum: { total: true }
                     }),
                     prisma.invoice.aggregate({
                         where: {
                             ...whereClause,
-                            status: 'paid',
+                            status: 'Paid',
                             createdAt: {
                                 gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
                             }

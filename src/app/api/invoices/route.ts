@@ -111,7 +111,17 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
                             shop: {
                                 select: {
                                     id: true,
-                                    name: true
+                                    name: true,
+                                    location: true,
+                                    contact_person: true,
+                                    phone: true,
+                                    email: true,
+                                    address_line1: true,
+                                    address_line2: true,
+                                    city: true,
+                                    state: true,
+                                    postal_code: true,
+                                    country: true
                                 }
                             },
                             _count: {
@@ -236,13 +246,129 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
             console.log('Invoice data received:', JSON.stringify(invoiceData, null, 2));
             const { sendSms, invoiceNumber, ...invoiceDetails } = invoiceData;
             console.log('Invoice details after destructuring:', JSON.stringify(invoiceDetails, null, 2));
+            console.log('Invoice number from request:', invoiceNumber);
+            
+            // Server-side validation to prevent empty invoices
+            if (!invoiceDetails.items || !Array.isArray(invoiceDetails.items) || invoiceDetails.items.length === 0) {
+                return NextResponse.json(
+                    {
+                        success: false,
+                        message: 'Invoice must contain at least one item',
+                        error: 'No items provided'
+                    },
+                    { status: 400 }
+                );
+            }
 
-            // Validate shop access for the target shop
+            // Validate that all items have required fields
+            for (let i = 0; i < invoiceDetails.items.length; i++) {
+                const item = invoiceDetails.items[i];
+                console.log(`Validating item ${i}:`, {
+                    productId: item.productId,
+                    productIdType: typeof item.productId,
+                    quantity: item.quantity,
+                    quantityType: typeof item.quantity,
+                    price: item.price,
+                    priceType: typeof item.price
+                });
+                
+                if (!item.productId || !item.quantity || item.quantity <= 0) {
+                    console.log(`Item validation failed for item ${i}:`, {
+                        hasProductId: !!item.productId,
+                        hasQuantity: !!item.quantity,
+                        quantityValue: item.quantity,
+                        quantityCheck: item.quantity <= 0
+                    });
+                    return NextResponse.json(
+                        {
+                            success: false,
+                            message: `Item ${i + 1}: All items must have valid productId and quantity greater than 0`,
+                            error: 'Invalid item data',
+                            itemDetails: {
+                                index: i,
+                                productId: item.productId,
+                                quantity: item.quantity,
+                                hasProductId: !!item.productId,
+                                hasQuantity: !!item.quantity,
+                                quantityPositive: item.quantity > 0
+                            }
+                        },
+                        { status: 400 }
+                    );
+                }
+            }
+
+            // Validate customer is provided (optional but recommended)
+            if (!invoiceDetails.customerId) {
+                console.warn('Invoice created without customer ID');
+            }
+
+            // Credit limit validation for wholesale customers
+            if (invoiceDetails.customerId) {
+                const customer = await prisma.customer.findUnique({
+                    where: { id: invoiceDetails.customerId },
+                    select: { 
+                        customerType: true, 
+                        creditLimit: true,
+                        name: true
+                    }
+                });
+
+                if (customer && customer.customerType === 'wholesale' && customer.creditLimit) {
+                    // Calculate total invoice amount
+                    const totalAmount = invoiceDetails.items.reduce((sum: number, item: any) => {
+                        const price = parseFloat(item.customPrice) || parseFloat(item.price) || 0;
+                        const quantity = parseInt(item.quantity, 10) || 0;
+                        return sum + (price * quantity);
+                    }, 0);
+
+                    // Get customer's current outstanding balance
+                    const outstandingInvoices = await prisma.invoice.aggregate({
+                        where: {
+                            customerId: invoiceDetails.customerId,
+                            status: { in: ['Pending', 'Overdue'] }
+                        },
+                        _sum: { total: true }
+                    });
+
+                    const currentBalance = outstandingInvoices._sum.total || 0;
+                    const newTotalBalance = currentBalance + totalAmount;
+
+                    if (newTotalBalance > customer.creditLimit) {
+                        return NextResponse.json(
+                            {
+                                success: false,
+                                message: `Credit limit exceeded for customer ${customer.name}. Current balance: Rs. ${currentBalance.toLocaleString()}, Invoice amount: Rs. ${totalAmount.toLocaleString()}, Credit limit: Rs. ${customer.creditLimit.toLocaleString()}`,
+                                error: 'Credit limit exceeded',
+                                details: {
+                                    currentBalance,
+                                    invoiceAmount: totalAmount,
+                                    creditLimit: customer.creditLimit,
+                                    exceedAmount: newTotalBalance - customer.creditLimit
+                                }
+                            },
+                            { status: 400 }
+                        );
+                    }
+                }
+            }
+            
+            // Generate invoice number if missing
+            const finalInvoiceNumber = invoiceNumber || `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+            console.log('Final invoice number to use:', finalInvoiceNumber);
+
+            // Validate shop access for the target shop (only if shopId is provided)
             if (invoiceDetails.shopId) {
+                console.log('Validating shop access for shopId:', invoiceDetails.shopId);
                 const shopAccessResult = await ShopAccessControl.validateShopAccess(request, invoiceDetails.shopId);
+                console.log('Shop access result:', shopAccessResult);
                 if (!shopAccessResult.hasAccess) {
+                    console.log('Shop access denied:', shopAccessResult.error);
                     return ShopAccessControl.createAccessDeniedResponse(shopAccessResult.error);
                 }
+                console.log('Shop access granted');
+            } else {
+                console.log('No shopId provided, skipping shop access validation');
             }
 
             const inventoryUpdatesForEvent: Array<{ productId: number, shopId: number, newQuantity: number, oldQuantity: number }> = [];
@@ -252,8 +378,8 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
                     async (tx) => {
                         const createdInvoice = await tx.invoice.create({
                             data: {
-                                invoiceNumber: invoiceNumber,
-                                customerId: invoiceDetails.customerId,
+                                invoiceNumber: finalInvoiceNumber,
+                                customerId: invoiceDetails.customerId || null,
                                 total: 0, // Will be updated after items are processed
                                 status: 'Pending',
                                 paymentMethod: invoiceDetails.paymentMethod || 'Cash',
@@ -270,7 +396,7 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
                             await tx.payment.create({
                                 data: {
                                     invoiceId: createdInvoice.id,
-                                    customerId: invoiceDetails.customerId,
+                                    customerId: invoiceDetails.customerId || null,
                                     amount: 0, // Will be updated after items are processed
                                     paymentMethod: 'Cash',
                                     referenceNumber: `AUTO-${createdInvoice.invoiceNumber}`,

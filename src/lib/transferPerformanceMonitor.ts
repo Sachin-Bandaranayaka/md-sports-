@@ -62,12 +62,13 @@ class TransferPerformanceMonitor {
     itemCount?: number;
     shopCount?: number;
   }) {
-    const timer = this.performanceMonitor.startTimer(`transfer-${operationType}`);
+    const timerName = `transfer-${operationType}`;
+    this.performanceMonitor.startTimer(timerName);
 
     return {
-      timer,
+      timer: timerName,
       end: (success: boolean, errorType?: string, cacheHit?: boolean) => {
-        const duration = this.performanceMonitor.endTimer(timer);
+        const duration = this.performanceMonitor.endTimer(timerName);
 
         this.recordMetric({
           operationType,

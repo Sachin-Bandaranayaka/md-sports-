@@ -34,9 +34,8 @@ interface Transfer {
 }
 
 export default function TransferDetailPage({ params }: { params: { id: string } }) {
-    // Next.js requires us to unwrap params with React.use()
-    const unwrappedParams = React.use(params);
-    const transferId = unwrappedParams.id;
+    // In Next.js 14, params is already a plain object
+    const transferId = params.id;
 
     const router = useRouter();
     const { user } = useAuth();
@@ -484,4 +483,4 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
             </div>
         </MainLayout>
     );
-} 
+}

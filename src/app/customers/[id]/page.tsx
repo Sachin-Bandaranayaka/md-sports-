@@ -6,8 +6,6 @@ import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft, Edit, Trash2, Loader2 } from 'lucide-react';
 import { authDelete } from '@/utils/api';
-import { use } from 'react';
-
 interface CustomerDetails {
     id: number;
     name: string;
@@ -31,9 +29,8 @@ interface CustomerDetails {
 }
 
 export default function CustomerDetails({ params }: { params: { id: string } }) {
-    // Unwrap params using React.use()
-    const unwrappedParams = use(params);
-    const customerId = unwrappedParams.id;
+    // Access params directly - no need for React.use() in App Router
+    const customerId = params.id;
 
     const router = useRouter();
     const [customer, setCustomer] = useState<CustomerDetails | null>(null);
@@ -446,4 +443,4 @@ const getInvoiceStatusClass = (status: string) => {
         default:
             return 'bg-gray-100 text-gray-800';
     }
-}; 
+};

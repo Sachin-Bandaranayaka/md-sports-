@@ -1,18 +1,13 @@
+'use client';
 import { Suspense } from 'react';
-import { Metadata } from 'next';
 import PurchaseListClientOptimized from '@/components/purchases/PurchaseListClientOptimized';
 import PerformanceMonitor from '@/components/purchases/PerformanceMonitor';
 import { Button } from '@/components/ui/Button';
 import { Plus, Download, Upload, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
 
-export const metadata: Metadata = {
-  title: 'Purchase Invoices - Optimized | MS Sports',
-  description: 'Manage purchase invoices with enhanced performance and user experience',
-};
-
-// Enable ISR with 30 second revalidation
-export const revalidate = 30;
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // Loading component for better UX
 function PurchaseListSkeleton() {

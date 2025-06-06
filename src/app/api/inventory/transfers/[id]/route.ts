@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/utils/middleware';
 import { prisma, safeQuery } from '@/lib/prisma';
-import { transferCacheService } from '@/lib/transferCache';
+import { transferCacheService, TRANSFER_CACHE_CONFIG } from '@/lib/transferCache';
 import { trackTransferOperation } from '@/lib/transferPerformanceMonitor';
 import { deduplicateRequest } from '@/lib/request-deduplication';
 
@@ -61,9 +61,7 @@ export async function GET(
 
     try {
         // Generate cache key
-        const cacheKey = transferCacheService.generateCacheKey('detail', {
-            transferId: params.id
-        });
+        const cacheKey = `${TRANSFER_CACHE_CONFIG.KEYS.TRANSFER_DETAIL}:${params.id}`;
 
         // Try to get from cache first
         const cached = await transferCacheService.get(cacheKey);
@@ -77,7 +75,6 @@ export async function GET(
 
         // Use request deduplication
         const transfer = await deduplicateRequest(
-            cacheKey,
             async () => {
                 return await safeQuery(
                     async () => {
@@ -118,14 +115,15 @@ export async function GET(
                                 sku: item.product.sku || '',
                                 quantity: item.quantity,
                                 notes: null, // This field isn't in the Prisma schema
-                                retail_price: item.product.price.toString()
+                                price: item.product.price.toString()
                             }))
                         };
                     },
                     getDefaultTransfer(id),
                     `Failed to fetch transfer with ID ${id}`
                 );
-            }
+            },
+            `/api/inventory/transfers/${params.id}`
         );
 
         if (!transfer) {
@@ -217,11 +215,6 @@ export async function PATCH(
                         }
 
                         if (action === 'complete') {
-                            // Update operation metadata
-                            operation.timer.metadata = {
-                                itemCount: transfer.transferItems.length,
-                                shopCount: 2
-                            };
 
                             // Process each transfer item for completion
                             for (const item of transfer.transferItems) {
@@ -261,7 +254,14 @@ export async function PATCH(
                             }> = [];
 
                             for (const item of transfer.transferItems) {
-                                const transferCostPerUnit = 0; // This should be calculated from source
+                                // Get the shop-specific cost from source inventory
+                                const sourceInventory = await tx.inventoryItem.findFirst({
+                                    where: {
+                                        shopId: transfer.fromShopId,
+                                        productId: item.productId
+                                    }
+                                });
+                                const transferCostPerUnit = sourceInventory?.shopSpecificCost || 0;
 
                                 // Check if destination already has this product
                                 const destInventory = await tx.inventoryItem.findFirst({
@@ -384,11 +384,7 @@ export async function PATCH(
         }
 
         // Invalidate relevant caches
-        await Promise.all([
-            transferCacheService.invalidateTransfer(params.id),
-            transferCacheService.invalidateShopTransfers(result.fromShopId.toString()),
-            transferCacheService.invalidateShopTransfers(result.toShopId.toString())
-        ]);
+        await transferCacheService.invalidateTransferCache(params.id, [result.fromShopId, result.toShopId]);
 
         operation.end(true);
         return NextResponse.json({
@@ -402,6 +398,178 @@ export async function PATCH(
         return NextResponse.json({
             success: false,
             error: error instanceof Error ? error.message : `Failed to update transfer`
+        }, { status: 500 });
+    }
+}
+
+// PUT: Update a transfer (only if pending)
+export async function PUT(
+    req: NextRequest,
+    { params }: { params: { id: string } }
+) {
+    const operation = trackTransferOperation('update');
+
+    // Check for inventory:transfer permission
+    const permissionError = await requirePermission('inventory:transfer')(req);
+    if (permissionError) {
+        operation.end(false, 'unauthorized');
+        return permissionError;
+    }
+
+    const id = parseInt(params.id);
+    if (isNaN(id)) {
+        operation.end(false, 'invalid_id');
+        return NextResponse.json({
+            success: false,
+            error: 'Invalid transfer ID'
+        }, { status: 400 });
+    }
+
+    try {
+        const body = await req.json();
+        const { sourceShopId, destinationShopId, items } = body;
+
+        // Validate input
+        if (!sourceShopId || !destinationShopId || !items || !Array.isArray(items)) {
+            operation.end(false, 'invalid_input');
+            return NextResponse.json({
+                success: false,
+                error: 'Missing required fields'
+            }, { status: 400 });
+        }
+
+        if (sourceShopId === destinationShopId) {
+            operation.end(false, 'same_shop');
+            return NextResponse.json({
+                success: false,
+                error: 'Source and destination shops cannot be the same'
+            }, { status: 400 });
+        }
+
+        if (items.length === 0) {
+            operation.end(false, 'no_items');
+            return NextResponse.json({
+                success: false,
+                error: 'At least one item is required'
+            }, { status: 400 });
+        }
+
+        // Validate items
+        for (const item of items) {
+            if (!item.productId || !item.quantity || item.quantity <= 0) {
+                operation.end(false, 'invalid_item');
+                return NextResponse.json({
+                    success: false,
+                    error: 'Invalid item data'
+                }, { status: 400 });
+            }
+        }
+
+        const result = await safeQuery(
+            async () => {
+                return await prisma.$transaction(
+                    async (tx) => {
+                        // Check if transfer exists and is pending
+                        const existingTransfer = await tx.inventoryTransfer.findUnique({
+                            where: { id }
+                        });
+
+                        if (!existingTransfer) {
+                            throw new Error('Transfer not found');
+                        }
+
+                        if (existingTransfer.status !== 'pending') {
+                            throw new Error('Only pending transfers can be edited');
+                        }
+
+                        // Verify shops exist
+                        const sourceShop = await tx.shop.findUnique({ where: { id: sourceShopId } });
+                        const destinationShop = await tx.shop.findUnique({ where: { id: destinationShopId } });
+
+                        if (!sourceShop || !destinationShop) {
+                            throw new Error('Invalid shop selection');
+                        }
+
+                        // Verify products exist and have sufficient stock
+                        for (const item of items) {
+                            const inventory = await tx.inventoryItem.findFirst({
+                                where: {
+                                    productId: item.productId,
+                                    shopId: sourceShopId
+                                }
+                            });
+
+                            if (!inventory) {
+                                const product = await tx.product.findUnique({ where: { id: item.productId } });
+                                const productName = product ? product.name : `Product ID ${item.productId}`;
+                                throw new Error(`Product "${productName}" not found in source shop`);
+                            }
+
+                            if (inventory.quantity < item.quantity) {
+                                const product = await tx.product.findUnique({ where: { id: item.productId } });
+                                const productName = product ? product.name : `Product ID ${item.productId}`;
+                                throw new Error(`Insufficient stock for "${productName}". Available: ${inventory.quantity}, Requested: ${item.quantity}`);
+                            }
+                        }
+
+                        // Update transfer
+                        const updatedTransfer = await tx.inventoryTransfer.update({
+                            where: { id },
+                            data: {
+                                fromShopId: sourceShopId,
+                                toShopId: destinationShopId,
+                                updatedAt: new Date()
+                            }
+                        });
+
+                        // Delete existing transfer items
+                        await tx.transferItem.deleteMany({
+                            where: { transferId: id }
+                        });
+
+                        // Insert new transfer items
+                        const transferItemsData = items.map((item: any) => ({
+                            transferId: id,
+                            productId: item.productId,
+                            quantity: item.quantity
+                        }));
+
+                        await tx.transferItem.createMany({
+                            data: transferItemsData
+                        });
+
+                        return updatedTransfer;
+                    },
+                    { timeout: 30000 } // 30-second timeout
+                );
+            },
+            null,
+            'Failed to update transfer'
+        );
+
+        if (!result) {
+            operation.end(false, 'update_failed');
+            return NextResponse.json({
+                success: false,
+                error: 'Failed to update transfer'
+            }, { status: 500 });
+        }
+
+        // Invalidate relevant caches
+        await transferCacheService.invalidateTransferCache(params.id, [result.fromShopId, result.toShopId]);
+
+        operation.end(true);
+        return NextResponse.json({
+            success: true,
+            message: 'Transfer updated successfully',
+            data: { id }
+        });
+    } catch (error) {
+        console.error(`Error updating transfer ${id}:`, error);
+        operation.end(false, 'update_error');
+        return NextResponse.json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to update transfer'
         }, { status: 500 });
     }
 }
@@ -472,11 +640,7 @@ export async function DELETE(
         }
 
         // Invalidate relevant caches
-        await Promise.all([
-            transferCacheService.invalidateTransfer(params.id),
-            transferCacheService.invalidateShopTransfers(result.fromShopId.toString()),
-            transferCacheService.invalidateShopTransfers(result.toShopId.toString())
-        ]);
+        await transferCacheService.invalidateTransferCache(params.id, [result.fromShopId, result.toShopId]);
 
         operation.end(true);
         return NextResponse.json({

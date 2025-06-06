@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/hooks/useAuth';
 import { SocketProvider } from '@/context/SocketContext';
+import { QueryProvider } from '@/context/QueryProvider';
 import ApiInitializer from '@/components/ApiInitializer';
 import DevTools from '@/components/DevTools';
 import { ChatbotWrapper } from '@/components/chatbot/ChatbotWrapper';
@@ -14,6 +15,10 @@ export const metadata: Metadata = {
   title: 'MS Sport - Inventory Management', description: 'Inventory management system for MS Sport',
 };
 
+// Force dynamic rendering for all pages
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default function RootLayout({
   children,
 }: {
@@ -22,15 +27,17 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <AuthProvider>
-          <SocketProvider>
-            <Toaster />
-            <ApiInitializer />
-            {children}
-            <ChatbotWrapper />
-            <DevTools />
-          </SocketProvider>
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <SocketProvider>
+              <Toaster />
+              <ApiInitializer />
+              {children}
+              <ChatbotWrapper />
+              <DevTools />
+            </SocketProvider>
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );

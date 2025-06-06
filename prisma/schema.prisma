@@ -210,7 +210,7 @@ model Supplier {
 model Invoice {
   id            Int           @id @default(autoincrement())
   invoiceNumber String        @unique
-  customerId    Int
+  customerId    Int?
   total         Float
   totalProfit   Float?        @default(0)
   profitMargin  Float?        @default(0)
@@ -222,7 +222,7 @@ model Invoice {
   dueDate       DateTime?     @db.Date
   notes         String?
   shopId        String?
-  customer      Customer      @relation(fields: [customerId], references: [id])
+  customer      Customer?     @relation(fields: [customerId], references: [id])
   shop          Shop?         @relation(fields: [shopId], references: [id])
   items         InvoiceItem[]
   payments      Payment[]
@@ -256,13 +256,13 @@ model InvoiceItem {
 model Payment {
   id              Int      @id @default(autoincrement())
   invoiceId       Int
-  customerId      Int
+  customerId      Int?
   amount          Float
   paymentMethod   String
   referenceNumber String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-  customer        Customer @relation(fields: [customerId], references: [id])
+  customer        Customer? @relation(fields: [customerId], references: [id])
   invoice         Invoice  @relation(fields: [invoiceId], references: [id])
   receipt         Receipt?
 }

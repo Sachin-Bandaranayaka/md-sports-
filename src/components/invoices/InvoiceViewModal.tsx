@@ -107,7 +107,7 @@ const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({
 
     const paidAmount = invoice.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
     const remainingBalance = invoice.total - paidAmount;
-    const isOverdue = new Date(invoice.dueDate) < new Date() && invoice.status !== 'paid';
+    const isOverdue = new Date(invoice.dueDate) < new Date() && invoice.status.toLowerCase() !== 'paid';
 
     const footer = showActions ? (
         <div className="flex justify-between items-center">
@@ -129,7 +129,7 @@ const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({
                 <Button variant="outline" onClick={onClose}>
                     Close
                 </Button>
-                {onEdit && invoice.status !== 'paid' && (
+                {onEdit && invoice.status.toLowerCase() !== 'paid' && (
                     <Button variant="primary" onClick={onEdit}>
                         <Edit className="w-4 h-4 mr-2" />
                         Edit Invoice

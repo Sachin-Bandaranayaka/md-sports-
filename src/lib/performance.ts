@@ -3,6 +3,18 @@
  * and identifying performance bottlenecks
  */
 
+// Node.js compatible performance timing
+const getPerformanceNow = (): number => {
+  if (typeof performance !== 'undefined' && performance.now) {
+    // Browser environment
+    return performance.now();
+  } else {
+    // Node.js environment
+    const hrTime = process.hrtime();
+    return hrTime[0] * 1000 + hrTime[1] / 1000000;
+  }
+};
+
 interface PerformanceMetric {
   name: string;
   duration: number;
@@ -23,7 +35,7 @@ class PerformanceMonitor {
   startTimer(name: string, metadata?: Record<string, any>): void {
     if (!this.enabled) return;
 
-    this.timers.set(name, performance.now());
+    this.timers.set(name, getPerformanceNow());
     if (metadata) {
       console.log(`⏱️  Started: ${name}`, metadata);
     }
@@ -44,7 +56,7 @@ class PerformanceMonitor {
       return 0;
     }
 
-    const duration = performance.now() - startTime;
+    const duration = getPerformanceNow() - startTime;
     this.timers.delete(name);
 
     const metric: PerformanceMetric = {
@@ -238,3 +250,12 @@ export const measureSync = <T>(
 // Export types and classes
 export type { PerformanceMetric };
 export { PerformanceMonitor };
+
+// Export singleton instance
+export const performance = {
+  monitor: performanceMonitor,
+  startTimer,
+  endTimer,
+  measureAsync,
+  measureSync
+};

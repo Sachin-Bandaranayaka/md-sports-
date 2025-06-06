@@ -1,14 +1,12 @@
-import { Metadata } from 'next';
+'use client';
 import { Suspense } from 'react';
 import PurchaseInvoiceFormOptimized from '@/components/purchases/PurchaseInvoiceFormOptimized';
 import { ArrowLeft, Save, Upload, Calculator } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 
-export const metadata: Metadata = {
-  title: 'New Purchase Invoice - Optimized | MS Sports',
-  description: 'Create a new purchase invoice with enhanced performance and user experience',
-};
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // Loading component for the form
 function FormSkeleton() {

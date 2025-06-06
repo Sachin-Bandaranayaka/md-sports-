@@ -54,15 +54,32 @@ interface Payment {
     createdAt: string;
 }
 
+interface Shop {
+    id: string;
+    name: string;
+    location: string;
+    contact_person?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    address_line1?: string | null;
+    address_line2?: string | null;
+    city?: string | null;
+    state?: string | null;
+    postal_code?: string | null;
+    country?: string | null;
+}
+
 interface Invoice {
     id: number;
     invoiceNumber: string;
     customerId: number;
+    shopId?: string | null;
     total: number;
     status: string;
     createdAt: string;
     updatedAt: string;
     customer: Customer;
+    shop?: Shop | null;
     items: InvoiceItem[];
     payments: Payment[];
     paymentMethod: string;
@@ -92,13 +109,35 @@ const formatDate = (dateString: string): string => {
 
 const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
     invoice,
-    companyInfo = {
-        name: "MS Sports Management Pvt. Ltd",
-        address: "No 28, Malalsekara Mawatha, Colombo 07",
-        phone: "+94 11 234 5678",
-        email: "info@mssports.lk"
-    }
+    companyInfo
 }) => {
+    // Use shop information if available, otherwise fall back to companyInfo or defaults
+    const getCompanyInfo = () => {
+        if (invoice.shop) {
+            const shopAddress = [
+                invoice.shop.address_line1,
+                invoice.shop.address_line2,
+                invoice.shop.city && invoice.shop.postal_code ? `${invoice.shop.city}, ${invoice.shop.postal_code}` : invoice.shop.city || invoice.shop.postal_code,
+                invoice.shop.state
+            ].filter(Boolean).join(', ');
+            
+            return {
+                name: invoice.shop.name,
+                address: shopAddress || invoice.shop.location,
+                phone: invoice.shop.phone || "+94 11 234 5678",
+                email: invoice.shop.email || "info@mdsports.lk"
+            };
+        }
+        
+        return companyInfo || {
+            name: "MD Sports Management Pvt. Ltd",
+            address: "No 28, Malalsekara Mawatha, Colombo 07",
+            phone: "+94 11 234 5678",
+            email: "info@mdsports.lk"
+        };
+    };
+    
+    const currentCompanyInfo = getCompanyInfo();
     const paidAmount = invoice.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
     const remainingBalance = invoice.total - paidAmount;
 
@@ -161,7 +200,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
                         </div>
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold text-black">{companyInfo.name}</h1>
+                        <h1 className="text-xl font-bold text-black">{currentCompanyInfo.name}</h1>
                     </div>
                 </div>
                 <div className="text-right">
@@ -252,20 +291,28 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
             </div>
 
             {/* Payment Status */}
-            {remainingBalance <= 0 && (
+            {remainingBalance <= 0 ? (
                 <div className="text-center mb-8">
                     <div className="inline-block border-4 border-green-600 px-8 py-2">
                         <span className="text-green-600 text-xl font-bold">PAID IN FULL</span>
                     </div>
                 </div>
-            )}
+            ) : paidAmount > 0 ? (
+                <div className="text-center mb-8">
+                    <div className="inline-block border-4 border-orange-500 px-8 py-2">
+                        <span className="text-orange-500 text-xl font-bold">PARTIALLY PAID</span>
+                    </div>
+                </div>
+            ) : null}
 
             {/* Footer */}
             <div className="border-t border-gray-300 pt-6">
                 <div className="flex justify-between items-end">
                     <div>
                         <div className="text-black font-bold mb-2">MBA Branch</div>
-                        <div className="text-black text-sm">{companyInfo.address}</div>
+                        <div className="text-black text-sm">{currentCompanyInfo.address}</div>
+                        <div className="text-black text-sm">Phone: {currentCompanyInfo.phone}</div>
+                        <div className="text-black text-sm">Email: {currentCompanyInfo.email}</div>
                     </div>
                     <div className="text-center">
                         <div className="text-black font-bold text-lg mb-2">PLAY GENUINE PAY LESS</div>

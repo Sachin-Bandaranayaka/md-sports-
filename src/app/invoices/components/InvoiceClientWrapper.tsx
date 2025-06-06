@@ -515,7 +515,7 @@ export default function InvoiceClientWrapper({
                         <tbody className="bg-white divide-y divide-gray-200">
                             {invoices.map((invoice) => (
                                 <tr key={invoice.id} className="hover:bg-gray-50 transition-colors duration-150">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-600 hover:text-indigo-800 cursor-pointer" onClick={() => handleViewInvoice(invoice.id)}>{invoice.invoiceNumber}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-600 hover:text-indigo-800 cursor-pointer" onClick={() => router.push(`/invoices/${invoice.id}`)}>{invoice.invoiceNumber}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{invoice.customerName}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">{formatDate(invoice.createdAt)}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm hidden lg:table-cell">
@@ -540,7 +540,7 @@ export default function InvoiceClientWrapper({
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div className="flex items-center space-x-1">
-                                            <Button variant="ghost" size="icon" onClick={() => handleViewInvoice(invoice.id)} title="View Invoice" disabled={loading}>
+                                            <Button variant="ghost" size="icon" onClick={() => router.push(`/invoices/${invoice.id}`)} title="View Invoice" disabled={loading}>
                                                 {loading ? <Loader2 className="animate-spin h-4 w-4" /> : <Eye size={16} className="text-blue-600" />}
                                             </Button>
                                             {(invoice.status.toLowerCase() === 'pending' || invoice.status.toLowerCase() === 'partial') && (
@@ -563,36 +563,167 @@ export default function InvoiceClientWrapper({
                 </div>
             )}
 
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-                <div className="mt-6 flex justify-center items-center space-x-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage === 1 || loading}
-                    >
-                        Previous
-                    </Button>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                        <Button
-                            key={page}
-                            variant={currentPage === page ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => handlePageChange(page)}
-                            disabled={loading}
-                        >
-                            {page}
-                        </Button>
-                    ))}
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage === totalPages || loading}
-                    >
-                        Next
-                    </Button>
+            {/* Enhanced Pagination Controls */}
+            {totalPages > 0 && (
+                <div className="mt-6 bg-white border-t border-gray-200 px-4 py-3 sm:px-6">
+                    <div className="flex items-center justify-between">
+                        {/* Mobile pagination info */}
+                        <div className="flex flex-1 justify-between sm:hidden">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handlePageChange(currentPage - 1)}
+                                disabled={currentPage === 1 || loading}
+                                className="relative inline-flex items-center px-4 py-2 text-sm font-medium"
+                            >
+                                Previous
+                            </Button>
+                            <span className="text-sm text-gray-700 flex items-center">
+                                Page {currentPage} of {totalPages}
+                            </span>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handlePageChange(currentPage + 1)}
+                                disabled={currentPage === totalPages || loading}
+                                className="relative ml-3 inline-flex items-center px-4 py-2 text-sm font-medium"
+                            >
+                                Next
+                            </Button>
+                        </div>
+                        
+                        {/* Desktop pagination */}
+                        <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                            <div>
+                                <p className="text-sm text-gray-700">
+                                    Showing{' '}
+                                    <span className="font-medium">{((currentPage - 1) * 15) + 1}</span>
+                                    {' '}to{' '}
+                                    <span className="font-medium">
+                                        {Math.min(currentPage * 15, invoices.length + ((currentPage - 1) * 15))}
+                                    </span>
+                                    {' '}of{' '}
+                                    <span className="font-medium">{totalPages * 15}</span>
+                                    {' '}results
+                                </p>
+                            </div>
+                            <div>
+                                <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                                    {/* Previous button */}
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handlePageChange(currentPage - 1)}
+                                        disabled={currentPage === 1 || loading}
+                                        className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                                    >
+                                        <span className="sr-only">Previous</span>
+                                        <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                            <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clipRule="evenodd" />
+                                        </svg>
+                                    </Button>
+                                    
+                                    {/* Page numbers with smart truncation */}
+                                    {(() => {
+                                        const pages = [];
+                                        const maxVisiblePages = 7;
+                                        
+                                        if (totalPages <= maxVisiblePages) {
+                                            // Show all pages if total is small
+                                            for (let i = 1; i <= totalPages; i++) {
+                                                pages.push(i);
+                                            }
+                                        } else {
+                                            // Smart pagination with ellipsis
+                                            if (currentPage <= 4) {
+                                                // Show first 5 pages + ellipsis + last page
+                                                for (let i = 1; i <= 5; i++) pages.push(i);
+                                                if (totalPages > 6) pages.push('ellipsis1');
+                                                pages.push(totalPages);
+                                            } else if (currentPage >= totalPages - 3) {
+                                                // Show first page + ellipsis + last 5 pages
+                                                pages.push(1);
+                                                if (totalPages > 6) pages.push('ellipsis1');
+                                                for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i);
+                                            } else {
+                                                // Show first + ellipsis + current-1,current,current+1 + ellipsis + last
+                                                pages.push(1);
+                                                pages.push('ellipsis1');
+                                                for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+                                                pages.push('ellipsis2');
+                                                pages.push(totalPages);
+                                            }
+                                        }
+                                        
+                                        return pages.map((page, index) => {
+                                            if (typeof page === 'string') {
+                                                return (
+                                                    <span key={page} className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 focus:outline-offset-0">
+                                                        ...
+                                                    </span>
+                                                );
+                                            }
+                                            
+                                            return (
+                                                <Button
+                                                    key={page}
+                                                    variant={currentPage === page ? "default" : "outline"}
+                                                    size="sm"
+                                                    onClick={() => handlePageChange(page)}
+                                                    disabled={loading}
+                                                    className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
+                                                        currentPage === page
+                                                            ? 'z-10 bg-indigo-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600'
+                                                            : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'
+                                                    }`}
+                                                >
+                                                    {page}
+                                                </Button>
+                                            );
+                                        });
+                                    })()}
+                                    
+                                    {/* Next button */}
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handlePageChange(currentPage + 1)}
+                                        disabled={currentPage === totalPages || loading}
+                                        className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                                    >
+                                        <span className="sr-only">Next</span>
+                                        <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                            <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
+                                        </svg>
+                                    </Button>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Quick jump to page */}
+                    {totalPages > 10 && (
+                        <div className="mt-3 flex items-center justify-center space-x-2">
+                            <span className="text-sm text-gray-700">Jump to page:</span>
+                            <input
+                                type="number"
+                                min="1"
+                                max={totalPages}
+                                className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500"
+                                onKeyPress={(e) => {
+                                    if (e.key === 'Enter') {
+                                        const page = parseInt((e.target as HTMLInputElement).value);
+                                        if (page >= 1 && page <= totalPages) {
+                                            handlePageChange(page);
+                                            (e.target as HTMLInputElement).value = '';
+                                        }
+                                    }
+                                }}
+                                placeholder={currentPage.toString()}
+                            />
+                            <span className="text-sm text-gray-500">of {totalPages}</span>
+                        </div>
+                    )}
                 </div>
             )}
 

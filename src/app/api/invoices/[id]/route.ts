@@ -24,6 +24,22 @@ export async function GET(
             where: { id: invoiceId },
             include: {
                 customer: true,
+                shop: {
+                    select: {
+                        id: true,
+                        name: true,
+                        location: true,
+                        contact_person: true,
+                        phone: true,
+                        email: true,
+                        address_line1: true,
+                        address_line2: true,
+                        city: true,
+                        state: true,
+                        postal_code: true,
+                        country: true
+                    }
+                },
                 items: {
                     include: {
                         product: true
@@ -281,6 +297,13 @@ export async function PUT(
                         if (existingPayments.length === 0 || totalPaid !== invoiceData.total) {
                             // Delete existing payments if any
                             if (existingPayments.length > 0) {
+                                // First delete any receipts that reference these payments
+                                const paymentIds = existingPayments.map(p => p.id);
+                                await tx.receipt.deleteMany({
+                                    where: { paymentId: { in: paymentIds } }
+                                });
+                                
+                                // Then delete the payments
                                 await tx.payment.deleteMany({
                                     where: { invoiceId: invoiceId }
                                 });

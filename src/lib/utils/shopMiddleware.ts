@@ -11,7 +11,7 @@ export class ShopAccessControl {
      */
     static async validateShopAccess(req: NextRequest, targetShopId?: string | number): Promise<{
         hasAccess: boolean;
-        userShopId: number | null;
+        userShopId: string | null;
         isAdmin: boolean;
         error?: string;
     }> {
@@ -43,8 +43,16 @@ export class ShopAccessControl {
             }
 
             // Check if user belongs to the target shop
-            const targetShopIdNum = typeof targetShopId === 'string' ? parseInt(targetShopId) : targetShopId;
-            const hasAccess = userShopId === targetShopIdNum;
+            // Handle both string and number shop IDs
+            let hasAccess = false;
+            if (typeof targetShopId === 'string' && typeof userShopId === 'string') {
+                hasAccess = userShopId === targetShopId;
+            } else if (typeof targetShopId === 'number' && typeof userShopId === 'number') {
+                hasAccess = userShopId === targetShopId;
+            } else {
+                // Convert both to strings for comparison
+                hasAccess = String(userShopId) === String(targetShopId);
+            }
 
             return {
                 hasAccess,
@@ -69,7 +77,7 @@ export class ShopAccessControl {
      * Returns user's shop ID if they're restricted, or the requested shop ID if they're admin
      */
     static async getEffectiveShopId(req: NextRequest, requestedShopId?: string | number): Promise<{
-        shopId: number | null;
+        shopId: string | null;
         isFiltered: boolean;
         error?: string;
     }> {
@@ -85,9 +93,9 @@ export class ShopAccessControl {
 
         // If user is admin and requested a specific shop, use that
         if (accessResult.isAdmin && requestedShopId) {
-            const shopIdNum = typeof requestedShopId === 'string' ? parseInt(requestedShopId) : requestedShopId;
+            const shopIdStr = String(requestedShopId);
             return {
-                shopId: shopIdNum,
+                shopId: shopIdStr,
                 isFiltered: true
             };
         }
@@ -121,9 +129,9 @@ export class ShopAccessControl {
      * Middleware wrapper for API routes that need shop-based filtering
      */
     static withShopAccess(handler: (req: NextRequest, context: {
-        shopId: number | null;
+        shopId: string | null;
         isFiltered: boolean;
-        userShopId: number | null;
+        userShopId: string | null;
         isAdmin: boolean;
     }) => Promise<NextResponse>) {
         return async (req: NextRequest) => {
@@ -169,20 +177,20 @@ export class ShopAccessControl {
     /**
      * Helper to build Prisma where clauses with shop filtering
      */
-    static buildShopFilter(shopId: number | null, isFiltered: boolean) {
-        if (!isFiltered || !shopId) {
+    static buildShopFilter(context: { shopId: string | null; isFiltered: boolean }) {
+        if (!context.isFiltered || !context.shopId) {
             return {};
         }
 
         return {
-            shopId: shopId
+            shopId: context.shopId
         };
     }
 
     /**
      * Helper to build Prisma where clauses for inventory items with shop filtering
      */
-    static buildInventoryShopFilter(shopId: number | null, isFiltered: boolean) {
+    static buildInventoryShopFilter(shopId: string | null, isFiltered: boolean) {
         if (!isFiltered || !shopId) {
             return {};
         }
@@ -190,10 +198,7 @@ export class ShopAccessControl {
         return {
             inventoryItems: {
                 some: {
-                    shopId: shopId,
-                    quantity: {
-                        gt: 0
-                    }
+                    shopId: shopId
                 }
             }
         };

@@ -1,6 +1,7 @@
-import { Metadata } from 'next';
-import { Suspense } from 'react';
-import { notFound } from 'next/navigation';
+'use client';
+
+import React, { Suspense, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import PurchaseInvoiceFormOptimized from '@/components/purchases/PurchaseInvoiceFormOptimized';
 import { ArrowLeft, Edit, History, Download } from 'lucide-react';
 import Link from 'next/link';
@@ -11,42 +12,6 @@ interface EditPurchaseInvoiceOptimizedPageProps {
   params: {
     id: string;
   };
-}
-
-export async function generateMetadata({ params }: EditPurchaseInvoiceOptimizedPageProps): Promise<Metadata> {
-  const invoice = await fetchPurchaseInvoice(params.id);
-
-  return {
-    title: `Edit Invoice ${invoice?.invoiceNumber || params.id} - Optimized | MS Sports`,
-    description: `Edit purchase invoice ${invoice?.invoiceNumber || params.id} with enhanced performance and user experience`,
-  };
-}
-
-// Fetch purchase invoice data
-async function fetchPurchaseInvoice(id: string): Promise<PurchaseInvoice | null> {
-  try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/purchases/${id}`,
-      {
-        cache: 'no-store', // Always fetch fresh data for editing
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        return null;
-      }
-      throw new Error(`Failed to fetch invoice: ${response.statusText}`);
-    }
-
-    return response.json();
-  } catch (error) {
-    console.error('Error fetching purchase invoice:', error);
-    return null;
-  }
 }
 
 // Loading component for the form
@@ -193,11 +158,53 @@ function InvoiceInfo({ invoice }: { invoice: PurchaseInvoice }) {
   );
 }
 
-export default async function EditPurchaseInvoiceOptimizedPage({ params }: EditPurchaseInvoiceOptimizedPageProps) {
-  const invoice = await fetchPurchaseInvoice(params.id);
+export default function EditPurchaseInvoiceOptimizedPage({ params }: EditPurchaseInvoiceOptimizedPageProps) {
+  const [invoice, setInvoice] = useState<PurchaseInvoice | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    const fetchInvoice = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/purchases/${params.id}`);
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            router.push('/404');
+            return;
+          }
+          throw new Error(`Failed to fetch invoice: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        setInvoice(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load invoice');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInvoice();
+  }, [params.id, router]);
+
+  if (loading) {
+    return <FormSkeleton />;
+  }
+
+  if (error) {
+    return (
+      <ErrorFallback 
+        error={new Error(error)} 
+        reset={() => window.location.reload()} 
+      />
+    );
+  }
 
   if (!invoice) {
-    notFound();
+    return null;
   }
 
   return (

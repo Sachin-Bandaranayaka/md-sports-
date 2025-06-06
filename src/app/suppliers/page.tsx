@@ -8,6 +8,8 @@ import { Search, Plus, Edit, Trash, Phone, Mail, ExternalLink, X } from 'lucide-
 import { Supplier } from '@/types';
 import { queryKeys } from '@/context/QueryProvider';
 
+// Note: revalidate and dynamic exports are not valid for client components
+
 export default function Suppliers() {
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
     const [loading, setLoading] = useState<boolean>(true);

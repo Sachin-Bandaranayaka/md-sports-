@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 async function fetchSuppliers(baseUrl: string): Promise<Supplier[]> {
     try {
         const response = await fetch(`${baseUrl}/api/suppliers`, {
-            next: { revalidate: 3600 },  // Cache for 1 hour
+            next: { revalidate: 60, tags: ['suppliers'] },  // Cache for 1 minute with tags
             cache: 'force-cache'         // Use cache when available
         });
         if (!response.ok) {

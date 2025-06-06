@@ -54,7 +54,8 @@ async function fetchPurchaseInvoices(baseUrl: string, page: number, limit: numbe
 async function fetchSuppliers(baseUrl: string): Promise<Supplier[]> {
     try {
         const response = await fetch(`${baseUrl}/api/suppliers`, {
-            next: { revalidate: 3600 } // Cache suppliers for 1 hour
+            next: { revalidate: 60, tags: ['suppliers'] }, // Cache suppliers for 1 minute with tags
+            cache: 'force-cache'
         });
         if (!response.ok) {
             console.error('Failed to fetch suppliers:', response.status, await response.text());
@@ -106,4 +107,4 @@ export default async function PurchasesPage({
             </Suspense>
         </MainLayout>
     );
-} 
+}

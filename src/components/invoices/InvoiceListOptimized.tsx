@@ -1,7 +1,7 @@
 import React, { memo, useMemo, useCallback } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { Eye, Edit, Trash2, CreditCard } from 'lucide-react';

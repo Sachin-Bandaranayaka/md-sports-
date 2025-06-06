@@ -100,13 +100,12 @@ const InvoiceEditModal: React.FC<InvoiceEditModalProps> = ({
     // Calculate totals when items change
     useEffect(() => {
         const subtotal = formData.items.reduce((sum, item) => sum + item.total, 0);
-        const tax = subtotal * 0.1; // 10% tax
-        const total = subtotal + tax;
+        const total = subtotal; // No tax applied
 
         setFormData(prev => ({
             ...prev,
             subtotal,
-            tax,
+            tax: 0,
             total
         }));
     }, [formData.items]);
@@ -250,7 +249,7 @@ const InvoiceEditModal: React.FC<InvoiceEditModalProps> = ({
 
     const footer = (
         <div className="flex justify-between items-center">
-            <div className="text-lg font-semibold">
+            <div className="text-lg font-semibold text-black">
                 Total: LKR {formData.total.toFixed(2)}
             </div>
             <div className="flex space-x-3">
@@ -426,11 +425,11 @@ const InvoiceEditModal: React.FC<InvoiceEditModalProps> = ({
                                     </div>
 
                                     <div className="col-span-3">
-                                        <Label>Total</Label>
-                                        <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md">
-                                            LKR {item.total.toFixed(2)}
-                                        </div>
-                                    </div>
+                        <Label>Total</Label>
+                        <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-black">
+                            LKR {item.total.toFixed(2)}
+                        </div>
+                    </div>
 
                                     <div className="col-span-1">
                                         <Button
@@ -457,16 +456,8 @@ const InvoiceEditModal: React.FC<InvoiceEditModalProps> = ({
                 {/* Invoice Summary */}
                 {formData.items.length > 0 && (
                     <div className="bg-gray-50 p-4 rounded-lg">
-                        <div className="space-y-2">
-                            <div className="flex justify-between">
-                                <span>Subtotal:</span>
-                                <span>LKR {(formData.subtotal || 0).toFixed(2)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>Tax (10%):</span>
-                                <span>LKR {(formData.tax || 0).toFixed(2)}</span>
-                            </div>
-                            <div className="flex justify-between font-semibold text-lg border-t pt-2">
+                        <div className="space-y-2 text-black">
+                            <div className="flex justify-between font-semibold text-lg">
                                 <span>Total:</span>
                                 <span>LKR {(formData.total || 0).toFixed(2)}</span>
                             </div>

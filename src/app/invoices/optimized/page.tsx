@@ -4,7 +4,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Toaster } from 'react-hot-toast';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -173,9 +173,8 @@ function InvoicePageContent() {
     }, []);
 
     const handleViewInvoice = useCallback((invoice: Invoice) => {
-        setSelectedInvoice(invoice);
-        setIsViewModalOpen(true);
-    }, []);
+        router.push(`/invoices/${invoice.id}`);
+    }, [router]);
 
     const handleEditInvoice = useCallback((invoice: Invoice) => {
         setSelectedInvoice(invoice);
@@ -481,3 +480,6 @@ export default function OptimizedInvoicesPage() {
         </QueryClientProvider>
     );
 }
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;

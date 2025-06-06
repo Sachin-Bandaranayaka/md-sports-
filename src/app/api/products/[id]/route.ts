@@ -59,7 +59,8 @@ export async function GET(
                         quantity: item.quantity,
                         shop_id: item.shopId,
                         shop_name: item.shop.name,
-                        shop_location: item.shop.location
+                        shop_location: item.shop.location,
+                        shop_specific_cost: item.shopSpecificCost || 0
                     }))
                 };
             },

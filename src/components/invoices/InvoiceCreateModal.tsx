@@ -429,9 +429,10 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
             newErrors.items = 'At least one item is required';
         }
 
-        if (!formData.shopId) {
-            newErrors.shopId = 'Shop is required';
-        }
+        // Shop is now optional for debugging
+        // if (!formData.shopId) {
+        //     newErrors.shopId = 'Shop is required';
+        // }
 
         formData.items.forEach((item, index) => {
             if (!item.productId) {
@@ -450,14 +451,34 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
     }, [formData]);
 
     const handleSubmit = async () => {
+        // Ensure invoiceNumber is generated before validation
+        const currentInvoiceNumber = formData.invoiceNumber || generateInvoiceNumber();
+        
+        // Update form data with invoice number if missing
+        if (!formData.invoiceNumber) {
+            setFormData(prev => ({ ...prev, invoiceNumber: currentInvoiceNumber }));
+        }
+        
         if (!validateForm()) {
             return;
         }
 
         setSubmitting(true);
         try {
+            console.log('Form data shopId before processing:', formData.shopId);
+            console.log('Form data shopId type:', typeof formData.shopId);
+            console.log('Form data shopId length:', formData.shopId?.length);
+            
             const invoiceData = {
-                ...formData,
+                invoiceNumber: currentInvoiceNumber,
+                invoiceDate: formData.invoiceDate,
+                dueDate: formData.dueDate,
+                paymentMethod: formData.paymentMethod,
+                notes: formData.notes,
+                subtotal: formData.subtotal,
+                tax: formData.tax,
+                total: formData.total,
+                customerId: formData.customerId || undefined, // Ensure it's undefined if 0
                 items: formData.items.map(item => ({
                     productId: item.productId,
                     quantity: item.quantity,
@@ -465,6 +486,18 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                     total: item.total
                 }))
             };
+            
+            // Only include shopId if it's not empty
+            if (formData.shopId && formData.shopId.trim() !== '') {
+                invoiceData.shopId = formData.shopId;
+                console.log('Including shopId in request:', formData.shopId);
+            } else {
+                console.log('Excluding shopId from request (empty or not selected)');
+            }
+            
+            console.log('Invoice data being sent:', JSON.stringify(invoiceData, null, 2));
+            console.log('Invoice number:', currentInvoiceNumber);
+            console.log('Customer ID:', formData.customerId);
 
             // Get authentication token from localStorage
             // Priority: dev-token > accessToken > authToken
@@ -499,11 +532,11 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                 body: JSON.stringify(invoiceData),
             });
 
-            if (!response.ok) {
-                throw new Error('Failed to create invoice');
-            }
-
             const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || result.error || 'Failed to create invoice');
+            }
 
             if (onSave) {
                 onSave(result);
@@ -562,10 +595,10 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
     );
 
     const productOptions = useMemo(() => 
-        Array.isArray(products) ? products.map(product => ({
+        Array.isArray(filteredProducts) ? filteredProducts.map(product => ({
             value: product.id.toString(),
             label: `${product.name} - LKR ${product.price.toFixed(2)}`
-        })) : [], [products]
+        })) : [], [filteredProducts]
     );
 
     const footer = (
@@ -602,7 +635,7 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                 <div className="space-y-6">
                     {/* Shop Selection */}
                     <div>
-                        <Label htmlFor="shop" className="text-black font-semibold">Shop *</Label>
+                        <Label htmlFor="shop" className="text-black font-semibold">Shop (Optional)</Label>
                         <select
                             id="shop"
                             value={formData.shopId || ''}
@@ -734,91 +767,7 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                         </div>
                     </div>
 
-                    {/* Product Selection Section */}
-                    <div className="bg-gray-50 p-4 rounded-lg border">
-                        <h3 className="text-lg font-semibold text-black mb-4">Add Products</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                            <div className="relative">
-                                <Label className="text-black font-medium">Product *</Label>
-                                <Input
-                                    value={productSearch}
-                                    onChange={(e) => {
-                                        setProductSearch(e.target.value);
-                                        setShowProductDropdown(true);
-                                    }}
-                                    onFocus={() => setShowProductDropdown(true)}
-                                    placeholder="Search products..."
-                                    className="text-black border-gray-300"
-                                />
-                                {showProductDropdown && filteredProducts.length > 0 && (
-                                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                                        {filteredProducts.map(product => (
-                                            <div
-                                                key={product.id}
-                                                onClick={() => handleProductSelect(product)}
-                                                className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-black"
-                                            >
-                                                <div className="font-medium">{product.name}</div>
-                                                <div className="text-sm text-gray-600">LKR {product.price?.toFixed(2)} - {product.sku}</div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
 
-                            <div>
-                                <Label className="text-black font-medium">Quantity *</Label>
-                                <Input
-                                    type="number"
-                                    min="1"
-                                    value={quantity}
-                                    onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                                    className="text-black border-gray-300"
-                                />
-                            </div>
-
-                            <div>
-                                <Label className="text-black font-medium">Custom Price</Label>
-                                <Input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={customPrice}
-                                    onChange={(e) => setCustomPrice(parseFloat(e.target.value) || 0)}
-                                    placeholder="Override price"
-                                    className="text-black border-gray-300"
-                                />
-                            </div>
-
-                            <div>
-                                <Label className="text-black font-medium">Stock</Label>
-                                <div className="px-3 py-2 bg-white border border-gray-300 rounded-md text-black">
-                                    {productStock !== null ? productStock : 'N/A'}
-                                </div>
-                            </div>
-
-                            <Button
-                                type="button"
-                                onClick={handleAddLineItem}
-                                disabled={!selectedProduct}
-                                className="bg-blue-500 hover:bg-blue-600 text-white"
-                            >
-                                <Plus className="w-4 h-4 mr-2" />
-                                Add Item
-                            </Button>
-                        </div>
-
-                        {selectedProduct && (
-                            <div className="mt-3 p-2 bg-blue-50 rounded border">
-                                <div className="text-sm text-black">
-                                    <strong>{selectedProduct.name}</strong> - LKR {selectedProduct.price?.toFixed(2)}
-                                    {selectedProduct.weightedAverageCost && (
-                                        <span className="ml-2 text-gray-600">Cost: LKR {selectedProduct.weightedAverageCost.toFixed(2)}</span>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </div>
 
                 {/* Invoice Items */}
                 <div>

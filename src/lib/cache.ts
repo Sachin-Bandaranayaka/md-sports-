@@ -299,17 +299,21 @@ class CacheManager implements CacheService {
 }
 
 // Export singleton instance
-export const cacheService = new CacheManager();
+const cache = new CacheManager();
+export { cache };
 
-// Export cache configuration and types
+// Export as cacheService for backward compatibility
+export { cache as cacheService };
+
+// Export types and constants
 export { CACHE_CONFIG };
 export type { CacheService };
 
 // Cleanup on process exit
 process.on('SIGINT', () => {
-    if (cacheService.cache instanceof RedisCache) {
-        (cacheService.cache as any).disconnect();
-    } else if (cacheService.cache instanceof MemoryCache) {
-        (cacheService.cache as any).destroy();
+    if (cache.cache instanceof RedisCache) {
+        (cache.cache as any).disconnect();
+    } else if (cache.cache instanceof MemoryCache) {
+        (cache.cache as any).destroy();
     }
 });

@@ -33,7 +33,10 @@ async function fetchPurchaseInvoice(id: string, baseUrl: string): Promise<Purcha
 
 async function fetchSuppliers(baseUrl: string): Promise<Supplier[]> {
     try {
-        const response = await fetch(`${baseUrl}/api/suppliers`, { next: { revalidate: 3600 } });
+        const response = await fetch(`${baseUrl}/api/suppliers`, { 
+            next: { revalidate: 60, tags: ['suppliers'] },
+            cache: 'force-cache'
+        });
         if (!response.ok) {
             console.error(`Failed to fetch suppliers: ${response.status} ${await response.text()}`);
             return [];

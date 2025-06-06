@@ -42,15 +42,32 @@ interface Payment {
     createdAt: string;
 }
 
+interface Shop {
+    id: string;
+    name: string;
+    location: string;
+    contact_person?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    address_line1?: string | null;
+    address_line2?: string | null;
+    city?: string | null;
+    state?: string | null;
+    postal_code?: string | null;
+    country?: string | null;
+}
+
 interface Invoice {
     id: number;
     invoiceNumber: string;
     customerId: number;
+    shopId?: string | null;
     total: number;
     status: string;
     createdAt: string;
     updatedAt: string;
     customer: Customer;
+    shop?: Shop | null;
     items: InvoiceItem[];
     payments: Payment[];
 }
@@ -92,16 +109,53 @@ export const generateInvoicePDF = (invoice: Invoice): void => {
     doc.setFont('helvetica', 'normal');
     doc.text(`#${invoice.invoiceNumber}`, 20, 27);
 
-    // Company details on the right
+    // Shop/Company details on the right
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('Your Company Name', 150, 20, { align: 'right' });
+    const shopName = invoice.shop?.name || 'MD Sports';
+    doc.text(shopName, 150, 20, { align: 'right' });
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text('your@email.com', 150, 27, { align: 'right' });
-    doc.text('Your Address', 150, 34, { align: 'right' });
-    doc.text('Phone: Your Phone', 150, 41, { align: 'right' });
+    
+    let shopYPos = 27;
+    if (invoice.shop?.email) {
+        doc.text(invoice.shop.email, 150, shopYPos, { align: 'right' });
+        shopYPos += 7;
+    }
+    
+    // Shop address
+    if (invoice.shop?.address_line1) {
+        doc.text(invoice.shop.address_line1, 150, shopYPos, { align: 'right' });
+        shopYPos += 7;
+    }
+    
+    if (invoice.shop?.address_line2) {
+        doc.text(invoice.shop.address_line2, 150, shopYPos, { align: 'right' });
+        shopYPos += 7;
+    }
+    
+    if (invoice.shop?.city || invoice.shop?.postal_code) {
+        const cityPostal = [invoice.shop?.city, invoice.shop?.postal_code].filter(Boolean).join(', ');
+        if (cityPostal) {
+            doc.text(cityPostal, 150, shopYPos, { align: 'right' });
+            shopYPos += 7;
+        }
+    }
+    
+    if (invoice.shop?.state) {
+        doc.text(invoice.shop.state, 150, shopYPos, { align: 'right' });
+        shopYPos += 7;
+    }
+    
+    if (invoice.shop?.phone) {
+        doc.text(`Phone: ${invoice.shop.phone}`, 150, shopYPos, { align: 'right' });
+        shopYPos += 7;
+    }
+    
+    if (invoice.shop?.contact_person) {
+        doc.text(`Contact: ${invoice.shop.contact_person}`, 150, shopYPos, { align: 'right' });
+    }
 
     // Add a line separator
     doc.line(20, 48, 190, 48);
@@ -294,4 +348,4 @@ export const generateInvoicePDF = (invoice: Invoice): void => {
 
     // Save the PDF
     doc.save(`Invoice-${invoice.invoiceNumber}.pdf`);
-}; 
+};

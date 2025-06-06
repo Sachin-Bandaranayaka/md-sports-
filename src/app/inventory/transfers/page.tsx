@@ -101,6 +101,36 @@ export default function TransfersPage() {
         router.push(`/inventory/transfers/${id}`);
     };
 
+    // Handle edit transfer
+    const handleEditTransfer = (transferId: number) => {
+        router.push(`/inventory/transfers/${transferId}/edit`);
+    };
+
+    // Handle delete transfer
+    const handleDeleteTransfer = async (transferId: number) => {
+        if (window.confirm('Are you sure you want to delete this transfer? This action cannot be undone.')) {
+            try {
+                setLoading(true);
+                const response = await authFetch(`/api/inventory/transfers/${transferId}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Refresh the transfers list
+                    await fetchTransfers();
+                } else {
+                    throw new Error(data.message || 'Failed to delete transfer');
+                }
+            } catch (err) {
+                console.error('Error deleting transfer:', err);
+                setError(err instanceof Error ? err.message : 'An error occurred while deleting the transfer');
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
     // Filter transfers based on search and status
     const filteredTransfers = transfers.filter(transfer => {
         const matchesSearch =
@@ -315,14 +345,38 @@ export default function TransfersPage() {
                                                 )}
                                             </td>
                                             <td className="px-6 py-4">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => handleViewTransfer(transfer.id)}
-                                                    className="text-primary-600 hover:text-primary-700 font-medium"
-                                                >
-                                                    View
-                                                </Button>
+                                                <div className="flex items-center gap-2">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => handleViewTransfer(transfer.id)}
+                                                        className="text-primary-600 hover:text-primary-700 font-medium"
+                                                    >
+                                                        View
+                                                    </Button>
+                                                    {/* Edit button - only for pending transfers */}
+                                                    {transfer.status === 'pending' && user && user.permissions.includes('inventory:transfer') && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => handleEditTransfer(transfer.id)}
+                                                            className="text-blue-600 hover:text-blue-700 font-medium"
+                                                        >
+                                                            Edit
+                                                        </Button>
+                                                    )}
+                                                    {/* Delete button - only for pending transfers */}
+                                                    {transfer.status === 'pending' && user && user.permissions.includes('inventory:transfer') && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => handleDeleteTransfer(transfer.id)}
+                                                            className="text-red-600 hover:text-red-700 font-medium"
+                                                        >
+                                                            Delete
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
@@ -361,4 +415,4 @@ export default function TransfersPage() {
             </div>
         </MainLayout>
     );
-} 
+}
