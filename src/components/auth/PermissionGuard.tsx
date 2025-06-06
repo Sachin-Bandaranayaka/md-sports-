@@ -10,13 +10,13 @@ interface PermissionGuardProps {
 }
 
 export default function PermissionGuard({ children }: PermissionGuardProps) {
-    const { user, loading } = useAuth();
+    const { user, isLoading } = useAuth();
     const { checkRoutePermission } = usePermission();
     const router = useRouter();
 
     useEffect(() => {
         // If authentication is still loading, do nothing
-        if (loading) return;
+        if (isLoading) return;
 
         // Redirect to login if user is not authenticated
         if (!user) {
@@ -30,10 +30,10 @@ export default function PermissionGuard({ children }: PermissionGuardProps) {
             console.warn('Access denied: Insufficient permissions');
             router.push('/dashboard');
         }
-    }, [user, loading, router, checkRoutePermission]);
+    }, [user, isLoading, router, checkRoutePermission]);
 
     // Show nothing while checking authentication or permissions
-    if (loading || !user) {
+    if (isLoading || !user) {
         return (
             <div className="flex items-center justify-center min-h-screen">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -43,4 +43,4 @@ export default function PermissionGuard({ children }: PermissionGuardProps) {
 
     // Render children if user has necessary permissions
     return <>{children}</>;
-} 
+}
