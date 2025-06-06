@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        if (!userData.shop) {
+        if (!userData.shop || userData.shop === '' || userData.shop === 'undefined') {
             return NextResponse.json(
                 { success: false, message: 'Shop assignment is required' },
                 { status: 400 }
@@ -98,6 +98,21 @@ export async function POST(req: NextRequest) {
         if (!userData.permissions || userData.permissions.length === 0) {
             return NextResponse.json(
                 { success: false, message: 'At least one permission is required' },
+                { status: 400 }
+            );
+        }
+
+        // Validate shop ID (keep as string since it's a cuid)
+        const shopId = userData.shop;
+        
+        // Verify the shop exists in the database
+        const shopExists = await prisma.shop.findUnique({
+            where: { id: shopId }
+        });
+        
+        if (!shopExists) {
+            return NextResponse.json(
+                { success: false, message: 'Invalid shop ID provided - shop does not exist' },
                 { status: 400 }
             );
         }
@@ -112,7 +127,7 @@ export async function POST(req: NextRequest) {
             password: hashedPassword,
             roleId: null, // No role assignment needed
             roleName: null, // No role name needed
-            shopId: userData.shop ? parseInt(userData.shop) : null,
+            shopId: shopId,
             permissions: userData.permissions || [],
             isActive: true
         };

@@ -1,5 +1,7 @@
 'use client';
 
+import { useAuth } from '@/hooks/useAuth';
+
 // Types for our data
 interface Transfer {
     id: string;
@@ -15,6 +17,21 @@ interface DashboardTransfersProps {
 }
 
 export default function DashboardTransfers({ recentTransfers }: DashboardTransfersProps) {
+    const { user } = useAuth();
+
+    // Check if user has permission to view transfers
+    const hasTransferPermission = () => {
+        if (!user?.permissions) return false;
+        return user.permissions.some((permission: string) => 
+            permission.toLowerCase().includes('transfer') || 
+            permission.toLowerCase().includes('inventory')
+        );
+    };
+
+    // Don't render if user doesn't have permission
+    if (!hasTransferPermission()) {
+        return null;
+    }
     // Use provided data - no fallback to dummy data
     const transfersData = recentTransfers || [];
 

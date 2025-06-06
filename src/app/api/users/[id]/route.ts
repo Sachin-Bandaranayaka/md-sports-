@@ -33,9 +33,17 @@ export async function GET(
                 isActive: true,
                 roleId: true,
                 shopId: true,
+                roleName: true,
+                permissions: true,
                 createdAt: true,
                 updatedAt: true,
                 role: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
+                },
+                shop: {
                     select: {
                         id: true,
                         name: true
@@ -98,29 +106,80 @@ export async function PUT(
 
         const body = await req.json();
         const {
-            fullName,
+            name,
             email,
             phone,
             password,
             roleId,
-            shopId,
+            shop,
+            permissions,
             isActive
         } = body;
 
-        // Prepare update data
-        const updateData: any = {};
+        console.log('Received user update data:', body);
 
-        if (fullName !== undefined) updateData.name = fullName; // name field in Prisma
-        if (email !== undefined) updateData.email = email;
+        // Validation
+        if (!name) {
+            return NextResponse.json(
+                { success: false, message: 'Name is required' },
+                { status: 400 }
+            );
+        }
+
+        if (!email) {
+            return NextResponse.json(
+                { success: false, message: 'Email is required' },
+                { status: 400 }
+            );
+        }
+
+        if (!shop) {
+            return NextResponse.json(
+                { success: false, message: 'Shop assignment is required' },
+                { status: 400 }
+            );
+        }
+
+        if (!permissions || permissions.length === 0) {
+            return NextResponse.json(
+                { success: false, message: 'At least one permission is required' },
+                { status: 400 }
+            );
+        }
+
+        // Check if email is already taken by another user
+        const emailExists = await prisma.user.findFirst({
+            where: {
+                email: email,
+                id: { not: userId }
+            }
+        });
+
+        if (emailExists) {
+            return NextResponse.json(
+                { success: false, message: 'Email is already taken by another user' },
+                { status: 400 }
+            );
+        }
+
+        // Prepare update data
+        const updateData: any = {
+            name: name,
+            email: email,
+            shopId: shop ? parseInt(shop) : null,
+            permissions: permissions || [],
+        };
+
         if (phone !== undefined) updateData.phone = phone;
         if (roleId !== undefined) updateData.roleId = roleId;
-        if (shopId !== undefined) updateData.shopId = shopId;
         if (isActive !== undefined) updateData.isActive = isActive;
 
         // Hash password if provided
         if (password) {
             updateData.password = await bcrypt.hash(password, 12);
         }
+
+        console.log('Final user update data:', updateData);
 
         // Update user
         const updatedUser = await prisma.user.update({
@@ -134,9 +193,16 @@ export async function PUT(
                 isActive: true,
                 roleId: true,
                 shopId: true,
+                permissions: true,
                 createdAt: true,
                 updatedAt: true,
                 role: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
+                },
+                shop: {
                     select: {
                         id: true,
                         name: true
@@ -147,7 +213,8 @@ export async function PUT(
 
         return NextResponse.json({
             success: true,
-            user: updatedUser
+            message: 'User updated successfully',
+            data: updatedUser
         });
     } catch (error) {
         console.error(`Error updating user with ID ${params.id}:`, error);
@@ -207,4 +274,4 @@ export async function DELETE(
             { status: 500 }
         );
     }
-} 
+}

@@ -3,12 +3,64 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Search, Info, Users, Shield, BarChart3, Settings, Package, CreditCard } from 'lucide-react';
 
 interface Shop {
     id: string | number;
     name: string;
 }
+
+interface RoleTemplate {
+    id: string;
+    name: string;
+    description: string;
+    icon: React.ElementType;
+    permissions: string[];
+    color: string;
+}
+
+const roleTemplates: RoleTemplate[] = [
+    {
+        id: 'inventory_manager',
+        name: 'Inventory Manager',
+        description: 'Full access to inventory, transfers, and stock management',
+        icon: Package,
+        permissions: ['inventory:view', 'inventory:create', 'inventory:update', 'inventory:delete', 'inventory:manage', 'transfer:view', 'transfer:create', 'transfer:update'],
+        color: 'bg-blue-100 text-blue-800 border-blue-200'
+    },
+    {
+        id: 'sales_representative',
+        name: 'Sales Representative',
+        description: 'Access to sales, customers, and quotations',
+        icon: CreditCard,
+        permissions: ['sales:view', 'sales:create', 'sales:update', 'customer:view', 'customer:create', 'customer:update', 'quotation:view', 'quotation:create'],
+        color: 'bg-green-100 text-green-800 border-green-200'
+    },
+    {
+        id: 'accountant',
+        name: 'Accountant',
+        description: 'Financial management and reporting access',
+        icon: BarChart3,
+        permissions: ['accounting:view', 'accounting:manage', 'reports:view', 'reports:export', 'payment:view', 'payment:create'],
+        color: 'bg-purple-100 text-purple-800 border-purple-200'
+    },
+    {
+        id: 'admin',
+        name: 'Administrator',
+        description: 'Full system access including user management',
+        icon: Shield,
+        permissions: ['user:view', 'user:create', 'user:update', 'user:delete', 'role:view', 'role:create', 'settings:manage', 'audit:view'],
+        color: 'bg-red-100 text-red-800 border-red-200'
+    },
+    {
+        id: 'viewer',
+        name: 'Viewer',
+        description: 'Read-only access to basic information',
+        icon: Users,
+        permissions: ['dashboard:view', 'inventory:view', 'sales:view'],
+        color: 'bg-gray-100 text-gray-800 border-gray-200'
+    }
+];
 
 export default function AddUserPage() {
     const router = useRouter();
@@ -64,32 +116,111 @@ export default function AddUserPage() {
         fetchShops();
     }, []);
 
-    // Available permissions
-    const availablePermissions = [
-        { id: 'dashboard:view', name: 'View Dashboard', module: 'Dashboard' },
-        { id: 'dashboard:manage', name: 'Manage Dashboard', module: 'Dashboard' },
-        { id: 'inventory:view', name: 'View Inventory', module: 'Inventory' },
-        { id: 'inventory:manage', name: 'Manage Inventory', module: 'Inventory' },
-        { id: 'inventory:create', name: 'Create Items', module: 'Inventory' },
-        { id: 'inventory:update', name: 'Update Items', module: 'Inventory' },
-        { id: 'inventory:delete', name: 'Delete Items', module: 'Inventory' },
-        { id: 'inventory:transfer', name: 'Transfer Items', module: 'Inventory' },
-        { id: 'sales:view', name: 'View Sales', module: 'Sales' },
-        { id: 'sales:manage', name: 'Manage Sales', module: 'Sales' },
-        { id: 'sales:create', name: 'Create Sales', module: 'Sales' },
-        { id: 'sales:update', name: 'Update Sales', module: 'Sales' },
-        { id: 'sales:delete', name: 'Delete Sales', module: 'Sales' },
-        { id: 'user:view', name: 'View Users', module: 'Users' },
-        { id: 'user:manage', name: 'Manage Users', module: 'Users' },
-        { id: 'user:create', name: 'Create Users', module: 'Users' },
-        { id: 'user:update', name: 'Update Users', module: 'Users' },
-        { id: 'user:delete', name: 'Delete Users', module: 'Users' },
-        { id: 'settings:view', name: 'View Settings', module: 'Settings' },
-        { id: 'settings:manage', name: 'Manage Settings', module: 'Settings' }
-    ];
+    // Available permissions - fetched dynamically
+    const [availablePermissions, setAvailablePermissions] = useState<Array<{
+        id: string;
+        name: string;
+        module: string;
+        description?: string;
+    }>>([]);
+    const [permissionsLoading, setPermissionsLoading] = useState(true);
+    const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+    const [permissionSearch, setPermissionSearch] = useState('');
+    const [showAdvancedPermissions, setShowAdvancedPermissions] = useState(false);
+
+    // Fetch permissions from database
+    useEffect(() => {
+        const fetchPermissions = async () => {
+            setPermissionsLoading(true);
+            try {
+                const response = await fetch('/api/permissions', {
+                    headers: {
+                        'Authorization': 'Bearer dev-token',
+                    },
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to fetch permissions');
+                }
+                const data = await response.json();
+                if (data.success) {
+                    // Transform permissions to include module based on name prefix
+                    const transformedPermissions = data.data.map((permission: any) => {
+                        const [module, action] = permission.name.split(':');
+                        return {
+                            id: permission.id.toString(),
+                            name: permission.description || permission.name,
+                            module: module.charAt(0).toUpperCase() + module.slice(1),
+                            description: getPermissionDescription(permission.name)
+                        };
+                    });
+                    setAvailablePermissions(transformedPermissions);
+                } else {
+                    console.error('Failed to fetch permissions:', data.message);
+                    setAvailablePermissions([]);
+                }
+            } catch (error) {
+                console.error('Error fetching permissions:', error);
+                setAvailablePermissions([]);
+            } finally {
+                setPermissionsLoading(false);
+            }
+        };
+
+        fetchPermissions();
+    }, []);
+
+    // Permission descriptions helper
+    const getPermissionDescription = (permissionName: string): string => {
+        const descriptions: Record<string, string> = {
+            'inventory:view': 'View inventory items and stock levels',
+            'inventory:create': 'Add new inventory items',
+            'inventory:update': 'Edit existing inventory items',
+            'inventory:delete': 'Remove inventory items',
+            'inventory:manage': 'Full inventory management access',
+            'sales:view': 'View sales data and transactions',
+            'sales:create': 'Create new sales orders',
+            'sales:update': 'Edit existing sales orders',
+            'sales:manage': 'Full sales management access',
+            'user:view': 'View user accounts',
+            'user:create': 'Create new user accounts',
+            'user:update': 'Edit user accounts',
+            'user:delete': 'Delete user accounts',
+            'reports:view': 'View system reports',
+            'reports:export': 'Export reports to files',
+            'settings:manage': 'Manage system settings',
+            'dashboard:view': 'Access dashboard',
+        };
+        return descriptions[permissionName] || 'Permission access';
+    };
+
+    // Handle role template selection
+    const handleTemplateSelect = (templateId: string) => {
+        setSelectedTemplate(templateId);
+        const template = roleTemplates.find(t => t.id === templateId);
+        if (template) {
+            // Find permission IDs that match the template permission names
+            const templatePermissionIds = availablePermissions
+                .filter(p => {
+                    const permissionName = p.name.toLowerCase().replace(/\s+/g, ':');
+                    return template.permissions.some(tp => 
+                        permissionName.includes(tp.split(':')[0]) && 
+                        permissionName.includes(tp.split(':')[1])
+                    );
+                })
+                .map(p => p.id);
+            
+            setUserForm(prev => ({ ...prev, permissions: templatePermissionIds }));
+        }
+    };
+
+    // Filter permissions based on search
+    const filteredPermissions = availablePermissions.filter(permission =>
+        permission.name.toLowerCase().includes(permissionSearch.toLowerCase()) ||
+        permission.module.toLowerCase().includes(permissionSearch.toLowerCase())
+    );
 
     // Group permissions by module
-    const groupedPermissions = availablePermissions.reduce((acc, permission) => {
+    const groupedPermissions = filteredPermissions.reduce((acc, permission) => {
         const module = permission.module || 'Other';
         if (!acc[module]) {
             acc[module] = [];
@@ -262,47 +393,124 @@ export default function AddUserPage() {
                             </select>
                         </div>
 
+                        {/* Role Templates Section */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Permissions
+                            <label className="block text-sm font-medium text-gray-700 mb-3">
+                                Quick Setup with Role Templates
                             </label>
-                            <div className="border border-gray-300 rounded-lg p-4 max-h-60 overflow-y-auto">
-                                {Object.keys(groupedPermissions).map(module => (
-                                    <div key={module} className="mb-4">
-                                        <div className="flex items-center mb-2">
-                                            <input
-                                                type="checkbox"
-                                                id={`module-${module}`}
-                                                checked={isModuleSelected(module)}
-                                                className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-                                                onChange={(e) => handleModulePermissions(module, e.target.checked)}
-                                            />
-                                            <label
-                                                htmlFor={`module-${module}`}
-                                                className={`ml-2 text-sm font-medium ${isModulePartiallySelected(module) ? 'text-gray-500' : 'text-gray-700'
-                                                    }`}
-                                            >
-                                                {module}
-                                            </label>
-                                        </div>
-                                        <div className="ml-6 grid grid-cols-1 md:grid-cols-2 gap-2">
-                                            {groupedPermissions[module].map(permission => (
-                                                <div key={permission.id} className="flex items-center">
-                                                    <input
-                                                        type="checkbox"
-                                                        id={permission.id}
-                                                        checked={userForm.permissions.includes(permission.id)}
-                                                        onChange={() => handlePermissionChange(permission.id)}
-                                                        className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-                                                    />
-                                                    <label htmlFor={permission.id} className="ml-2 text-sm text-gray-600">
-                                                        {permission.name}
-                                                    </label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+                                {roleTemplates.map(template => {
+                                    const IconComponent = template.icon;
+                                    return (
+                                        <div
+                                            key={template.id}
+                                            className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                                                selectedTemplate === template.id
+                                                    ? template.color + ' border-current'
+                                                    : 'border-gray-200 hover:border-gray-300'
+                                            }`}
+                                            onClick={() => handleTemplateSelect(template.id)}
+                                        >
+                                            <div className="flex items-start space-x-2">
+                                                <IconComponent className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="text-sm font-medium truncate">{template.name}</h4>
+                                                    <p className="text-xs text-gray-600 mt-1">{template.description}</p>
                                                 </div>
-                                            ))}
+                                            </div>
                                         </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        <div>
+                            <div className="flex items-center justify-between mb-3">
+                                <label className="block text-sm font-medium text-gray-700">
+                                    Permissions
+                                </label>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAdvancedPermissions(!showAdvancedPermissions)}
+                                    className="text-sm text-primary hover:text-primary-dark"
+                                >
+                                    {showAdvancedPermissions ? 'Hide Advanced' : 'Show Advanced'}
+                                </button>
+                            </div>
+                            
+                            {/* Permission Search */}
+                            <div className="relative mb-3">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Search permissions..."
+                                    value={permissionSearch}
+                                    onChange={(e) => setPermissionSearch(e.target.value)}
+                                    className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-primary focus:border-primary text-sm"
+                                />
+                            </div>
+
+                            <div className="border border-gray-300 rounded-lg p-4 max-h-80 overflow-y-auto">
+                                {permissionsLoading ? (
+                                    <div className="flex items-center justify-center py-4">
+                                        <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                                        <span className="text-sm text-gray-500">Loading permissions...</span>
                                     </div>
-                                ))}
+                                ) : Object.keys(groupedPermissions).length === 0 ? (
+                                    <div className="text-center py-4">
+                                        <span className="text-sm text-gray-500">No permissions available</span>
+                                    </div>
+                                ) : (
+                                    Object.keys(groupedPermissions).map(module => (
+                                        <div key={module} className="mb-4">
+                                            <div className="flex items-center mb-2">
+                                                <input
+                                                    type="checkbox"
+                                                    id={`module-${module}`}
+                                                    checked={isModuleSelected(module)}
+                                                    className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                                                    onChange={(e) => handleModulePermissions(module, e.target.checked)}
+                                                />
+                                                <label
+                                                    htmlFor={`module-${module}`}
+                                                    className={`ml-2 text-sm font-medium ${isModulePartiallySelected(module) ? 'text-gray-500' : 'text-gray-700'
+                                                        }`}
+                                                >
+                                                    {module}
+                                                </label>
+                                            </div>
+                                            <div className="ml-6 grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                {groupedPermissions[module].map(permission => (
+                                                    <div key={permission.id} className="flex items-start space-x-2 group">
+                                                        <input
+                                                            type="checkbox"
+                                                            id={permission.id}
+                                                            checked={userForm.permissions.includes(permission.id)}
+                                                            onChange={() => handlePermissionChange(permission.id)}
+                                                            className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5"
+                                                        />
+                                                        <div className="flex-1 min-w-0">
+                                                            <label htmlFor={permission.id} className="text-sm text-gray-600 cursor-pointer">
+                                                                {permission.name}
+                                                            </label>
+                                                            {showAdvancedPermissions && permission.description && (
+                                                                <p className="text-xs text-gray-500 mt-1">{permission.description}</p>
+                                                            )}
+                                                        </div>
+                                                        {permission.description && (
+                                                            <div className="relative group">
+                                                                <Info className="h-3 w-3 text-gray-400 cursor-help" />
+                                                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                                                                    {permission.description}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </div>
 

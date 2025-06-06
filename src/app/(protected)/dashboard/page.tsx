@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
-import { Loader2, Calendar } from 'lucide-react';
+import { Loader2, Calendar, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import DashboardMetrics from './components/DashboardMetrics';
@@ -157,13 +157,62 @@ export default function DashboardPage() {
         );
     }
 
+    // Helper function to check permissions
+    const hasPermission = (permission: string) => {
+        if (!user?.permissions) return false;
+        return user.permissions.some((p: string) => 
+            p.toLowerCase().includes(permission.toLowerCase())
+        );
+    };
+
+    // Get user's accessible modules
+    const getAccessibleModules = () => {
+        const modules = [];
+        if (hasPermission('inventory')) modules.push('Inventory');
+        if (hasPermission('sales')) modules.push('Sales');
+        if (hasPermission('accounting')) modules.push('Accounting');
+        if (hasPermission('reports')) modules.push('Reports');
+        if (hasPermission('user')) modules.push('User Management');
+        return modules;
+    };
+
     // Show dashboard if data is loaded
     if (dashboardData) {
+        const accessibleModules = getAccessibleModules();
+        
         return (
             <div className="space-y-6">
+                {/* Welcome Section */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-100">
+                    <div className="flex items-start justify-between">
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                                Welcome back, {user?.name || 'User'}!
+                            </h1>
+                            <p className="text-gray-600 mb-3">
+                                You have access to {accessibleModules.length} module{accessibleModules.length !== 1 ? 's' : ''}: {accessibleModules.join(', ')}
+                            </p>
+                            <div className="flex items-center space-x-4 text-sm">
+                                <div className="flex items-center text-green-600">
+                                    <CheckCircle className="h-4 w-4 mr-1" />
+                                    <span>System Online</span>
+                                </div>
+                                <div className="flex items-center text-blue-600">
+                                    <TrendingUp className="h-4 w-4 mr-1" />
+                                    <span>Data Updated</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-sm text-gray-500">Last login</p>
+                            <p className="text-sm font-medium text-gray-900">{new Date().toLocaleDateString()}</p>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Header with date range filters and refresh button */}
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                    <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+                    <h2 className="text-xl font-semibold text-gray-900">Analytics Overview</h2>
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                         {/* Quick Date Range Presets */}
                         <div className="flex items-center gap-2">
@@ -231,6 +280,39 @@ export default function DashboardPage() {
                 }>
                     <DashboardMetrics summaryData={dashboardData.summaryData} />
                     <DashboardTransfers recentTransfers={dashboardData.recentTransfers} />
+                    
+                    {/* Permission-based Quick Actions */}
+                    {accessibleModules.length > 0 && (
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                            <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                {hasPermission('inventory') && (
+                                    <button className="p-4 text-left border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors">
+                                        <div className="text-blue-600 font-medium">Add Inventory</div>
+                                        <div className="text-sm text-gray-500 mt-1">Create new inventory items</div>
+                                    </button>
+                                )}
+                                {hasPermission('transfer') && (
+                                    <button className="p-4 text-left border border-gray-200 rounded-lg hover:border-green-300 hover:bg-green-50 transition-colors">
+                                        <div className="text-green-600 font-medium">New Transfer</div>
+                                        <div className="text-sm text-gray-500 mt-1">Transfer items between shops</div>
+                                    </button>
+                                )}
+                                {hasPermission('sales') && (
+                                    <button className="p-4 text-left border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors">
+                                        <div className="text-purple-600 font-medium">Create Sale</div>
+                                        <div className="text-sm text-gray-500 mt-1">Process new sales order</div>
+                                    </button>
+                                )}
+                                {hasPermission('reports') && (
+                                    <button className="p-4 text-left border border-gray-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-colors">
+                                        <div className="text-orange-600 font-medium">View Reports</div>
+                                        <div className="text-sm text-gray-500 mt-1">Generate business reports</div>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </Suspense>
             </div>
         );
