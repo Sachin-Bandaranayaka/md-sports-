@@ -263,11 +263,15 @@ model Payment {
   amount          Float
   paymentMethod   String
   referenceNumber String?
+  accountId       Int?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   customer        Customer? @relation(fields: [customerId], references: [id])
   invoice         Invoice  @relation(fields: [invoiceId], references: [id])
+  account         Account? @relation(fields: [accountId], references: [id])
   receipt         Receipt?
+
+  @@index([accountId])
 }
 
 model Receipt {
@@ -292,7 +296,6 @@ model Quotation {
   quotationNumber String          @unique
   customerId      Int
   total           Float
-  status          String
   validUntil      DateTime?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
@@ -378,10 +381,16 @@ model Account {
   balance        Decimal       @default(0) @db.Decimal(15, 2)
   description    String?
   isActive       Boolean       @default(true)
+  parentId       Int?
   createdAt      DateTime      @default(now()) @db.Timestamp(6)
   updatedAt      DateTime      @default(now()) @updatedAt @db.Timestamp(6)
+  parent         Account?      @relation("AccountSubAccounts", fields: [parentId], references: [id])
+  subAccounts    Account[]     @relation("AccountSubAccounts")
+  payments       Payment[]
   transactions   Transaction[] @relation("AccountTransactions")
   toTransactions Transaction[] @relation("ToAccountTransactions")
+
+  @@index([parentId])
 }
 
 model Transaction {

@@ -11,9 +11,8 @@ import { authGet, authPatch } from '@/utils/api';
 
 export default function EditAccount({ params }: { params: { id: string } }) {
     const router = useRouter();
-    // Unwrap params using React.use()
-    const unwrappedParams = React.use(params);
-    const { id } = unwrappedParams;
+    // Extract id directly from params
+    const { id } = params;
 
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -21,7 +20,7 @@ export default function EditAccount({ params }: { params: { id: string } }) {
 
     // Form state
     const [name, setName] = useState('');
-    const [type, setType] = useState<Account['type']>('asset');
+    const [type, setType] = useState<Account['type']>('income');
     const [balance, setBalance] = useState('');
     const [description, setDescription] = useState('');
     const [isActive, setIsActive] = useState(true);
@@ -169,28 +168,7 @@ export default function EditAccount({ params }: { params: { id: string } }) {
                             <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Account Type
                             </label>
-                            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                                <button
-                                    type="button"
-                                    className={`px-3 py-2 text-sm rounded-md ${type === 'asset' ? 'bg-blue-100 text-blue-800 border border-blue-300' : 'bg-gray-100 text-gray-800 border border-gray-200'}`}
-                                    onClick={() => setType('asset')}
-                                >
-                                    Asset
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`px-3 py-2 text-sm rounded-md ${type === 'liability' ? 'bg-red-100 text-red-800 border border-red-300' : 'bg-gray-100 text-gray-800 border border-gray-200'}`}
-                                    onClick={() => setType('liability')}
-                                >
-                                    Liability
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`px-3 py-2 text-sm rounded-md ${type === 'equity' ? 'bg-purple-100 text-purple-800 border border-purple-300' : 'bg-gray-100 text-gray-800 border border-gray-200'}`}
-                                    onClick={() => setType('equity')}
-                                >
-                                    Equity
-                                </button>
+                            <div className="grid grid-cols-2 gap-3">
                                 <button
                                     type="button"
                                     className={`px-3 py-2 text-sm rounded-md ${type === 'income' ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-gray-100 text-gray-800 border border-gray-200'}`}
@@ -282,4 +260,4 @@ export default function EditAccount({ params }: { params: { id: string } }) {
             </div>
         </MainLayout>
     );
-} 
+}

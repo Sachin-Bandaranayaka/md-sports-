@@ -165,6 +165,10 @@ function AccountingContent() {
         router.push('/accounting/add-account');
     };
 
+    const handleAddSubAccount = (parentId: string) => {
+        router.push(`/accounting/add-account?parentId=${parentId}`);
+    };
+
     const handleDeleteTransaction = async (id: string | number) => {
         if (confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) {
             try {
@@ -732,30 +736,42 @@ function AccountingContent() {
                                                 whileHover={{ backgroundColor: "rgba(249, 250, 251, 0.8)" }}
                                             >
                                                 <td className="px-6 py-4 font-medium text-gray-900">
-                                                    <span
-                                                        onClick={() => router.push(`/accounting/account/${account.id}`)}
-                                                        className="hover:underline hover:text-blue-600 cursor-pointer transition-colors duration-200"
-                                                    >
-                                                        {account.name}
-                                                    </span>
+                                                    <div className="flex items-center">
+                                                        {account.parentId && (
+                                                            <span className="mr-2 text-gray-400">└─</span>
+                                                        )}
+                                                        <span
+                                                            onClick={() => router.push(`/accounting/account/${account.id}`)}
+                                                            className="hover:underline hover:text-blue-600 cursor-pointer transition-colors duration-200"
+                                                        >
+                                                            {account.name}
+                                                        </span>
+                                                        {account.parentId && account.parent && (
+                                                            <span className="ml-2 text-xs text-gray-500">
+                                                                (under {account.parent.name})
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${account.type === 'asset'
-                                                        ? 'bg-blue-100 text-blue-800'
-                                                        : account.type === 'liability'
-                                                            ? 'bg-red-100 text-red-800'
-                                                            : account.type === 'equity'
-                                                                ? 'bg-purple-100 text-purple-800'
-                                                                : account.type === 'income'
-                                                                    ? 'bg-green-100 text-green-800'
-                                                                    : 'bg-orange-100 text-orange-800'
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                        account.type === 'asset'
+                                                            ? 'bg-blue-100 text-blue-800'
+                                                            : account.type === 'liability'
+                                                                ? 'bg-red-100 text-red-800'
+                                                                : account.type === 'equity'
+                                                                    ? 'bg-purple-100 text-purple-800'
+                                                                    : account.type === 'income'
+                                                                        ? 'bg-green-100 text-green-800'
+                                                                        : 'bg-orange-100 text-orange-800'
                                                         }`}>
                                                         {account.type.charAt(0).toUpperCase() + account.type.slice(1)}
                                                     </span>
                                                 </td>
-                                                <td className={`px-6 py-4 font-medium ${['income', 'asset'].includes(account.type)
-                                                    ? 'text-green-600'
-                                                    : 'text-red-600'
+                                                <td className={`px-6 py-4 font-medium ${
+                                                    ['income', 'asset'].includes(account.type)
+                                                        ? 'text-green-600'
+                                                        : 'text-red-600'
                                                     }`}>
                                                     Rs. {Number(account.balance).toLocaleString()}
                                                 </td>
@@ -763,9 +779,10 @@ function AccountingContent() {
                                                     {account.description || '—'}
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${account.isActive
-                                                        ? 'bg-green-100 text-green-800'
-                                                        : 'bg-red-100 text-red-800'
+                                                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                                                        account.isActive
+                                                            ? 'bg-green-100 text-green-800'
+                                                            : 'bg-red-100 text-red-800'
                                                         }`}>
                                                         {account.isActive ? 'Active' : 'Inactive'}
                                                     </span>
@@ -790,6 +807,17 @@ function AccountingContent() {
                                                         >
                                                             <Edit className="w-4 h-4" />
                                                         </motion.button>
+                                                        {!account.parentId && (
+                                                            <motion.button
+                                                                className="text-purple-500 hover:text-purple-700 transition-colors duration-200"
+                                                                title="Add Sub-Account"
+                                                                onClick={() => handleAddSubAccount(account.id)}
+                                                                whileHover={{ scale: 1.2 }}
+                                                                whileTap={{ scale: 0.9 }}
+                                                            >
+                                                                <Plus className="w-4 h-4" />
+                                                            </motion.button>
+                                                        )}
                                                         <motion.button
                                                             className={`${account.isActive ? 'text-red-500 hover:text-red-700' : 'text-green-500 hover:text-green-700'} transition-colors duration-200`}
                                                             title={account.isActive ? 'Deactivate' : 'Activate'}

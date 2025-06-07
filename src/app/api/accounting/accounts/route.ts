@@ -8,10 +8,18 @@ export async function GET(request: Request) {
         const id = searchParams.get('id');
 
         if (id) {
-            // Fetch a single account by ID
-            const account = await prisma.account.findUnique({
-                where: { id: parseInt(id, 10) }
-            });
+            // Fetch a single account by ID with relationships
+        const account = await prisma.account.findUnique({
+            where: { id: parseInt(id, 10) },
+            include: {
+                parent: true,
+                subAccounts: {
+                    orderBy: {
+                        name: 'asc'
+                    }
+                }
+            }
+        });
 
             if (!account) {
                 return NextResponse.json({
@@ -26,8 +34,16 @@ export async function GET(request: Request) {
             });
         }
 
-        // Fetch all accounts
+        // Fetch all accounts with parent and sub-account relationships
         const accounts = await prisma.account.findMany({
+            include: {
+                parent: true,
+                subAccounts: {
+                    orderBy: {
+                        name: 'asc'
+                    }
+                }
+            },
             orderBy: {
                 name: 'asc'
             }
@@ -50,7 +66,7 @@ export async function GET(request: Request) {
 // POST: Create a new account
 export async function POST(request: Request) {
     try {
-        const { name, type, balance, description, isActive } = await request.json();
+        const { name, type, balance, description, isActive, parentId } = await request.json();
 
         // Validate required fields
         if (!name || !type) {
@@ -69,6 +85,28 @@ export async function POST(request: Request) {
             }, { status: 400 });
         }
 
+        // Validate parent account if parentId is provided
+        if (parentId) {
+            const parentAccount = await prisma.account.findUnique({
+                where: { id: parseInt(parentId, 10) }
+            });
+
+            if (!parentAccount) {
+                return NextResponse.json({
+                    success: false,
+                    message: 'Parent account not found'
+                }, { status: 400 });
+            }
+
+            // Ensure parent and child have compatible types
+            if (parentAccount.type !== type) {
+                return NextResponse.json({
+                    success: false,
+                    message: 'Sub-account type must match parent account type'
+                }, { status: 400 });
+            }
+        }
+
         // Create the account
         const newAccount = await prisma.account.create({
             data: {
@@ -76,7 +114,12 @@ export async function POST(request: Request) {
                 type,
                 balance: balance || 0,
                 description,
-                isActive: isActive !== undefined ? isActive : true
+                isActive: isActive !== undefined ? isActive : true,
+                parentId: parentId ? parseInt(parentId, 10) : null
+            },
+            include: {
+                parent: true,
+                subAccounts: true
             }
         });
 
@@ -98,7 +141,7 @@ export async function POST(request: Request) {
 // PATCH: Update an account
 export async function PATCH(request: Request) {
     try {
-        const { id, name, type, balance, description, isActive } = await request.json();
+        const { id, name, type, balance, description, isActive, parentId } = await request.json();
 
         // Validate required fields
         if (!id || !name || !type) {
@@ -133,6 +176,36 @@ export async function PATCH(request: Request) {
         const originalBalance = existingAccount.balance;
         const newBalance = balance !== undefined ? parseFloat(balance.toString()) : originalBalance;
 
+        // Validate parent account if parentId is provided
+        if (parentId) {
+            const parentAccount = await prisma.account.findUnique({
+                where: { id: parseInt(parentId, 10) }
+            });
+
+            if (!parentAccount) {
+                return NextResponse.json({
+                    success: false,
+                    message: 'Parent account not found'
+                }, { status: 400 });
+            }
+
+            // Ensure parent and child have compatible types
+            if (parentAccount.type !== type) {
+                return NextResponse.json({
+                    success: false,
+                    message: 'Sub-account type must match parent account type'
+                }, { status: 400 });
+            }
+
+            // Prevent circular references
+            if (parseInt(parentId, 10) === parseInt(id, 10)) {
+                return NextResponse.json({
+                    success: false,
+                    message: 'Account cannot be its own parent'
+                }, { status: 400 });
+            }
+        }
+
         // Update the account
         const updatedAccount = await prisma.account.update({
             where: { id: parseInt(id, 10) },
@@ -141,7 +214,12 @@ export async function PATCH(request: Request) {
                 type,
                 balance: newBalance,
                 description,
-                isActive: isActive !== undefined ? isActive : existingAccount.isActive
+                isActive: isActive !== undefined ? isActive : existingAccount.isActive,
+                parentId: parentId ? parseInt(parentId, 10) : null
+            },
+            include: {
+                parent: true,
+                subAccounts: true
             }
         });
 

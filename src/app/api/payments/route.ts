@@ -34,6 +34,7 @@ export async function POST(request: Request) {
                 customerId: paymentData.customerId,
                 amount: paymentData.amount,
                 paymentMethod: paymentData.paymentMethod,
+                accountId: paymentData.accountId || null,
                 referenceNumber: paymentData.referenceNumber || null,
             }
         });
@@ -73,11 +74,12 @@ export async function POST(request: Request) {
 
 export async function GET() {
     try {
-        // Fetch all payments with related invoice and customer info
+        // Fetch all payments with related invoice, customer, and account info
         const payments = await prisma.payment.findMany({
             include: {
                 invoice: true,
-                customer: true
+                customer: true,
+                account: true
             },
             orderBy: {
                 createdAt: 'desc'
@@ -96,4 +98,4 @@ export async function GET() {
             { status: 500 }
         );
     }
-} 
+}

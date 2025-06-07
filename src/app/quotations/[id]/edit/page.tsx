@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { ArrowLeft, Plus, Trash } from 'lucide-react';
-import { SalesQuotation, QuotationItem } from '@/types';
+import { ArrowLeft, Plus, Trash, Search } from 'lucide-react';
+import { SalesQuotation, QuotationItem, Product } from '@/types';
 
 export default function EditQuotation() {
     const router = useRouter();
@@ -13,9 +13,15 @@ export default function EditQuotation() {
     const quotationId = params.id as string;
 
     const [customers, setCustomers] = useState<any[]>([]);
-    const [products, setProducts] = useState<any[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+
+    // Add state for product search functionality
+    const [productSearches, setProductSearches] = useState<string[]>([]);
+    const [showProductDropdowns, setShowProductDropdowns] = useState<boolean[]>([]);
+    const [filteredProducts, setFilteredProducts] = useState<Product[][]>([]);
+    const productDropdownRefs = useRef<(HTMLDivElement | null)[]>([]);
 
     // Initialize form with empty quotation
     const [formData, setFormData] = useState<Partial<SalesQuotation>>({
@@ -33,6 +39,42 @@ export default function EditQuotation() {
 
     // Initialize items state
     const [items, setItems] = useState<Partial<QuotationItem>[]>([]);
+
+    // Initialize product search arrays when items change
+    useEffect(() => {
+        const newProductSearches = items.map((item, index) => {
+            const existingSearch = productSearches[index];
+            if (existingSearch && existingSearch !== '') {
+                return existingSearch;
+            }
+            return item.productName || '';
+        });
+        
+        const newShowProductDropdowns = new Array(items.length).fill(false);
+        const newFilteredProducts = new Array(items.length).fill([]);
+        
+        setProductSearches(newProductSearches);
+        setShowProductDropdowns(newShowProductDropdowns);
+        setFilteredProducts(newFilteredProducts);
+    }, [items.length]);
+
+    // Handle click outside to close product dropdowns
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            productDropdownRefs.current.forEach((ref, index) => {
+                if (ref && !ref.contains(event.target as Node)) {
+                    const newShowProductDropdowns = [...showProductDropdowns];
+                    newShowProductDropdowns[index] = false;
+                    setShowProductDropdowns(newShowProductDropdowns);
+                }
+            });
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showProductDropdowns]);
 
     // Fetch quotation, customers and products
     useEffect(() => {
@@ -93,28 +135,68 @@ export default function EditQuotation() {
         }
     };
 
+    // Handle product search input change
+    const handleProductSearchChange = (index: number, value: string) => {
+        const newProductSearches = [...productSearches];
+        newProductSearches[index] = value;
+        setProductSearches(newProductSearches);
+        
+        // Filter products based on search
+        const filtered = products.filter(product => 
+            product.name.toLowerCase().includes(value.toLowerCase()) ||
+            product.code?.toLowerCase().includes(value.toLowerCase())
+        );
+        
+        const newFilteredProducts = [...filteredProducts];
+        newFilteredProducts[index] = filtered;
+        setFilteredProducts(newFilteredProducts);
+        
+        // Show dropdown if there's input
+        const newShowProductDropdowns = [...showProductDropdowns];
+        newShowProductDropdowns[index] = value.length > 0;
+        setShowProductDropdowns(newShowProductDropdowns);
+    };
+
+    // Handle product selection from dropdown
+    const handleProductSelect = (index: number, product: Product) => {
+        const newProductSearches = [...productSearches];
+        newProductSearches[index] = product.name;
+        setProductSearches(newProductSearches);
+        
+        const newShowProductDropdowns = [...showProductDropdowns];
+        newShowProductDropdowns[index] = false;
+        setShowProductDropdowns(newShowProductDropdowns);
+        
+        // Update the item with selected product
+        const updatedItems = [...items];
+        updatedItems[index] = {
+            ...updatedItems[index],
+            productId: product.id,
+            productName: product.name,
+            unitPrice: product.retailPrice || product.price || 0
+        };
+        
+        // Recalculate total for this item
+        const quantity = Number(updatedItems[index].quantity) || 0;
+        const unitPrice = Number(updatedItems[index].unitPrice) || 0;
+        updatedItems[index].total = quantity * unitPrice;
+        
+        setItems(updatedItems);
+        updateTotals(updatedItems);
+    };
+
     // Handle item field changes
     const handleItemChange = (index: number, e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         const updatedItems = [...items];
 
-        if (name === 'productId') {
-            const selectedProduct = products.find(product => product.id === value);
-            updatedItems[index] = {
-                ...updatedItems[index],
-                productId: value,
-                productName: selectedProduct?.name || '',
-                unitPrice: selectedProduct?.retailPrice || 0
-            };
-        } else {
-            updatedItems[index] = {
-                ...updatedItems[index],
-                [name]: value
-            };
-        }
+        updatedItems[index] = {
+            ...updatedItems[index],
+            [name]: value
+        };
 
         // Recalculate total for this item
-        if (name === 'quantity' || name === 'unitPrice' || name === 'productId') {
+        if (name === 'quantity' || name === 'unitPrice') {
             const quantity = Number(updatedItems[index].quantity) || 0;
             const unitPrice = Number(updatedItems[index].unitPrice) || 0;
             updatedItems[index].total = quantity * unitPrice;
@@ -366,20 +448,38 @@ export default function EditQuotation() {
                                         {items.map((item, index) => (
                                             <tr key={index} className="border-b">
                                                 <td className="p-3">
-                                                    <select
-                                                        name="productId"
-                                                        value={item.productId || ''}
-                                                        onChange={(e) => handleItemChange(index, e)}
-                                                        className="w-full px-2 py-1 border border-gray-300 rounded-md"
-                                                        required
-                                                    >
-                                                        <option value="">Select a product</option>
-                                                        {products.map((product) => (
-                                                            <option key={product.id} value={product.id}>
-                                                                {product.name}
-                                                            </option>
-                                                        ))}
-                                                    </select>
+                                                    <div className="relative" ref={el => productDropdownRefs.current[index] = el}>
+                                                        <div className="relative">
+                                                            <input
+                                                                type="text"
+                                                                value={productSearches[index] || ''}
+                                                                onChange={(e) => handleProductSearchChange(index, e.target.value)}
+                                                                placeholder="Search products..."
+                                                                className="w-full px-2 py-1 pr-8 border border-gray-300 rounded-md"
+                                                                required
+                                                            />
+                                                            <Search className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                                        </div>
+                                                        {showProductDropdowns[index] && filteredProducts[index] && filteredProducts[index].length > 0 && (
+                                                            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                                                {filteredProducts[index].map((product) => (
+                                                                    <div
+                                                                        key={product.id}
+                                                                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                                                                        onClick={() => handleProductSelect(index, product)}
+                                                                    >
+                                                                        <div className="font-medium">{product.name}</div>
+                                                                        {product.code && (
+                                                                            <div className="text-sm text-gray-500">{product.code}</div>
+                                                                        )}
+                                                                        <div className="text-sm text-gray-600">
+                                                                            ${(product.retailPrice || product.price || 0).toFixed(2)}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 <td className="p-3">
                                                     <input

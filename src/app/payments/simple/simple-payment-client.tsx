@@ -15,11 +15,13 @@ export function SimplePaymentClientForm() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [invoice, setInvoice] = useState<any>(null);
+    const [accounts, setAccounts] = useState<any[]>([]);
     const [error, setError] = useState<string | null>(null);
 
     const [paymentData, setPaymentData] = useState({
         amount: '',
         paymentMethod: 'Cash',
+        accountId: '',
         referenceNumber: '',
         receiptDate: new Date().toISOString().split('T')[0],
         bankName: '',
@@ -36,32 +38,47 @@ export function SimplePaymentClientForm() {
             return;
         }
 
-        async function fetchInvoice() {
+        async function fetchData() {
             try {
-                const response = await fetch(`/api/invoices/${invoiceId}`);
-                if (!response.ok) throw new Error('Failed to fetch invoice');
+                // Fetch invoice and accounts in parallel
+                const [invoiceResponse, accountsResponse] = await Promise.all([
+                    fetch(`/api/invoices/${invoiceId}`),
+                    fetch('/api/accounting/accounts')
+                ]);
 
-                const data = await response.json();
-                setInvoice(data);
+                if (!invoiceResponse.ok) throw new Error('Failed to fetch invoice');
+                if (!accountsResponse.ok) throw new Error('Failed to fetch accounts');
+
+                const invoiceData = await invoiceResponse.json();
+                const accountsData = await accountsResponse.json();
+
+                setInvoice(invoiceData);
+                setAccounts(accountsData.data || []);
 
                 // Calculate remaining amount
-                const totalPaid = data.payments?.reduce((sum, p) => sum + p.amount, 0) || 0;
-                const remainingAmount = data.total - totalPaid;
+                const totalPaid = invoiceData.payments?.reduce((sum, p) => sum + p.amount, 0) || 0;
+                const remainingAmount = invoiceData.total - totalPaid;
+
+                // Find default cash account
+                const cashAccount = accountsData.data?.find(acc => 
+                    acc.name.toLowerCase().includes('cash') && (acc.type === 'asset' || acc.type === 'income')
+                );
 
                 setPaymentData(prev => ({
                     ...prev,
-                    amount: remainingAmount > 0 ? remainingAmount.toString() : data.total.toString()
+                    amount: remainingAmount > 0 ? remainingAmount.toString() : invoiceData.total.toString(),
+                    accountId: cashAccount ? cashAccount.id.toString() : ''
                 }));
 
                 setIsLoading(false);
             } catch (err) {
                 console.error('Error:', err);
-                setError('Failed to load invoice');
+                setError('Failed to load data');
                 setIsLoading(false);
             }
         }
 
-        fetchInvoice();
+        fetchData();
     }, [invoiceId]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -86,6 +103,7 @@ export function SimplePaymentClientForm() {
                     customerId: invoice.customerId,
                     amount: parseFloat(paymentData.amount),
                     paymentMethod: paymentData.paymentMethod,
+                    accountId: paymentData.accountId ? parseInt(paymentData.accountId) : null,
                     referenceNumber: paymentData.referenceNumber || null,
                 }),
             });
@@ -220,6 +238,30 @@ export function SimplePaymentClientForm() {
                                 <option value="Cheque">Cheque</option>
                                 <option value="Other">Other</option>
                             </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-black mb-1">Account</label>
+                            <select
+                                name="accountId"
+                                value={paymentData.accountId}
+                                onChange={handleInputChange}
+                                className="w-full p-3 border border-gray-300 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 text-black bg-white"
+                                required
+                            >
+                                <option value="">Select an account</option>
+                                {accounts
+                                    .filter(account => account.isActive && (account.type === 'asset' || account.type === 'income'))
+                                    .map(account => (
+                                        <option key={account.id} value={account.id}>
+                                            {account.name} {account.parent ? `(${account.parent.name})` : ''}
+                                        </option>
+                                    ))
+                                }
+                            </select>
+                            <p className="text-xs text-gray-500 mt-1">
+                                Select the account where this payment will be recorded
+                            </p>
                         </div>
 
                         <div>

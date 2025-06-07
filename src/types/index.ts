@@ -130,6 +130,9 @@ export interface Account {
     balance: number | string;
     description?: string;
     isActive: boolean;
+    parentId?: string | number | null;
+    parent?: Account | null;
+    subAccounts?: Account[];
     createdAt: string | Date;
     updatedAt?: string | Date;
-} 
+}
