@@ -89,7 +89,22 @@ export default function EditTransferPage({ params }: { params: { id: string } })
                 // Set form values
                 setSourceShopId(transferInfo.source_shop_id.toString());
                 setDestinationShopId(transferInfo.destination_shop_id.toString());
-                setTransferItems(transferInfo.items || []);
+                
+                // Transform API items to match expected format
+                const transformedItems = (transferInfo.items || []).map(item => ({
+                    id: item.id,
+                    productId: item.product_id,
+                    product: {
+                        id: item.product_id,
+                        name: item.product_name,
+                        sku: item.sku,
+                        price: item.price,
+                        available_quantity: 0 // Will be updated when products are fetched
+                    },
+                    quantity: item.quantity,
+                    notes: item.notes || ''
+                }));
+                setTransferItems(transformedItems);
 
                 // Fetch shops
                 const shopsResponse = await authFetch('/api/shops');
@@ -107,6 +122,23 @@ export default function EditTransferPage({ params }: { params: { id: string } })
                         if (productsData.success) {
                             setProducts(productsData.data);
                             setFilteredProducts(productsData.data);
+                            
+                            // Update available quantities in transfer items
+                            setTransferItems(prevItems => 
+                                prevItems.map(item => {
+                                    const product = productsData.data.find(p => p.id === item.productId);
+                                    if (product) {
+                                        return {
+                                            ...item,
+                                            product: {
+                                                ...item.product,
+                                                available_quantity: product.available_quantity || 0
+                                            }
+                                        };
+                                    }
+                                    return item;
+                                })
+                            );
                         }
                     }
                 }

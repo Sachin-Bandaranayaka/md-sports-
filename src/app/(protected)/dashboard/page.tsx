@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import DashboardMetrics from './components/DashboardMetrics';
 import DashboardTransfers from './components/DashboardTransfers';
+import ShopWiseMetrics from './components/ShopWiseMetrics';
 
 // Simple dashboard without dual modes or complex optimizations
 export default function DashboardPage() {
@@ -22,6 +23,7 @@ export default function DashboardPage() {
     const [endDate, setEndDate] = useState<string>(() => {
         return new Date().toISOString().split('T')[0]; // Default to today
     });
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     // Redirect if not authenticated
     useEffect(() => {
@@ -72,6 +74,9 @@ export default function DashboardPage() {
                 summaryData: result.summaryData,
                 recentTransfers: result.recentTransfers,
             });
+            
+            // Trigger refresh for shop-wise metrics
+            setRefreshTrigger(prev => prev + 1);
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
             setError(error instanceof Error ? error.message : 'Failed to load dashboard data');
@@ -279,6 +284,11 @@ export default function DashboardPage() {
                     </div>
                 }>
                     <DashboardMetrics summaryData={dashboardData.summaryData} />
+                    <ShopWiseMetrics 
+                        startDate={startDate} 
+                        endDate={endDate} 
+                        refreshTrigger={refreshTrigger} 
+                    />
                     <DashboardTransfers recentTransfers={dashboardData.recentTransfers} />
                     
                     {/* Permission-based Quick Actions */}

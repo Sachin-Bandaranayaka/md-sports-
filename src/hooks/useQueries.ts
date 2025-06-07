@@ -139,8 +139,10 @@ export const usePurchaseInvoices = (filters?: any) => {
       if (filters?.page) params.append('page', filters.page.toString());
       if (filters?.limit) params.append('limit', filters.limit.toString());
       if (filters?.search) params.append('search', filters.search);
-      if (filters?.supplier) params.append('supplier', filters.supplier);
+      if (filters?.supplier) params.append('supplierId', filters.supplier);
       if (filters?.status) params.append('status', filters.status);
+      if (filters?.startDate) params.append('startDate', filters.startDate);
+      if (filters?.endDate) params.append('endDate', filters.endDate);
 
       return fetchApi<PaginatedResponse<any>>(`/api/purchases?${params.toString()}`);
     },

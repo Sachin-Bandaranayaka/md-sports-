@@ -28,7 +28,6 @@ interface ProductStock {
     id: number;
     name: string;
     sku: string;
-    category: string;
     retailPrice: number;
     weightedAverageCost: number;
     totalStock: number;
@@ -46,7 +45,7 @@ export default function InventoryDistribution() {
     const [shopList, setShopList] = useState<Shop[]>([]);
     const [products, setProducts] = useState<ProductStock[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [categoryFilter, setCategoryFilter] = useState('');
+
     const [sortBy, setSortBy] = useState<string>('name');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
     const [error, setError] = useState<string | null>(null);
@@ -114,7 +113,6 @@ export default function InventoryDistribution() {
                         id: product.id,
                         name: product.name,
                         sku: product.sku || '',
-                        category: product.category_name || 'Uncategorized',
                         retailPrice: parseFloat(product.price) || 0,
                         weightedAverageCost: parseFloat(product.weightedAverageCost) || 0,
                         totalStock,
@@ -138,16 +136,13 @@ export default function InventoryDistribution() {
         }
     };
 
-    // Filter products based on search term and category
+    // Filter products based on search term
     const filteredProducts = products.filter(product => {
         const matchesSearch = searchTerm === '' ||
             product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             product.sku.toLowerCase().includes(searchTerm.toLowerCase());
 
-        const matchesCategory = categoryFilter === '' ||
-            product.category.toLowerCase() === categoryFilter.toLowerCase();
-
-        return matchesSearch && matchesCategory;
+        return matchesSearch;
     });
 
     // Sort products
@@ -156,8 +151,6 @@ export default function InventoryDistribution() {
 
         if (sortBy === 'name') {
             compareResult = a.name.localeCompare(b.name);
-        } else if (sortBy === 'category') {
-            compareResult = a.category.localeCompare(b.category);
         } else if (sortBy === 'totalStock') {
             compareResult = a.totalStock - b.totalStock;
         } else if (sortBy === 'sku') {
@@ -167,8 +160,7 @@ export default function InventoryDistribution() {
         return sortDirection === 'asc' ? compareResult : -compareResult;
     });
 
-    // Get unique categories for the filter
-    const categories = [...new Set(products.map(product => product.category))];
+
 
     // Navigate to product details
     const goToProductDetails = (productId: number) => {
@@ -188,7 +180,6 @@ export default function InventoryDistribution() {
     // Clear all filters
     const clearFilters = () => {
         setSearchTerm('');
-        setCategoryFilter('');
         setShowFilterPanel(false);
     };
 
@@ -299,20 +290,7 @@ export default function InventoryDistribution() {
                                 <X className="h-4 w-4 text-black" />
                             </Button>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-black mb-1">Category</label>
-                                <select
-                                    className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-black"
-                                    value={categoryFilter}
-                                    onChange={(e) => setCategoryFilter(e.target.value)}
-                                >
-                                    <option value="">All Categories</option>
-                                    {categories.map((category, index) => (
-                                        <option key={index} value={category}>{category}</option>
-                                    ))}
-                                </select>
-                            </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-black mb-1">Sort By</label>
                                 <select
@@ -321,7 +299,6 @@ export default function InventoryDistribution() {
                                     onChange={(e) => setSortBy(e.target.value)}
                                 >
                                     <option value="name">Product Name</option>
-                                    <option value="category">Category</option>
                                     <option value="sku">SKU</option>
                                     <option value="totalStock">Total Stock</option>
                                 </select>
@@ -372,18 +349,7 @@ export default function InventoryDistribution() {
                                             )}
                                         </div>
                                     </th>
-                                    <th
-                                        scope="col"
-                                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                                        onClick={() => handleSort('category')}
-                                    >
-                                        <div className="flex items-center">
-                                            Category
-                                            {sortBy === 'category' && (
-                                                <ArrowUpDown className="ml-1 h-4 w-4" />
-                                            )}
-                                        </div>
-                                    </th>
+
                                     <th
                                         scope="col"
                                         className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
@@ -426,9 +392,7 @@ export default function InventoryDistribution() {
                                             <td className="px-4 py-3 whitespace-nowrap text-sm text-black">
                                                 {product.sku}
                                             </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-black">
-                                                {product.category}
-                                            </td>
+
                                             <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black">
                                                 {product.totalStock}
                                             </td>
@@ -523,9 +487,7 @@ export default function InventoryDistribution() {
                                                     <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                         SKU
                                                     </th>
-                                                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Category
-                                                    </th>
+
                                                     <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                         Quantity
                                                     </th>
@@ -546,7 +508,7 @@ export default function InventoryDistribution() {
                                                     .map(product => {
                                                         const shopStock = product.branchStock.find(branch => branch.shopId === shop.id);
                                                         const quantity = shopStock ? shopStock.quantity : 0;
-                                                        const value = quantity * product.retailPrice;
+                                                        const value = quantity * product.weightedAverageCost;
 
                                                         return (
                                                             <tr key={product.id} className="hover:bg-gray-50">
@@ -556,9 +518,7 @@ export default function InventoryDistribution() {
                                                                 <td className="px-4 py-3 whitespace-nowrap text-sm text-black">
                                                                     {product.sku}
                                                                 </td>
-                                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-black">
-                                                                    {product.category}
-                                                                </td>
+
                                                                 <td className="px-4 py-3 whitespace-nowrap text-sm text-black">
                                                                     {quantity}
                                                                 </td>

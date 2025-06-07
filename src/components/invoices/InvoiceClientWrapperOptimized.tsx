@@ -358,9 +358,16 @@ export default function InvoiceClientWrapperOptimized({
         }
     }, [recordPaymentMutation]);
 
-    const handleCreateSuccess = useCallback(() => {
+    const handleCreateSuccess = useCallback(async () => {
         setIsCreateModalOpen(false);
-        queryClient.invalidateQueries({ queryKey: ['invoices'] });
+        
+        // Add a small delay to ensure database transaction is committed
+        setTimeout(() => {
+            queryClient.invalidateQueries({ queryKey: ['invoices'] });
+            queryClient.refetchQueries({ queryKey: ['invoices'] });
+        }, 500);
+        
+        toast.success('Invoice created successfully!');
     }, [queryClient]);
 
     const handleEditSuccess = useCallback(() => {

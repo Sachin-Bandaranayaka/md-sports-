@@ -188,14 +188,7 @@ export default function InventoryHeaderActions() {
                     <ShoppingBag className="w-4 h-4 mr-2" />
                     New Product
                 </Button>
-                <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleAddInventory}
-                >
-                    <PlusCircle className="w-4 h-4 mr-2" />
-                    Add to Inventory
-                </Button>
+
                 <Button
                     variant="primary"
                     size="sm"

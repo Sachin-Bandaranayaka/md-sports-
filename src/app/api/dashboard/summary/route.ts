@@ -6,40 +6,7 @@ import { validateTokenPermission } from '@/lib/auth';
 
 // Extracted function to fetch dashboard summary data
 export async function fetchSummaryData(shopId?: string | null, periodDays?: number, startDate?: Date, endDate?: Date) {
-    // 1. Calculate Total Inventory Value using Prisma Raw Query
-    console.time('calculateInventoryValueRaw');
-    const totalValueResult = await safeQuery<Array<{ totalinventoryvalue: bigint | number | null }>>(
-        () => {
-            if (shopId) {
-                return prisma.$queryRaw`
-                    SELECT SUM(p.weightedaveragecost * i.quantity) as "totalinventoryvalue"
-                    FROM "InventoryItem" i
-                    JOIN "Product" p ON i."productId" = p.id
-                    WHERE i.quantity > 0 AND p.weightedaveragecost IS NOT NULL AND p.weightedaveragecost > 0
-                    AND i."shopId" = ${shopId};
-                `;
-            } else {
-                return prisma.$queryRaw`
-                    SELECT SUM(p.weightedaveragecost * i.quantity) as "totalinventoryvalue"
-                    FROM "InventoryItem" i
-                    JOIN "Product" p ON i."productId" = p.id
-                    WHERE i.quantity > 0 AND p.weightedaveragecost IS NOT NULL AND p.weightedaveragecost > 0;
-                `;
-            }
-        },
-        [{ totalinventoryvalue: 0 }], // Fallback with regular number 0
-        'Failed to calculate total inventory value via raw query'
-    );
-    console.timeEnd('calculateInventoryValueRaw');
-
-    // Ensure totalValue is a number. Result from raw query might be BigInt.
-    let totalValue: number = 0;
-    if (totalValueResult && totalValueResult[0] && totalValueResult[0].totalinventoryvalue !== null) {
-        totalValue = Number(totalValueResult[0].totalinventoryvalue);
-    }
-    console.log(`Calculated total inventory value (as number): ${totalValue}`);
-
-    // 2. Generate Random Trends (remains the same)
+    // Generate trend data for transfers
     const getRandomTrend = (isPercentage = true) => {
         const randomValue = Math.random() * 10 - 5;
         const formatted = isPercentage
@@ -50,11 +17,9 @@ export async function fetchSummaryData(shopId?: string | null, periodDays?: numb
             trendUp: randomValue >= 0
         };
     };
-    const inventoryTrendData = getRandomTrend(true);
     const transfersTrendData = getRandomTrend(false);
-    const lowStockTrendData = getRandomTrend(false);
 
-    // 3. Count pending transfers with shop filtering and optional date filtering
+    // Count pending transfers with shop filtering and optional date filtering
     console.time('countPendingTransfers');
     const pendingTransfers = await safeQuery(
         () => {
@@ -79,160 +44,19 @@ export async function fetchSummaryData(shopId?: string | null, periodDays?: numb
     );
     console.timeEnd('countPendingTransfers');
 
-    // 4. Calculate Outstanding Invoices Value & Trend with shop filtering
-    console.time('calculateOutstandingInvoices');
-    const outstandingInvoices = await safeQuery(
-        () => {
-            const where: any = { status: { not: 'Paid' } };
-            if (shopId) {
-                where.shopId = shopId;
-            }
-            return prisma.invoice.aggregate({
-                where,
-                _sum: { total: true }
-            });
-        },
-        { _sum: { total: null } },
-        'Failed to calculate outstanding invoices'
-    );
-    const totalOutstanding = outstandingInvoices._sum.total || 0;
 
-    let invoiceTrend = '0%';
-    let invoiceTrendUp = false;
-    if (totalOutstanding > 0) {
-        const previousMonthStart = new Date();
-        previousMonthStart.setMonth(previousMonthStart.getMonth() - 1);
-        previousMonthStart.setDate(1);
-        previousMonthStart.setHours(0, 0, 0, 0);
-        const previousMonthEnd = new Date();
-        previousMonthEnd.setDate(0);
-        previousMonthEnd.setHours(23, 59, 59, 999);
 
-        const previousMonthInvoices = await safeQuery(
-            () => {
-                const where: any = {
-                    status: { not: 'Paid' },
-                    createdAt: { gte: previousMonthStart, lte: previousMonthEnd }
-                };
-                if (shopId) {
-                    where.shopId = shopId;
-                }
-                return prisma.invoice.aggregate({
-                    where,
-                    _sum: { total: true }
-                });
-            },
-            { _sum: { total: null } },
-            'Failed to calculate previous month invoices'
-        );
-        const previousTotal = previousMonthInvoices._sum.total || 0;
-        if (previousTotal > 0) {
-            const percentChange = ((totalOutstanding - previousTotal) / previousTotal) * 100;
-            invoiceTrend = `${percentChange > 0 ? '+' : ''}${Math.round(percentChange)}%`;
-            invoiceTrendUp = percentChange > 0;
-        } else if (totalOutstanding > 0) {
-            invoiceTrend = '+100%';
-            invoiceTrendUp = true;
-        }
-    }
-    console.timeEnd('calculateOutstandingInvoices');
 
-    // 5. Count Low Stock Items with shop filtering
-    console.time('countLowStockItems');
-    const lowStockItems = await safeQuery(
-        () => {
-            const where: any = { quantity: { lte: 10 } };
-            if (shopId) {
-                where.shopId = shopId;
-            }
-            return prisma.inventoryItem.count({ where });
-        },
-        0,
-        'Failed to count low stock items'
-    );
-    console.timeEnd('countLowStockItems');
-
-    const formattedValue = totalValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-
-    // 6. Calculate Total Profit from Invoices with shop filtering and optional date filtering
-    console.time('calculateTotalProfit');
-    const totalProfitResult = await safeQuery(
-        () => {
-            const where: any = {};
-            if (shopId) {
-                where.shopId = shopId;
-            }
-            // Add date filtering if periodDays is provided
-            if (periodDays) {
-                const startDate = new Date();
-                startDate.setDate(startDate.getDate() - periodDays);
-                startDate.setHours(0, 0, 0, 0);
-                where.createdAt = { gte: startDate };
-            }
-            return prisma.invoice.aggregate({
-                where,
-                _sum: { totalProfit: true }
-            });
-        },
-        { _sum: { totalProfit: null } },
-        'Failed to calculate total profit'
-    );
-    const totalProfit = totalProfitResult._sum.totalProfit || 0;
-
-    // Calculate profit trend (comparing with previous month)
-    let profitTrend = '0%';
-    let profitTrendUp = false;
-    if (totalProfit > 0) {
-        const previousMonthStart = new Date();
-        previousMonthStart.setMonth(previousMonthStart.getMonth() - 1);
-        previousMonthStart.setDate(1);
-        previousMonthStart.setHours(0, 0, 0, 0);
-        const previousMonthEnd = new Date();
-        previousMonthEnd.setDate(0);
-        previousMonthEnd.setHours(23, 59, 59, 999);
-
-        const previousMonthProfit = await safeQuery(
-            () => {
-                const where: any = {
-                    createdAt: { gte: previousMonthStart, lte: previousMonthEnd }
-                };
-                if (shopId) {
-                    where.shopId = shopId;
-                }
-                return prisma.invoice.aggregate({
-                    where,
-                    _sum: { totalProfit: true }
-                });
-            },
-            { _sum: { totalProfit: null } },
-            'Failed to calculate previous month profit'
-        );
-        const previousTotal = previousMonthProfit._sum.totalProfit || 0;
-        if (previousTotal > 0) {
-            const percentChange = ((totalProfit - previousTotal) / previousTotal) * 100;
-            profitTrend = `${percentChange > 0 ? '+' : ''}${Math.round(percentChange)}%`;
-            profitTrendUp = percentChange > 0;
-        } else if (totalProfit > 0) {
-            profitTrend = '+100%';
-            profitTrendUp = true;
-        }
-    }
-    console.timeEnd('calculateTotalProfit');
 
     const data = [
-        { title: 'Total Inventory Value', value: `Rs. ${formattedValue}`, icon: 'Package', trend: inventoryTrendData.trend, trendUp: inventoryTrendData.trendUp },
-        { title: 'Total Retail Value', value: 'Loading...', icon: 'Tag', trend: '+0%', trendUp: false },
-        { title: 'Total Profit', value: `Rs. ${Number(totalProfit).toLocaleString()}`, icon: 'TrendingUp', trend: profitTrend, trendUp: profitTrendUp },
         { title: 'Pending Transfers', value: `${pendingTransfers}`, icon: 'Truck', trend: transfersTrendData.trend, trendUp: transfersTrendData.trendUp },
-        { title: 'Outstanding Invoices', value: `Rs. ${Number(totalOutstanding).toLocaleString()}`, icon: 'CreditCard', trend: invoiceTrend, trendUp: invoiceTrendUp },
-        { title: 'Low Stock Items', value: `${lowStockItems}`, icon: 'AlertTriangle', trend: lowStockTrendData.trend, trendUp: lowStockTrendData.trendUp },
     ];
 
     return {
         success: true,
         data,
         debug: {
-            calculatedValueViaRaw: totalValue
+            pendingTransfersCount: pendingTransfers
         }
     };
 }

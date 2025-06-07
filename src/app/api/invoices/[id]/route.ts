@@ -481,12 +481,46 @@ export async function DELETE(
             console.log(`Emitted INVOICE_DELETE event for invoice ${deletedInvoiceResult.id}`);
         }
 
-        // Invalidate related caches after successful deletion
-        await Promise.all([
-            cacheService.invalidateInvoices(),
-            cacheService.invalidateInventory(),
-            cacheService.del('dashboard:summary') // Invalidate dashboard cache
-        ]);
+        // Smart cache invalidation - only invalidate what's necessary
+        const invalidationPromises = [
+            // Invalidate invoice-specific caches
+            cacheService.invalidatePattern(`invoices:*:shop:${deletedInvoiceResult?.shopId || 'all'}`),
+            cacheService.invalidatePattern('invoices:all:*'),
+            
+            // Invalidate inventory caches for affected shop
+            cacheService.invalidatePattern(`inventory:*:shop:${deletedInvoiceResult?.shopId || 'all'}`),
+            cacheService.invalidatePattern('inventory:all:*'),
+            
+            // Use optimized dashboard cache invalidation
+            cacheService.invalidatePattern(`dashboard:optimized:*:shop:${deletedInvoiceResult?.shopId || 'all'}`),
+            cacheService.invalidatePattern('dashboard:optimized:*:all'),
+            
+            // Invalidate legacy dashboard caches
+            cacheService.invalidatePattern(`dashboard:summary:*:shop:${deletedInvoiceResult?.shopId || 'all'}`),
+            cacheService.invalidatePattern('dashboard:summary:*:all')
+        ];
+
+        await Promise.allSettled(invalidationPromises);
+        
+        // Trigger materialized view refresh in background
+        setImmediate(async () => {
+            try {
+                await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/dashboard/optimized`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': request.headers.get('Authorization') || ''
+                    },
+                    body: JSON.stringify({
+                        action: 'invalidate',
+                        shopId: deletedInvoiceResult?.shopId?.toString() || 'all',
+                        type: 'inventory'
+                    })
+                });
+            } catch (error) {
+                console.warn('Failed to trigger optimized dashboard refresh:', error);
+            }
+        });
 
         return NextResponse.json({
             success: true,

@@ -16,10 +16,7 @@ interface SummaryItem {
 
 // Dummy data for backup with permissions
 const dummySummaryData: SummaryItem[] = [
-    { title: 'Total Inventory Value', value: 'Rs. 1,245,800', icon: 'Package', trend: '+5%', trendUp: true, requiredPermission: 'inventory:view' },
     { title: 'Pending Transfers', value: '12', icon: 'Truck', trend: '+2', trendUp: true, requiredPermission: 'inventory:view' },
-    { title: 'Outstanding Invoices', value: 'Rs. 320,450', icon: 'CreditCard', trend: '-8%', trendUp: false, requiredPermission: 'sales:view' },
-    { title: 'Low Stock Items', value: '28', icon: 'AlertTriangle', trend: '+5', trendUp: false, requiredPermission: 'inventory:view' },
 ];
 
 interface DashboardMetricsProps {
@@ -60,12 +57,10 @@ export default function DashboardMetrics({ summaryData, isLoading = false }: Das
     // Simple loading state without animations
     if (isLoading && !summaryData) {
         return (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {Array.from({ length: 4 }).map((_, index) => (
-                    <div key={index} className="bg-tertiary p-6 rounded-lg shadow-sm border border-gray-200">
-                        <div className="text-sm text-gray-400">Loading...</div>
-                    </div>
-                ))}
+            <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 gap-6">
+                <div className="bg-tertiary p-6 rounded-lg shadow-sm border border-gray-200">
+                    <div className="text-sm text-gray-400">Loading...</div>
+                </div>
             </div>
         );
     }
@@ -83,7 +78,7 @@ export default function DashboardMetrics({ summaryData, isLoading = false }: Das
     }
 
     return (
-        <div className={`grid grid-cols-1 md:grid-cols-2 ${filteredDisplayData.length >= 3 ? 'lg:grid-cols-4' : filteredDisplayData.length === 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-1'} gap-6`}>
+        <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 gap-6">
             {filteredDisplayData.map((item, index) => {
                 // Get the corresponding icon component
                 const IconComponent = iconMap[item.icon] || Package;

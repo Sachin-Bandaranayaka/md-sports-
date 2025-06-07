@@ -41,7 +41,7 @@ export default function NewProductPage() {
     const [sku, setSku] = useState('');
     const [description, setDescription] = useState('');
     const [retailPrice, setRetailPrice] = useState('0');
-    const [basePrice, setBasePrice] = useState('0');
+
     const [categoryId, setCategoryId] = useState('');
 
     useEffect(() => {
@@ -122,7 +122,7 @@ export default function NewProductPage() {
                 sku,
                 description,
                 retailPrice: parseFloat(retailPrice),
-                basePrice: parseFloat(basePrice),
+
                 categoryId: categoryId || null
             });
 
@@ -245,21 +245,7 @@ export default function NewProductPage() {
                                 />
                             </div>
 
-                            <div>
-                                <label htmlFor="basePrice" className="block text-sm font-medium text-gray-700 mb-1">
-                                    Base Cost (Rs.)
-                                </label>
-                                <input
-                                    type="number"
-                                    id="basePrice"
-                                    className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
-                                    value={basePrice}
-                                    onChange={(e) => setBasePrice(e.target.value)}
-                                    min="0"
-                                    step="0.01"
-                                    disabled={isSubmitting}
-                                />
-                            </div>
+
 
                             <div>
                                 <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
@@ -320,4 +306,4 @@ export default function NewProductPage() {
             </div>
         </MainLayout>
     );
-} 
+}

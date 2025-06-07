@@ -285,24 +285,7 @@ export default function EditProductPage() {
                                 />
                             </div>
 
-                            {/* Base Price / Weighted Average Cost */}
-                            <div>
-                                <label htmlFor="basePrice" className="block text-sm font-medium text-gray-700 mb-2">
-                                    Base Price (Rs.) *
-                                </label>
-                                <input
-                                    type="number"
-                                    id="basePrice"
-                                    name="basePrice"
-                                    value={formData.basePrice}
-                                    onChange={handleInputChange}
-                                    required
-                                    min="0"
-                                    step="0.01"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                                    placeholder="0.00"
-                                />
-                            </div>
+
                         </div>
 
                         {/* Description */}

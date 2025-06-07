@@ -35,7 +35,7 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
     const [sku, setSku] = useState('');
     const [description, setDescription] = useState('');
     const [retailPrice, setRetailPrice] = useState('0');
-    const [basePrice, setBasePrice] = useState('0');
+
     const [categoryId, setCategoryId] = useState('');
 
     // Fetch categories when modal opens
@@ -98,7 +98,7 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
                     sku,
                     description,
                     retailPrice: parseFloat(retailPrice),
-                    basePrice: parseFloat(basePrice),
+
                     categoryId: categoryId || null
                 }),
             });
@@ -112,11 +112,8 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
                 queryClient.invalidateQueries({ queryKey: queryKeys.inventory });
                 queryClient.invalidateQueries({ queryKey: queryKeys.inventoryList() });
 
-                // If the product was created successfully and we have the product ID,
-                // we can trigger the onAddToInventory callback if provided
-                if (productData.data && productData.data.id && onAddToInventory) {
-                    onAddToInventory(productData.data.id, name);
-                }
+                // Product created successfully - no longer automatically opening Add Inventory Modal
+                // Users can manually add inventory if needed
 
                 resetForm();
                 onSuccess();
@@ -137,7 +134,7 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
         setSku('');
         setDescription('');
         setRetailPrice('0');
-        setBasePrice('0');
+
         setCategoryId(categories.length > 0 ? categories[0].id.toString() : '');
         setError(null);
     };
@@ -214,37 +211,20 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label htmlFor="retailPrice" className="block text-sm font-medium text-black mb-1">
-                                Retail Price (Rs.)
-                            </label>
-                            <input
-                                type="number"
-                                id="retailPrice"
-                                className="bg-white border border-gray-300 text-black text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
-                                value={retailPrice}
-                                onChange={(e) => setRetailPrice(e.target.value)}
-                                min="0"
-                                step="0.01"
-                                disabled={isSubmitting}
-                            />
-                        </div>
-                        <div>
-                            <label htmlFor="basePrice" className="block text-sm font-medium text-black mb-1">
-                                Base Cost (Rs.)
-                            </label>
-                            <input
-                                type="number"
-                                id="basePrice"
-                                className="bg-white border border-gray-300 text-black text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
-                                value={basePrice}
-                                onChange={(e) => setBasePrice(e.target.value)}
-                                min="0"
-                                step="0.01"
-                                disabled={isSubmitting}
-                            />
-                        </div>
+                    <div className="mb-4">
+                        <label htmlFor="retailPrice" className="block text-sm font-medium text-black mb-1">
+                            Retail Price (Rs.)
+                        </label>
+                        <input
+                            type="number"
+                            id="retailPrice"
+                            className="bg-white border border-gray-300 text-black text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                            value={retailPrice}
+                            onChange={(e) => setRetailPrice(e.target.value)}
+                            min="0"
+                            step="0.01"
+                            disabled={isSubmitting}
+                        />
                     </div>
 
                     <div className="mb-4">

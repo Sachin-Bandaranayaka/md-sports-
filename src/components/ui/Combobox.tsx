@@ -72,10 +72,12 @@ export function Combobox({
 
         if (isOpen) {
             document.addEventListener('mousedown', handleClickOutside);
+            document.addEventListener('touchstart', handleClickOutside);
         }
 
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
         };
     }, [isOpen]);
 
@@ -155,7 +157,7 @@ export function Combobox({
             {/* Dropdown */}
             {isOpen && (
                 <div
-                    className="absolute z-[9999] w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-y-auto mt-1"
+                    className="absolute z-[99999] w-full bg-white border border-gray-200 rounded-lg shadow-xl overflow-y-auto mt-1"
                     style={{
                         maxHeight: '200px',
                         boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08)',
@@ -168,7 +170,7 @@ export function Combobox({
                             <div
                                 key={option.value}
                                 className={clsx(
-                                    "p-2 cursor-pointer hover:bg-gray-100 text-black",
+                                    "p-2 cursor-pointer hover:bg-gray-100 text-black border-b border-gray-100 last:border-b-0",
                                     option.value === value ? "bg-gray-100 font-medium" : ""
                                 )}
                                 onClick={() => handleOptionClick(option)}
@@ -193,4 +195,4 @@ export function Combobox({
             )}
         </div>
     );
-} 
+}

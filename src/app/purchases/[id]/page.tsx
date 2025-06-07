@@ -30,6 +30,21 @@ async function fetchPurchaseInvoice(id: string, baseUrl: string): Promise<Purcha
     }
 }
 
+async function fetchShops(baseUrl: string) {
+    try {
+        const response = await fetch(`${baseUrl}/api/shops`, { cache: 'no-store' });
+        if (!response.ok) {
+            console.error('Failed to fetch shops:', response.status);
+            return [];
+        }
+        const data = await response.json();
+        return data.success ? data.data : data;
+    } catch (error) {
+        console.error('Error fetching shops:', error);
+        return [];
+    }
+}
+
 // Status badge component
 const StatusBadge = ({ status }: { status: string }) => {
     const getStatusBadgeClass = (status: string) => {
@@ -62,7 +77,10 @@ export default async function PurchaseInvoiceDetailPage({ params }: PurchaseInvo
     const { id } = params;
     const baseUrl = getBaseUrl();
 
-    const invoice = await fetchPurchaseInvoice(id, baseUrl);
+    const [invoice, shops] = await Promise.all([
+        fetchPurchaseInvoice(id, baseUrl),
+        fetchShops(baseUrl)
+    ]);
 
     if (!invoice) {
         return (
@@ -270,30 +288,56 @@ export default async function PurchaseInvoiceDetailPage({ params }: PurchaseInvo
                                     <tr>
                                         <th className="px-6 py-4 text-left text-sm font-medium text-green-700">Product</th>
                                         <th className="px-6 py-4 text-right text-sm font-medium text-green-700">Quantity</th>
+                                        <th className="px-6 py-4 text-left text-sm font-medium text-green-700">Shop Distribution</th>
                                         <th className="px-6 py-4 text-right text-sm font-medium text-green-700">Unit Price</th>
                                         <th className="px-6 py-4 text-right text-sm font-medium text-green-700">Total</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-green-100">
                                     {invoice.items && invoice.items.length > 0 ? (
-                                        invoice.items.map((item, index) => (
-                                            <tr key={item.id || index} className="hover:bg-green-50">
-                                                <td className="px-6 py-4">
-                                                    <div>
-                                                        <p className="font-medium text-green-900">{item.product?.name || 'Unknown Product'}</p>
-                                                        {item.product?.sku && (
-                                                            <p className="text-sm text-green-600">SKU: {item.product.sku}</p>
+                                        invoice.items.map((item, index) => {
+                                            // Get distribution for this item
+                                            const itemDistribution = invoice.distributions && Array.isArray(invoice.distributions) && invoice.distributions[index]
+                                                ? invoice.distributions[index]
+                                                : null;
+                                            
+                                            return (
+                                                <tr key={item.id || index} className="hover:bg-green-50">
+                                                    <td className="px-6 py-4">
+                                                        <div>
+                                                            <p className="font-medium text-green-900">{item.product?.name || 'Unknown Product'}</p>
+                                                            {item.product?.sku && (
+                                                                <p className="text-sm text-green-600">SKU: {item.product.sku}</p>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right text-green-900 font-medium">{item.quantity}</td>
+                                                    <td className="px-6 py-4">
+                                                        {itemDistribution && Object.keys(itemDistribution).length > 0 ? (
+                                                            <div className="space-y-1">
+                                                                {Object.entries(itemDistribution).map(([shopId, quantity]) => {
+                                                                    const shop = shops.find((s: any) => s.id === shopId);
+                                                                    const shopName = shop?.name || `Shop ${shopId}`;
+                                                                    return (
+                                                                        <div key={shopId} className="flex items-center justify-between bg-green-50 px-2 py-1 rounded text-sm">
+                                                                            <span className="text-green-700 font-medium">{shopName}</span>
+                                                                            <span className="text-green-900 font-semibold">{quantity}</span>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-gray-500 text-sm italic">No distribution data</span>
                                                         )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-right text-green-900 font-medium">{item.quantity}</td>
-                                                <td className="px-6 py-4 text-right text-green-900 font-medium">Rs. {item.price?.toLocaleString() || '0.00'}</td>
-                                                <td className="px-6 py-4 text-right text-green-900 font-bold">Rs. {((item.quantity || 0) * (item.price || 0)).toLocaleString()}</td>
-                                            </tr>
-                                        ))
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right text-green-900 font-medium">Rs. {item.price?.toLocaleString() || '0.00'}</td>
+                                                    <td className="px-6 py-4 text-right text-green-900 font-bold">Rs. {((item.quantity || 0) * (item.price || 0)).toLocaleString()}</td>
+                                                </tr>
+                                            );
+                                        })
                                     ) : (
                                         <tr>
-                                            <td colSpan={4} className="px-6 py-8 text-center text-green-600">
+                                            <td colSpan={5} className="px-6 py-8 text-center text-green-600">
                                                 No items found for this invoice.
                                             </td>
                                         </tr>
@@ -302,7 +346,7 @@ export default async function PurchaseInvoiceDetailPage({ params }: PurchaseInvo
                                 {invoice.items && invoice.items.length > 0 && (
                                     <tfoot className="bg-green-50">
                                         <tr>
-                                            <td colSpan={3} className="px-6 py-4 text-right font-semibold text-green-900">Total Amount:</td>
+                                            <td colSpan={4} className="px-6 py-4 text-right font-semibold text-green-900">Total Amount:</td>
                                             <td className="px-6 py-4 text-right font-bold text-xl text-green-900">Rs. {invoice.total?.toLocaleString() || '0.00'}</td>
                                         </tr>
                                     </tfoot>

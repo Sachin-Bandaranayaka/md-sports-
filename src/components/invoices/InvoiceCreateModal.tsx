@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react';
 import Modal from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/Label';
 import { Combobox } from '@/components/ui/Combobox';
 import { Textarea } from '@/components/ui/Textarea';
 import { Plus, Trash2, Save, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+// Removed framer-motion for better performance and simplicity
 import { useDebounce } from '@/hooks/useDebounce';
 
 interface Customer {
@@ -49,6 +49,8 @@ interface InvoiceItem {
     price: number;
     costPrice: number;
     total: number;
+    productSearch?: string;
+    showProductDropdown?: boolean;
 }
 
 interface InvoiceFormData {
@@ -104,11 +106,14 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
 
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [submitting, setSubmitting] = useState(false);
+    const isSubmittingRef = useRef(false);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [customerSearch, setCustomerSearch] = useState('');
     const [productSearch, setProductSearch] = useState('');
     const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     const [showProductDropdown, setShowProductDropdown] = useState(false);
+    const customerDropdownRef = useRef<HTMLDivElement>(null);
+    const [itemProductDropdownRefs, setItemProductDropdownRefs] = useState<Record<string, React.RefObject<HTMLDivElement>>>({});
     
     // Debounced search values for better performance
     const debouncedCustomerSearch = useDebounce(customerSearch, 300);
@@ -152,6 +157,37 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
             }));
         }
     }, [isOpen, generateInvoiceNumber]);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (customerDropdownRef.current && !customerDropdownRef.current.contains(event.target as Node)) {
+                setShowCustomerDropdown(false);
+            }
+            
+            // Close product dropdowns when clicking outside
+            Object.entries(itemProductDropdownRefs).forEach(([itemId, ref]) => {
+                if (ref.current && !ref.current.contains(event.target as Node)) {
+                    setFormData(prev => ({
+                        ...prev,
+                        items: prev.items.map(item => 
+                            item.id === itemId 
+                                ? { ...item, showProductDropdown: false }
+                                : item
+                        )
+                    }));
+                }
+            });
+        };
+
+        if (showCustomerDropdown || Object.values(itemProductDropdownRefs).some(ref => ref.current)) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showCustomerDropdown, itemProductDropdownRefs]);
 
     // Calculate totals when items change
     useEffect(() => {
@@ -249,29 +285,46 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
         setProductSearch('');
     };
 
-    const addItem = () => {
+    const addItem = useCallback(() => {
+        const newItemId = Date.now().toString();
         const newItem: InvoiceItem = {
-            id: `item-${Date.now()}`,
+            id: newItemId,
             productId: 0,
             productName: '',
-            quantity: 1,
+            quantity: 0,
             price: 0,
             costPrice: 0,
-            total: 0
+            total: 0,
+            productSearch: '',
+            showProductDropdown: false
         };
+
+        // Create ref for new item's product dropdown
+        const newRef = React.createRef<HTMLDivElement>();
+        setItemProductDropdownRefs(prev => ({
+            ...prev,
+            [newItemId]: newRef
+        }));
 
         setFormData(prev => ({
             ...prev,
             items: [...prev.items, newItem]
         }));
-    };
+    }, []);
 
-    const removeItem = (id: string) => {
+    const removeItem = useCallback((itemId: string) => {
         setFormData(prev => ({
             ...prev,
-            items: prev.items.filter(item => item.id !== id)
+            items: prev.items.filter(item => item.id !== itemId)
         }));
-    };
+        
+        // Remove ref for deleted item
+        setItemProductDropdownRefs(prev => {
+            const newRefs = { ...prev };
+            delete newRefs[itemId];
+            return newRefs;
+        });
+    }, []);
 
     const handleProductSelect = useCallback(async (product: Product) => {
         setSelectedProduct(product);
@@ -429,10 +482,10 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
             newErrors.items = 'At least one item is required';
         }
 
-        // Shop is now optional for debugging
-        // if (!formData.shopId) {
-        //     newErrors.shopId = 'Shop is required';
-        // }
+        // Shop is required for sales invoices
+        if (!formData.shopId) {
+            newErrors.shopId = 'Shop selection is required';
+        }
 
         formData.items.forEach((item, index) => {
             if (!item.productId) {
@@ -450,7 +503,24 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
         return Object.keys(newErrors).length === 0;
     }, [formData]);
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (event?: React.MouseEvent) => {
+        // Prevent any default form submission behavior
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+
+        // Prevent double-click submissions using both state and ref
+        if (submitting || isSubmittingRef.current) {
+            console.log('Already submitting, preventing duplicate submission');
+            return;
+        }
+
+        console.log('Starting invoice submission...');
+        
+        // Set both submission locks
+        isSubmittingRef.current = true;
+        
         // Ensure invoiceNumber is generated before validation
         const currentInvoiceNumber = formData.invoiceNumber || generateInvoiceNumber();
         
@@ -534,9 +604,14 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
 
             const result = await response.json();
 
+            console.log('Invoice creation response:', { status: response.status, result });
+            
             if (!response.ok || !result.success) {
+                console.error('Invoice creation failed:', { status: response.status, result });
                 throw new Error(result.message || result.error || 'Failed to create invoice');
             }
+
+            console.log('Invoice created successfully:', result.data);
 
             if (onSave) {
                 onSave(result);
@@ -552,10 +627,15 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
             alert('Failed to create invoice. Please try again.');
         } finally {
             setSubmitting(false);
+            isSubmittingRef.current = false;
         }
     };
 
     const handleClose = () => {
+        // Reset submission locks
+        setSubmitting(false);
+        isSubmittingRef.current = false;
+        
         // Generate a new invoice number for the next time the modal opens
         const newInvoiceNumber = generateInvoiceNumber();
         const defaultDueDate = new Date();
@@ -603,7 +683,7 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
 
     const footer = (
         <div className="flex justify-between items-center">
-            <div className="text-lg font-semibold">
+            <div className="text-lg font-semibold text-black">
                 Total: LKR {formData.total.toFixed(2)}
             </div>
             <div className="flex space-x-3">
@@ -635,7 +715,7 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                 <div className="space-y-6">
                     {/* Shop Selection */}
                     <div>
-                        <Label htmlFor="shop" className="text-black font-semibold">Shop (Optional)</Label>
+                        <Label htmlFor="shop" className="text-black font-semibold">Shop *</Label>
                         <select
                             id="shop"
                             value={formData.shopId || ''}
@@ -644,7 +724,7 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                                 errors.shopId ? 'border-red-500' : 'border-gray-300'
                             }`}
                         >
-                            <option value="">Select a shop</option>
+                            <option value="">Select a shop *</option>
                             {Array.isArray(shops) && shops.map(shop => (
                                 <option key={shop.id} value={shop.id}>
                                     {shop.name}
@@ -659,33 +739,57 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                     {/* Invoice Header */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Customer Selection with Search */}
-                        <div className="relative">
+                        <div className="relative" ref={customerDropdownRef}>
                             <Label htmlFor="customer" className="text-black font-semibold">Customer *</Label>
                             <div className="flex gap-2">
                                 <div className="flex-1 relative">
-                                    <Input
-                                        value={customerSearch}
-                                        onChange={(e) => {
-                                            setCustomerSearch(e.target.value);
-                                            setShowCustomerDropdown(true);
-                                        }}
-                                        onFocus={() => setShowCustomerDropdown(true)}
-                                        placeholder="Search customers..."
-                                        className={`text-black ${errors.customerId ? 'border-red-500' : 'border-gray-300'}`}
-                                    />
-                                    {showCustomerDropdown && filteredCustomers.length > 0 && (
-                                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                                            {filteredCustomers.map(customer => (
-                                                <div
-                                                    key={customer.id}
-                                                    onClick={() => handleCustomerSelect(customer.id.toString())}
-                                                    className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-black"
-                                                >
-                                                    <div className="font-medium">{customer.name}</div>
-                                                    <div className="text-sm text-gray-600">{customer.phone} - {customer.address}</div>
-                                                </div>
-                                            ))}
+                                    {selectedCustomer ? (
+                                        <div className="flex items-center justify-between w-full px-3 py-2 border border-gray-300 rounded-md bg-white">
+                                            <div className="text-black">
+                                                <div className="font-medium">{selectedCustomer.name}</div>
+                                                <div className="text-sm text-gray-600">{selectedCustomer.phone} - {selectedCustomer.customerType}</div>
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    setSelectedCustomer(null);
+                                                    setFormData(prev => ({ ...prev, customerId: 0, customerName: '' }));
+                                                    setCustomerSearch('');
+                                                }}
+                                                className="text-red-600 border-red-300 hover:bg-red-50"
+                                            >
+                                                Change
+                                            </Button>
                                         </div>
+                                    ) : (
+                                        <>
+                                            <Input
+                                                value={customerSearch}
+                                                onChange={(e) => {
+                                                    setCustomerSearch(e.target.value);
+                                                    setShowCustomerDropdown(true);
+                                                }}
+                                                onFocus={() => setShowCustomerDropdown(true)}
+                                                placeholder="Search customers..."
+                                                className={`text-black ${errors.customerId ? 'border-red-500' : 'border-gray-300'}`}
+                                            />
+                                            {showCustomerDropdown && filteredCustomers.length > 0 && (
+                                                <div className="absolute z-[9999] w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                                    {filteredCustomers.map(customer => (
+                                                        <div
+                                                            key={customer.id}
+                                                            onClick={() => handleCustomerSelect(customer.id.toString())}
+                                                            className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-black border-b border-gray-100 last:border-b-0"
+                                                        >
+                                                            <div className="font-medium">{customer.name}</div>
+                                                            <div className="text-sm text-gray-600">{customer.phone} - {customer.address}</div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </>
                                     )}
                                 </div>
                                 <Button
@@ -698,16 +802,6 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                                     Quick Add
                                 </Button>
                             </div>
-                            {selectedCustomer && (
-                                <div className="mt-2 p-2 bg-blue-50 rounded border">
-                                    <div className="text-sm text-black">
-                                        <strong>{selectedCustomer.name}</strong> ({selectedCustomer.customerType})
-                                        {selectedCustomer.customerType === 'wholesale' && selectedCustomer.creditPeriod && (
-                                            <span className="ml-2 text-blue-600">Credit Period: {selectedCustomer.creditPeriod} days</span>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
                             {errors.customerId && (
                                 <p className="text-red-500 text-sm mt-1">{errors.customerId}</p>
                             )}
@@ -783,25 +877,119 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                         <p className="text-red-500 text-sm mb-4">{errors.items}</p>
                     )}
 
-                    <div className="space-y-4 max-h-64 overflow-y-auto">
-                        <AnimatePresence>
-                            {formData.items.map((item, index) => (
-                                <motion.div
-                                    key={item.id}
-                                    initial={{ opacity: 0, y: -10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -10 }}
-                                    className="grid grid-cols-12 gap-3 items-end p-4 border border-gray-200 rounded-lg bg-gray-50"
-                                >
+                    <div className="space-y-4 max-h-64 overflow-y-auto overflow-x-visible">
+                        {formData.items.map((item, index) => (
+                            <div
+                                key={item.id}
+                                className="grid grid-cols-12 gap-3 items-end p-4 border border-gray-200 rounded-lg bg-gray-50 relative"
+                            >
                                     <div className="col-span-4">
                                         <Label className="text-black font-medium">Product *</Label>
-                                        <Combobox
-                                            options={productOptions}
-                                            value={item.productId}
-                                            onChange={(value) => updateItem(item.id, 'productId', value)}
-                                            placeholder="Select product"
-                                            className={errors[`item-${index}-product`] ? 'border-red-500' : 'border-gray-300'}
-                                        />
+                                        <div className="relative" ref={itemProductDropdownRefs[item.id]}>
+                                            <Input
+                                                type="text"
+                                                placeholder="Search for a product..."
+                                                value={item.productSearch || ''}
+                                                onChange={(e) => {
+                                                    const searchValue = e.target.value;
+                                                    setFormData(prev => ({
+                                                        ...prev,
+                                                        items: prev.items.map(i => 
+                                                            i.id === item.id 
+                                                                ? { ...i, productSearch: searchValue, showProductDropdown: true }
+                                                                : i
+                                                        )
+                                                    }));
+                                                }}
+                                                onFocus={() => {
+                                                    setFormData(prev => ({
+                                                        ...prev,
+                                                        items: prev.items.map(i => 
+                                                            i.id === item.id 
+                                                                ? { ...i, showProductDropdown: true }
+                                                                : i
+                                                        )
+                                                    }));
+                                                }}
+                                                className={`text-black ${
+                                                    errors[`item-${index}-product`] ? 'border-red-500' : 'border-gray-300'
+                                                }`}
+                                            />
+                                            
+                                            {item.showProductDropdown && (
+                                <div className="fixed bg-white border border-gray-300 rounded-md shadow-lg z-[99999] max-h-48 overflow-y-auto min-w-[300px]" 
+                                     style={{
+                                         top: itemProductDropdownRefs[item.id]?.current?.getBoundingClientRect().bottom + window.scrollY + 'px',
+                                         left: itemProductDropdownRefs[item.id]?.current?.getBoundingClientRect().left + window.scrollX + 'px',
+                                         width: itemProductDropdownRefs[item.id]?.current?.getBoundingClientRect().width + 'px'
+                                     }}>
+                                                    {filteredProducts
+                                                        .filter(product => 
+                                                            !item.productSearch || 
+                                                            product.name.toLowerCase().includes(item.productSearch.toLowerCase()) ||
+                                                            product.sku?.toLowerCase().includes(item.productSearch.toLowerCase())
+                                                        )
+                                                        .slice(0, 10)
+                                                        .map(product => {
+                                                            const stockInfo = product.inventoryItems?.find(inv => inv.shopId === formData.shopId);
+                                                            const availableStock = stockInfo?.quantity || 0;
+                                                            
+                                                            return (
+                                                                <div
+                                                                    key={product.id}
+                                                                    className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                                                    onClick={() => {
+                                                                        const selectedProduct = products.find(p => p.id === product.id);
+                                                                        if (selectedProduct) {
+                                                                            setFormData(prev => ({
+                                                                                ...prev,
+                                                                                items: prev.items.map(i => 
+                                                                                    i.id === item.id 
+                                                                                        ? { 
+                                                                                            ...i, 
+                                                                                            productId: product.id,
+                                                                                            productName: product.name,
+                                                                                            price: product.price,
+                                                                                            costPrice: product.weightedAverageCost || 0,
+                                                                                            total: i.quantity * product.price,
+                                                                                            productSearch: product.name,
+                                                                                            showProductDropdown: false
+                                                                                        }
+                                                                                        : i
+                                                                                )
+                                                                            }));
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <div className="flex justify-between items-center">
+                                                                        <div>
+                                                                            <div className="font-medium text-black">{product.name}</div>
+                                                                            {product.sku && (
+                                                                                <div className="text-xs text-gray-500">SKU: {product.sku}</div>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="text-right">
+                                                                            <div className="font-medium text-black">LKR {product.price.toFixed(2)}</div>
+                                                                            <div className="text-xs text-gray-500">Stock: {availableStock}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })
+                                                    }
+                                                    {filteredProducts
+                                                        .filter(product => 
+                                                            !item.productSearch || 
+                                                            product.name.toLowerCase().includes(item.productSearch.toLowerCase()) ||
+                                                            product.sku?.toLowerCase().includes(item.productSearch.toLowerCase())
+                                                        ).length === 0 && (
+                                                        <div className="px-3 py-2 text-gray-500 text-center">
+                                                            No products found
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
                                         {errors[`item-${index}-product`] && (
                                             <p className="text-red-500 text-xs mt-1">{errors[`item-${index}-product`]}</p>
                                         )}
@@ -812,8 +1000,12 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                                         <Input
                                             type="number"
                                             min="1"
-                                            value={item.quantity}
-                                            onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 0)}
+                                            placeholder="0"
+                                            value={item.quantity === 0 ? '' : item.quantity.toString()}
+                                            onChange={(e) => {
+                                                const value = e.target.value;
+                                                updateItem(item.id, 'quantity', value === '' ? 0 : parseInt(value) || 0);
+                                            }}
                                             className={`text-black ${errors[`item-${index}-quantity`] ? 'border-red-500' : 'border-gray-300'}`}
                                         />
                                         {errors[`item-${index}-quantity`] && (
@@ -827,8 +1019,12 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                                             type="number"
                                             min="0"
                                             step="0.01"
-                                            value={item.price}
-                                            onChange={(e) => updateItem(item.id, 'price', parseFloat(e.target.value) || 0)}
+                                            placeholder="0.00"
+                                            value={item.price === 0 ? '' : item.price.toString()}
+                                            onChange={(e) => {
+                                                const value = e.target.value;
+                                                updateItem(item.id, 'price', value === '' ? 0 : parseFloat(value) || 0);
+                                            }}
                                             className={`text-black ${errors[`item-${index}-price`] ? 'border-red-500' : 'border-gray-300'}`}
                                         />
                                         {errors[`item-${index}-price`] && (
@@ -853,9 +1049,8 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                                             <Trash2 className="w-4 h-4" />
                                         </Button>
                                     </div>
-                                </motion.div>
-                            ))}
-                        </AnimatePresence>
+                            </div>
+                        ))}
                     </div>
 
                     {formData.items.length === 0 && (

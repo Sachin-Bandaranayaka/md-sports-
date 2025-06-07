@@ -221,12 +221,29 @@ export async function POST(request: NextRequest) {
 
                         // Handle distribution across shops
                         if (itemDistribution && Object.keys(itemDistribution).length > 0) {
-                            // Distribute to specific shops as specified
-                            for (const [shopIdStr, quantity] of Object.entries(itemDistribution as Record<string, number>)) { // Type assertion for quantity
+                            // Aggregate quantities by shop ID from all distribution objects
+                            const shopQuantities: Record<string, number> = {};
+                            
+                            // Process all distribution objects for this item
+                            if (distributions && Array.isArray(distributions)) {
+                                for (const distObj of distributions) {
+                                    if (distObj && typeof distObj === 'object') {
+                                        for (const [shopIdStr, quantity] of Object.entries(distObj)) {
+                                            const qty = Number(quantity);
+                                            if (qty > 0 && !isNaN(qty)) {
+                                                shopQuantities[shopIdStr] = (shopQuantities[shopIdStr] || 0) + qty;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // Distribute to specific shops as aggregated
+                            for (const [shopIdStr, totalQty] of Object.entries(shopQuantities)) {
                                 const shopId = shopIdStr; // Keep shopId as string
-                                const qty = Number(quantity);
+                                const qty = totalQty;
 
-                                if (qty <= 0 || isNaN(qty)) continue; // Added isNaN check
+                                if (qty <= 0) continue;
 
                                 const existingInventory = await tx.inventoryItem.findFirst({
                                     where: {
