@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { getShopId } from '@/lib/utils/middleware';
 import { cacheService } from '@/lib/cache';
-import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
+
 import { safeQuery, prisma } from '@/lib/prisma';
 import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
 import { validateTokenPermission } from '@/lib/auth';
-import { emitInventoryItemCreate } from '@/lib/utils/websocket';
+
 
 // Default fallback data for products
 const defaultProductsData = [
@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
         await cacheService.invalidateInventory();
 
         // Emit WebSocket event for real-time updates using utility function
-        emitInventoryItemCreate(product);
+        // Real-time updates now handled by polling system
 
         return NextResponse.json({
             success: true,

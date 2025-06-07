@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { smsService } from '@/services/smsService';
-import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
-import { emitInventoryLevelUpdated } from '@/lib/utils/websocket';
+
+
 import { cacheService } from '@/lib/cache';
 
 export async function GET(
@@ -350,18 +350,9 @@ export async function PUT(
             { timeout: 30000 }
         );
 
-        // Emit INVENTORY_LEVEL_UPDATED events
-        const io = getSocketIO();
-        if (io && inventoryUpdatesForEvent.length > 0) {
-            inventoryUpdatesForEvent.forEach(update => {
-                // Use the new consistent function for inventory updates
-                emitInventoryLevelUpdated(update.productId, {
-                    shopId: update.shopId,
-                    quantityChange: update.quantityChange,
-                    source: 'sales_invoice_update'
-                });
-            });
-            console.log(`Emitted ${inventoryUpdatesForEvent.length} INVENTORY_LEVEL_UPDATED events for updated invoice ${invoiceId}`);
+        // Real-time updates now handled by polling system
+        if (inventoryUpdatesForEvent.length > 0) {
+            console.log(`${inventoryUpdatesForEvent.length} inventory updates processed for updated invoice ${invoiceId}`);
         }
 
         // Send SMS notification if requested
@@ -480,25 +471,8 @@ export async function DELETE(
             return { id: invoiceId, customerId: invoiceToDelete.customerId, invoiceNumber: invoiceToDelete.invoiceNumber }; // Return some info about the deleted invoice
         });
 
-        // Emit INVENTORY_LEVEL_UPDATED events
-        const io = getSocketIO();
-        if (io && inventoryUpdatesForEvent.length > 0) {
-            inventoryUpdatesForEvent.forEach(update => {
-                io.emit(WEBSOCKET_EVENTS.INVENTORY_LEVEL_UPDATED, {
-                    productId: update.productId,
-                    shopId: update.shopId, // May be undefined
-                    quantityChange: update.quantityChange, // Positive change (added back)
-                    source: 'sales_invoice_deletion'
-                });
-            });
-            console.log(`Emitted ${inventoryUpdatesForEvent.length} INVENTORY_LEVEL_UPDATED events for deleted invoice ${invoiceId}`);
-        }
-
-        // Also emit an INVOICE_DELETED event (if you have one defined and need it on client)
-        if (io && deletedInvoiceResult) {
-            io.emit(WEBSOCKET_EVENTS.INVOICE_DELETE, { id: deletedInvoiceResult.id }); // Assuming INVOICE_DELETE is defined
-            console.log(`Emitted INVOICE_DELETE event for invoice ${deletedInvoiceResult.id}`);
-        }
+        // Real-time updates now handled by polling system
+        console.log(`Invoice ${deletedInvoiceResult.id} deleted successfully`);
 
         // Smart cache invalidation - only invalidate what's necessary
         const invalidationPromises = [

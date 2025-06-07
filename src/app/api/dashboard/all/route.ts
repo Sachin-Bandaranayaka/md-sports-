@@ -7,7 +7,8 @@ import { fetchSalesData } from '../sales/route';
 import { fetchTransfersData } from '../transfers/route';
 import { cacheService } from '@/lib/cache';
 import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
-import { validateTokenPermission } from '@/lib/auth';
+import { validateTokenPermission, getUserIdFromToken } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest, context) => {
     try {
@@ -64,8 +65,38 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
 
         const shopId = context.isFiltered ? context.shopId : null;
 
+        // Get user ID from token
+        const userId = await getUserIdFromToken(request);
+        if (!userId) {
+            return NextResponse.json({ error: 'User ID not found in token' }, { status: 401 });
+        }
+
+        // Fetch user details to check role and permissions
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                roleName: true,
+                permissions: true
+            }
+        });
+
+        if (!user) {
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+
+        // Check if user is admin or has admin permissions
+        const isAdmin = user.roleName === 'Admin' || user.roleName === 'Super Admin' || 
+                       (user.permissions && user.permissions.includes('admin:all'));
+
+        // Determine user filtering
+        let filterUserId: string | null = null;
+        if (!isAdmin) {
+            filterUserId = userId;
+        }
+
         console.time('fetchSummaryData');
-        const p1 = fetchSummaryData(shopId, periodDays).finally(() => console.timeEnd('fetchSummaryData'));
+        const p1 = fetchSummaryData(shopId, periodDays, undefined, undefined, filterUserId).finally(() => console.timeEnd('fetchSummaryData'));
 
         console.time('fetchTotalRetailValueData');
         const p2 = fetchTotalRetailValueData(shopId, periodDays).finally(() => console.timeEnd('fetchTotalRetailValueData'));
@@ -77,7 +108,7 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
         const p4 = fetchInventoryDistributionData(shopId, periodDays).finally(() => console.timeEnd('fetchInventoryDistributionData'));
 
         console.time('fetchSalesData');
-        const p5 = fetchSalesData(shopId, periodDays).finally(() => console.timeEnd('fetchSalesData'));
+        const p5 = fetchSalesData(shopId, periodDays, undefined, undefined, filterUserId).finally(() => console.timeEnd('fetchSalesData'));
 
         console.time('fetchTransfersData');
         const p6 = fetchTransfersData(shopId, periodDays).finally(() => console.timeEnd('fetchTransfersData'));
@@ -91,11 +122,11 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
             salesResult,
             transfersResult
         ] = await Promise.all([
-             fetchSummaryData(context.shopId, periodDays, startDate, endDate),
+             fetchSummaryData(context.shopId, periodDays, startDate, endDate, filterUserId),
              fetchTotalRetailValueData(context.shopId, periodDays, startDate, endDate),
              fetchShopsData(context.shopId, periodDays, startDate, endDate),
              fetchInventoryDistributionData(context.shopId, periodDays, startDate, endDate),
-             fetchSalesData(context.shopId, periodDays, startDate, endDate),
+             fetchSalesData(context.shopId, periodDays, startDate, endDate, filterUserId),
              fetchTransfersData(context.shopId, periodDays, startDate, endDate)
          ]);
         console.timeEnd('Promise.all dashboard data');

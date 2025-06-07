@@ -3,16 +3,18 @@ import { PrismaClient } from '@prisma/client';
 // Use a single instance of Prisma Client across the entire app
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
-// Connection options with retry logic
+// Optimized connection options for Vercel serverless
 const prismaOptions = {
     datasources: {
         db: {
-            url: process.env.DATABASE_URL || 'postgresql://localhost:5432/mssport',
+            url: process.env.DATABASE_URL ? 
+                `${process.env.DATABASE_URL}?connection_limit=1&pool_timeout=0&connect_timeout=60` :
+                'postgresql://localhost:5432/mssport',
         },
     },
-    // Add reasonable timeout and connection error handling
-    log: ['error', 'query'],
-    errorFormat: 'minimal',
+    // Optimized logging for production
+    log: process.env.NODE_ENV === 'production' ? ['error'] : ['error', 'warn'],
+    errorFormat: 'minimal' as const,
 };
 
 console.log('Initializing Prisma client with DATABASE_URL:',
@@ -41,4 +43,4 @@ export async function safeQuery<T>(
     }
 }
 
-export default prisma; 
+export default prisma;

@@ -3,7 +3,13 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { cache } from '@/lib/cache';
+import { cache as vercelCache } from '@/lib/cache-vercel';
 import { performance } from '@/lib/performance';
+
+// Vercel serverless optimizations
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 10;
 
 // Enhanced caching configuration
 const CACHE_CONFIG = {

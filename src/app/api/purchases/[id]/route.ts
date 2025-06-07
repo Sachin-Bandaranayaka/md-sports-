@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
-import { emitInventoryLevelUpdated } from '@/lib/utils/websocket';
+
+
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { getToken } from 'next-auth/jwt';
 import { cacheService } from '@/lib/cache';
@@ -351,18 +351,9 @@ export async function PUT(
             return { fullUpdatedInvoice, inventoryUpdates };
         }, { timeout: 30000 });
 
-        const io = getSocketIO();
-        if (io && result && result.fullUpdatedInvoice) {
-            io.emit(WEBSOCKET_EVENTS.PURCHASE_INVOICE_UPDATED, result.fullUpdatedInvoice);
-            result.inventoryUpdates.forEach(upd => {
-                emitInventoryLevelUpdated(upd.productId, {
-                    shopId: upd.shopId,
-                    newQuantity: upd.newQuantity,
-                    quantityChange: upd.quantityChange,
-                    source: upd.source
-                });
-            });
-            console.log('Emitted PURCHASE_INVOICE_UPDATED and INVENTORY_LEVEL_UPDATED events');
+        // Real-time updates now handled by polling system
+        if (result && result.fullUpdatedInvoice) {
+            console.log('Purchase invoice updated successfully');
         }
 
         // After successful transaction, invalidate relevant caches
@@ -540,21 +531,9 @@ export async function DELETE(
             return { deletedInvoiceId: purchaseId, inventoryUpdates };
         });
 
-        const io = getSocketIO();
-        if (io && result) {
-            io.emit(WEBSOCKET_EVENTS.PURCHASE_INVOICE_DELETED, { id: result.deletedInvoiceId });
-            if (result.inventoryUpdates && result.inventoryUpdates.length > 0) {
-                result.inventoryUpdates.forEach(update => {
-                    emitInventoryLevelUpdated(update.productId, {
-                        shopId: update.shopId,
-                        newQuantity: update.newQuantity,
-                        quantityChange: update.quantityChange,
-                        source: update.source
-                    });
-                });
-            }
-            console.log(`Broadcasting PURCHASE_INVOICE_DELETED event for invoice ${result.deletedInvoiceId}`);
-            console.log(`Broadcasting INVENTORY_LEVEL_UPDATED event for affected products after deleting invoice ${result.deletedInvoiceId}`);
+        // Real-time updates now handled by polling system
+        if (result && result.deletedInvoiceId) {
+            console.log(`Purchase invoice ${result.deletedInvoiceId} deleted successfully`);
         }
 
         // After successful transaction, invalidate relevant caches

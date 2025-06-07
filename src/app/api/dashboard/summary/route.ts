@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma, safeQuery } from '@/lib/prisma';
 import { cacheService } from '@/lib/cache';
 import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
-import { validateTokenPermission } from '@/lib/auth';
+import { validateTokenPermission, getUserIdFromToken } from '@/lib/auth';
 
 // Extracted function to fetch dashboard summary data
-export async function fetchSummaryData(shopId?: string | null, periodDays?: number, startDate?: Date, endDate?: Date) {
+export async function fetchSummaryData(shopId?: string | null, periodDays?: number, startDate?: Date, endDate?: Date, userId?: string | null) {
     // Generate trend data for transfers
     const getRandomTrend = (isPercentage = true) => {
         const randomValue = Math.random() * 10 - 5;
@@ -63,7 +63,7 @@ export async function fetchSummaryData(shopId?: string | null, periodDays?: numb
 
 // GET: Fetch dashboard summary statistics
 // Filtered version of fetchSummaryData with date range support
-export async function fetchSummaryDataFiltered(startDate?: string | null, endDate?: string | null) {
+export async function fetchSummaryDataFiltered(startDate?: string | null, endDate?: string | null, userId?: string | null) {
     // Build date filter for queries
     const dateFilter: any = {};
     if (startDate) {
@@ -114,7 +114,8 @@ export async function fetchSummaryDataFiltered(startDate?: string | null, endDat
         () => prisma.invoice.aggregate({
             where: {
                 status: { in: ['Pending', 'Overdue'] },
-                ...(Object.keys(dateFilter).length > 0 && { createdAt: dateFilter })
+                ...(Object.keys(dateFilter).length > 0 && { createdAt: dateFilter }),
+                ...(userId ? { createdBy: userId } : {})
             },
             _sum: { total: true }
         }),
@@ -159,7 +160,8 @@ export async function fetchSummaryDataFiltered(startDate?: string | null, endDat
         () => prisma.invoice.aggregate({
             where: {
                 // Removed status filter to include all invoices (paid and unpaid)
-                ...(Object.keys(dateFilter).length > 0 && { createdAt: dateFilter })
+                ...(Object.keys(dateFilter).length > 0 && { createdAt: dateFilter }),
+                ...(userId ? { createdBy: userId } : {})
             },
             _sum: { totalProfit: true }
         }),
@@ -234,8 +236,33 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
             }
         }
 
-        // Check cache first with shop context and period
-        const cacheKey = `dashboard:summary:${context.isFiltered ? context.shopId : 'all'}:${periodDays || 'all'}`;
+        // Get user ID from token for cache key
+        const userId = await getUserIdFromToken(request);
+        if (!userId) {
+            return NextResponse.json({ error: 'User ID not found in token' }, { status: 401 });
+        }
+
+        // Fetch user details to check role and permissions
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                roleName: true,
+                permissions: true
+            }
+        });
+
+        if (!user) {
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+
+        // Check if user is admin or has admin permissions
+        const isAdmin = user.roleName === 'Admin' || user.roleName === 'Super Admin' || 
+                       (user.permissions && user.permissions.includes('admin:all'));
+
+        // Check cache first with shop context, period, and user context
+        const userContext = isAdmin ? 'admin' : userId;
+        const cacheKey = `dashboard:summary:${context.isFiltered ? context.shopId : 'all'}:${periodDays || 'all'}:user:${userContext}`;
         const cachedData = await cacheService.get(cacheKey);
 
         if (cachedData) {
@@ -250,13 +277,27 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
             });
         }
 
+        // Determine if user-specific filtering is needed
+        const filterUserId = isAdmin ? null : userId;
+
+        // Fetch summary data with user filtering
+
         console.log('🔄 Fetching fresh summary data with shop context:', {
             shopId: context.shopId,
             isFiltered: context.isFiltered,
-            periodDays
+            periodDays,
+            userId: userId,
+            userRole: user.roleName,
+            filterUserId: filterUserId
         });
         console.time('fetchSummaryDataOverall');
-        const summaryResult = await fetchSummaryData(context.isFiltered ? context.shopId : null, periodDays);
+        const summaryResult = await fetchSummaryData(
+            context.isFiltered ? context.shopId : null, 
+            periodDays, 
+            undefined, 
+            undefined, 
+            filterUserId
+        );
         console.timeEnd('fetchSummaryDataOverall');
 
         // Add metadata to response

@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma, safeQuery } from '@/lib/prisma';
 import { cacheService } from '@/lib/cache';
 import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
-import { validateTokenPermission } from '@/lib/auth';
+import { validateTokenPermission, getUserIdFromToken } from '@/lib/auth';
 
 // Filtered version of fetchSalesData with date range and shop support
-export async function fetchSalesDataFiltered(startDate?: string | null, endDate?: string | null, shopId?: number | null) {
+export async function fetchSalesDataFiltered(startDate?: string | null, endDate?: string | null, shopId?: number | null, userId?: string | null) {
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
     if (startDate && endDate) {
@@ -32,7 +32,8 @@ export async function fetchSalesDataFiltered(startDate?: string | null, endDate?
                             gte: actualStart,
                             lte: actualEnd
                         },
-                        ...(shopId ? { shopId } : {})
+                        ...(shopId ? { shopId } : {}),
+                        ...(userId ? { createdBy: userId } : {})
                     },
                     _sum: {
                         total: true
@@ -61,7 +62,7 @@ export async function fetchSalesDataFiltered(startDate?: string | null, endDate?
     }
 }
 
-export async function fetchSalesData(shopId?: number | null, periodDays?: number, startDate?: Date, endDate?: Date) {
+export async function fetchSalesData(shopId?: number | null, periodDays?: number, startDate?: Date, endDate?: Date, userId?: string | null) {
     // Get current month and year
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -93,7 +94,8 @@ export async function fetchSalesData(shopId?: number | null, periodDays?: number
                         gte: startDate,
                         lte: endDate
                     },
-                    ...(shopId ? { shopId } : {})
+                    ...(shopId ? { shopId } : {}),
+                    ...(userId ? { createdBy: userId } : {})
                 },
                 _sum: {
                     total: true
@@ -124,15 +126,51 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
             return NextResponse.json({ error: authResult.message }, { status: 401 });
         }
 
+        // Get user ID from token
+        const userId = await getUserIdFromToken(request);
+        if (!userId) {
+            return NextResponse.json({ error: 'User ID not found in token' }, { status: 401 });
+        }
+
+        // Fetch user details to check role and permissions
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                roleName: true,
+                permissions: true
+            }
+        });
+
+        if (!user) {
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+
+        // Check if user is admin or has admin permissions
+        const isAdmin = user.roleName === 'Admin' || user.roleName === 'Super Admin' || 
+                       (user.permissions && user.permissions.includes('admin:all'));
+
+        // Determine user filtering
+        let filterUserId: string | null = null;
+        if (!isAdmin) {
+            filterUserId = userId;
+        }
+
         console.log('Sales API - Shop context:', {
             shopId: context.shopId,
             isFiltered: context.isFiltered,
             isAdmin: context.isAdmin,
-            userShopId: context.userShopId
+            userShopId: context.userShopId,
+            userId: userId,
+            userRole: user.roleName,
+            filterUserId: filterUserId
         });
 
-        // Create cache key that includes shop context
-        const cacheKey = context.isFiltered ? `dashboard:sales:shop:${context.shopId}` : 'dashboard:sales:all';
+        // Create cache key that includes shop context and user context
+        const userContext = isAdmin ? 'admin' : userId;
+        const cacheKey = context.isFiltered ? 
+            `dashboard:sales:shop:${context.shopId}:user:${userContext}` : 
+            `dashboard:sales:all:user:${userContext}`;
         const cachedData = await cacheService.get(cacheKey);
 
         if (cachedData) {
@@ -148,7 +186,13 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
         }
 
         console.log('🔄 Fetching fresh sales data');
-        const salesResult = await fetchSalesData(context.isFiltered ? context.shopId : null);
+        const salesResult = await fetchSalesData(
+            context.isFiltered ? context.shopId : null,
+            undefined,
+            undefined,
+            undefined,
+            filterUserId
+        );
 
         // Cache for 5 minutes (sales data changes less frequently)
         await cacheService.set(cacheKey, salesResult, 300);

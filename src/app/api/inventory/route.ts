@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/utils/db';
-import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
-import { emitInventoryLevelUpdated } from '@/lib/utils/websocket';
+
+
 import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
 
 // GET: Fetch all inventory items with shop-based filtering
@@ -183,13 +183,8 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
             `, [shopId, productId, quantity, reorderLevel || 0]);
         }
 
-        // Emit WebSocket event for real-time inventory updates
+        // Real-time updates now handled by polling system
         const inventoryItem = result.rows[0];
-        emitInventoryLevelUpdated(productId, {
-            shopId: shopId,
-            newQuantity: quantity,
-            source: 'inventory_api'
-        });
 
         return NextResponse.json({
             success: true,

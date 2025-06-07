@@ -2,22 +2,27 @@
 const webpack = require('webpack');
 
 const nextConfig = {
-  // Disable static export due to server-side dependencies
-  // output: 'export',
-  // trailingSlash: true,
-  // skipTrailingSlashRedirect: true,
-  
-  // Disable static generation and export
-  output: 'standalone',
+  // Optimized for Vercel serverless deployment
+  // Remove standalone output for Vercel
   
   // Disable static generation for dynamic pages
   generateBuildId: async () => {
     return 'build-' + Date.now()
   },
   
-  // Disable static optimization
+  // Enable compression
+  compress: true,
+  
+  // Optimize images
+  images: {
+    domains: [],
+    formats: ['image/webp', 'image/avif'],
+  },
+  
+  // Experimental optimizations
   experimental: {
     optimizePackageImports: ['lucide-react', 'recharts', 'framer-motion'],
+    serverComponentsExternalPackages: ['@prisma/client'],
     forceSwcTransforms: true,
   },
   

@@ -3,15 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node server.js",
-    "dev:next": "next dev",
+    "dev": "next dev",
+    "dev:server": "node server.js",
     "build": "prisma generate && next build",
-    "start": "node server.js",
+    "start": "next start",
+    "start:server": "node server.js",
     "lint": "next lint",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "prisma:seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+    "prisma:seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts",
+    "vercel:build": "prisma generate && next build"
   },
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
@@ -28,6 +30,7 @@
     "@types/lodash": "^4.17.17",
     "@types/pg": "^8.15.4",
     "@types/react-window": "^1.8.8",
+    "@vercel/kv": "^1.0.1",
     "autoprefixer": "^10.4.21",
     "axios": "^1.9.0",
     "bcryptjs": "^2.4.3",
@@ -58,8 +61,6 @@
     "react-window": "^1.8.11",
     "react-window-infinite-loader": "^1.0.10",
     "recharts": "^2.15.3",
-    "socket.io": "^4.7.5",
-    "socket.io-client": "^4.7.5",
     "sonner": "^2.0.5",
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",

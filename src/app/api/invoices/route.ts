@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { validateTokenPermission, getUserIdFromToken } from '@/lib/auth';
 import { revalidateTag } from 'next/cache';
-import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
-import { emitInvoiceCreated } from '@/lib/utils/websocket';
+
+
 import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
 import { measureAsync } from '@/lib/performance';
 import { cacheService, CACHE_CONFIG } from '@/lib/cache';
@@ -22,11 +22,33 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
                 return NextResponse.json({ error: authResult.message }, { status: 401 });
             }
 
+            // Get user ID from token for filtering
+            const userId = await getUserIdFromToken(request);
+            if (!userId) {
+                return NextResponse.json({ error: 'User not found' }, { status: 401 });
+            }
+
+            // Get user details to check role
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                select: {
+                    id: true,
+                    roleName: true,
+                    permissions: true
+                }
+            });
+
+            if (!user) {
+                return NextResponse.json({ error: 'User not found' }, { status: 401 });
+            }
+
             console.log('Invoices API - Shop context:', {
                 shopId: context.shopId,
                 isFiltered: context.isFiltered,
                 isAdmin: context.isAdmin,
-                userShopId: context.userShopId
+                userShopId: context.userShopId,
+                userId: user.id,
+                userRole: user.roleName
             });
 
             const searchParams = request.nextUrl.searchParams;
@@ -37,14 +59,18 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
             const searchQuery = searchParams.get('search') || '';
             const shopId = searchParams.get('shopId');
 
-            // Generate cache key
+            // Generate cache key including user context for non-admin users
+            const isAdmin = user.roleName === 'Admin' || user.roleName === 'Super Admin' || 
+                           (user.permissions && user.permissions.includes('admin:all'));
+            
             const cacheKey = cacheService.generateKey(CACHE_CONFIG.KEYS.INVOICES, {
                 page,
                 limit,
                 status,
                 paymentMethod,
                 search: searchQuery,
-                shopId
+                shopId,
+                userId: isAdmin ? 'admin' : user.id // Admin sees all, others see user-specific
             });
 
             // Try to get from cache first
@@ -61,11 +87,11 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
 
             // Add user-based filtering for non-admin users
             // Only show invoices created by the current user unless they're an admin
-            const userRole = session.user.roleName;
-            const isAdmin = userRole === 'Admin' || userRole === 'Super Admin';
-            
             if (!isAdmin) {
-                whereClause.createdBy = session.user.id;
+                whereClause.createdBy = user.id;
+                console.log(`Non-admin user ${user.id} (${user.roleName}) - filtering invoices by createdBy`);
+            } else {
+                console.log(`Admin user ${user.id} (${user.roleName}) - showing all invoices`);
             }
 
             if (status) {
@@ -616,20 +642,8 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
                 )
             );
 
-            // Emit INVENTORY_LEVEL_UPDATED events
-            const io = getSocketIO();
-            if (io && inventoryUpdatesForEvent.length > 0) {
-                inventoryUpdatesForEvent.forEach(update => {
-                    io.emit(WEBSOCKET_EVENTS.INVENTORY_LEVEL_UPDATED, {
-                        productId: update.productId,
-                        shopId: update.shopId,
-                        newQuantity: update.newQuantity,
-                        oldQuantity: update.oldQuantity,
-                        source: 'sales_invoice_creation'
-                    });
-                });
-                console.log(`Emitted ${inventoryUpdatesForEvent.length} INVENTORY_LEVEL_UPDATED events for invoice ${invoice?.id}`);
-            }
+            // Real-time updates now handled by polling system
+            console.log(`Invoice ${invoice?.id} created successfully`);
 
             if (sendSms) {
                 try {

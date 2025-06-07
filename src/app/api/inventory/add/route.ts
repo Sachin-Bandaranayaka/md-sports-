@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { emitInventoryLevelUpdated, emitInventoryUpdate } from '@/lib/utils/websocket';
+
 
 export async function POST(request: NextRequest) {
     try {
@@ -109,21 +109,7 @@ export async function POST(request: NextRequest) {
             // Continue with the request even if audit logging fails
         }
 
-        // Emit WebSocket event for real-time updates
-        emitInventoryLevelUpdated(productIdNum, {
-            shopId: shopIdNum,
-            newQuantity: newQuantity,
-            quantityChange: quantityNum,
-            source: 'direct_add'
-        });
-
-        // Also emit a general inventory update event
-        emitInventoryUpdate({
-            type: 'item_updated',
-            productId: productIdNum,
-            shopId: shopIdNum,
-            timestamp: new Date()
-        });
+        // Real-time updates now handled by polling system
 
         return NextResponse.json({
             success: true,
@@ -138,4 +124,4 @@ export async function POST(request: NextRequest) {
             error: error instanceof Error ? error.message : String(error)
         }, { status: 500 });
     }
-} 
+}

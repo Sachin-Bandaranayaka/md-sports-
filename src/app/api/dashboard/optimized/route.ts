@@ -15,10 +15,16 @@ import { fetchInventoryDistributionData } from '../inventory/route';
 import { fetchSalesData } from '../sales/route';
 import { fetchTransfersData } from '../transfers/route';
 import { cacheService } from '@/lib/cache';
+import { cache } from '@/lib/cache-vercel';
 import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
-import { validateTokenPermission } from '@/lib/auth';
+import { validateTokenPermission, getUserIdFromToken } from '@/lib/auth';
 import { PerformanceMonitor } from '@/lib/performance';
 import { prisma } from '@/lib/prisma';
+
+// Vercel serverless optimizations
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 10;
 
 // Performance monitor instance
 const perfMonitor = new PerformanceMonitor();
@@ -182,8 +188,38 @@ async function fetchOptimizedDashboardData(
         'dashboard:optimized-full-fetch',
         async () => {
             // Group queries by priority for better resource utilization
+            // Get user ID from token
+            const userId = await getUserIdFromToken(request);
+            if (!userId) {
+                throw new Error('User ID not found in token');
+            }
+
+            // Fetch user details to check role and permissions
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                select: {
+                    id: true,
+                    roleName: true,
+                    permissions: true
+                }
+            });
+
+            if (!user) {
+                throw new Error('User not found');
+            }
+
+            // Check if user is admin or has admin permissions
+            const isAdmin = user.roleName === 'Admin' || user.roleName === 'Super Admin' || 
+                           (user.permissions && user.permissions.includes('admin:all'));
+
+            // Determine user filtering
+            let filterUserId: string | null = null;
+            if (!isAdmin) {
+                filterUserId = userId;
+            }
+
             const highPriorityQueries = [
-                fetchSummaryData(shopId),
+                fetchSummaryData(shopId, undefined, undefined, undefined, filterUserId),
                 fetchTransfersData(shopId)
             ];
 
@@ -194,7 +230,7 @@ async function fetchOptimizedDashboardData(
 
             const lowPriorityQueries = [
                 fetchInventoryDistributionData(shopId),
-                fetchSalesData(shopId)
+                fetchSalesData(shopId, undefined, undefined, undefined, filterUserId)
             ];
 
             // Execute high priority queries first

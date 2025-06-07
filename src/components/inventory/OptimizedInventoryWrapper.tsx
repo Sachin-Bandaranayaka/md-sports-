@@ -33,7 +33,7 @@ import {
   useLowStockAlerts
 } from '@/hooks/useOptimizedInventory';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useWebSocket } from '@/hooks/useWebSocket';
+import { useRealtime } from '@/hooks/useRealtime';
 import { inventoryCacheService } from '@/lib/inventoryCache';
 import { PerformanceMonitor } from '@/lib/performance';
 
@@ -276,9 +276,9 @@ export default function OptimizedInventoryWrapper({
     enableOfflineSupport: true,
   });
 
-  // WebSocket connection status
-  const { isConnected: wsConnected } = useWebSocket({
-    url: process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001',
+  // Real-time connection status
+  const { isConnected: realtimeConnected } = useRealtime({
+    types: ['inventory'],
     enabled: enableRealtime,
   });
 
@@ -369,7 +369,7 @@ export default function OptimizedInventoryWrapper({
           <h1 className="text-2xl font-bold">Inventory Management</h1>
           {enableRealtime && (
             <div className="flex items-center space-x-2">
-              {wsConnected ? (
+              {realtimeConnected ? (
                 <><Wifi className="h-4 w-4 text-green-500" /><span className="text-sm text-green-600">Live</span></>
               ) : (
                 <><WifiOff className="h-4 w-4 text-gray-400" /><span className="text-sm text-gray-500">Offline</span></>

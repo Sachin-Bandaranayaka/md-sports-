@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { authDelete, authFetch } from '@/utils/api';
 import AddInventoryModal from '@/components/inventory/AddInventoryModal';
 import { useInventory } from '@/hooks/useQueries';
-import { useInventoryUpdates } from '@/hooks/useWebSocket';
+import { useRealtime } from '@/hooks/useRealtime';
 import { debounce } from '@/lib/utils';
 
 // Define proper types for our data
@@ -121,24 +121,15 @@ export default function InventoryClientWrapper({
     const autoRefreshTimerRef = useRef<NodeJS.Timeout | null>(null);
     const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
 
-    // WebSocket integration for real-time updates
-    useInventoryUpdates((data) => {
-        console.log('Received inventory update via WebSocket:', data);
-
-        // Handle different types of inventory updates
-        switch (data.type) {
-            case 'inventory_update':
-            case 'inventory_item_update':
-            case 'inventory_item_create':
-            case 'inventory_item_delete':
-            case 'inventory_level_updated':
-                // Refresh data when inventory changes
-                console.log('Refreshing inventory due to WebSocket update');
-                refetch();
-                setLastRefreshed(new Date());
-                break;
-            default:
-                console.log('Unknown inventory update type:', data.type);
+    // Real-time updates integration
+    useRealtime({
+        types: ['inventory'],
+        onUpdate: (data) => {
+            console.log('Received inventory update via polling:', data);
+            // Refresh data when inventory changes
+            console.log('Refreshing inventory due to real-time update');
+            refetch();
+            setLastRefreshed(new Date());
         }
     });
 
@@ -178,7 +169,7 @@ export default function InventoryClientWrapper({
 
     // Update URL when filters or pagination changes
     useEffect(() => {
-        const params = new URLSearchParams(searchParams);
+        const params = new URLSearchParams();
 
         // Set pagination parameters
         params.set('page', currentPage.toString());
@@ -187,28 +178,24 @@ export default function InventoryClientWrapper({
         // Set filter parameters
         if (searchTerm) {
             params.set('search', searchTerm);
-        } else {
-            params.delete('search');
         }
 
         if (categoryFilter) {
             params.set('category', categoryFilter);
-        } else {
-            params.delete('category');
         }
 
         if (statusFilter) {
             params.set('status', statusFilter);
-        } else {
-            params.delete('status');
         }
 
-        // Update the URL without refreshing the page
-        router.push(`${pathname}?${params.toString()}`);
+        // Update the URL without refreshing the page - use replace to avoid navigation interference
+        const newUrl = `${pathname}?${params.toString()}`;
+        if (window.location.pathname + window.location.search !== newUrl) {
+            router.replace(newUrl);
+        }
 
-        // Trigger a data refresh when pagination or filters change
-        refreshInventory();
-    }, [currentPage, itemsPerPage, searchTerm, categoryFilter, statusFilter, pathname, router, searchParams]);
+        // Note: Data refresh is handled by the separate useEffect that watches filter changes
+    }, [currentPage, itemsPerPage, searchTerm, categoryFilter, statusFilter, pathname, router]);
 
     // Listen for filter panel toggle event from header actions
     useEffect(() => {

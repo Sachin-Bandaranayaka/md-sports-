@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma, safeQuery } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
-import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
+
 import { cacheService } from '@/lib/cache';
 
 // Default fallback for a single product
@@ -158,18 +158,7 @@ export async function PUT(
         // Invalidate inventory cache
         await cacheService.invalidateInventory();
 
-        // Emit WebSocket event for real-time updates
-        const io = getSocketIO();
-        if (io) {
-            io.emit(WEBSOCKET_EVENTS.INVENTORY_ITEM_UPDATE, {
-                type: 'product_update',
-                payload: {
-                    product: updatedProduct,
-                    changes: changes
-                }
-            });
-            console.log('Emitted product update event via WebSocket');
-        }
+        // Real-time updates now handled by polling system
 
         return NextResponse.json({
             success: true,
@@ -258,18 +247,7 @@ export async function DELETE(
             await cacheService.invalidatePattern('products:*');
             await cacheService.invalidateInventory();
 
-            // Emit WebSocket event for real-time updates
-            const io = getSocketIO();
-            if (io) {
-                io.emit(WEBSOCKET_EVENTS.INVENTORY_ITEM_DELETE, {
-                    type: 'product_delete',
-                    payload: {
-                        productId: id,
-                        productName: existingProduct.name
-                    }
-                });
-                console.log('Emitted product delete event via WebSocket');
-            }
+            // Real-time updates now handled by polling system
 
             return NextResponse.json({
                 success: true,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
-import { emitInventoryLevelUpdated } from '@/lib/utils/websocket';
+
+
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { getToken } from 'next-auth/jwt';
 import { cacheService } from '@/lib/cache';
@@ -385,27 +385,7 @@ export async function POST(request: NextRequest) {
             { timeout: 20000 } // 20 seconds timeout
         );
 
-        // Emit WebSocket events
-        const io = getSocketIO();
-        if (io && purchase && purchase.invoice) {
-            io.emit(WEBSOCKET_EVENTS.PURCHASE_INVOICE_CREATED, purchase.invoice);
-
-            // Emit inventory updates
-            if (purchase.inventoryUpdates && purchase.inventoryUpdates.length > 0) {
-                purchase.inventoryUpdates.forEach(update => {
-                    // Assuming emitInventoryLevelUpdated can handle numeric shopId for its own logic
-                    // but the critical part is that Prisma queries used string shopId as fixed above.
-                    // However, since we're now inferring shops, it's possible that shopId is a string.
-                    // So, we'll convert it to a number if it's a string.
-                    emitInventoryLevelUpdated(update.productId, {
-                        shopId: typeof update.shopId === 'string' ? parseInt(update.shopId) : update.shopId,
-                        newQuantity: update.newQuantity,
-                        source: 'purchase_creation'
-                    });
-                });
-            }
-            console.log(`Emitted WebSocket events for new purchase invoice ${purchase.invoice.id}`);
-        }
+        // Real-time updates now handled by polling system
 
         // After successful transaction, invalidate relevant caches
         try {
