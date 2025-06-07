@@ -22,7 +22,10 @@ import {
     WalletIcon,
     ChevronDown,
     ChevronRight,
-    MessageSquare
+    MessageSquare,
+    CreditCard,
+    Receipt,
+    Calculator
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Toaster } from 'sonner';
@@ -36,27 +39,29 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-    { icon: Home, href: '/dashboard', label: 'Dashboard' },
-    {
-        icon: Package,
-        href: '/inventory',
-        label: 'Inventory',
+    { icon: Home, href: '/dashboard', label: 'Dashboard', requiredPermission: 'view_dashboard' },
+    { 
+        icon: Package, 
+        href: '/inventory', 
+        label: 'Inventory', 
         requiredPermission: 'inventory:view',
         children: [
-            { icon: Store, href: '/inventory/distribution', label: 'Shop Distribution', requiredPermission: 'inventory:view' },
-            { icon: TruckIcon, href: '/inventory/transfers', label: 'Transfers', requiredPermission: 'inventory:view' },
-            { icon: TruckIcon, href: '/suppliers', label: 'Suppliers', requiredPermission: 'inventory:view' },
-            { icon: FileText, href: '/purchases', label: 'Purchases', requiredPermission: 'inventory:manage' },
+            { icon: Package, href: '/inventory', label: 'All Products', requiredPermission: 'inventory:view' },
+            { icon: TruckIcon, href: '/inventory/transfers', label: 'Transfers', requiredPermission: 'inventory:transfer' },
+            { icon: Store, href: '/inventory/distribution', label: 'Shop Distribution', requiredPermission: 'shop:distribution:view' },
         ]
     },
-    { icon: ClipboardIcon, href: '/quotations', label: 'Quotations', requiredPermission: 'sales:view' },
-    { icon: Store, href: '/shops', label: 'Shops', requiredPermission: 'inventory:view' },
-    { icon: Users, href: '/customers', label: 'Customers', requiredPermission: 'sales:view' },
-    { icon: FileText, href: '/invoices', label: 'Invoices', requiredPermission: 'sales:view' },
-    { icon: ReceiptIcon, href: '/receipts', label: 'Receipts' },
-    { icon: WalletIcon, href: '/accounting', label: 'Accounting', requiredPermission: 'sales:manage' },
-    { icon: BarChart2, href: '/reports', label: 'Reports', requiredPermission: 'reports:view' },
-    { icon: Settings, href: '/settings', label: 'Settings', requiredPermission: 'settings:manage' },
+    { icon: Store, href: '/shops', label: 'Shops', requiredPermission: 'shop:view' },
+    { icon: Users, href: '/customers', label: 'Customers', requiredPermission: 'customer:view' },
+    { icon: FileText, href: '/invoices', label: 'Sales Invoices', requiredPermission: 'invoice:view' },
+    { icon: ClipboardIcon, href: '/quotations', label: 'Quotations', requiredPermission: 'quotation:view' },
+    { icon: WalletIcon, href: '/purchases', label: 'Purchases', requiredPermission: 'purchase:view' },
+    { icon: TruckIcon, href: '/suppliers', label: 'Suppliers', requiredPermission: 'supplier:view' },
+    { icon: CreditCard, href: '/payments', label: 'Payments', requiredPermission: 'payment:view' },
+    { icon: Receipt, href: '/receipts', label: 'Receipts', requiredPermission: 'receipt:view' },
+    { icon: Calculator, href: '/accounting', label: 'Accounting', requiredPermission: 'accounting:view' },
+    { icon: BarChart2, href: '/reports', label: 'Reports', requiredPermission: 'report:view' },
+    { icon: Settings, href: '/settings', label: 'Settings', requiredPermission: 'settings:view' },
 ];
 
 interface MainLayoutProps {
@@ -115,8 +120,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
             return false; // No permissions available
         }
 
-        const hasPerm = user.permissions.includes(requiredPermission);
-        console.log('[MainLayout] Permission check result for ', requiredPermission, ':', hasPerm);
+        // Check for admin permissions first (*, admin:all)
+        const isAdminUser = user.permissions.includes('*') || user.permissions.includes('admin:all');
+        const hasSpecificPerm = user.permissions.includes(requiredPermission);
+        const hasPerm = isAdminUser || hasSpecificPerm;
+        
+        console.log('[MainLayout] Permission check result for ', requiredPermission, ':', hasPerm, '(isAdmin:', isAdminUser, ', hasSpecific:', hasSpecificPerm, ')');
         return hasPerm;
     };
 

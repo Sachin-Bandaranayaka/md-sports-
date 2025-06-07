@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requirePermission } from '@/lib/utils/middleware';
 import { prisma } from '@/lib/prisma';
 
 export async function GET() {
@@ -46,7 +47,13 @@ export async function GET() {
     }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+    // Check for 'customer:create' permission
+    const permissionError = await requirePermission('customer:create')(request);
+    if (permissionError) {
+        return permissionError;
+    }
+
     try {
         const customerData = await request.json();
 
@@ -94,4 +101,4 @@ export async function POST(request: Request) {
             { status: 500 }
         );
     }
-} 
+}

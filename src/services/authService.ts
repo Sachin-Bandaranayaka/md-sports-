@@ -82,7 +82,21 @@ export const authenticateUser = async (email: string, password: string) => {
         }
 
         // Get permissions from role (handle case where user has no role)
-        const permissions = user.role?.permissions?.map(p => p.name) || user.permissions || [];
+        let permissions: string[] = [];
+        if (user.role?.permissions) {
+            permissions = user.role.permissions.map(p => p.name);
+        } else if (user.permissions && Array.isArray(user.permissions)) {
+            // Convert permission IDs to names
+            const permissionRecords = await prisma.permission.findMany({
+                where: {
+                    id: {
+                        in: user.permissions.map(id => parseInt(id.toString()))
+                    }
+                },
+                select: { name: true }
+            });
+            permissions = permissionRecords.map(p => p.name);
+        }
 
         // Generate JWT token
         const token = generateToken({

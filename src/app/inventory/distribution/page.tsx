@@ -421,9 +421,14 @@ export default function InventoryDistribution() {
                                                     >
                                                         <div className="text-center">
                                                             <div className="font-semibold">{quantity}</div>
-                                                            <div className="text-xs text-gray-500">
-                                                                Rs. {stockInShop ? stockInShop.shopSpecificCost.toLocaleString() : '0'}
+                                                            <div className="text-xs text-gray-500 mt-1">
+                                                                WAC: Rs. {product.weightedAverageCost.toLocaleString()}
                                                             </div>
+                                                            {stockInShop && stockInShop.shopSpecificCost > 0 && (
+                                                                <div className="text-xs text-blue-600 mt-1">
+                                                                    Shop Cost: Rs. {stockInShop.shopSpecificCost.toLocaleString()}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </td>
                                                 );
@@ -492,6 +497,9 @@ export default function InventoryDistribution() {
                                                         Quantity
                                                     </th>
                                                     <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Cost Info
+                                                    </th>
+                                                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                         Retail Price
                                                     </th>
                                                     <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -508,7 +516,7 @@ export default function InventoryDistribution() {
                                                     .map(product => {
                                                         const shopStock = product.branchStock.find(branch => branch.shopId === shop.id);
                                                         const quantity = shopStock ? shopStock.quantity : 0;
-                                                        const value = quantity * product.weightedAverageCost;
+                                                        const value = quantity * product.retailPrice;
 
                                                         return (
                                                             <tr key={product.id} className="hover:bg-gray-50">
@@ -521,6 +529,18 @@ export default function InventoryDistribution() {
 
                                                                 <td className="px-4 py-3 whitespace-nowrap text-sm text-black">
                                                                     {quantity}
+                                                                </td>
+                                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-black">
+                                                                    <div className="space-y-1">
+                                                                        <div className="text-xs text-gray-600">
+                                                                            WAC: Rs. {product.weightedAverageCost.toLocaleString()}
+                                                                        </div>
+                                                                        {shopStock && shopStock.shopSpecificCost > 0 && (
+                                                                            <div className="text-xs text-blue-600">
+                                                                                Shop Cost: Rs. {shopStock.shopSpecificCost.toLocaleString()}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
                                                                 </td>
                                                                 <td className="px-4 py-3 whitespace-nowrap text-sm text-black">
                                                                     Rs. {product.retailPrice.toLocaleString()}

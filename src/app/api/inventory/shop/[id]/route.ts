@@ -1,16 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/utils/middleware';
+import { getUserFromToken } from '@/services/authService';
 import db from '@/utils/db';
 
 export async function GET(
     req: NextRequest,
     { params }: { params: { id: string } }
 ) {
-    // Check for 'inventory:view' permission
-    const permissionError = await requirePermission('inventory:view')(req);
-    if (permissionError) {
-        return permissionError;
+    // Check for inventory view permissions
+    const token = req.headers.get('authorization')?.replace('Bearer ', '');
+    
+    if (!token) {
+        return NextResponse.json({
+            success: false,
+            message: 'Authentication required'
+        }, { status: 401 });
     }
+
+    // Get user to check specific permissions
+    const user = await getUserFromToken(token);
+    if (!user) {
+        return NextResponse.json({
+            success: false,
+            message: 'Invalid token'
+        }, { status: 401 });
+    }
+
+    // Check if user has any inventory view permission
+    const hasBasicView = user.permissions?.includes('inventory:view:basic');
+    const hasFullView = user.permissions?.includes('inventory:view');
+    
+    if (!hasBasicView && !hasFullView) {
+        return NextResponse.json({
+            success: false,
+            message: 'Permission denied: inventory view access required'
+        }, { status: 403 });
+    }
+
+    // Determine if costs should be included
+    const includeCosts = hasFullView && !hasBasicView;
 
     try {
         // Get the shop ID safely
@@ -23,7 +51,9 @@ export async function GET(
 
         const shopId = params.id;
 
-        // Get inventory items for the shop
+        // Get inventory items for the shop with conditional cost inclusion
+        const costField = includeCosts ? 'p.weightedAverageCost,' : '';
+        
         const result = await db.query(
             `SELECT 
                 i.id,
@@ -35,7 +65,7 @@ export async function GET(
                 p.sku,
                 p.barcode,
                 p.price,
-                p.weightedAverageCost,
+                ${costField}
                 c.name AS category_name
             FROM 
                 "InventoryItem" i
@@ -63,4 +93,4 @@ export async function GET(
             error: error instanceof Error ? error.message : String(error)
         }, { status: 500 });
     }
-} 
+}

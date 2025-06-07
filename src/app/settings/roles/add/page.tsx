@@ -88,7 +88,7 @@ export default function AddRolePage() {
             { id: 'supplier:create', name: 'Create Suppliers' },
             { id: 'supplier:update', name: 'Update Suppliers' },
             { id: 'supplier:delete', name: 'Delete Suppliers' },
-            { id: 'shop:view', name: 'View Shops' },
+            { id: 'shop:distribution:view', name: 'View Shop Distribution' },
             { id: 'shop:manage', name: 'Manage Shops' },
             { id: 'shop:create', name: 'Create Shops' },
             { id: 'shop:update', name: 'Update Shops' },
@@ -375,4 +375,4 @@ export default function AddRolePage() {
             </div>
         </MainLayout>
     );
-} 
+}

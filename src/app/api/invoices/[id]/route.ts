@@ -220,11 +220,30 @@ export async function PUT(
 
                     if (invoiceData.items && Array.isArray(invoiceData.items) && invoiceData.items.length > 0) {
                         const productIdsForNewItems = invoiceData.items.map((item: any) => parseInt(item.productId.toString()));
-                        const productsData = await tx.product.findMany({
-                            where: { id: { in: productIdsForNewItems } },
-                            select: { id: true, weightedAverageCost: true }
+                        
+                        // Get shop-specific costs for profit calculation instead of global weighted average
+                        const inventoryItems = await tx.inventoryItem.findMany({
+                            where: { 
+                                productId: { in: productIdsForNewItems },
+                                shopId: invoiceData.shopId
+                            },
+                            select: { productId: true, shopSpecificCost: true }
                         });
-                        const productCostMap = new Map(productsData.map(p => [p.id, p.weightedAverageCost || 0]));
+
+                        // Create a map of productId to shop-specific cost
+                        const productCostMap = new Map(inventoryItems.map(item => [item.productId, item.shopSpecificCost || 0]));
+                        
+                        // For products not found in inventory, fallback to global weighted average
+                        const missingProductIds = productIdsForNewItems.filter(id => !productCostMap.has(id));
+                        if (missingProductIds.length > 0) {
+                            const fallbackProducts = await tx.product.findMany({
+                                where: { id: { in: missingProductIds } },
+                                select: { id: true, weightedAverageCost: true }
+                            });
+                            fallbackProducts.forEach(p => {
+                                productCostMap.set(p.id, p.weightedAverageCost || 0);
+                            });
+                        }
 
                         for (const item of invoiceData.items) {
                             const productId = parseInt(item.productId.toString());

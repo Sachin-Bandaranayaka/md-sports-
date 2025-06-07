@@ -21,44 +21,12 @@ interface RoleTemplate {
 
 const roleTemplates: RoleTemplate[] = [
     {
-        id: 'inventory_manager',
-        name: 'Inventory Manager',
-        description: 'Full access to inventory, transfers, and stock management',
-        icon: Package,
-        permissions: ['inventory:view', 'inventory:create', 'inventory:update', 'inventory:delete', 'inventory:manage', 'transfer:view', 'transfer:create', 'transfer:update'],
-        color: 'bg-blue-100 text-blue-800 border-blue-200'
-    },
-    {
-        id: 'sales_representative',
-        name: 'Sales Representative',
-        description: 'Access to sales, customers, and quotations',
-        icon: CreditCard,
-        permissions: ['sales:view', 'sales:create', 'sales:update', 'customer:view', 'customer:create', 'customer:update', 'quotation:view', 'quotation:create'],
-        color: 'bg-green-100 text-green-800 border-green-200'
-    },
-    {
-        id: 'accountant',
-        name: 'Accountant',
-        description: 'Financial management and reporting access',
-        icon: BarChart3,
-        permissions: ['accounting:view', 'accounting:manage', 'reports:view', 'reports:export', 'payment:view', 'payment:create'],
-        color: 'bg-purple-100 text-purple-800 border-purple-200'
-    },
-    {
-        id: 'admin',
-        name: 'Administrator',
-        description: 'Full system access including user management',
-        icon: Shield,
-        permissions: ['user:view', 'user:create', 'user:update', 'user:delete', 'role:view', 'role:create', 'settings:manage', 'audit:view'],
-        color: 'bg-red-100 text-red-800 border-red-200'
-    },
-    {
-        id: 'viewer',
-        name: 'Viewer',
-        description: 'Read-only access to basic information',
+        id: 'shop_staff',
+        name: 'Shop Staff',
+        description: 'Basic shop operations including sales, inventory viewing, and customer management for assigned shop',
         icon: Users,
-        permissions: ['dashboard:view', 'inventory:view', 'sales:view'],
-        color: 'bg-gray-100 text-gray-800 border-gray-200'
+        permissions: ['view_dashboard', 'inventory:view:basic', 'sales:create:shop', 'customer:create', 'view_sales'],
+        color: 'bg-blue-100 text-blue-800 border-blue-200'
     }
 ];
 

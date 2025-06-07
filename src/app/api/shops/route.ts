@@ -1,41 +1,75 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { validateTokenPermission, getShopIdFromToken } from '@/lib/auth';
+import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
 
-// Placeholder for your shop data structure
-interface Shop {
-    id: string | number;
-    name: string;
-}
-
-// Placeholder for fetching shops from a database or service
-async function getShopsFromDataSource(): Promise<Shop[]> {
-    // In a real application, you would fetch this data from your database
-    // For example: return await db.select('*').from('shops');
-    return [
-        { id: 'shop1', name: 'Main Street Boutique' },
-        { id: 'shop2', name: 'Downtown Emporium' },
-        { id: 'shop3', name: 'Warehouse Outlet' },
-        { id: 'all', name: 'All Shops Access' }, // Example for a global access option
-    ];
-}
-
-// GET: Fetch all shops
 export async function GET(req: NextRequest) {
-    try {
-        // --- Authentication/Authorization (Placeholder) ---
-        // In a real application, you would implement proper authentication.
-        // For example, verify a JWT token, check session, or API key.
-        const authorizationHeader = req.headers.get('Authorization');
-        if (authorizationHeader !== 'Bearer dev-token') { // Replace dev-token with your actual auth mechanism
-            // console.warn('Unauthorized attempt to fetch shops');
-            // return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-            // For now, allowing access without strict auth for easier development.
-            // Remove or secure this properly in production.
-        }
-        // --- End Authentication/Authorization ---
+  try {
+    const url = new URL(req.url);
+    const simple = url.searchParams.get('simple') === 'true';
+
+    // Validate token and permissions - check for shop distribution view or shop manage
+    const shopDistributionPermission = await validateTokenPermission(req, 'shop:distribution:view');
+    const shopManagePermission = await validateTokenPermission(req, 'shop:manage');
+    
+    if (!shopDistributionPermission.isValid && !shopManagePermission.isValid) {
+      return NextResponse.json(
+        { success: false, message: 'Permission denied: shop:distribution:view or shop:manage required' },
+        { status: 401 }
+      );
+    }
+
+    // Get user's shop context for filtering
+    const userShopId = await getShopIdFromToken(req);
+    const adminAllPermission = await validateTokenPermission(req, 'admin:all');
+    const userManagePermission = await validateTokenPermission(req, 'user:manage');
+    
+    const isAdmin = shopManagePermission.isValid || adminAllPermission.isValid || userManagePermission.isValid;
+    
+    // Development mode - allow all access
+    const token = req.headers.get('authorization')?.split(' ')[1];
+    const isDevMode = token === 'dev-token';
+
+    if (simple) {
+      // Return simplified shop data for dropdowns
+      let whereClause = {};
+      
+      // If user is not admin and not in dev mode, filter by their assigned shop
+       if (!isAdmin && !isDevMode && userShopId) {
+         whereClause = {
+           id: userShopId
+         };
+       }
+      
+      const shops = await prisma.shop.findMany({
+        where: whereClause,
+        select: {
+          id: true,
+          name: true,
+        },
+        orderBy: {
+          name: 'asc',
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        data: shops,
+      });
+    }
 
         // Fetch shops from the database with proper numeric IDs
+        let whereClause = {};
+        
+        // If user is not admin and not in dev mode, filter by their assigned shop
+         if (!isAdmin && !isDevMode && userShopId) {
+             whereClause = {
+                 id: userShopId
+             };
+         }
+        
         const shops = await prisma.shop.findMany({
+            where: whereClause,
             orderBy: {
                 name: 'asc'
             },

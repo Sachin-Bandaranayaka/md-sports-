@@ -15,7 +15,7 @@ export default function PermissionsDebugContent() {
         'product:view', 'product:create', 'product:update', 'product:delete',
         'inventory:view', 'inventory:create', 'inventory:update', 'inventory:delete',
         'user:view', 'user:create', 'user:update', 'user:delete',
-        'shop:view', 'shop:create', 'shop:update', 'shop:delete',
+        'shop:distribution:view', 'shop:create', 'shop:update', 'shop:delete',
     ];
 
     useEffect(() => {
@@ -183,4 +183,4 @@ export default function PermissionsDebugContent() {
             </div>
         </>
     );
-} 
+}

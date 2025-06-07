@@ -11,9 +11,12 @@ async function main() {
         { name: 'user:view', description: 'View users' },
         { name: 'user:manage', description: 'Create, update, delete users' },
         { name: 'inventory:view', description: 'View inventory' },
+        { name: 'inventory:view:basic', description: 'View inventory without costs' },
         { name: 'inventory:manage', description: 'Manage inventory' },
         { name: 'sales:view', description: 'View sales' },
         { name: 'sales:manage', description: 'Manage sales' },
+        { name: 'sales:create:shop', description: 'Create sales for specific shop only' },
+        { name: 'customer:create', description: 'Create customers' },
         { name: 'reports:view', description: 'View reports' },
         { name: 'settings:manage', description: 'Manage system settings' },
         { name: 'view_dashboard', description: 'View dashboard' },
@@ -119,4 +122,4 @@ main()
     })
     .finally(async () => {
         await prisma.$disconnect();
-    }); 
+    });

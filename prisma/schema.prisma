@@ -27,6 +27,7 @@ model User {
   role                  Role?               @relation(fields: [roleId], references: [id])
   shop                  Shop?
   confirmedReceipts     Receipt[]
+  invoicesCreated       Invoice[]
 }
 
 model RefreshToken {
@@ -222,8 +223,10 @@ model Invoice {
   dueDate       DateTime?     @db.Date
   notes         String?
   shopId        String?
+  createdBy     Int?
   customer      Customer?     @relation(fields: [customerId], references: [id])
   shop          Shop?         @relation(fields: [shopId], references: [id])
+  createdByUser User?         @relation(fields: [createdBy], references: [id])
   items         InvoiceItem[]
   payments      Payment[]
 

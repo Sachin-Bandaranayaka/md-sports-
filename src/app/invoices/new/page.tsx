@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft, Save, Plus, Trash2, ChevronDown, ChevronUp, Search, Bell } from 'lucide-react';
@@ -60,6 +61,7 @@ interface InvoiceFormData {
 
 export default function CreateInvoice() {
     const router = useRouter();
+    const { accessToken } = useAuth();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
@@ -110,10 +112,18 @@ export default function CreateInvoice() {
 
     // Fetch customers and shops on component mount
     useEffect(() => {
+        if (!accessToken) return; // Don't fetch if no token available
+        
         async function fetchData() {
             try {
+                // Get auth token from useAuth hook
+                const headers = {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                };
+
                 // Fetch customers
-                const customerResponse = await fetch('/api/customers');
+                const customerResponse = await fetch('/api/customers', { headers });
                 if (customerResponse.ok) {
                     const customerData = await customerResponse.json();
                     // Assuming customerData is the array of customers directly from the API
@@ -124,7 +134,7 @@ export default function CreateInvoice() {
                 }
 
                 // Fetch shops (NEW)
-                const shopResponse = await fetch('/api/shops?simple=true');
+                const shopResponse = await fetch('/api/shops?simple=true', { headers });
                 if (shopResponse.ok) {
                     const shopData = await shopResponse.json();
                     if (shopData.success && Array.isArray(shopData.data)) {
@@ -154,7 +164,7 @@ export default function CreateInvoice() {
         }
 
         fetchData();
-    }, []);
+    }, [accessToken]);
 
     // Fetch products when shop is selected
     useEffect(() => {
@@ -166,11 +176,22 @@ export default function CreateInvoice() {
                 return;
             }
 
+            if (!accessToken) {
+                console.log('No access token available');
+                return;
+            }
+
             try {
+                // Get auth token from useAuth hook
+                const headers = {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                };
+
                 // Fetch products that have inventory in the selected shop
                 const url = `/api/products?shopId=${formData.shopId}`;
                 console.log('Fetching products from:', url);
-                const productResponse = await fetch(url);
+                const productResponse = await fetch(url, { headers });
                 if (productResponse.ok) {
                     const productData = await productResponse.json();
                     console.log('Products API response:', productData);
@@ -187,7 +208,7 @@ export default function CreateInvoice() {
         }
 
         fetchProducts();
-    }, [formData.shopId]);
+    }, [formData.shopId, accessToken]);
 
     // Filter customers based on search term
     const filteredCustomers = useMemo(() => {
@@ -424,12 +445,11 @@ export default function CreateInvoice() {
             };
 
             // Create invoice via API
-            const token = localStorage.getItem('accessToken');
             const response = await fetch('/api/invoices', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': token ? `Bearer ${token}` : '',
+                    'Authorization': accessToken ? `Bearer ${accessToken}` : '',
                 },
                 body: JSON.stringify(invoiceData),
             });

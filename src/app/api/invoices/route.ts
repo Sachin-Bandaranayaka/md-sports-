@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { validateTokenPermission } from '@/lib/auth';
+import { validateTokenPermission, getUserIdFromToken } from '@/lib/auth';
 import { revalidateTag } from 'next/cache';
 import { getSocketIO, WEBSOCKET_EVENTS } from '@/lib/websocket';
 import { emitInvoiceCreated } from '@/lib/utils/websocket';
@@ -58,6 +58,15 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
 
             // Build optimized where clause with shop filtering
             let whereClause = ShopAccessControl.buildShopFilter(context);
+
+            // Add user-based filtering for non-admin users
+            // Only show invoices created by the current user unless they're an admin
+            const userRole = session.user.roleName;
+            const isAdmin = userRole === 'Admin' || userRole === 'Super Admin';
+            
+            if (!isAdmin) {
+                whereClause.createdBy = session.user.id;
+            }
 
             if (status) {
                 whereClause.status = status;
@@ -237,12 +246,50 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
     return measureAsync('create-invoice-api', async () => {
         try {
             // Validate token and permissions
-            const authResult = await validateTokenPermission(request, 'sales:manage');
-            if (!authResult.isValid) {
-                return NextResponse.json({ error: authResult.message }, { status: 401 });
+            const salesManageResult = await validateTokenPermission(request, 'sales:manage');
+            const salesCreateShopResult = await validateTokenPermission(request, 'sales:create:shop');
+            
+            if (!salesManageResult.isValid && !salesCreateShopResult.isValid) {
+                return NextResponse.json({ 
+                    error: 'Permission denied: sales:manage or sales:create:shop required' 
+                }, { status: 403 });
+            }
+
+            // Get user ID from token
+            const userId = await getUserIdFromToken(request);
+            if (!userId) {
+                return NextResponse.json({ 
+                    error: 'Unable to get user information from token' 
+                }, { status: 401 });
             }
 
             const invoiceData = await request.json();
+            
+            // If user only has sales:create:shop permission, validate shop restriction
+            if (!salesManageResult.isValid && salesCreateShopResult.isValid) {
+                // User can only create sales for their assigned shop
+                if (!invoiceData.shopId) {
+                    return NextResponse.json({
+                        success: false,
+                        message: 'Shop ID is required for sales creation'
+                    }, { status: 400 });
+                }
+
+                // Validate that the user can only create invoices for their shop
+                const shopAccessResult = await ShopAccessControl.validateShopAccess(request, invoiceData.shopId);
+                if (!shopAccessResult.hasAccess || shopAccessResult.isAdmin) {
+                    // If user is admin, they should have sales:manage, not sales:create:shop
+                    if (shopAccessResult.isAdmin) {
+                        return NextResponse.json({
+                            success: false,
+                            message: 'Admin users should use sales:manage permission'
+                        }, { status: 403 });
+                    }
+                    return ShopAccessControl.createAccessDeniedResponse(
+                        shopAccessResult.error || 'Cannot create sales for this shop'
+                    );
+                }
+            }
             console.log('Invoice data received:', JSON.stringify(invoiceData, null, 2));
             const { sendSms, invoiceNumber, ...invoiceDetails } = invoiceData;
             console.log('Invoice details after destructuring:', JSON.stringify(invoiceDetails, null, 2));
@@ -387,6 +434,7 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
                                 dueDate: invoiceDetails.dueDate ? new Date(invoiceDetails.dueDate) : null,
                                 notes: invoiceDetails.notes || '',
                                 shopId: invoiceDetails.shopId || null,
+                                createdBy: userId,
                                 totalProfit: 0, // Will be updated after items are processed
                                 profitMargin: 0 // Will be updated after items are processed
                             },
@@ -405,14 +453,30 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
                         }
 
                         if (invoiceDetails.items && Array.isArray(invoiceDetails.items)) {
-                            // Get product costs for profit calculation - optimized with specific field selection
+                            // Get shop-specific costs for profit calculation instead of global weighted average
                             const productIds = invoiceDetails.items.map((item: any) => parseInt(item.productId, 10));
-                            const products = await tx.product.findMany({
-                                where: { id: { in: productIds } },
-                                select: { id: true, weightedAverageCost: true }
+                            const inventoryItems = await tx.inventoryItem.findMany({
+                                where: { 
+                                    productId: { in: productIds },
+                                    shopId: invoiceDetails.shopId
+                                },
+                                select: { productId: true, shopSpecificCost: true }
                             });
 
-                            const productCostMap = new Map(products.map(p => [p.id, p.weightedAverageCost || 0]));
+                            // Create a map of productId to shop-specific cost
+                            const productCostMap = new Map(inventoryItems.map(item => [item.productId, item.shopSpecificCost || 0]));
+                            
+                            // For products not found in inventory, fallback to global weighted average
+                            const missingProductIds = productIds.filter(id => !productCostMap.has(id));
+                            if (missingProductIds.length > 0) {
+                                const fallbackProducts = await tx.product.findMany({
+                                    where: { id: { in: missingProductIds } },
+                                    select: { id: true, weightedAverageCost: true }
+                                });
+                                fallbackProducts.forEach(p => {
+                                    productCostMap.set(p.id, p.weightedAverageCost || 0);
+                                });
+                            }
 
                             let calculatedTotalInvoiceAmount = 0;
                             

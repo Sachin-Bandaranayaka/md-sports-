@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Search, Plus, Filter, FileText, Download, Eye, CheckCircle, Trash2, Edit, Loader2, X } from 'lucide-react';
 import { InvoiceCreateModal, InvoiceEditModal, InvoiceViewModal } from '@/components/invoices';
 import type { InvoiceData } from '@/components/invoices';
+import { useAuth } from '@/hooks/useAuth';
 
 // Interface for Invoice (should match what the API provides or what page.tsx transforms)
 interface Invoice {
@@ -66,6 +67,7 @@ export default function InvoiceClientWrapper({
 }: InvoiceClientWrapperProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { accessToken } = useAuth();
 
     const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
     const [totalPages, setTotalPages] = useState<number>(initialTotalPages);
@@ -114,8 +116,10 @@ export default function InvoiceClientWrapper({
     // Fetch customers, products, and shops on component mount for better performance
     useEffect(() => {
         const fetchCustomersProductsAndShops = async () => {
+            if (!accessToken) return;
+            
             try {
-                // Fetch customers
+                // Fetch customers (let the fetch interceptor handle auth headers)
                 const customersResponse = await fetch('/api/customers');
                 if (customersResponse.ok) {
                     const customersData = await customersResponse.json();
@@ -151,7 +155,7 @@ export default function InvoiceClientWrapper({
         };
 
         fetchCustomersProductsAndShops();
-    }, []); // Empty dependency array to run only on mount
+    }, [accessToken]); // Run when accessToken becomes available
 
     const handleFilterChange = () => {
         const params = new URLSearchParams(searchParams);
@@ -195,7 +199,9 @@ export default function InvoiceClientWrapper({
             setLoading(true);
             setError(null);
             try {
-                const response = await fetch(`/api/invoices/${invoiceId}`, { method: 'DELETE' });
+                const response = await fetch(`/api/invoices/${invoiceId}`, { 
+                    method: 'DELETE'
+                });
                 if (!response.ok) {
                     const errData = await response.json();
                     throw new Error(errData.message || 'Failed to delete invoice');
