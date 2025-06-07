@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import MainLayout from '@/components/layout/MainLayout';
 import {
     Package,
@@ -176,6 +177,61 @@ const getStatusBadgeClass = (status: string) => {
         default:
             return 'bg-gray-100 text-gray-800';
     }
+};
+
+// Function to render clickable reference links
+const renderClickableReference = (event: ProductHistoryEvent) => {
+    const { relatedDocumentId, type, details } = event;
+    
+    if (!relatedDocumentId) return null;
+    
+    // Extract invoice number or ID from relatedDocumentId
+    if (type === 'Purchase' && details?.invoiceNumber) {
+        // For purchase invoices, link to purchases page with search
+        // This will filter the purchases list to show the specific invoice
+        return (
+            <Link 
+                href={`/purchases?search=${details.invoiceNumber}`}
+                className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors"
+                title={`View Purchase Invoice ${details.invoiceNumber}`}
+            >
+                {relatedDocumentId}
+            </Link>
+        );
+    } else if (type === 'Sale' && details?.invoiceNumber) {
+        // For sales invoices, link to invoices page with search
+        // This will filter the invoices list to show the specific invoice
+        return (
+            <Link 
+                href={`/invoices?search=${details.invoiceNumber}`}
+                className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors"
+                title={`View Sales Invoice ${details.invoiceNumber}`}
+            >
+                {relatedDocumentId}
+            </Link>
+        );
+    } else if (type.includes('Transfer') && details) {
+        // For transfers, we could link to a transfers page if it exists
+        // For now, we'll just show the text without a link but with a different style
+        return (
+            <span 
+                className="text-gray-600 font-medium"
+                title="Transfer details"
+            >
+                {relatedDocumentId}
+            </span>
+        );
+    }
+    
+    // Default case - just show the text
+    return (
+        <span 
+            className="text-gray-600"
+            title="Reference ID"
+        >
+            {relatedDocumentId}
+        </span>
+    );
 };
 
 // Shop section component for better organization
@@ -750,7 +806,11 @@ export default function ProductDetail() {
                                             )}
                                             {event.shopName && <p className="text-xs mt-1 text-gray-600">Shop: {event.shopName}</p>}
                                             {event.userName && <p className="text-xs mt-1 text-gray-600">User: {event.userName}</p>}
-                                            {event.relatedDocumentId && <p className="text-xs mt-1 text-gray-600">Ref: {event.relatedDocumentId}</p>}
+                                            {event.relatedDocumentId && (
+                                                <p className="text-xs mt-1 text-gray-600">
+                                                    Ref: {renderClickableReference(event)}
+                                                </p>
+                                            )}
                                             {/* Optionally, add a way to view raw event.details if needed */}
                                         </div>
                                     </li>
@@ -764,4 +824,4 @@ export default function ProductDetail() {
             </div>
         </MainLayout>
     );
-} 
+}
