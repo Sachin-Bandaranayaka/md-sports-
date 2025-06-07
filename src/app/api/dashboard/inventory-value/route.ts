@@ -33,18 +33,22 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
             isFiltered: context.isFiltered
         });
 
-        // Direct SQL query to calculate inventory value with optional shop filtering
+        // Direct SQL query to calculate inventory value with optional shop filtering using shop-specific cost
         const result = context.isFiltered && context.shopId
             ? await prisma.$queryRaw`
-                SELECT SUM(i.quantity * p.weightedaveragecost) as total_value
+                SELECT SUM(i.quantity * COALESCE(i.shopspecificcost, 0)) as total_value
                 FROM "InventoryItem" i
-                JOIN "Product" p ON i."productId" = p.id
                 WHERE i."shopId" = ${context.shopId}
+                AND i.quantity > 0
+                AND i.shopspecificcost IS NOT NULL
+                AND i.shopspecificcost > 0
             `
             : await prisma.$queryRaw`
-                SELECT SUM(i.quantity * p.weightedaveragecost) as total_value
+                SELECT SUM(i.quantity * COALESCE(i.shopspecificcost, 0)) as total_value
                 FROM "InventoryItem" i
-                JOIN "Product" p ON i."productId" = p.id
+                WHERE i.quantity > 0
+                AND i.shopspecificcost IS NOT NULL
+                AND i.shopspecificcost > 0
             `;
 
         // Log the raw result

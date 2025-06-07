@@ -7,7 +7,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS dashboard_summary_mv AS
 SELECT 
     'global' as scope,
     NULL as shop_id,
-    COALESCE(SUM(ii.quantity * ii.unit_cost), 0) as total_inventory_value,
+    COALESCE(SUM(ii.quantity * COALESCE(ii.shopspecificcost, 0)), 0) as total_inventory_value,
     COUNT(DISTINCT CASE WHEN t.status = 'PENDING' THEN t.id END) as pending_transfers,
     COALESCE(SUM(CASE WHEN i.status IN ('PENDING', 'OVERDUE') THEN i.total_amount ELSE 0 END), 0) as outstanding_invoices,
     NOW() as last_updated
@@ -21,7 +21,7 @@ UNION ALL
 SELECT 
     'shop' as scope,
     s.id as shop_id,
-    COALESCE(SUM(ii.quantity * ii.unit_cost), 0) as total_inventory_value,
+    COALESCE(SUM(ii.quantity * COALESCE(ii.shopspecificcost, 0)), 0) as total_inventory_value,
     COUNT(DISTINCT CASE WHEN t.status = 'PENDING' AND (t."fromShopId" = s.id OR t."toShopId" = s.id) THEN t.id END) as pending_transfers,
     COALESCE(SUM(CASE WHEN i.status IN ('PENDING', 'OVERDUE') AND i."shopId" = s.id THEN i.total_amount ELSE 0 END), 0) as outstanding_invoices,
     NOW() as last_updated
@@ -39,7 +39,7 @@ SELECT
     p.category,
     COUNT(*) as item_count,
     SUM(ii.quantity) as total_quantity,
-    SUM(ii.quantity * ii.unit_cost) as total_value,
+    SUM(ii.quantity * COALESCE(ii.shopspecificcost, 0)) as total_value,
     AVG(ii.quantity) as avg_quantity,
     NOW() as last_updated
 FROM "InventoryItem" ii

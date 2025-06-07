@@ -20,8 +20,8 @@ SELECT
         WHEN COALESCE(SUM(ii.quantity), 0) <= 10 THEN 'Low Stock'
         ELSE 'In Stock'
     END as status,
-    COALESCE(SUM(ii.quantity * ii.unit_cost), 0) as total_value,
-    AVG(ii.unit_cost) as avg_unit_cost,
+    COALESCE(SUM(ii.quantity * COALESCE(ii.shopspecificcost, 0)), 0) as total_value,
+    AVG(COALESCE(ii.shopspecificcost, 0)) as avg_unit_cost,
     MIN(ii.quantity) as min_shop_stock,
     MAX(ii.quantity) as max_shop_stock,
     NOW() as last_updated,
@@ -51,8 +51,8 @@ SELECT
     p.sku,
     c.name as category,
     ii.quantity,
-    ii.unit_cost,
-    (ii.quantity * ii.unit_cost) as total_value,
+    COALESCE(ii.shopspecificcost, 0) as unit_cost,
+    (ii.quantity * COALESCE(ii.shopspecificcost, 0)) as total_value,
     CASE 
         WHEN ii.quantity = 0 THEN 'Out of Stock'
         WHEN ii.quantity <= 5 THEN 'Low Stock'

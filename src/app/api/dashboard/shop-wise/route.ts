@@ -59,15 +59,14 @@ export async function GET(request: NextRequest) {
         // 2. Calculate metrics for each shop
         const shopMetrics: ShopWiseMetrics[] = await Promise.all(
             shops.map(async (shop) => {
-                // Calculate total inventory cost for this shop
+                // Calculate total inventory cost for this shop using shop-specific cost
                 const inventoryCostResult = await safeQuery<Array<{ totalinventorycost: bigint | number | null }>>(
                     () => prisma.$queryRaw`
-                        SELECT SUM(p.weightedaveragecost * i.quantity) as "totalinventorycost"
+                        SELECT SUM(COALESCE(i.shopspecificcost, 0) * i.quantity) as "totalinventorycost"
                         FROM "InventoryItem" i
-                        JOIN "Product" p ON i."productId" = p.id
                         WHERE i.quantity > 0 
-                        AND p.weightedaveragecost IS NOT NULL 
-                        AND p.weightedaveragecost > 0
+                        AND i.shopspecificcost IS NOT NULL 
+                        AND i.shopspecificcost > 0
                         AND i."shopId" = ${shop.id}
                     `,
                     [{ totalinventorycost: 0 }],

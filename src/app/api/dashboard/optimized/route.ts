@@ -67,9 +67,10 @@ async function fetchMaterializedData(shopId?: number | null): Promise<Materializ
             // Total inventory value - optimized query
             queries.push(
                 prisma.$queryRaw`
-                    SELECT COALESCE(SUM(ii.quantity * ii.unit_price), 0) as total_value
+                    SELECT COALESCE(SUM(ii.quantity * COALESCE(ii.shopspecificcost, 0)), 0) as total_value
                     FROM "InventoryItem" ii
-                    ${shopId ? prisma.$queryRaw`WHERE ii.shop_id = ${shopId}` : prisma.$queryRaw``}
+                    WHERE ii.quantity > 0 AND ii.shopspecificcost IS NOT NULL AND ii.shopspecificcost > 0
+                    ${shopId ? prisma.$queryRaw`AND ii."shopId" = ${shopId}` : prisma.$queryRaw``}
                 `.then((result: any) => Number(result[0]?.total_value || 0))
             );
 

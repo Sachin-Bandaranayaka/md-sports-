@@ -76,14 +76,13 @@ export async function fetchSummaryDataFiltered(startDate?: string | null, endDat
         dateFilter.lte = endDateTime;
     }
 
-    // 1. Calculate Total Inventory Value (same as original - inventory doesn't need date filtering)
+    // 1. Calculate Total Inventory Value using shop-specific cost (inventory doesn't need date filtering)
     console.time('calculateInventoryValueRaw');
     const totalValueResult = await safeQuery<Array<{ totalinventoryvalue: bigint | number | null }>>(
         () => prisma.$queryRaw`
-            SELECT SUM(p.weightedaveragecost * i.quantity) as "totalinventoryvalue"
-            FROM "InventoryItem" i
-            JOIN "Product" p ON i."productId" = p.id
-            WHERE i.quantity > 0 AND p.weightedaveragecost IS NOT NULL AND p.weightedaveragecost > 0;
+                SELECT SUM(COALESCE(i.shopspecificcost, 0) * i.quantity) as "totalinventoryvalue"
+                FROM "InventoryItem" i
+                WHERE i.quantity > 0 AND i.shopspecificcost IS NOT NULL AND i.shopspecificcost > 0;
         `,
         [{ totalinventoryvalue: 0 }],
         'Failed to calculate total inventory value via raw query'
