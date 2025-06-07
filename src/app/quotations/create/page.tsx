@@ -43,7 +43,6 @@ export default function CreateQuotation() {
         discount: 0,
         total: 0,
         notes: '',
-        status: 'pending',
         customerName: ''
     });
 
@@ -645,7 +644,7 @@ export default function CreateQuotation() {
                             </div>
 
                             <div className="relative z-10" style={{overflowX: 'auto', overflowY: 'visible'}}>
-                                <table className="w-full border-collapse">
+                                <table className="w-full border-collapse" style={{overflow: 'visible'}}>
                                     <thead>
                                         <tr className="bg-gray-100">
                                             <th className="p-3 text-left text-black font-medium">Product</th>
@@ -658,7 +657,7 @@ export default function CreateQuotation() {
                                     <tbody>
                                         {items.map((item, index) => (
                                             <tr key={index} className="border-b">
-                                                <td className="p-3 relative" style={{overflow: 'visible'}}>
+                                                <td className="p-3 relative" style={{overflow: 'visible', position: 'relative'}}>
                                                     <div className="relative" ref={el => productDropdownRefs.current[index] = el}>
                                                         <div className="relative">
                                                             <input
@@ -678,7 +677,7 @@ export default function CreateQuotation() {
                                                         </div>
                                                         
                                                         {showProductDropdowns[index] && filteredProducts[index] && filteredProducts[index].length > 0 && (
-                                                            <div className="absolute z-[9999] w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                                            <div className="absolute z-[9999] w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto" style={{position: 'absolute', top: '100%', left: '0', right: '0'}}>
                                                                 {filteredProducts[index].map((product) => (
                                                                     <div
                                                                         key={product.id}
@@ -689,14 +688,14 @@ export default function CreateQuotation() {
                                                                         {product.code && (
                                                                             <div className="text-sm text-gray-500">Code: {product.code}</div>
                                                                         )}
-                                                                        <div className="text-sm text-gray-600">Price: ${product.price}</div>
+                                                                        <div className="text-sm text-gray-600">Price: Rs {product.price}</div>
                                                                     </div>
                                                                 ))}
                                                             </div>
                                                         )}
                                                         
                                                         {showProductDropdowns[index] && filteredProducts[index] && filteredProducts[index].length === 0 && productSearches[index] && (
-                                                            <div className="absolute z-[9999] w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+                                                            <div className="absolute z-[9999] w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg" style={{position: 'absolute', top: '100%', left: '0', right: '0'}}>
                                                                 <div className="px-3 py-2 text-gray-500 text-center">
                                                                     No products found
                                                                 </div>
@@ -704,7 +703,7 @@ export default function CreateQuotation() {
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="p-3 relative" style={{overflow: 'visible'}}>
+                                                <td className="p-3 relative" style={{overflow: 'visible', position: 'relative'}}>
                                                     <input
                                                         type="number"
                                                         name="quantity"
@@ -715,7 +714,7 @@ export default function CreateQuotation() {
                                                         required
                                                     />
                                                 </td>
-                                                <td className="p-3 relative" style={{overflow: 'visible'}}>
+                                                <td className="p-3 relative" style={{overflow: 'visible', position: 'relative'}}>
                                                     <input
                                                         type="number"
                                                         name="unitPrice"
@@ -726,12 +725,12 @@ export default function CreateQuotation() {
                                                         required
                                                     />
                                                 </td>
-                                                <td className="p-3 relative" style={{overflow: 'visible'}}>
+                                                <td className="p-3 relative" style={{overflow: 'visible', position: 'relative'}}>
                                                     <span className="text-black font-medium">
                                                         {(item.total || 0).toLocaleString()}
                                                     </span>
                                                 </td>
-                                                <td className="p-3 relative" style={{overflow: 'visible'}}>
+                                                <td className="p-3 relative" style={{overflow: 'visible', position: 'relative'}}>
                                                     <button
                                                         type="button"
                                                         onClick={() => removeItem(index)}

@@ -72,29 +72,7 @@ export async function GET(request: NextRequest) {
             }
         });
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // Normalize today to the start of the day for comparison
-
-        const updatedQuotations = await Promise.all(quotations.map(async (quotation) => {
-            if (quotation.validUntil && new Date(quotation.validUntil) < today && quotation.status === 'pending') {
-                // Update in the database
-                try {
-                    await prisma.quotation.update({
-                        where: { id: quotation.id },
-                        data: { status: 'expired' },
-                    });
-                    // Update the status in the object to be returned
-                    return { ...quotation, status: 'expired' };
-                } catch (dbError) {
-                    console.error(`Failed to update status for quotation ${quotation.id}:`, dbError);
-                    // Return original quotation if DB update fails
-                    return quotation;
-                }
-            }
-            return quotation;
-        }));
-
-        return NextResponse.json(updatedQuotations);
+        return NextResponse.json(quotations);
     } catch (error) {
         console.error('Error fetching quotations:', error);
         return NextResponse.json(
@@ -214,4 +192,4 @@ export async function POST(request: NextRequest) {
             { status: 500 }
         );
     }
-} 
+}

@@ -109,16 +109,16 @@ export default function DashboardPage() {
         fetchDashboardData();
     }, [isAuthenticated, isLoading]);
 
-    // Auto-refresh every 30 seconds for real-time updates
-    useEffect(() => {
-        if (!isAuthenticated || isLoading) return;
+    // Auto-refresh removed - using manual refresh button instead
+    // useEffect(() => {
+    //     if (!isAuthenticated || isLoading) return;
 
-        const interval = setInterval(() => {
-            fetchDashboardData();
-        }, 30000); // 30 seconds
+    //     const interval = setInterval(() => {
+    //         fetchDashboardData();
+    //     }, 30000); // 30 seconds
 
-        return () => clearInterval(interval);
-    }, [isAuthenticated, isLoading, startDate, endDate]);
+    //     return () => clearInterval(interval);
+    // }, [isAuthenticated, isLoading, startDate, endDate]);
 
     // Show loading while auth is being checked
     if (isLoading) {

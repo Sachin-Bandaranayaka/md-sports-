@@ -7,27 +7,7 @@ import { Search, Plus, Edit, Trash, FileText, ExternalLink } from 'lucide-react'
 import { SalesQuotation } from '@/types';
 import { useRouter } from 'next/navigation';
 
-// Status badge colors
-const getStatusBadgeClass = (status: string) => {
-    switch (status) {
-        case 'pending':
-            return 'bg-blue-100 text-blue-800';
-        case 'accepted':
-            return 'bg-green-100 text-green-800';
-        case 'rejected':
-            return 'bg-red-100 text-red-800';
-        case 'expired':
-            return 'bg-gray-100 text-black';
-        default:
-            return 'bg-gray-100 text-black';
-    }
-};
-
-const getExpiryCountdown = (expiryDate?: string, status?: string): string => {
-    if (status && ['expired', 'accepted', 'rejected'].includes(status.toLowerCase())) {
-        return status.charAt(0).toUpperCase() + status.slice(1);
-    }
-
+const getExpiryCountdown = (expiryDate?: string): string => {
     if (!expiryDate) {
         return 'No expiry date';
     }
@@ -41,7 +21,7 @@ const getExpiryCountdown = (expiryDate?: string, status?: string): string => {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays < 0) {
-        return 'Expired'; // Should be handled by status, but as a fallback
+        return 'Expired';
     }
     if (diffDays === 0) {
         return 'Expires today';
@@ -50,7 +30,7 @@ const getExpiryCountdown = (expiryDate?: string, status?: string): string => {
         return 'Expires in 1 day';
     }
     return `Expires in ${diffDays} days`;
-};
+}
 
 export default function Quotations() {
     const router = useRouter();
@@ -123,8 +103,7 @@ export default function Quotations() {
             const duplicatedQuotation = {
                 ...quotationData,
                 date: new Date().toISOString().split('T')[0],
-                expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                status: 'pending'
+                expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
             };
 
             const response = await fetch('/api/quotations', {
@@ -258,9 +237,6 @@ export default function Quotations() {
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">
                                                 Total
                                             </th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">
-                                                Status
-                                            </th>
                                             <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-black uppercase tracking-wider">
                                                 Actions
                                             </th>
@@ -287,19 +263,18 @@ export default function Quotations() {
                                                         {new Date(quotation.date).toLocaleDateString()}
                                                     </div>
                                                     {(() => {
-                                                        const expiryText = getExpiryCountdown(quotation.expiryDate, quotation.status);
+                                                        const expiryText = getExpiryCountdown(quotation.expiryDate);
                                                         let textColorClass = 'text-black font-normal'; // Default class
 
                                                         if (expiryText === 'Expires today' || expiryText === 'Expires in 1 day') {
                                                             textColorClass = 'text-orange-600 font-medium';
                                                         } else if (expiryText.startsWith('Expires in')) { // Covers > 1 day
                                                             textColorClass = 'text-green-600 font-medium';
-                                                        } else if (expiryText === 'Expired') { // Covers "Expired" from date calc or status
+                                                        } else if (expiryText === 'Expired') {
                                                             textColorClass = 'text-red-700 font-medium';
                                                         } else if (expiryText === 'No expiry date') {
                                                             textColorClass = 'text-gray-500 font-normal';
                                                         }
-                                                        // For "Accepted", "Rejected" from status, they will take text-black font-normal (default)
 
                                                         return (
                                                             <div className={`text-sm ${textColorClass}`}>
@@ -312,11 +287,6 @@ export default function Quotations() {
                                                     <div className="text-sm font-medium text-black">
                                                         {quotation.total.toLocaleString()}
                                                     </div>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(quotation.status)}`}>
-                                                        {quotation.status.charAt(0).toUpperCase() + quotation.status.slice(1)}
-                                                    </span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                     <div className="flex justify-end space-x-2">
@@ -354,4 +324,4 @@ export default function Quotations() {
             </div>
         </MainLayout>
     );
-} 
+}

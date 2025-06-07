@@ -35,8 +35,6 @@ const QuotationTemplate: React.FC<QuotationTemplateProps> = ({
 }) => {
     // Check if quotation is expired
     const isExpired = new Date(quotation.expiryDate) < new Date();
-    const isAccepted = quotation.status === 'accepted';
-    const isRejected = quotation.status === 'rejected';
 
     return (
         <div className="bg-white p-8 max-w-4xl mx-auto" style={{ fontFamily: 'Arial, sans-serif' }}>
@@ -108,21 +106,7 @@ const QuotationTemplate: React.FC<QuotationTemplateProps> = ({
                 </div>
             </div>
 
-            {/* Status Badge */}
-            <div className="mb-6 text-center">
-                <div className="inline-flex items-center bg-white border-2 border-blue-600 rounded-full px-6 py-3 shadow-lg">
-                    <span className="text-blue-600 font-bold mr-3">Current Status:</span>
-                    <span className={`px-4 py-2 rounded-full text-sm font-bold border-2 ${
-                        quotation.status === 'pending' ? 'bg-blue-100 text-blue-800 border-blue-300' :
-                            quotation.status === 'accepted' ? 'bg-green-100 text-green-800 border-green-300' :
-                                quotation.status === 'rejected' ? 'bg-red-100 text-red-800 border-red-300' :
-                                    quotation.status === 'expired' ? 'bg-gray-100 text-gray-800 border-gray-300' :
-                                        'bg-gray-100 text-gray-800 border-gray-300'
-                    }`}>
-                        {quotation.status.charAt(0).toUpperCase() + quotation.status.slice(1)}
-                    </span>
-                </div>
-            </div>
+
 
             {/* Items Table with Blue Theme */}
             <div className="mb-8">
@@ -196,24 +180,7 @@ const QuotationTemplate: React.FC<QuotationTemplateProps> = ({
                 </div>
             </div>
 
-            {/* Status Stamp */}
-            {(isAccepted || isRejected || isExpired) && (
-                <div className="text-center mb-8">
-                    <div className={`inline-block border-4 px-8 py-2 ${isAccepted ? 'border-green-600' :
-                            isRejected ? 'border-red-600' :
-                                'border-gray-600'
-                        }`}>
-                        <span className={`text-xl font-bold ${isAccepted ? 'text-green-600' :
-                                isRejected ? 'text-red-600' :
-                                    'text-gray-600'
-                            }`}>
-                            {isAccepted ? 'ACCEPTED' :
-                                isRejected ? 'REJECTED' :
-                                    'EXPIRED'}
-                        </span>
-                    </div>
-                </div>
-            )}
+
 
             {/* Notes */}
             {quotation.notes && (

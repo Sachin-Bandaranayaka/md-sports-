@@ -8,21 +8,7 @@ import { useReactToPrint } from 'react-to-print';
 import QuotationTemplate from '@/components/templates/QuotationTemplate';
 import { SalesQuotation } from '@/types';
 
-// Status badge colors
-const getStatusBadgeClass = (status: string) => {
-    switch (status) {
-        case 'pending':
-            return 'bg-blue-100 text-blue-800';
-        case 'accepted':
-            return 'bg-green-100 text-green-800';
-        case 'rejected':
-            return 'bg-red-100 text-red-800';
-        case 'expired':
-            return 'bg-gray-100 text-black';
-        default:
-            return 'bg-gray-100 text-black';
-    }
-};
+
 
 export default function ViewQuotation() {
     const router = useRouter();
@@ -70,8 +56,7 @@ export default function ViewQuotation() {
             const duplicatedQuotation = {
                 ...quotationData,
                 date: new Date().toISOString().split('T')[0],
-                expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                status: 'pending'
+                expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
             };
 
             const response = await fetch('/api/quotations', {
@@ -183,11 +168,7 @@ export default function ViewQuotation() {
                                 <h2 className="text-xl font-bold text-black mb-1">
                                     Quotation #{quotation.quotationNumber}
                                 </h2>
-                                <div className="flex items-center mt-2">
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(quotation.status)}`}>
-                                        {quotation.status.charAt(0).toUpperCase() + quotation.status.slice(1)}
-                                    </span>
-                                </div>
+
                             </div>
                             <div className="mt-4 md:mt-0">
                                 <div className="flex items-center text-black mb-1">

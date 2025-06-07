@@ -28,8 +28,7 @@ export default function EditQuotation() {
         tax: 0,
         discount: 0,
         total: 0,
-        notes: '',
-        status: 'pending'
+        notes: ''
     });
 
     // Initialize items state
@@ -279,22 +278,7 @@ export default function EditQuotation() {
                                     ))}
                                 </select>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-black mb-1">
-                                    Status
-                                </label>
-                                <select
-                                    name="status"
-                                    value={formData.status || 'pending'}
-                                    onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                                >
-                                    <option value="pending">Pending</option>
-                                    <option value="accepted">Accepted</option>
-                                    <option value="rejected">Rejected</option>
-                                    <option value="expired">Expired</option>
-                                </select>
-                            </div>
+
                             <div>
                                 <label className="block text-sm font-medium text-black mb-1">
                                     Date*
@@ -479,4 +463,4 @@ export default function EditQuotation() {
             </div>
         </MainLayout>
     );
-} 
+}

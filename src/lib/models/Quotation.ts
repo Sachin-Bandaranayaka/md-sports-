@@ -13,7 +13,6 @@ interface QuotationAttributes {
     discount: number;
     total: number;
     notes?: string;
-    status: 'pending' | 'accepted' | 'rejected' | 'expired';
     createdAt: Date;
     updatedAt: Date;
 }
@@ -31,7 +30,6 @@ class Quotation extends Model<QuotationAttributes, QuotationCreationAttributes> 
     public discount!: number;
     public total!: number;
     public notes!: string;
-    public status!: 'pending' | 'accepted' | 'rejected' | 'expired';
     public createdAt!: Date;
     public updatedAt!: Date;
 }
@@ -87,11 +85,7 @@ Quotation.init({
         type: DataTypes.TEXT,
         allowNull: true
     },
-    status: {
-        type: DataTypes.ENUM('pending', 'accepted', 'rejected', 'expired'),
-        allowNull: false,
-        defaultValue: 'pending'
-    },
+
     createdAt: {
         type: DataTypes.DATE,
         allowNull: false,
@@ -114,4 +108,4 @@ Quotation.init({
 Quotation.belongsTo(Customer, { foreignKey: 'customer_id', as: 'customer' });
 Customer.hasMany(Quotation, { foreignKey: 'customer_id', as: 'quotations' });
 
-export default Quotation; 
+export default Quotation;
