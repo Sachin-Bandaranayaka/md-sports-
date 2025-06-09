@@ -368,7 +368,7 @@ export default function InvoiceDetail() {
                             {isSendingSms ? 'Sending...' : 'Send SMS'}
                         </Button>
 
-                        {invoice.status === 'Pending' && (
+                        {invoice.status.toLowerCase() === 'pending' && (
                             <Button
                                 variant="primary"
                                 size="sm"

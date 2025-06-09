@@ -25,7 +25,8 @@ import {
     MessageSquare,
     CreditCard,
     Receipt,
-    Calculator
+    Calculator,
+    History
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Toaster } from 'sonner';
@@ -61,6 +62,7 @@ const navItems: NavItem[] = [
     { icon: Receipt, href: '/receipts', label: 'Receipts', requiredPermission: 'receipt:view' },
     { icon: Calculator, href: '/accounting', label: 'Accounting', requiredPermission: 'accounting:view' },
     { icon: BarChart2, href: '/reports', label: 'Reports', requiredPermission: 'report:view' },
+    { icon: History, href: '/audit-trail', label: 'Audit Trail', requiredPermission: 'audit:view' },
     { icon: Settings, href: '/settings', label: 'Settings', requiredPermission: 'settings:view' },
 ];
 

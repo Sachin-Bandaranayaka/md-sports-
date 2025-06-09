@@ -52,7 +52,7 @@ interface InvoiceFormData {
     invoiceDate: string;
     dueDate: string;
     notes: string;
-    status: 'Draft' | 'Pending' | 'Paid' | 'Overdue';
+    status: 'draft' | 'pending' | 'paid' | 'overdue';
     paymentMethod: 'Cash' | 'Credit' | 'Card' | 'Bank';
     shopId: string | null;
     items: InvoiceItem[];
@@ -137,7 +137,7 @@ export default function EditInvoice() {
         invoiceDate: new Date().toISOString().split('T')[0],
         dueDate: '', // Will be calculated based on customer
         notes: '',
-        status: 'Pending',
+        status: 'pending',
         paymentMethod: 'Cash',
         shopId: null,
         items: []
@@ -296,14 +296,14 @@ export default function EditInvoice() {
 
         // Calculate due date based on customer's credit period
         let dueDate = invoiceDate;
-        let status = 'Paid'; // Default for cash customers
+        let status = 'paid'; // Default for cash customers
 
-        // If customer has a credit period, calculate due date and set status to Pending
+        // If customer has a credit period, calculate due date and set status to pending
         if (customer.paymentType === 'Credit' && customer.creditPeriod) {
             const dueDateObj = new Date(today);
             dueDateObj.setDate(today.getDate() + customer.creditPeriod);
             dueDate = dueDateObj.toISOString().split('T')[0];
-            status = 'Pending';
+            status = 'pending';
         }
 
         // Fetch detailed customer info if needed
@@ -324,7 +324,7 @@ export default function EditInvoice() {
                         const dueDateObj = new Date(today);
                         dueDateObj.setDate(today.getDate() + customer.creditPeriod);
                         dueDate = dueDateObj.toISOString().split('T')[0];
-                        status = 'Pending';
+                        status = 'pending';
                     }
                 }
             }
@@ -339,7 +339,7 @@ export default function EditInvoice() {
             customerName: customer.name,
             invoiceDate: invoiceDate,
             dueDate: dueDate,
-            status: status as 'Draft' | 'Pending' | 'Paid' | 'Overdue'
+            status: status as 'draft' | 'pending' | 'paid' | 'overdue'
         });
 
         setCustomerSearch('');
@@ -712,7 +712,7 @@ export default function EditInvoice() {
                                                                 ...formData,
                                                                 customerId: 0,
                                                                 customerName: '',
-                                                                status: 'Pending', // Reset status
+                                                                status: 'pending', // Reset status
                                                                 dueDate: '' // Reset due date
                                                             });
                                                             setSelectedCustomer(null);

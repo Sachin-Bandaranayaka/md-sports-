@@ -215,7 +215,7 @@ async function fetchInvoicesData({
                 _sum: { total: true },
                 where: {
                     ...whereClause,
-                    status: { notIn: ['Paid', 'Cancelled', 'Void'] },
+                    status: { notIn: ['paid', 'cancelled', 'void'] },
                 }
             }),
             
@@ -224,7 +224,7 @@ async function fetchInvoicesData({
                 _sum: { total: true },
                 where: {
                     ...whereClause,
-                    status: 'Paid',
+                    status: 'paid',
                     updatedAt: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) },
                 }
             }),
@@ -233,7 +233,7 @@ async function fetchInvoicesData({
             prisma.invoice.count({
                 where: {
                     ...whereClause,
-                    status: 'Overdue',
+                    status: 'overdue',
                 }
             }),
             

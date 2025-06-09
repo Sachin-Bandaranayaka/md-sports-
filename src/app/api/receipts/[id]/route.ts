@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { AuditService } from '@/services/auditService';
+import { verifyToken } from '@/lib/auth';
 
 // Get a single receipt by ID
 export async function GET(
@@ -137,6 +139,21 @@ export async function DELETE(
             );
         }
 
+        // Get user ID from token for audit logging
+        const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+        let userId = 1; // Default system user ID
+        
+        if (token) {
+            try {
+                const decoded = await verifyToken(token);
+                if (decoded && decoded.userId) {
+                    userId = decoded.userId;
+                }
+            } catch (error) {
+                console.warn('Invalid token for audit logging, using default user ID');
+            }
+        }
+
         // Delete receipt and update invoice status back to Pending
         await prisma.$transaction(async (tx) => {
             // Find the related accounting transaction to reverse it
@@ -173,9 +190,19 @@ export async function DELETE(
             // Update the invoice status back to Pending
             await tx.invoice.update({
                 where: { id: existingReceipt.payment.invoiceId },
-                data: { status: 'Pending' }
+                data: { status: 'pending' }
             });
         });
+
+        // Log the deletion to the audit trail
+        const auditService = new AuditService();
+        await auditService.softDelete(
+            'Receipt',
+            id,
+            existingReceipt,
+            userId,
+            true // canRecover
+        );
 
         return NextResponse.json({ success: true });
     } catch (error) {

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requirePermission } from '@/lib/utils/middleware';
+import { AuditService } from '@/lib/services/auditService';
+import { verifyToken } from '@/lib/auth/jwt';
 
 // GET: Get product by ID
 export async function GET(
@@ -148,6 +150,23 @@ export async function DELETE(
     }
 
     try {
+        // Get user from token for audit logging
+        const token = req.headers.get('authorization')?.replace('Bearer ', '');
+        if (!token) {
+            return NextResponse.json(
+                { success: false, message: 'No token provided' },
+                { status: 401 }
+            );
+        }
+
+        const decoded = await verifyToken(token);
+        if (!decoded) {
+            return NextResponse.json(
+                { success: false, message: 'Invalid token' },
+                { status: 401 }
+            );
+        }
+
         const productId = parseInt(params.id);
 
         if (isNaN(productId)) {
@@ -160,6 +179,10 @@ export async function DELETE(
         const product = await prisma.product.findUnique({
             where: {
                 id: productId
+            },
+            include: {
+                category: true,
+                inventoryItems: true
             }
         });
 
@@ -170,16 +193,19 @@ export async function DELETE(
             );
         }
 
-        // Delete product
-        await prisma.product.delete({
-            where: {
-                id: productId
-            }
-        });
+        // Use audit service for soft delete
+        const auditService = new AuditService();
+        await auditService.softDelete(
+            'Product',
+            productId,
+            decoded.userId,
+            product,
+            true // canRecover
+        );
 
         return NextResponse.json({
             success: true,
-            message: 'Product deleted successfully'
+            message: 'Product moved to recycle bin successfully'
         });
     } catch (error) {
         console.error(`Error deleting product with ID ${params.id}:`, error);
@@ -188,4 +214,4 @@ export async function DELETE(
             { status: 500 }
         );
     }
-} 
+}

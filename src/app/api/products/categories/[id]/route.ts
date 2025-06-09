@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { validateTokenPermission } from '@/lib/auth';
+import { AuditService } from '@/lib/services/auditService';
+import { verifyToken } from '@/lib/auth/jwt';
 
 // PUT: Update a category
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
@@ -35,7 +37,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
         // Check if category exists
         const category = await prisma.category.findUnique({
-            where: { id: categoryId }
+            where: { id: categoryId },
+            include: {
+                children: true,
+                products: true
+            }
         });
 
         if (!category) {
@@ -143,7 +149,8 @@ export async function DELETE(
             token: token ? `${token.substring(0, 10)}...` : null
         });
 
-        // Allow dev-token to bypass permission checks
+        // Get user ID for audit logging
+        let userId: number | null = null;
         if (token !== 'dev-token') {
             // Verify permission
             const hasPermission = await validateTokenPermission(request, 'category:delete');
@@ -153,13 +160,24 @@ export async function DELETE(
                     { status: 403 }
                 );
             }
+            
+            // Get user ID from token
+            const decoded = await verifyToken(token);
+            if (decoded) {
+                userId = decoded.userId;
+            }
         } else {
             console.log('Using development token - bypassing permission check');
+            userId = 1; // Default user for dev token
         }
 
         // Check if category exists
         const category = await prisma.category.findUnique({
-            where: { id: categoryId }
+            where: { id: categoryId },
+            include: {
+                children: true,
+                products: true
+            }
         });
 
         if (!category) {
@@ -170,11 +188,7 @@ export async function DELETE(
         }
 
         // Check if category has child categories
-        const childCategories = await prisma.category.findMany({
-            where: { parentId: categoryId }
-        });
-
-        if (childCategories.length > 0) {
+        if (category.children && category.children.length > 0) {
             return NextResponse.json(
                 {
                     success: false,
@@ -185,11 +199,7 @@ export async function DELETE(
         }
 
         // Check if category is used by any products
-        const products = await prisma.product.findMany({
-            where: { categoryId: categoryId }
-        });
-
-        if (products.length > 0) {
+        if (category.products && category.products.length > 0) {
             return NextResponse.json(
                 {
                     success: false,
@@ -199,10 +209,22 @@ export async function DELETE(
             );
         }
 
-        // Delete the category
-        await prisma.category.delete({
-            where: { id: categoryId }
-        });
+        // Use audit service for soft delete
+        if (userId) {
+            const auditService = new AuditService();
+            await auditService.softDelete(
+                'Category',
+                categoryId,
+                userId,
+                category,
+                true // canRecover
+            );
+        } else {
+            // Fallback to hard delete if no user ID available
+            await prisma.category.delete({
+                where: { id: categoryId }
+            });
+        }
 
         // Invalidate reference data cache
         const { cacheService } = await import('@/lib/cache');
@@ -210,7 +232,7 @@ export async function DELETE(
 
         return NextResponse.json({
             success: true,
-            message: 'Category deleted successfully'
+            message: userId ? 'Category moved to recycle bin successfully' : 'Category deleted successfully'
         });
     } catch (error) {
         console.error('Error deleting category:', error);
@@ -306,7 +328,11 @@ export async function PATCH(
 
         // Check if category exists
         const category = await prisma.category.findUnique({
-            where: { id: categoryId }
+            where: { id: categoryId },
+            include: {
+                children: true,
+                products: true
+            }
         });
 
         if (!category) {

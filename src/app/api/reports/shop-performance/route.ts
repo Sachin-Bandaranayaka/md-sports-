@@ -14,7 +14,7 @@ export async function GET(request: Request) {
             include: {
                 invoices: {
                     where: {
-                        status: 'PAID',
+                        status: 'paid',
                         createdAt: {
                             gte: firstDayOfMonth,
                             lte: lastDayOfMonth,
@@ -75,4 +75,4 @@ export async function GET(request: Request) {
             { status: 500 }
         );
     }
-} 
+}

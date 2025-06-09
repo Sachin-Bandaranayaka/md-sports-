@@ -19,7 +19,7 @@ export async function GET(request: Request) {
                     gte: firstDayOfMonth,
                     lte: lastDayOfMonth,
                 },
-                status: 'PAID',
+                status: 'paid',
             },
         });
 
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
                     gte: firstDayOfMonth,
                     lte: lastDayOfMonth,
                 },
-                status: 'PAID',
+                status: 'paid',
             },
             include: {
                 customer: true,
@@ -63,4 +63,4 @@ export async function GET(request: Request) {
             { status: 500 }
         );
     }
-} 
+}

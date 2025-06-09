@@ -35,11 +35,11 @@ export default function AddAccount() {
                 const response = await authGet('/api/accounting/accounts');
                 if (!response.ok) throw new Error('Failed to fetch accounts');
                 const data = await response.json();
-                setAccounts(data.accounts || []);
+                setAccounts(data.data || []);
                 
                 // If parentId is provided, find and set the parent account
                 if (parentId) {
-                    const parent = data.accounts.find((acc: Account) => acc.id === parentId);
+                    const parent = data.data.find((acc: Account) => acc.id === parentId);
                     if (parent) {
                         setParentAccount(parent);
                         setType(parent.type); // Set same type as parent

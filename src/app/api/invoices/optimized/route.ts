@@ -165,13 +165,13 @@ async function getStatistics(shopId?: string) {
                 // Fallback to individual queries
                 const [totalOutstanding, paidThisMonth, overdueCount, creditSales, nonCreditSales] = await Promise.all([
                     prisma.invoice.aggregate({
-                        where: { ...whereClause, status: { not: 'Paid' } },
+                        where: { ...whereClause, status: { not: 'paid' } },
                         _sum: { total: true }
                     }),
                     prisma.invoice.aggregate({
                         where: {
                             ...whereClause,
-                            status: 'Paid',
+                            status: 'paid',
                             createdAt: {
                                 gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
                             }

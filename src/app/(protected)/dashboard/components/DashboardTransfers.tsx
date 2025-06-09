@@ -63,7 +63,7 @@ export default function DashboardTransfers({ recentTransfers }: DashboardTransfe
                                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                                             ${transfer.status === 'Completed' ? 'bg-green-100 text-green-800' :
-                                                transfer.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                transfer.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                                                     'bg-blue-100 text-blue-800'}`}>
                                             {transfer.status}
                                         </span>

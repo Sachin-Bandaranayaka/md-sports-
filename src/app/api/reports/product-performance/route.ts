@@ -10,7 +10,7 @@ export async function GET(request: Request) {
         const invoiceItems = await prisma.invoiceItem.findMany({
             where: {
                 invoice: {
-                    status: 'PAID', // Consider only PAID invoices for sales performance
+                    status: 'paid', // Consider only paid invoices for sales performance
                     createdAt: {
                         gte: firstDayOfMonth,
                         lte: lastDayOfMonth,
@@ -120,4 +120,4 @@ export async function GET(request: Request) {
             { status: 500 }
         );
     }
-} 
+}

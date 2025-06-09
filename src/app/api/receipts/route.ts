@@ -139,11 +139,11 @@ export async function POST(request: Request) {
             const invoiceTotal = invoice?.total || 0;
 
             // Determine the correct status based on payment amount
-            let newStatus = 'Pending';
+            let newStatus = 'pending';
             if (totalPaid >= invoiceTotal) {
-                newStatus = 'Paid';
+                newStatus = 'paid';
             } else if (totalPaid > 0) {
-                newStatus = 'Partial';
+                newStatus = 'partial';
             }
 
             // Update invoice status based on actual payment amount
@@ -152,43 +152,51 @@ export async function POST(request: Request) {
                 data: { status: newStatus }
             });
 
-            // Determine the appropriate account based on payment method
-            const paymentMethod = existingPayment.paymentMethod.toLowerCase();
-            let accountName = '';
-            let accountType = 'asset';
-
-            if (paymentMethod.includes('cash')) {
-                accountName = 'Cash in Hand';
-            } else if (paymentMethod.includes('bank') || paymentMethod.includes('transfer')) {
-                accountName = 'Cash in Bank';
-            } else if (paymentMethod.includes('card') || paymentMethod.includes('credit')) {
-                accountName = 'Cash in Bank';
-            } else if (paymentMethod.includes('check') || paymentMethod.includes('cheque')) {
-                accountName = 'Cash in Bank';
-            } else {
-                // Default to cash in bank for other payment methods
-                accountName = 'Cash in Bank';
-            }
-
-            // Find or create the appropriate account
-            let account = await tx.account.findFirst({
-                where: {
-                    name: accountName,
-                    type: accountType
+            // Use the selected account from the payment, or fallback to payment method logic
+            let account;
+            
+            if (existingPayment.accountId) {
+                // Use the account selected during payment creation
+                account = await tx.account.findUnique({
+                    where: { id: existingPayment.accountId }
+                });
+                
+                if (!account) {
+                    throw new Error('Selected payment account not found');
                 }
-            });
+            } else {
+                // Fallback to old logic for payments without selected accounts
+                const paymentMethod = existingPayment.paymentMethod.toLowerCase();
+                let accountName = '';
+                let accountType = 'asset';
 
-            if (!account) {
-                // Create the account if it doesn't exist
-                account = await tx.account.create({
-                    data: {
+                if (paymentMethod.includes('cash')) {
+                    accountName = 'Cash in Hand';
+                } else {
+                    // For all non-cash payments, default to Cash in Bank
+                    accountName = 'Cash in Bank';
+                }
+
+                // Find or create the appropriate account
+                account = await tx.account.findFirst({
+                    where: {
                         name: accountName,
-                        type: accountType,
-                        balance: 0,
-                        description: `Auto-created account for ${paymentMethod} payments`,
-                        isActive: true
+                        type: accountType
                     }
                 });
+
+                if (!account) {
+                    // Create the account if it doesn't exist
+                    account = await tx.account.create({
+                        data: {
+                            name: accountName,
+                            type: accountType,
+                            balance: 0,
+                            description: `Auto-created account for ${paymentMethod} payments`,
+                            isActive: true
+                        }
+                    });
+                }
             }
 
             // Create accounting transaction for the income

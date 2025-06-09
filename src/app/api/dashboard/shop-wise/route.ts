@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
                     () => prisma.invoice.aggregate({
                         where: {
                             shopId: shop.id,
-                            status: { notIn: ['Paid', 'Cancelled', 'Void'] }
+                            status: { notIn: ['paid', 'cancelled', 'void'] }
                         },
                         _sum: {
                             total: true

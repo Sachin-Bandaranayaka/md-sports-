@@ -99,7 +99,7 @@ export async function fetchSummaryDataFiltered(startDate?: string | null, endDat
     const pendingTransfersResult = await safeQuery(
         () => prisma.inventoryTransfer.count({
             where: {
-                status: 'Pending',
+                status: 'pending',
                 ...(Object.keys(dateFilter).length > 0 && { createdAt: dateFilter })
             }
         }),
@@ -113,7 +113,7 @@ export async function fetchSummaryDataFiltered(startDate?: string | null, endDat
     const outstandingInvoicesResult = await safeQuery(
         () => prisma.invoice.aggregate({
             where: {
-                status: { in: ['Pending', 'Overdue'] },
+                status: { in: ['pending', 'overdue'] },
                 ...(Object.keys(dateFilter).length > 0 && { createdAt: dateFilter }),
                 ...(userId ? { createdBy: userId } : {})
             },

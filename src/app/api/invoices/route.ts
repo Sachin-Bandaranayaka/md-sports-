@@ -184,7 +184,7 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
                             _sum: { total: true },
                             where: {
                                 ...whereClause,
-                                status: 'Pending'
+                                status: 'pending'
                             }
                         }),
 
@@ -193,7 +193,7 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
                             _sum: { total: true },
                             where: {
                                 ...whereClause,
-                                status: 'Paid',
+                                status: 'paid',
                                 createdAt: {
                                     gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
                                 }
@@ -204,7 +204,7 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
                         prisma.invoice.count({
                             where: {
                                 ...whereClause,
-                                status: 'Pending',
+                                status: 'pending',
                                 dueDate: {
                                     lt: new Date()
                                 }
@@ -399,7 +399,7 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
                     const outstandingInvoices = await prisma.invoice.aggregate({
                         where: {
                             customerId: invoiceDetails.customerId,
-                            status: { in: ['Pending', 'Overdue'] }
+                            status: { in: ['pending', 'overdue'] }
                         },
                         _sum: { total: true }
                     });
@@ -454,7 +454,7 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
                                 invoiceNumber: finalInvoiceNumber,
                                 customerId: invoiceDetails.customerId || null,
                                 total: 0, // Will be updated after items are processed
-                                status: 'Pending',
+                                status: 'pending',
                                 paymentMethod: invoiceDetails.paymentMethod || 'Cash',
                                 invoiceDate: invoiceDetails.invoiceDate ? new Date(invoiceDetails.invoiceDate) : new Date(),
                                 dueDate: invoiceDetails.dueDate ? new Date(invoiceDetails.dueDate) : null,

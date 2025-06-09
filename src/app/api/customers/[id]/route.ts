@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { AuditService } from '@/lib/services/auditService';
+import { verifyToken } from '@/lib/auth/jwt';
 
 export async function GET(
     request: Request,
@@ -185,6 +187,23 @@ export async function DELETE(
     context: { params: { id: string } }
 ) {
     try {
+        // Verify token and get user
+        const token = request.headers.get('authorization')?.replace('Bearer ', '');
+        if (!token) {
+            return NextResponse.json(
+                { success: false, message: 'No token provided' },
+                { status: 401 }
+            );
+        }
+
+        const decoded = await verifyToken(token);
+        if (!decoded) {
+            return NextResponse.json(
+                { success: false, message: 'Invalid token' },
+                { status: 401 }
+            );
+        }
+
         // Get params from context and ensure it's resolved
         const { id: paramId } = context.params;
         const id = parseInt(paramId);
@@ -199,14 +218,26 @@ export async function DELETE(
             );
         }
 
-        // Check if customer has related invoices
-        const invoiceCount = await prisma.invoice.count({
-            where: {
-                customerId: id
+        // Get customer data before deletion for audit log
+        const customer = await prisma.customer.findUnique({
+            where: { id },
+            include: {
+                invoices: true
             }
         });
 
-        if (invoiceCount > 0) {
+        if (!customer) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: 'Customer not found'
+                },
+                { status: 404 }
+            );
+        }
+
+        // Check if customer has related invoices
+        if (customer.invoices.length > 0) {
             return NextResponse.json(
                 {
                     success: false,
@@ -216,15 +247,19 @@ export async function DELETE(
             );
         }
 
-        await prisma.customer.delete({
-            where: {
-                id: id
-            }
-        });
+        // Use audit service for soft delete
+        const auditService = new AuditService();
+        await auditService.softDelete(
+            'Customer',
+            id,
+            decoded.userId,
+            customer,
+            true // canRecover
+        );
 
         return NextResponse.json({
             success: true,
-            message: 'Customer deleted successfully'
+            message: 'Customer moved to recycle bin successfully'
         });
     } catch (error) {
         console.error('Error deleting customer:', error);
@@ -237,4 +272,4 @@ export async function DELETE(
             { status: 500 }
         );
     }
-} 
+}

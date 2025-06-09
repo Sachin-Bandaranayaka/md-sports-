@@ -53,7 +53,7 @@ interface InvoiceFormData {
     invoiceDate: string;
     dueDate: string;
     notes: string;
-    status: 'Draft' | 'Pending' | 'Paid' | 'Overdue';
+    status: 'draft' | 'pending' | 'paid' | 'overdue';
     paymentMethod: 'Cash' | 'Credit' | 'Card' | 'Bank';
     items: InvoiceItem[];
     shopId: string | null; // Changed to string to match Shop model
@@ -93,7 +93,7 @@ export default function CreateInvoice() {
         invoiceDate: new Date().toISOString().split('T')[0],
         dueDate: '', // Will be calculated based on customer
         notes: '',
-        status: 'Pending', // Will be determined based on customer
+        status: 'pending', // Will be determined based on customer
         paymentMethod: 'Cash',
         items: [],
         shopId: null, // Initialize shopId
@@ -262,7 +262,7 @@ export default function CreateInvoice() {
             customerName: customer.name,
             invoiceDate: invoiceDate,
             dueDate: dueDate,
-            status: 'Pending' // Or determine based on type/credit status
+            status: 'pending' // Or determine based on type/credit status
         });
 
         setCustomerSearch('');
@@ -702,7 +702,7 @@ export default function CreateInvoice() {
                                                                 ...formData,
                                                                 customerId: 0, // Reset to 0 (number)
                                                                 customerName: '',
-                                                                status: 'Pending', // Reset status
+                                                                status: 'pending', // Reset status
                                                                 dueDate: '' // Reset due date
                                                             });
                                                             setSelectedCustomer(null);

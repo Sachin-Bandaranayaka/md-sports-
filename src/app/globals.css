@@ -9,6 +9,14 @@
   --primary-foreground: #ffffff;
   --secondary: #000000;
   --secondary-foreground: #ffffff;
+  --tertiary: #ffffff;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --card: #ffffff;
+  --card-foreground: #171717;
+  --border: #e2e8f0;
+  --input: #ffffff;
+  --ring: #E53E3E;
 }
 
 body {
@@ -17,12 +25,13 @@ body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
+/* Force light mode - remove dark mode auto-switching */
+/* @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
   }
-}
+} */
 
 @layer base {
   h1 {

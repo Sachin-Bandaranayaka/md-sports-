@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { AuditService } from '@/lib/services/auditService';
+import { verifyToken } from '@/lib/auth/jwt';
 
 // GET /api/suppliers/[id] - Get a specific supplier
 export async function GET(
@@ -91,6 +93,23 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
+        // Get user from token for audit logging
+        const token = request.headers.get('authorization')?.replace('Bearer ', '');
+        if (!token) {
+            return NextResponse.json(
+                { error: 'No token provided' },
+                { status: 401 }
+            );
+        }
+
+        const decoded = await verifyToken(token);
+        if (!decoded) {
+            return NextResponse.json(
+                { error: 'Invalid token' },
+                { status: 401 }
+            );
+        }
+
         const supplierId = parseInt(params.id);
 
         if (isNaN(supplierId)) {
@@ -103,6 +122,9 @@ export async function DELETE(
         const supplier = await prisma.supplier.findUnique({
             where: {
                 id: supplierId
+            },
+            include: {
+                purchaseInvoices: true
             }
         });
 
@@ -113,14 +135,18 @@ export async function DELETE(
             );
         }
 
-        await prisma.supplier.delete({
-            where: {
-                id: supplierId
-            }
-        });
+        // Use audit service for soft delete
+        const auditService = new AuditService();
+        await auditService.softDelete(
+            'Supplier',
+            supplierId,
+            decoded.userId,
+            supplier,
+            true // canRecover
+        );
 
         return NextResponse.json(
-            { message: 'Supplier deleted successfully' },
+            { message: 'Supplier moved to recycle bin successfully' },
             { status: 200 }
         );
     } catch (error) {
@@ -130,4 +156,4 @@ export async function DELETE(
             { status: 500 }
         );
     }
-} 
+}

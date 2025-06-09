@@ -7,44 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Search, Plus, Edit, Trash, X, ArrowUp, ArrowDown, Filter, Calendar, DollarSign, Briefcase, CreditCard, PieChart, TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
 import { Transaction, Account } from '@/types';
 import { authGet, authPost, authDelete, authPatch } from '@/utils/api';
-import { motion, AnimatePresence } from 'framer-motion';
-
-// Animation variants
-const fadeIn = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.4 } }
-};
-
-const cardVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-        opacity: 1,
-        y: 0,
-        transition: {
-            duration: 0.5,
-            ease: "easeOut"
-        }
-    }
-};
-
-const listVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-        opacity: 1,
-        transition: {
-            staggerChildren: 0.1
-        }
-    }
-};
-
-const itemVariants = {
-    hidden: { opacity: 0, x: -20 },
-    visible: {
-        opacity: 1,
-        x: 0,
-        transition: { duration: 0.3 }
-    }
-};
+// Removed framer-motion animations
 
 // Create a wrapper component to use the search params
 function AccountingContent() {
@@ -254,45 +217,29 @@ function AccountingContent() {
         <MainLayout>
             <div className="space-y-6">
                 {/* Header with actions */}
-                <motion.div
-                    className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                >
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900">Cash Flow Overview</h1>
                         <p className="text-gray-500">Track your cash flow from sales and expenses</p>
                     </div>
                     {activeTab === 'accounts' && (
-                        <motion.div
-                            className="flex gap-3"
-                            whileHover={{ scale: 1.03 }}
-                        >
+                        <div className="flex gap-3">
                             <Button
                                 variant="primary"
                                 size="sm"
                                 onClick={handleAddAccount}
-                                className="flex items-center shadow-md hover:shadow-lg transition-shadow duration-300"
+                                className="flex items-center shadow-md"
                             >
                                 <Plus className="w-4 h-4 mr-2" />
                                 New Account
                             </Button>
-                        </motion.div>
+                        </div>
                     )}
-                </motion.div>
+                </div>
 
                 {/* Simplified Cash Flow Summary Cards */}
-                <motion.div
-                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
-                    initial="hidden"
-                    animate="visible"
-                    variants={listVariants}
-                >
-                    <motion.div
-                        className="bg-white p-5 rounded-lg shadow-md border border-gray-100 hover:shadow-lg transition-shadow duration-300"
-                        variants={cardVariants}
-                    >
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-white p-5 rounded-lg shadow-md border border-gray-100">
                         <div className="flex items-center justify-between">
                             <div>
                                 <h3 className="text-sm font-medium text-gray-500 mb-1">Cash in Hand</h3>
@@ -303,12 +250,9 @@ function AccountingContent() {
                                 <DollarSign className="w-6 h-6 text-green-600" />
                             </div>
                         </div>
-                    </motion.div>
+                    </div>
 
-                    <motion.div
-                        className="bg-white p-5 rounded-lg shadow-md border border-gray-100 hover:shadow-lg transition-shadow duration-300"
-                        variants={cardVariants}
-                    >
+                    <div className="bg-white p-5 rounded-lg shadow-md border border-gray-100">
                         <div className="flex items-center justify-between">
                             <div>
                                 <h3 className="text-sm font-medium text-gray-500 mb-1">Cash in Bank</h3>
@@ -319,12 +263,9 @@ function AccountingContent() {
                                 <Briefcase className="w-6 h-6 text-blue-600" />
                             </div>
                         </div>
-                    </motion.div>
+                    </div>
 
-                    <motion.div
-                        className="bg-white p-5 rounded-lg shadow-md border border-gray-100 hover:shadow-lg transition-shadow duration-300"
-                        variants={cardVariants}
-                    >
+                    <div className="bg-white p-5 rounded-lg shadow-md border border-gray-100">
                         <div className="flex items-center justify-between">
                             <div>
                                 <h3 className="text-sm font-medium text-gray-500 mb-1">Total Sales</h3>
@@ -335,12 +276,9 @@ function AccountingContent() {
                                 <TrendingUp className="w-6 h-6 text-purple-600" />
                             </div>
                         </div>
-                    </motion.div>
+                    </div>
 
-                    <motion.div
-                        className="bg-white p-5 rounded-lg shadow-md border border-gray-100 hover:shadow-lg transition-shadow duration-300"
-                        variants={cardVariants}
-                    >
+                    <div className="bg-white p-5 rounded-lg shadow-md border border-gray-100">
                         <div className="flex items-center justify-between">
                             <div>
                                 <h3 className="text-sm font-medium text-gray-500 mb-1">Total Expenses</h3>
@@ -351,58 +289,43 @@ function AccountingContent() {
                                 <TrendingDown className="w-6 h-6 text-red-600" />
                             </div>
                         </div>
-                    </motion.div>
-                </motion.div>
+                    </div>
+                </div>
 
                 {/* Tab Navigation */}
                 <div className="border-b border-gray-200 mb-6">
                     <nav className="flex space-x-8">
                         <button
                             onClick={() => setActiveTab('transactions')}
-                            className={`relative py-3 px-1 text-sm font-medium transition-colors duration-200 ${activeTab === 'transactions'
-                                ? 'text-blue-600'
-                                : 'text-gray-500 hover:text-gray-700'
-                                }`}
+                            className={`relative py-3 px-1 text-sm font-medium ${
+                                activeTab === 'transactions'
+                                    ? 'text-blue-600'
+                                    : 'text-gray-500 hover:text-gray-700'
+                            }`}
                         >
                             Transactions
                             {activeTab === 'transactions' && (
-                                <motion.div
-                                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
-                                    layoutId="activeTab"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{ duration: 0.3 }}
-                                />
+                                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
                             )}
                         </button>
                         <button
                             onClick={() => setActiveTab('accounts')}
-                            className={`relative py-3 px-1 text-sm font-medium transition-colors duration-200 ${activeTab === 'accounts'
-                                ? 'text-blue-600'
-                                : 'text-gray-500 hover:text-gray-700'
-                                }`}
+                            className={`relative py-3 px-1 text-sm font-medium ${
+                                activeTab === 'accounts'
+                                    ? 'text-blue-600'
+                                    : 'text-gray-500 hover:text-gray-700'
+                            }`}
                         >
                             Accounts
                             {activeTab === 'accounts' && (
-                                <motion.div
-                                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
-                                    layoutId="activeTab"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{ duration: 0.3 }}
-                                />
+                                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
                             )}
                         </button>
                     </nav>
                 </div>
 
                 {/* Search bar */}
-                <motion.div
-                    className="bg-white p-5 rounded-lg shadow-md border border-gray-100"
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4 }}
-                >
+                <div className="bg-white p-5 rounded-lg shadow-md border border-gray-100">
                     <div className="flex flex-col md:flex-row gap-4">
                         <div className="relative flex-grow">
                             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -410,7 +333,7 @@ function AccountingContent() {
                             </div>
                             <input
                                 type="text"
-                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5 transition-all duration-200"
+                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5"
                                 placeholder={`Search ${activeTab === 'transactions' ? 'transactions' : 'accounts'}...`}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -420,7 +343,7 @@ function AccountingContent() {
                             variant="outline"
                             size="sm"
                             onClick={() => setIsFilterOpen(!isFilterOpen)}
-                            className="flex items-center justify-center transition-colors duration-200"
+                            className="flex items-center justify-center"
                         >
                             <Filter className="w-4 h-4 mr-2" />
                             {isFilterOpen ? 'Hide Filters' : 'Show Filters'}
@@ -428,15 +351,8 @@ function AccountingContent() {
                     </div>
 
                     {/* Advanced filters */}
-                    <AnimatePresence>
-                        {isFilterOpen && activeTab === 'transactions' && (
-                            <motion.div
-                                className="mt-4 pt-4 border-t border-gray-200"
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                exit={{ opacity: 0, height: 0 }}
-                                transition={{ duration: 0.3 }}
-                            >
+                    {isFilterOpen && activeTab === 'transactions' && (
+                        <div className="mt-4 pt-4 border-t border-gray-200">
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     {/* Date range filter */}
                                     <div>
@@ -483,78 +399,57 @@ function AccountingContent() {
                                         </Button>
                                     </div>
                                 </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </motion.div>
+                        </div>
+                    )}
+                </div>
 
                 {/* Filter by transaction type */}
                 {activeTab === 'transactions' && (
-                    <motion.div
-                        className="mt-6"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.2, duration: 0.4 }}
-                    >
+                    <div className="mt-6">
                         <div className="text-sm font-medium mb-3">Filter by Type</div>
                         <div className="flex flex-wrap gap-2">
-                            <motion.button
+                            <button
                                 className={`px-4 py-2 text-sm rounded-md flex items-center ${activeTab === 'transactions' && !typeFilter ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}
                                 onClick={() => setTypeFilter('')}
-                                whileHover={{ scale: 1.03 }}
-                                whileTap={{ scale: 0.97 }}
                             >
                                 <RefreshCw className="w-3 h-3 mr-2" />
                                 All
-                            </motion.button>
-                            <motion.button
+                            </button>
+                            <button
                                 className={`px-4 py-2 text-sm rounded-md flex items-center ${typeFilter === 'income' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}
                                 onClick={() => setTypeFilter('income')}
-                                whileHover={{ scale: 1.03 }}
-                                whileTap={{ scale: 0.97 }}
                             >
                                 <TrendingUp className="w-3 h-3 mr-2" />
                                 Income
-                            </motion.button>
-                            <motion.button
+                            </button>
+                            <button
                                 className={`px-4 py-2 text-sm rounded-md flex items-center ${typeFilter === 'expense' ? 'bg-red-100 text-red-800 border border-red-200' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}
                                 onClick={() => setTypeFilter('expense')}
-                                whileHover={{ scale: 1.03 }}
-                                whileTap={{ scale: 0.97 }}
                             >
                                 <TrendingDown className="w-3 h-3 mr-2" />
                                 Expense
-                            </motion.button>
-                            <motion.button
+                            </button>
+                            <button
                                 className={`px-4 py-2 text-sm rounded-md flex items-center ${typeFilter === 'withdrawal' ? 'bg-orange-100 text-orange-800 border border-orange-200' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}
                                 onClick={() => setTypeFilter('withdrawal')}
-                                whileHover={{ scale: 1.03 }}
-                                whileTap={{ scale: 0.97 }}
                             >
                                 <ArrowUp className="w-3 h-3 mr-2" />
                                 Withdrawal
-                            </motion.button>
-                            <motion.button
+                            </button>
+                            <button
                                 className={`px-4 py-2 text-sm rounded-md flex items-center ${typeFilter === 'transfer' ? 'bg-purple-100 text-purple-800 border border-purple-200' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}
                                 onClick={() => setTypeFilter('transfer')}
-                                whileHover={{ scale: 1.03 }}
-                                whileTap={{ scale: 0.97 }}
                             >
                                 <RefreshCw className="w-3 h-3 mr-2" />
                                 Transfer
-                            </motion.button>
+                            </button>
                         </div>
-                    </motion.div>
+                    </div>
                 )}
 
                 {/* Transactions Table */}
                 {activeTab === 'transactions' && (
-                    <motion.div
-                        className="bg-white rounded-lg shadow-md border border-gray-100 overflow-hidden"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5 }}
-                    >
+                    <div className="bg-white rounded-lg shadow-md border border-gray-100 overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm text-left text-gray-500">
                                 <thead className="text-xs text-gray-700 uppercase bg-gray-50">
@@ -569,18 +464,12 @@ function AccountingContent() {
                                         <th className="px-6 py-3">Actions</th>
                                     </tr>
                                 </thead>
-                                <motion.tbody
-                                    variants={listVariants}
-                                    initial="hidden"
-                                    animate="visible"
-                                >
+                                <tbody>
                                     {filteredTransactions.length > 0 ? (
                                         filteredTransactions.map((transaction) => (
-                                            <motion.tr
+                                            <tr
                                                 key={transaction.id}
-                                                className="border-b hover:bg-gray-50 transition-colors duration-150"
-                                                variants={itemVariants}
-                                                whileHover={{ backgroundColor: "rgba(249, 250, 251, 0.8)" }}
+                                                className="border-b hover:bg-gray-50"
                                             >
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     {new Date(transaction.date).toLocaleDateString()}
@@ -588,7 +477,7 @@ function AccountingContent() {
                                                 <td className="px-6 py-4 font-medium text-gray-900">
                                                     <span
                                                         onClick={() => router.push(`/accounting/transaction/${transaction.id}`)}
-                                                        className="hover:underline hover:text-blue-600 cursor-pointer transition-colors duration-200"
+                                                        className="hover:underline hover:text-blue-600 cursor-pointer"
                                                     >
                                                         {transaction.description}
                                                     </span>
@@ -642,36 +531,30 @@ function AccountingContent() {
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center space-x-3">
-                                                        <motion.button
-                                                            className="text-blue-500 hover:text-blue-700 transition-colors duration-200"
+                                                        <button
+                                                            className="text-blue-500 hover:text-blue-700"
                                                             title="View"
                                                             onClick={() => router.push(`/accounting/transaction/${transaction.id}`)}
-                                                            whileHover={{ scale: 1.2 }}
-                                                            whileTap={{ scale: 0.9 }}
                                                         >
                                                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                                                        </motion.button>
-                                                        <motion.button
-                                                            className="text-yellow-500 hover:text-yellow-700 transition-colors duration-200"
+                                                        </button>
+                                                        <button
+                                                            className="text-yellow-500 hover:text-yellow-700"
                                                             title="Edit"
                                                             onClick={() => router.push(`/accounting/edit-transaction/${transaction.id}`)}
-                                                            whileHover={{ scale: 1.2 }}
-                                                            whileTap={{ scale: 0.9 }}
                                                         >
                                                             <Edit className="w-4 h-4" />
-                                                        </motion.button>
-                                                        <motion.button
-                                                            className="text-red-500 hover:text-red-700 transition-colors duration-200"
+                                                        </button>
+                                                        <button
+                                                            className="text-red-500 hover:text-red-700"
                                                             title="Delete"
                                                             onClick={() => handleDeleteTransaction(transaction.id)}
-                                                            whileHover={{ scale: 1.2 }}
-                                                            whileTap={{ scale: 0.9 }}
                                                         >
                                                             <Trash className="w-4 h-4" />
-                                                        </motion.button>
+                                                        </button>
                                                     </div>
                                                 </td>
-                                            </motion.tr>
+                                            </tr>
                                         ))
                                     ) : (
                                         <tr>
@@ -682,7 +565,7 @@ function AccountingContent() {
                                             </td>
                                         </tr>
                                     )}
-                                </motion.tbody>
+                                </tbody>
                             </table>
                         </div>
                         <div className="flex items-center justify-between p-4 border-t">
@@ -699,17 +582,12 @@ function AccountingContent() {
                                 New Transaction
                             </Button>
                         </div>
-                    </motion.div>
+                    </div>
                 )}
 
                 {/* Accounts Table */}
                 {activeTab === 'accounts' && (
-                    <motion.div
-                        className="bg-white rounded-lg shadow-md border border-gray-100 overflow-hidden"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5 }}
-                    >
+                    <div className="bg-white rounded-lg shadow-md border border-gray-100 overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm text-left text-gray-500">
                                 <thead className="text-xs text-gray-700 uppercase bg-gray-50">
@@ -722,18 +600,12 @@ function AccountingContent() {
                                         <th className="px-6 py-3">Actions</th>
                                     </tr>
                                 </thead>
-                                <motion.tbody
-                                    variants={listVariants}
-                                    initial="hidden"
-                                    animate="visible"
-                                >
+                                <tbody>
                                     {filteredAccounts.length > 0 ? (
                                         filteredAccounts.map((account) => (
-                                            <motion.tr
+                                            <tr
                                                 key={account.id}
-                                                className="border-b hover:bg-gray-50 transition-colors duration-150"
-                                                variants={itemVariants}
-                                                whileHover={{ backgroundColor: "rgba(249, 250, 251, 0.8)" }}
+                                                className="border-b hover:bg-gray-50"
                                             >
                                                 <td className="px-6 py-4 font-medium text-gray-900">
                                                     <div className="flex items-center">
@@ -742,7 +614,7 @@ function AccountingContent() {
                                                         )}
                                                         <span
                                                             onClick={() => router.push(`/accounting/account/${account.id}`)}
-                                                            className="hover:underline hover:text-blue-600 cursor-pointer transition-colors duration-200"
+                                                            className="hover:underline hover:text-blue-600 cursor-pointer"
                                                         >
                                                             {account.name}
                                                         </span>
@@ -789,51 +661,43 @@ function AccountingContent() {
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center space-x-3">
-                                                        <motion.button
-                                                            className="text-blue-500 hover:text-blue-700 transition-colors duration-200"
+                                                        <button
+                                                            className="text-blue-500 hover:text-blue-700"
                                                             title="View"
                                                             onClick={() => router.push(`/accounting/account/${account.id}`)}
-                                                            whileHover={{ scale: 1.2 }}
-                                                            whileTap={{ scale: 0.9 }}
                                                         >
                                                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                                                        </motion.button>
-                                                        <motion.button
-                                                            className="text-yellow-500 hover:text-yellow-700 transition-colors duration-200"
+                                                        </button>
+                                                        <button
+                                                            className="text-yellow-500 hover:text-yellow-700"
                                                             title="Edit"
                                                             onClick={() => router.push(`/accounting/edit-account/${account.id}`)}
-                                                            whileHover={{ scale: 1.2 }}
-                                                            whileTap={{ scale: 0.9 }}
                                                         >
                                                             <Edit className="w-4 h-4" />
-                                                        </motion.button>
+                                                        </button>
                                                         {!account.parentId && (
-                                                            <motion.button
-                                                                className="text-purple-500 hover:text-purple-700 transition-colors duration-200"
+                                                            <button
+                                                                className="text-purple-500 hover:text-purple-700"
                                                                 title="Add Sub-Account"
                                                                 onClick={() => handleAddSubAccount(account.id)}
-                                                                whileHover={{ scale: 1.2 }}
-                                                                whileTap={{ scale: 0.9 }}
                                                             >
                                                                 <Plus className="w-4 h-4" />
-                                                            </motion.button>
+                                                            </button>
                                                         )}
-                                                        <motion.button
-                                                            className={`${account.isActive ? 'text-red-500 hover:text-red-700' : 'text-green-500 hover:text-green-700'} transition-colors duration-200`}
+                                                        <button
+                                                            className={`${account.isActive ? 'text-red-500 hover:text-red-700' : 'text-green-500 hover:text-green-700'}`}
                                                             title={account.isActive ? 'Deactivate' : 'Activate'}
                                                             onClick={() => handleToggleAccountStatus(account)}
-                                                            whileHover={{ scale: 1.2 }}
-                                                            whileTap={{ scale: 0.9 }}
                                                         >
                                                             {account.isActive ? (
                                                                 <Trash className="w-4 h-4" />
                                                             ) : (
                                                                 <Plus className="w-4 h-4" />
                                                             )}
-                                                        </motion.button>
+                                                        </button>
                                                     </div>
                                                 </td>
-                                            </motion.tr>
+                                            </tr>
                                         ))
                                     ) : (
                                         <tr>
@@ -844,7 +708,7 @@ function AccountingContent() {
                                             </td>
                                         </tr>
                                     )}
-                                </motion.tbody>
+                                </tbody>
                             </table>
                         </div>
                         <div className="flex items-center justify-between p-4 border-t">
@@ -861,7 +725,7 @@ function AccountingContent() {
                                 New Account
                             </Button>
                         </div>
-                    </motion.div>
+                    </div>
                 )}
             </div>
         </MainLayout>
