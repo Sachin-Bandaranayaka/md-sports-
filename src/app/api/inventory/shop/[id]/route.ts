@@ -52,7 +52,7 @@ export async function GET(
         const shopId = params.id;
 
         // Get inventory items for the shop with conditional cost inclusion
-        const costField = includeCosts ? 'p.weightedAverageCost,' : '';
+        const costField = includeCosts ? 'i.shopspecificcost,' : '';
         
         const result = await db.query(
             `SELECT 

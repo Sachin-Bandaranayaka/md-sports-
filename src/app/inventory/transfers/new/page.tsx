@@ -18,6 +18,7 @@ interface Product {
     name: string;
     sku: string;
     price: string;
+    shopSpecificCost?: string; // Shop-specific weighted average cost
     available_quantity?: number; // Only for selected source shop
 }
 
@@ -107,10 +108,14 @@ export default function CreateTransferPage() {
                     throw new Error(data.message || 'Failed to fetch shop inventory');
                 }
 
-                // Map inventory data to products with available quantities
+                // Map inventory data to products with available quantities and shop-specific costs
                 const inventoryMap = new Map();
+                const costMap = new Map();
                 data.data.forEach((item: any) => {
                     inventoryMap.set(item.product_id, item.quantity);
+                    if (item.shopspecificcost !== undefined) {
+                        costMap.set(item.product_id, item.shopspecificcost);
+                    }
                 });
 
                 // Filter products that are in stock in this shop
@@ -118,7 +123,8 @@ export default function CreateTransferPage() {
                     inventoryMap.has(product.id) && inventoryMap.get(product.id) > 0
                 ).map(product => ({
                     ...product,
-                    available_quantity: inventoryMap.get(product.id) || 0
+                    available_quantity: inventoryMap.get(product.id) || 0,
+                    shopSpecificCost: costMap.get(product.id)?.toString() || undefined
                 }));
 
                 setFilteredProducts(productsInStock);
@@ -446,7 +452,7 @@ export default function CreateTransferPage() {
                                                     <p className="text-xs text-gray-900 mt-1">SKU: {product.sku}</p>
                                                 </div>
                                                 <span className="text-sm font-semibold text-gray-900 bg-gray-100 px-2 py-1 rounded-md">
-                                                    Rs. {parseFloat(product.price).toFixed(2)}
+                                                    Rs. {product.shopSpecificCost ? parseFloat(product.shopSpecificCost).toFixed(2) : parseFloat(product.price).toFixed(2)}
                                                 </span>
                                             </div>
                                             <div className="flex justify-between items-center mt-5 pt-3 border-t border-gray-100">
