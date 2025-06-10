@@ -178,6 +178,26 @@ function AccountingContent() {
         }
     };
 
+    const handleDeleteAccount = async (account: Account) => {
+        if (confirm(`Are you sure you want to permanently delete the account "${account.name}"? This action cannot be undone.`)) {
+            try {
+                const response = await authDelete(`/api/accounting/accounts?id=${account.id}`);
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to delete account');
+                }
+
+                // Refresh data to update account list
+                fetchData();
+                alert('Account deleted successfully');
+            } catch (err) {
+                console.error('Error deleting account:', err);
+                alert(err instanceof Error ? err.message : 'Failed to delete account. Please try again.');
+            }
+        }
+    };
+
     const clearFilters = () => {
         setSearchTerm('');
         setTypeFilter('');
@@ -685,15 +705,22 @@ function AccountingContent() {
                                                             </button>
                                                         )}
                                                         <button
-                                                            className={`${account.isActive ? 'text-red-500 hover:text-red-700' : 'text-green-500 hover:text-green-700'}`}
+                                                            className={`${account.isActive ? 'text-orange-500 hover:text-orange-700' : 'text-green-500 hover:text-green-700'}`}
                                                             title={account.isActive ? 'Deactivate' : 'Activate'}
                                                             onClick={() => handleToggleAccountStatus(account)}
                                                         >
                                                             {account.isActive ? (
-                                                                <Trash className="w-4 h-4" />
+                                                                <ArrowDown className="w-4 h-4" />
                                                             ) : (
-                                                                <Plus className="w-4 h-4" />
+                                                                <ArrowUp className="w-4 h-4" />
                                                             )}
+                                                        </button>
+                                                        <button
+                                                            className="text-red-500 hover:text-red-700"
+                                                            title="Delete Account"
+                                                            onClick={() => handleDeleteAccount(account)}
+                                                        >
+                                                            <Trash className="w-4 h-4" />
                                                         </button>
                                                     </div>
                                                 </td>

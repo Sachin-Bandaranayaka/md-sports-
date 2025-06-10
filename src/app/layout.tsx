@@ -5,7 +5,7 @@ import { AuthProvider } from '@/hooks/useAuth';
 
 import { QueryProvider } from '@/context/QueryProvider';
 import ApiInitializer from '@/components/ApiInitializer';
-import DevTools from '@/components/devtools';
+import DevTools from '@/components/DevTools';
 import { ChatbotWrapper } from '@/components/chatbot/ChatbotWrapper';
 import { Toaster } from 'sonner';
 

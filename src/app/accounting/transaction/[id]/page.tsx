@@ -11,9 +11,8 @@ import { authGet, authDelete } from '@/utils/api';
 
 export default function TransactionDetails({ params }: { params: { id: string } }) {
     const router = useRouter();
-    // Unwrap params using React.use()
-    const unwrappedParams = React.use(params);
-    const { id } = unwrappedParams;
+    // Extract id directly from params
+    const { id } = params;
 
     const [transaction, setTransaction] = useState<Transaction | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -214,4 +213,4 @@ export default function TransactionDetails({ params }: { params: { id: string } 
             </div>
         </MainLayout>
     );
-} 
+}

@@ -172,9 +172,8 @@ export async function PATCH(request: Request) {
             }, { status: 404 });
         }
 
-        // Calculate balance adjustment if the balance was changed
-        const originalBalance = existingAccount.balance;
-        const newBalance = balance !== undefined ? parseFloat(balance.toString()) : originalBalance;
+        // Calculate new balance if provided
+        const newBalance = balance !== undefined ? balance : existingAccount.balance;
 
         // Validate parent account if parentId is provided
         if (parentId) {
@@ -197,7 +196,7 @@ export async function PATCH(request: Request) {
                 }, { status: 400 });
             }
 
-            // Prevent circular references
+            // Prevent circular reference
             if (parseInt(parentId, 10) === parseInt(id, 10)) {
                 return NextResponse.json({
                     success: false,
@@ -233,6 +232,70 @@ export async function PATCH(request: Request) {
         return NextResponse.json({
             success: false,
             message: 'Error updating account',
+            error: error instanceof Error ? error.message : String(error)
+        }, { status: 500 });
+    }
+}
+
+// DELETE: Delete an account
+export async function DELETE(request: Request) {
+    try {
+        const { searchParams } = new URL(request.url);
+        const id = searchParams.get('id');
+
+        if (!id) {
+            return NextResponse.json({
+                success: false,
+                message: 'Account ID is required'
+            }, { status: 400 });
+        }
+
+        // Check if account exists
+        const existingAccount = await prisma.account.findUnique({
+            where: { id: parseInt(id, 10) },
+            include: {
+                subAccounts: true,
+                transactions: true
+            }
+        });
+
+        if (!existingAccount) {
+            return NextResponse.json({
+                success: false,
+                message: 'Account not found'
+            }, { status: 404 });
+        }
+
+        // Check if account has sub-accounts
+        if (existingAccount.subAccounts.length > 0) {
+            return NextResponse.json({
+                success: false,
+                message: 'Cannot delete account with sub-accounts. Please delete or reassign sub-accounts first.'
+            }, { status: 400 });
+        }
+
+        // Check if account has transactions
+        if (existingAccount.transactions.length > 0) {
+            return NextResponse.json({
+                success: false,
+                message: 'Cannot delete account with existing transactions. Please delete or reassign transactions first.'
+            }, { status: 400 });
+        }
+
+        // Delete the account
+        await prisma.account.delete({
+            where: { id: parseInt(id, 10) }
+        });
+
+        return NextResponse.json({
+            success: true,
+            message: 'Account deleted successfully'
+        });
+    } catch (error) {
+        console.error('Error deleting account:', error);
+        return NextResponse.json({
+            success: false,
+            message: 'Error deleting account',
             error: error instanceof Error ? error.message : String(error)
         }, { status: 500 });
     }

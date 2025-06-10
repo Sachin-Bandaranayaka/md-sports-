@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { validateTokenPermission } from '@/lib/auth';
-import { AuditService } from '@/lib/services/auditService';
-import { verifyToken } from '@/lib/auth/jwt';
+import { AuditService } from '@/services/auditService';
+import { verifyToken } from '@/lib/auth';
 
 // PUT: Update a category
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {

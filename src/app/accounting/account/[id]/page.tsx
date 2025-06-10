@@ -11,9 +11,8 @@ import { authGet, authPatch } from '@/utils/api';
 
 export default function AccountDetails({ params }: { params: { id: string } }) {
     const router = useRouter();
-    // Unwrap params using React.use()
-    const unwrappedParams = React.use(params);
-    const { id } = unwrappedParams;
+    // Extract id directly from params
+    const { id } = params;
 
     const [account, setAccount] = useState<Account | null>(null);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -323,4 +322,4 @@ export default function AccountDetails({ params }: { params: { id: string } }) {
             </div>
         </MainLayout>
     );
-} 
+}

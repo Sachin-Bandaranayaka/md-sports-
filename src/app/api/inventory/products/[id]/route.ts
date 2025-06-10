@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requirePermission } from '@/lib/utils/middleware';
-import { AuditService } from '@/lib/services/auditService';
-import { verifyToken } from '@/lib/auth/jwt';
+import { AuditService } from '@/services/auditService';
+import { verifyToken } from '@/lib/auth';
 
 // GET: Get product by ID
 export async function GET(
