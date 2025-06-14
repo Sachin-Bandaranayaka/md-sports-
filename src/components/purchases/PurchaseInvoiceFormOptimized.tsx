@@ -416,7 +416,7 @@ export default function PurchaseInvoiceFormOptimized({
 
       if (mode === 'create') {
         await createMutation.mutateAsync(submitData);
-        toast.success('Purchase invoice created successfully');
+        // Success notification will be handled by parent component or mutation callback
 
         // Clear draft
         localStorage.removeItem('purchase-invoice-draft-create');

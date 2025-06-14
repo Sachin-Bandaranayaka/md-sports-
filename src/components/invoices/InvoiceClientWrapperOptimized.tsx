@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Search, Plus, Filter, FileText, Download, Eye, CheckCircle, Trash2, Edit, Loader2, X } from 'lucide-react';
 import { InvoiceCreateModal, InvoiceEditModal, InvoiceViewModal } from '@/components/invoices';
 import type { InvoiceData } from '@/components/invoices';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { debounce } from 'lodash';
 import { FixedSizeList as List } from 'react-window';
 

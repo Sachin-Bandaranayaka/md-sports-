@@ -606,7 +606,13 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
 
             console.log('Invoice creation response:', { status: response.status, result });
             
-            if (!response.ok || !result.success) {
+            if (!response.ok) {
+                console.error('Invoice creation failed:', { status: response.status, result });
+                throw new Error(result.message || result.error || 'Failed to create invoice');
+            }
+
+            // Check if the response explicitly indicates failure
+            if (result.success === false) {
                 console.error('Invoice creation failed:', { status: response.status, result });
                 throw new Error(result.message || result.error || 'Failed to create invoice');
             }

@@ -29,7 +29,7 @@ import {
     History
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
-import { Toaster } from 'sonner';
+// Toaster removed - handled by root layout.tsx
 
 type NavItem = {
     icon: React.ElementType;
@@ -164,7 +164,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
     return (
         <QueryProvider>
             <div className="min-h-screen bg-gray-100">
-                <Toaster position="top-right" richColors />
+                {/* Toaster removed - handled by root layout.tsx */}
                 {/* Sidebar */}
                 <aside
                     className={cn(

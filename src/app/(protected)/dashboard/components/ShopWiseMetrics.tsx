@@ -199,17 +199,7 @@ export default function ShopWiseMetrics({ startDate, endDate, refreshTrigger }: 
                     </div>
                 )}
                 
-                {hasInventoryPermission && (
-                    <div className="bg-red-50 p-4 rounded-lg">
-                        <div className="flex items-center">
-                            <AlertTriangle className="h-5 w-5 text-red-600 mr-2" />
-                            <span className="text-sm font-medium text-red-900">Low Stock Items</span>
-                        </div>
-                        <p className="text-xl font-bold text-red-900 mt-1">
-                            {data.totals.lowStockItems}
-                        </p>
-                    </div>
-                )}
+                {/* Low Stock Items card hidden */}
             </div>
 
             {/* Shop-wise Table */}
@@ -235,11 +225,7 @@ export default function ShopWiseMetrics({ startDate, endDate, refreshTrigger }: 
                                     Outstanding
                                 </th>
                             )}
-                            {hasInventoryPermission && (
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Low Stock
-                                </th>
-                            )}
+                            {/* Low Stock column header hidden */}
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -265,13 +251,7 @@ export default function ShopWiseMetrics({ startDate, endDate, refreshTrigger }: 
                                         {formatCurrency(shop.outstandingInvoices)}
                                     </td>
                                 )}
-                                {hasInventoryPermission && (
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        <span className={shop.lowStockItems > 0 ? 'text-red-600 font-medium' : 'text-gray-600'}>
-                                            {shop.lowStockItems}
-                                        </span>
-                                    </td>
-                                )}
+                                {/* Low Stock column data hidden */}
                             </tr>
                         ))}
                     </tbody>

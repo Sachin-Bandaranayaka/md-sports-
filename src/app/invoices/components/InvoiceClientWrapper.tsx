@@ -200,7 +200,10 @@ export default function InvoiceClientWrapper({
             setError(null);
             try {
                 const response = await fetch(`/api/invoices/${invoiceId}`, { 
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': accessToken ? `Bearer ${accessToken}` : '',
+                    }
                 });
                 if (!response.ok) {
                     const errData = await response.json();
@@ -220,7 +223,11 @@ export default function InvoiceClientWrapper({
     const handleViewInvoice = async (invoiceId: string | number) => {
         try {
             setLoading(true);
-            const response = await fetch(`/api/invoices/${invoiceId}`);
+            const response = await fetch(`/api/invoices/${invoiceId}`, {
+                headers: {
+                    'Authorization': accessToken ? `Bearer ${accessToken}` : '',
+                }
+            });
             if (!response.ok) {
                 throw new Error('Failed to fetch invoice details');
             }
@@ -238,7 +245,11 @@ export default function InvoiceClientWrapper({
     const handleEditInvoice = async (invoiceId: string | number) => {
         try {
             setLoading(true);
-            const response = await fetch(`/api/invoices/${invoiceId}`);
+            const response = await fetch(`/api/invoices/${invoiceId}`, {
+                headers: {
+                    'Authorization': accessToken ? `Bearer ${accessToken}` : '',
+                }
+            });
             if (!response.ok) {
                 throw new Error('Failed to fetch invoice details');
             }
@@ -254,25 +265,10 @@ export default function InvoiceClientWrapper({
     };
 
     const handleCreateSuccess = async (newInvoice: any) => {
-        try {
-            const response = await fetch('/api/invoices', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(newInvoice),
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to create invoice');
-            }
-
-            setIsCreateModalOpen(false);
-            router.refresh(); // Refresh the page to show new invoice
-        } catch (err: any) {
-            console.error('Error creating invoice:', err);
-            setError(err.message || 'Failed to create invoice');
-        }
+        // The InvoiceCreateModal already handles the API call
+        // This callback is just for UI updates after successful creation
+        setIsCreateModalOpen(false);
+        router.refresh(); // Refresh the page to show new invoice
     };
 
     const handleEditSuccess = async (updatedInvoice: any) => {
@@ -281,6 +277,7 @@ export default function InvoiceClientWrapper({
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': accessToken ? `Bearer ${accessToken}` : '',
                 },
                 body: JSON.stringify(updatedInvoice),
             });

@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { Toaster } from 'react-hot-toast';
+// Removed react-hot-toast Toaster - using Sonner from MainLayout instead
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -452,30 +452,7 @@ export default function OptimizedInvoicesPage() {
     return (
         <QueryClientProvider client={queryClient}>
             <InvoicePageContent />
-            <Toaster
-                position="top-right"
-                toastOptions={{
-                    duration: 4000,
-                    style: {
-                        background: '#363636',
-                        color: '#fff',
-                    },
-                    success: {
-                        duration: 3000,
-                        iconTheme: {
-                            primary: '#4ade80',
-                            secondary: '#fff',
-                        },
-                    },
-                    error: {
-                        duration: 5000,
-                        iconTheme: {
-                            primary: '#ef4444',
-                            secondary: '#fff',
-                        },
-                    },
-                }}
-            />
+            {/* Toast notifications handled by Sonner in MainLayout */}
             <ReactQueryDevtools initialIsOpen={false} />
         </QueryClientProvider>
     );

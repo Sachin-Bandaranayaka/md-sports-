@@ -456,7 +456,12 @@ export default function CreateInvoice() {
 
             const responseData = await response.json();
 
-            if (!response.ok || !responseData.success) {
+            if (!response.ok) {
+                throw new Error(responseData.message || responseData.error || 'Failed to create invoice');
+            }
+
+            // Check if the response explicitly indicates failure
+            if (responseData.success === false) {
                 throw new Error(responseData.message || responseData.error || 'Failed to create invoice');
             }
 

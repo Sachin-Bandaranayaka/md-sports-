@@ -434,7 +434,6 @@ export default function Shops() {
                                     <div className="flex justify-between items-start">
                                         <div>
                                             <h3 className="text-lg font-semibold text-gray-900">{shop.name}</h3>
-                                            <p className="text-sm text-gray-500">ID: {shop.id}</p>
                                         </div>
                                         <Store className="h-8 w-8 text-primary" />
                                     </div>

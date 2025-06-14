@@ -261,6 +261,13 @@ export const useCreatePurchaseInvoice = () => {
         body: JSON.stringify(data),
       }),
     onSuccess: () => {
+      // Show success notification
+      if (typeof window !== 'undefined') {
+        // Dynamic import to avoid SSR issues
+        import('sonner').then(({ toast }) => {
+          toast.success('Purchase invoice created successfully');
+        });
+      }
       // Invalidate and refetch purchase invoices
       queryClient.invalidateQueries({ queryKey: queryKeys.purchaseInvoices });
       // Also invalidate inventory as it might have changed
