@@ -255,7 +255,7 @@ export default function InventoryClientWrapper({
             const response = await authDelete(`/api/products/${productId}`);
             const data = await response.json();
 
-            if (data.success) {
+            if (response.ok && data.success) {
                 // Success - keep the item removed
                 console.log(`Product ${productId} deleted successfully`);
 
@@ -266,7 +266,31 @@ export default function InventoryClientWrapper({
             } else {
                 // Rollback optimistic update on failure
                 setInventoryItems(originalItems);
-                setLocalError(data.message || 'Failed to delete product');
+                
+                // Enhanced error message for related records
+                let errorMessage = data.message || 'Failed to delete product';
+                
+                if (data.relatedRecords) {
+                    const { purchaseInvoiceItems, salesInvoiceItems, quotationItems } = data.relatedRecords;
+                    const details = [];
+                    
+                    if (purchaseInvoiceItems > 0) {
+                        details.push(`${purchaseInvoiceItems} purchase invoice(s)`);
+                    }
+                    if (salesInvoiceItems > 0) {
+                        details.push(`${salesInvoiceItems} sales invoice(s)`);
+                    }
+                    if (quotationItems > 0) {
+                        details.push(`${quotationItems} quotation(s)`);
+                    }
+                    
+                    if (details.length > 0) {
+                        errorMessage += `\n\nThis product is currently used in:\n• ${details.join('\n• ')}`;
+                        errorMessage += '\n\nPlease remove these references before deleting the product.';
+                    }
+                }
+                
+                setLocalError(errorMessage);
                 setAutoRefreshEnabled(wasAutoRefreshEnabled); // Re-enable immediately on error
             }
         } catch (err) {

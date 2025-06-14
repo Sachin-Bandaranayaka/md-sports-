@@ -203,31 +203,47 @@ export async function DELETE(
                 }, { status: 404 });
             }
 
+            // Check for related records that prevent deletion
+            const relatedRecords = [];
+            
             // Check if product is referenced in purchase invoices
-            const purchaseInvoiceItems = await prisma.purchaseInvoiceItem.findFirst({
+            const purchaseInvoiceItemsCount = await prisma.purchaseInvoiceItem.count({
                 where: { productId: id }
             });
-
-            if (purchaseInvoiceItems) {
-                return NextResponse.json({
-                    success: false,
-                    message: `Cannot delete product "${existingProduct.name}" because it is referenced in purchase invoice records.`
-                }, { status: 409 }); // 409 Conflict is appropriate for this case
+            
+            if (purchaseInvoiceItemsCount > 0) {
+                relatedRecords.push(`${purchaseInvoiceItemsCount} purchase invoice item(s)`);
             }
 
-            // Check if product is referenced in sales invoices - only if the model exists
-            // The model name might be different in your schema - adjust if needed
-            if ('salesInvoiceItem' in prisma) {
-                const salesInvoiceItems = await prisma.salesInvoiceItem.findFirst({
-                    where: { productId: id }
-                });
+            // Check if product is referenced in sales invoices
+            const salesInvoiceItemsCount = await prisma.invoiceItem.count({
+                where: { productId: id }
+            });
+            
+            if (salesInvoiceItemsCount > 0) {
+                relatedRecords.push(`${salesInvoiceItemsCount} sales invoice item(s)`);
+            }
 
-                if (salesInvoiceItems) {
-                    return NextResponse.json({
-                        success: false,
-                        message: `Cannot delete product "${existingProduct.name}" because it is referenced in sales invoice records.`
-                    }, { status: 409 });
-                }
+            // Check if product is referenced in quotations
+            const quotationItemsCount = await prisma.quotationItem.count({
+                where: { productId: id }
+            });
+            
+            if (quotationItemsCount > 0) {
+                relatedRecords.push(`${quotationItemsCount} quotation item(s)`);
+            }
+
+            // If any related records exist, prevent deletion
+            if (relatedRecords.length > 0) {
+                return NextResponse.json({
+                    success: false,
+                    message: `Cannot delete product "${existingProduct.name}" because it is referenced in: ${relatedRecords.join(', ')}. Please remove these references first.`,
+                    relatedRecords: {
+                        purchaseInvoiceItems: purchaseInvoiceItemsCount,
+                        salesInvoiceItems: salesInvoiceItemsCount,
+                        quotationItems: quotationItemsCount
+                    }
+                }, { status: 409 });
             }
 
             // Use a transaction to delete inventory items and then the product
