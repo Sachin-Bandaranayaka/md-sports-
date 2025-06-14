@@ -221,19 +221,15 @@ export async function POST(request: NextRequest) {
 
                         // Handle distribution across shops
                         if (itemDistribution && Object.keys(itemDistribution).length > 0) {
-                            // Aggregate quantities by shop ID from all distribution objects
+                            // Process only the current item's distribution object
                             const shopQuantities: Record<string, number> = {};
                             
-                            // Process all distribution objects for this item
-                            if (distributions && Array.isArray(distributions)) {
-                                for (const distObj of distributions) {
-                                    if (distObj && typeof distObj === 'object') {
-                                        for (const [shopIdStr, quantity] of Object.entries(distObj)) {
-                                            const qty = Number(quantity);
-                                            if (qty > 0 && !isNaN(qty)) {
-                                                shopQuantities[shopIdStr] = (shopQuantities[shopIdStr] || 0) + qty;
-                                            }
-                                        }
+                            // Process only the distribution object for this specific item (at index i)
+                            if (itemDistribution && typeof itemDistribution === 'object') {
+                                for (const [shopIdStr, quantity] of Object.entries(itemDistribution)) {
+                                    const qty = Number(quantity);
+                                    if (qty > 0 && !isNaN(qty)) {
+                                        shopQuantities[shopIdStr] = qty; // Use the exact quantity, not accumulated
                                     }
                                 }
                             }
