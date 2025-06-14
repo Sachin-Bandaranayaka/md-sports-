@@ -92,6 +92,39 @@ export default function InvoiceClientWrapper({
     const [timePeriodFilter, setTimePeriodFilter] = useState<string>(searchParams.get('timePeriod') || 'all');
     const [sortBy, setSortBy] = useState<string>(searchParams.get('sortBy') || 'newest');
 
+    // Selection state for bulk operations
+    const [selectedInvoices, setSelectedInvoices] = useState<Set<string>>(new Set());
+    const [selectAll, setSelectAll] = useState<boolean>(false);
+
+    // Selection handlers
+    const handleToggleSelection = useCallback((invoiceId: string) => {
+        setSelectedInvoices(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(invoiceId)) {
+                newSet.delete(invoiceId);
+            } else {
+                newSet.add(invoiceId);
+            }
+            return newSet;
+        });
+    }, []);
+
+    const handleSelectAll = useCallback(() => {
+        if (selectAll) {
+            setSelectedInvoices(new Set());
+            setSelectAll(false);
+        } else {
+            const allIds = new Set(invoices.map(invoice => String(invoice.id)));
+            setSelectedInvoices(allIds);
+            setSelectAll(true);
+        }
+    }, [selectAll, invoices]);
+
+    const handleClearSelection = useCallback(() => {
+        setSelectedInvoices(new Set());
+        setSelectAll(false);
+    }, []);
+
     useEffect(() => {
         setInvoices(initialInvoices);
         setTotalPages(initialTotalPages);
@@ -209,6 +242,14 @@ export default function InvoiceClientWrapper({
                     const errData = await response.json();
                     throw new Error(errData.message || 'Failed to delete invoice');
                 }
+                
+                // Remove from selection if it was selected
+                setSelectedInvoices(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(String(invoiceId));
+                    return newSet;
+                });
+                
                 router.refresh(); // Refresh data
             } catch (err: any) {
                 console.error('Error deleting invoice:', err);
@@ -216,6 +257,51 @@ export default function InvoiceClientWrapper({
             } finally {
                 setLoading(false);
             }
+        }
+    };
+
+    // Bulk delete handler
+    const handleBulkDelete = async () => {
+        if (selectedInvoices.size === 0) {
+            alert('Please select invoices to delete.');
+            return;
+        }
+
+        if (!confirm(`Are you sure you want to delete ${selectedInvoices.size} selected invoice(s)?`)) {
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+
+        try {
+            const deletePromises = Array.from(selectedInvoices).map(invoiceId => 
+                fetch(`/api/invoices/${invoiceId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': accessToken ? `Bearer ${accessToken}` : '',
+                    }
+                })
+            );
+
+            const results = await Promise.allSettled(deletePromises);
+            
+            // Check for any failures
+            const failures = results.filter(result => result.status === 'rejected');
+            
+            if (failures.length > 0) {
+                throw new Error(`Failed to delete ${failures.length} invoice(s)`);
+            }
+
+            // Clear selection
+            handleClearSelection();
+            
+            router.refresh(); // Refresh data
+        } catch (err: any) {
+            console.error('Error deleting invoices:', err);
+            setError(err.message || 'Failed to delete some invoices');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -470,13 +556,43 @@ export default function InvoiceClientWrapper({
                         </select>
                     </div>
                 </div>
-                <div className="mt-4 flex justify-end gap-2">
-                    <Button variant="outline" onClick={clearFilters} disabled={loading}>
-                        Clear Filters
-                    </Button>
-                    <Button variant="primary" onClick={handleFilterChange} disabled={loading}>
-                        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Filter size={18} className="mr-2" />} Apply Filters
-                    </Button>
+                <div className="mt-4 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                        {selectedInvoices.size > 0 && (
+                            <>
+                                <span className="text-sm text-gray-600">
+                                    {selectedInvoices.size} invoice(s) selected
+                                </span>
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={handleBulkDelete} 
+                                    disabled={loading}
+                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                    <Trash2 size={16} className="mr-1" />
+                                    Delete Selected
+                                </Button>
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onClick={handleClearSelection}
+                                    disabled={loading}
+                                >
+                                    <X size={16} className="mr-1" />
+                                    Clear Selection
+                                </Button>
+                            </>
+                        )}
+                    </div>
+                    <div className="flex gap-2">
+                        <Button variant="outline" onClick={clearFilters} disabled={loading}>
+                            Clear Filters
+                        </Button>
+                        <Button variant="primary" onClick={handleFilterChange} disabled={loading}>
+                            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Filter size={18} className="mr-2" />} Apply Filters
+                        </Button>
+                    </div>
                 </div>
             </div>
 
@@ -504,6 +620,15 @@ export default function InvoiceClientWrapper({
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectAll}
+                                        onChange={handleSelectAll}
+                                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                        disabled={loading}
+                                    />
+                                </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice #</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Date</th>
@@ -517,7 +642,16 @@ export default function InvoiceClientWrapper({
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {invoices.map((invoice) => (
-                                <tr key={invoice.id} className="hover:bg-gray-50 transition-colors duration-150">
+                                <tr key={invoice.id} className={`hover:bg-gray-50 transition-colors duration-150 ${selectedInvoices.has(String(invoice.id)) ? 'bg-blue-50' : ''}`}>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedInvoices.has(String(invoice.id))}
+                                            onChange={() => handleToggleSelection(String(invoice.id))}
+                                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                            disabled={loading}
+                                        />
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-600 hover:text-indigo-800 cursor-pointer" onClick={() => router.push(`/invoices/${invoice.id}`)}>{invoice.invoiceNumber}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{invoice.customerName}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">{formatDate(invoice.createdAt)}</td>

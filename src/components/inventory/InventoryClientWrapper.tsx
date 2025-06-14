@@ -92,6 +92,11 @@ export default function InventoryClientWrapper({
     const [totalPagesState, setTotalPages] = useState<number>(initialPagination.totalPages);
     const [totalItemsState, setTotalItems] = useState<number>(initialPagination.total);
 
+    // Selection state for bulk operations
+    const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
+    const [selectAll, setSelectAll] = useState(false);
+    const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
+
     // Pagination state
     const [currentPage, setCurrentPage] = useState(initialPagination.page);
     const [itemsPerPage, setItemsPerPage] = useState(initialPagination.limit);
@@ -308,6 +313,102 @@ export default function InventoryClientWrapper({
             });
         }
     };
+
+    // Selection handlers
+    const handleToggleSelection = useCallback((itemId: number) => {
+        setSelectedItems(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(itemId)) {
+                newSet.delete(itemId);
+            } else {
+                newSet.add(itemId);
+            }
+            return newSet;
+        });
+    }, []);
+
+    const handleSelectAll = useCallback(() => {
+        const currentItems = inventoryData?.data || localInventoryItems;
+        if (selectAll) {
+            setSelectedItems(new Set());
+        } else {
+            setSelectedItems(new Set(currentItems.map(item => item.id)));
+        }
+        setSelectAll(!selectAll);
+    }, [selectAll, inventoryData?.data, localInventoryItems]);
+
+    const handleClearSelection = useCallback(() => {
+        setSelectedItems(new Set());
+        setSelectAll(false);
+    }, []);
+
+    // Bulk delete handler
+    const handleBulkDelete = useCallback(async () => {
+        if (selectedItems.size === 0) return;
+
+        const confirmMessage = `Are you sure you want to delete ${selectedItems.size} selected item(s)? This action cannot be undone.`;
+        if (!confirm(confirmMessage)) return;
+
+        setBulkDeleteLoading(true);
+        const wasAutoRefreshEnabled = autoRefreshEnabled;
+        setAutoRefreshEnabled(false);
+
+        try {
+            const deletePromises = Array.from(selectedItems).map(async (itemId) => {
+                const response = await authDelete(`/api/products/${itemId}`);
+                const data = await response.json();
+                return { itemId, success: response.ok && data.success, error: data.message };
+            });
+
+            const results = await Promise.all(deletePromises);
+            const successfulDeletes = results.filter(r => r.success).map(r => r.itemId);
+            const failedDeletes = results.filter(r => !r.success);
+
+            if (successfulDeletes.length > 0) {
+                // Remove successfully deleted items from local state
+                setInventoryItems(prev => prev.filter(item => !successfulDeletes.includes(item.id)));
+                console.log(`Successfully deleted ${successfulDeletes.length} items`);
+            }
+
+            if (failedDeletes.length > 0) {
+                const errorMessage = `Failed to delete ${failedDeletes.length} item(s). Some items may be referenced in invoices or other records.`;
+                setLocalError(errorMessage);
+            }
+
+            // Clear selection
+            setSelectedItems(new Set());
+            setSelectAll(false);
+
+            // Wait before re-enabling auto-refresh
+            setTimeout(() => {
+                setAutoRefreshEnabled(wasAutoRefreshEnabled);
+            }, 2000);
+
+        } catch (error) {
+            console.error('Error during bulk delete:', error);
+            setLocalError('Failed to delete selected items. Please try again later.');
+            setAutoRefreshEnabled(wasAutoRefreshEnabled);
+        } finally {
+            setBulkDeleteLoading(false);
+        }
+    }, [selectedItems, autoRefreshEnabled, authDelete]);
+
+    // Update selectAll state when items change
+    useEffect(() => {
+        const currentItems = inventoryData?.data || localInventoryItems;
+        if (currentItems.length === 0) {
+            setSelectAll(false);
+        } else {
+            const allSelected = currentItems.every(item => selectedItems.has(item.id));
+            setSelectAll(allSelected && selectedItems.size > 0);
+        }
+    }, [selectedItems, inventoryData?.data, localInventoryItems]);
+
+    // Clear selection when filters change
+    useEffect(() => {
+        setSelectedItems(new Set());
+        setSelectAll(false);
+    }, [searchTerm, categoryFilter, statusFilter, currentPage]);
 
     // Handle inventory added
     const handleInventoryAdded = () => {
@@ -572,6 +673,42 @@ export default function InventoryClientWrapper({
                 </div>
             )}
 
+            {/* Bulk Actions */}
+            {selectedItems.size > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <span className="text-sm font-medium text-blue-900">
+                                {selectedItems.size} item(s) selected
+                            </span>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleClearSelection}
+                                className="text-blue-700 border-blue-300 hover:bg-blue-100"
+                            >
+                                <X className="w-4 h-4 mr-1" />
+                                Clear Selection
+                            </Button>
+                        </div>
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={handleBulkDelete}
+                            disabled={bulkDeleteLoading}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            {bulkDeleteLoading ? (
+                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                            ) : (
+                                <Trash2 className="w-4 h-4 mr-1" />
+                            )}
+                            Delete Selected
+                        </Button>
+                    </div>
+                </div>
+            )}
+
             {/* Search and filter bar */}
             <div className="bg-tertiary p-4 rounded-lg shadow-sm border border-gray-200">
                 <div className="flex flex-col md:flex-row gap-4">
@@ -627,6 +764,14 @@ export default function InventoryClientWrapper({
                     <table className="w-full text-sm text-left text-black">
                         <thead className="text-xs text-black uppercase bg-gray-50">
                             <tr>
+                                <th className="px-6 py-3 w-12">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectAll}
+                                        onChange={handleSelectAll}
+                                        className="rounded border-gray-300 text-primary focus:ring-primary"
+                                    />
+                                </th>
                                 <th className="px-6 py-3">SKU</th>
                                 <th className="px-6 py-3">Product Name</th>
                                 <th className="px-6 py-3">Category</th>
@@ -642,9 +787,22 @@ export default function InventoryClientWrapper({
                                 (inventoryData?.data || localInventoryItems).map((item) => (
                                     <tr
                                         key={item.id}
-                                        className="border-b hover:bg-gray-50 cursor-pointer"
+                                        className={`border-b hover:bg-gray-50 cursor-pointer ${
+                                            selectedItems.has(item.id) ? 'bg-blue-50 border-blue-200' : ''
+                                        }`}
                                         onClick={() => navigateToProductDetails(item.id)}
                                     >
+                                        <td className="px-6 py-4 w-12">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedItems.has(item.id)}
+                                                onChange={(e) => {
+                                                    e.stopPropagation();
+                                                    handleToggleSelection(item.id);
+                                                }}
+                                                className="rounded border-gray-300 text-primary focus:ring-primary"
+                                            />
+                                        </td>
                                         <td className="px-6 py-4 font-medium text-primary">
                                             {item.sku}
                                         </td>
@@ -702,7 +860,7 @@ export default function InventoryClientWrapper({
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-8 text-center text-black">
+                                    <td colSpan={9} className="px-6 py-8 text-center text-black">
                                         {error ? 'Error loading inventory data' : 'No inventory items found'}
                                     </td>
                                 </tr>
