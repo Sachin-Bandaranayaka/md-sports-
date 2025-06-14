@@ -15,7 +15,7 @@ export const maxDuration = 10;
 
 // Real-time data types
 interface RealtimeUpdate {
-  type: 'inventory' | 'invoice' | 'transfer' | 'notification';
+  type: 'inventory' | 'invoice' | 'transfer' | 'notification' | 'purchase';
   data: any;
   timestamp: number;
   shopId?: string;
@@ -55,6 +55,9 @@ export async function GET(request: NextRequest) {
         case 'invoice':
         case 'sales':
           requiredPermission = 'sales:view';
+          break;
+        case 'purchase':
+          requiredPermission = 'purchases:view';
           break;
         case 'transfer':
           requiredPermission = 'inventory:view'; // transfers are part of inventory
@@ -96,6 +99,12 @@ export async function GET(request: NextRequest) {
     if (types.includes('invoice')) {
       const invoiceUpdates = await getInvoiceUpdates(shopId, since);
       updates.push(...invoiceUpdates);
+    }
+
+    // Get purchase invoice updates
+    if (types.includes('purchase') || types.includes('invoice')) {
+      const purchaseUpdates = await getPurchaseInvoiceUpdates(shopId, since);
+      updates.push(...purchaseUpdates);
     }
 
     // Get transfer updates
@@ -296,6 +305,65 @@ async function getTransferUpdates(shopId: string | null, since: number): Promise
     }));
   } catch (error) {
     console.error('Error fetching transfer updates:', error);
+    return [];
+  }
+}
+
+async function getPurchaseInvoiceUpdates(shopId: string | null, since: number): Promise<RealtimeUpdate[]> {
+  try {
+    const whereClause = {
+      OR: [
+        {
+          createdAt: {
+            gte: new Date(since)
+          }
+        },
+        {
+          updatedAt: {
+            gte: new Date(since)
+          }
+        }
+      ],
+      ...(shopId && { shopId })
+    };
+
+    const purchaseInvoices = await prisma.purchaseInvoice.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        invoiceNumber: true,
+        total: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        shopId: true,
+        supplier: {
+          select: {
+            name: true
+          }
+        }
+      },
+      orderBy: {
+        updatedAt: 'desc'
+      },
+      take: 10
+    });
+
+    return purchaseInvoices.map(invoice => ({
+      type: 'purchase' as const,
+      data: {
+        invoiceId: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        total: invoice.total,
+        status: invoice.status,
+        supplierName: invoice.supplier?.name,
+        action: invoice.createdAt.getTime() >= since ? 'created' : 'updated'
+      },
+      timestamp: Math.max(invoice.createdAt.getTime(), invoice.updatedAt.getTime()),
+      shopId: invoice.shopId || undefined
+    }));
+  } catch (error) {
+    console.error('Error fetching purchase invoice updates:', error);
     return [];
   }
 }

@@ -291,3 +291,7 @@ export function useNotifications(options?: Omit<UseRealtimeOptions, 'types'>) {
 export function useTransferUpdates(options?: Omit<UseRealtimeOptions, 'types'>) {
   return useRealtime({ ...options, types: ['transfer'] });
 }
+
+export function usePurchaseUpdates(options?: Omit<UseRealtimeOptions, 'types'>) {
+  return useRealtime({ ...options, types: ['purchase'] });
+}

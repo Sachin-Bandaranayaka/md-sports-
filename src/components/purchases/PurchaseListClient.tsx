@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Search, Plus, Edit, Trash, FileText, ExternalLink, Calendar, DollarSign, X, RefreshCw } from 'lucide-react';
 import { PurchaseInvoice, Supplier } from '@/types';
 import { usePurchaseInvoices, useDeletePurchaseInvoice } from '@/hooks/useQueries';
+import { usePurchaseUpdates } from '@/hooks/useRealtime';
 import { toast } from 'sonner';
 import NewPurchaseInvoiceModal from '@/components/purchases/NewPurchaseInvoiceModal';
 // InvoiceFormModal import removed - using separate pages for forms
@@ -66,6 +67,19 @@ export default function PurchaseListClient({
     });
 
     const deleteInvoiceMutation = useDeletePurchaseInvoice();
+
+    // Real-time updates for purchase invoices
+    const { updates: purchaseUpdates } = usePurchaseUpdates({
+        enabled: true,
+        onUpdate: (update) => {
+            console.log('Purchase invoice update received:', update);
+            // Refetch data when purchase invoices are created, updated, or deleted
+            if (update.type === 'purchase') {
+                refetch();
+                toast.success(`Purchase invoice ${update.data.action === 'created' ? 'created' : update.data.action === 'updated' ? 'updated' : 'modified'} successfully!`);
+            }
+        }
+    });
 
     const purchaseInvoices = purchasesData?.data || initialPurchaseInvoices;
     const totalPages = purchasesData?.pagination?.totalPages || initialTotalPages;
