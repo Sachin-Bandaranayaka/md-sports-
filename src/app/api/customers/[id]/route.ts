@@ -252,8 +252,8 @@ export async function DELETE(
         await auditService.softDelete(
             'Customer',
             id,
-            decoded.userId,
             customer,
+            decoded.userId,
             true // canRecover
         );
 

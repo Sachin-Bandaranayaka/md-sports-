@@ -419,6 +419,38 @@ export class AuditService {
 
     return result.count;
   }
+
+  /**
+   * Get IDs of soft-deleted entities for a specific entity type
+   */
+  async getDeletedEntityIds(entity: string): Promise<number[]> {
+    try {
+      const deletedEntries = await this.prisma.auditLog.findMany({
+        where: {
+          entity,
+          action: 'DELETE',
+        },
+        select: {
+          entityId: true,
+          details: true,
+        },
+      });
+
+      // Filter for items that are deleted and not recovered
+      const deletedIds = deletedEntries
+        .filter((entry) => {
+          const details = entry.details as any;
+          return details?.isDeleted && !details?.recoveredAt;
+        })
+        .map((entry) => entry.entityId!)
+        .filter((id) => id !== null);
+
+      return deletedIds;
+    } catch (error) {
+      console.error(`Error getting deleted entity IDs for ${entity}:`, error);
+      return [];
+    }
+  }
 }
 
 export const auditService = AuditService.getInstance();

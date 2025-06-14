@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Search, Plus, Edit, Trash, Phone, Mail, ExternalLink, X } from 'lucide-react';
+import { Search, Plus, Edit, Trash, Phone, Mail, ExternalLink, X, Loader2 } from 'lucide-react';
 import { Supplier } from '@/types';
 import { queryKeys } from '@/context/QueryProvider';
 
@@ -19,6 +19,9 @@ export default function Suppliers() {
     const [showViewModal, setShowViewModal] = useState(false);
     const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
     const [isEditMode, setIsEditMode] = useState(false);
+    const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+    const [selectAll, setSelectAll] = useState(false);
+    const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
     const queryClient = useQueryClient();
 
     // Fetch suppliers from API
@@ -91,6 +94,83 @@ export default function Suppliers() {
         }
     };
 
+    // Selection handlers
+    const handleToggleSelection = (id: string) => {
+        const newSelectedItems = new Set(selectedItems);
+        if (newSelectedItems.has(id)) {
+            newSelectedItems.delete(id);
+        } else {
+            newSelectedItems.add(id);
+        }
+        setSelectedItems(newSelectedItems);
+    };
+
+    const handleSelectAll = () => {
+        if (selectAll) {
+            setSelectedItems(new Set());
+        } else {
+            setSelectedItems(new Set(filteredSuppliers.map(supplier => supplier.id)));
+        }
+        setSelectAll(!selectAll);
+    };
+
+    const handleClearSelection = () => {
+        setSelectedItems(new Set());
+        setSelectAll(false);
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedItems.size === 0) return;
+        
+        const confirmMessage = `Are you sure you want to delete ${selectedItems.size} supplier${selectedItems.size > 1 ? 's' : ''}?`;
+        if (!confirm(confirmMessage)) return;
+
+        setBulkDeleteLoading(true);
+        const selectedIds = Array.from(selectedItems);
+        
+        try {
+            // Delete all selected suppliers
+            const deletePromises = selectedIds.map(id => 
+                fetch(`/api/suppliers/${id}`, { method: 'DELETE' })
+            );
+            
+            const responses = await Promise.all(deletePromises);
+            const failedDeletes = responses.filter(response => !response.ok);
+            
+            if (failedDeletes.length > 0) {
+                throw new Error(`Failed to delete ${failedDeletes.length} supplier(s)`);
+            }
+            
+            // Update local state
+            setSuppliers(suppliers.filter(supplier => !selectedItems.has(supplier.id)));
+            setSelectedItems(new Set());
+            setSelectAll(false);
+            
+            // Invalidate cache
+            queryClient.invalidateQueries({ queryKey: queryKeys.suppliers });
+            queryClient.invalidateQueries({ queryKey: queryKeys.suppliersList() });
+            
+        } catch (err) {
+            console.error('Error deleting suppliers:', err);
+            alert('Failed to delete some suppliers. Please try again.');
+        } finally {
+            setBulkDeleteLoading(false);
+        }
+    };
+
+    // Update selectAll state based on current selection
+    useEffect(() => {
+        const allFilteredIds = filteredSuppliers.map(supplier => supplier.id);
+        const allSelected = allFilteredIds.length > 0 && allFilteredIds.every(id => selectedItems.has(id));
+        setSelectAll(allSelected);
+    }, [selectedItems, filteredSuppliers]);
+
+    // Clear selection when search term changes
+    useEffect(() => {
+        setSelectedItems(new Set());
+        setSelectAll(false);
+    }, [searchTerm]);
+
     const handleSaveSupplier = async (supplier: Supplier) => {
         try {
             if (isEditMode) {
@@ -158,6 +238,46 @@ export default function Suppliers() {
                     </div>
                 </div>
 
+                {/* Bulk Actions */}
+                {selectedItems.size > 0 && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-blue-900">
+                                {selectedItems.size} supplier{selectedItems.size > 1 ? 's' : ''} selected
+                            </span>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleClearSelection}
+                                    className="text-blue-700 border-blue-300 hover:bg-blue-100"
+                                >
+                                    Clear Selection
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleBulkDelete}
+                                    disabled={bulkDeleteLoading}
+                                    className="text-red-700 border-red-300 hover:bg-red-100"
+                                >
+                                    {bulkDeleteLoading ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            Deleting...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Trash className="w-4 h-4 mr-2" />
+                                            Delete Selected
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Search bar */}
                 <div className="bg-tertiary p-4 rounded-lg shadow-sm border border-gray-200">
                     <div className="relative">
@@ -210,6 +330,14 @@ export default function Suppliers() {
                             <table className="w-full text-sm text-left text-gray-500">
                                 <thead className="text-xs text-gray-700 uppercase bg-gray-50">
                                     <tr>
+                                        <th className="px-6 py-3 w-12">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectAll}
+                                                onChange={handleSelectAll}
+                                                className="rounded border-gray-300 text-primary focus:ring-primary"
+                                            />
+                                        </th>
                                         <th className="px-6 py-3">ID</th>
                                         <th className="px-6 py-3">Supplier Name</th>
                                         <th className="px-6 py-3">Contact Person</th>
@@ -222,7 +350,20 @@ export default function Suppliers() {
                                 </thead>
                                 <tbody>
                                     {filteredSuppliers.map((supplier) => (
-                                        <tr key={supplier.id} className="border-b hover:bg-gray-50">
+                                        <tr key={supplier.id} className={`border-b hover:bg-gray-50 ${
+                                            selectedItems.has(supplier.id) ? 'bg-blue-50 border-blue-200' : ''
+                                        }`}>
+                                            <td className="px-6 py-4 w-12">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedItems.has(supplier.id)}
+                                                    onChange={(e) => {
+                                                        e.stopPropagation();
+                                                        handleToggleSelection(supplier.id);
+                                                    }}
+                                                    className="rounded border-gray-300 text-primary focus:ring-primary"
+                                                />
+                                            </td>
                                             <td className="px-6 py-4 font-medium text-gray-900">
                                                 {supplier.id}
                                             </td>
@@ -279,9 +420,9 @@ export default function Suppliers() {
                                     ))}
                                     {filteredSuppliers.length === 0 && (
                                         <tr>
-                                            <td colSpan={8} className="px-6 py-4 text-center">
-                                                No suppliers found matching your search criteria.
-                                            </td>
+                                            <td colSpan={9} className="px-6 py-4 text-center">
+                                    No suppliers found matching your search criteria.
+                                </td>
                                         </tr>
                                     )}
                                 </tbody>

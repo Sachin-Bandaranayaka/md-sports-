@@ -90,6 +90,11 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
     const [currentPage, setCurrentPage] = useState(initialCurrentPage);
     const [totalPages, setTotalPages] = useState(initialTotalPages);
 
+    // Selection and bulk delete state
+    const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+    const [selectAll, setSelectAll] = useState<boolean>(false);
+    const [bulkDeleteLoading, setBulkDeleteLoading] = useState<boolean>(false);
+
 
     // Event handler for clicks outside the suggestions box
     useEffect(() => {
@@ -318,6 +323,89 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
         }
     };
 
+    // Selection handlers
+    const handleToggleSelection = (customerId: string | number) => {
+        const id = String(customerId);
+        setSelectedItems(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(id)) {
+                newSet.delete(id);
+            } else {
+                newSet.add(id);
+            }
+            return newSet;
+        });
+    };
+
+    const handleSelectAll = () => {
+        if (selectAll) {
+            setSelectedItems(new Set());
+        } else {
+            const allIds = customers.map(customer => String(customer.id));
+            setSelectedItems(new Set(allIds));
+        }
+        setSelectAll(!selectAll);
+    };
+
+    const handleClearSelection = () => {
+        setSelectedItems(new Set());
+        setSelectAll(false);
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedItems.size === 0) return;
+
+        const confirmMessage = `Are you sure you want to delete ${selectedItems.size} customer${selectedItems.size > 1 ? 's' : ''}? This action cannot be undone.`;
+        if (!confirm(confirmMessage)) return;
+
+        setBulkDeleteLoading(true);
+        setError(null);
+
+        try {
+            const deletePromises = Array.from(selectedItems).map(async (customerId) => {
+                const response = await authDelete(`/api/customers/${customerId}`);
+                const data = await response.json();
+                if (!data.success) {
+                    throw new Error(`Failed to delete customer ${customerId}: ${data.message}`);
+                }
+                return customerId;
+            });
+
+            const deletedIds = await Promise.all(deletePromises);
+
+            // Update state to remove deleted customers
+            setCustomers(prevCustomers => 
+                prevCustomers.filter(customer => !deletedIds.includes(String(customer.id)))
+            );
+            setAllCustomers(prevAllCustomers => 
+                prevAllCustomers.filter(customer => !deletedIds.includes(String(customer.id)))
+            );
+
+            // Clear selection
+            setSelectedItems(new Set());
+            setSelectAll(false);
+
+        } catch (err) {
+            console.error('Error during bulk delete:', err);
+            setError('Some customers could not be deleted. Please try again.');
+        } finally {
+            setBulkDeleteLoading(false);
+        }
+    };
+
+    // Update selectAll state based on current selection
+    useEffect(() => {
+        const allCurrentIds = customers.map(customer => String(customer.id));
+        const allSelected = allCurrentIds.length > 0 && allCurrentIds.every(id => selectedItems.has(id));
+        setSelectAll(allSelected);
+    }, [selectedItems, customers]);
+
+    // Clear selection when search term changes
+    useEffect(() => {
+        setSelectedItems(new Set());
+        setSelectAll(false);
+    }, [searchTerm]);
+
     const applyAdvancedFilters = () => {
         // This function body was not fully provided in the original file snippet
         // Assuming it uses filterOptions to construct query params and navigate
@@ -372,6 +460,41 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                     </Button>
                 </div>
             </div>
+
+            {/* Bulk Actions */}
+            {selectedItems.size > 0 && (
+                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-blue-800">
+                            {selectedItems.size} customer{selectedItems.size > 1 ? 's' : ''} selected
+                        </span>
+                        <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleClearSelection}
+                                className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                            >
+                                Clear Selection
+                            </Button>
+                            <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={handleBulkDelete}
+                                disabled={bulkDeleteLoading}
+                                className="flex items-center gap-2"
+                            >
+                                {bulkDeleteLoading ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    <Trash2 className="w-4 h-4" />
+                                )}
+                                Delete Selected
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Search and Simple Filters */}
             <div className="mb-6 p-4 bg-white shadow rounded-lg">
@@ -574,6 +697,14 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
+                                <th className="px-4 py-3 w-12">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectAll}
+                                        onChange={handleSelectAll}
+                                        className="rounded border-gray-300 text-primary focus:ring-primary"
+                                    />
+                                </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer ID</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
@@ -587,7 +718,20 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {customers.map((customer) => (
-                                <tr key={customer.id} className={`hover:bg-gray-50 transition-colors duration-150 ${getCustomerTypeRowClass(customer.customerType)}`}>
+                                <tr key={customer.id} className={`hover:bg-gray-50 transition-colors duration-150 ${
+                                    selectedItems.has(String(customer.id)) ? 'bg-blue-50 border-blue-200' : getCustomerTypeRowClass(customer.customerType)
+                                }`}>
+                                    <td className="px-4 py-3 w-12">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedItems.has(String(customer.id))}
+                                            onChange={(e) => {
+                                                e.stopPropagation();
+                                                handleToggleSelection(customer.id);
+                                            }}
+                                            className="rounded border-gray-300 text-primary focus:ring-primary"
+                                        />
+                                    </td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{customer.id}</td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                                         <button onClick={() => router.push(`/customers/${customer.id}`)} className="text-indigo-600 hover:text-indigo-900 hover:underline">

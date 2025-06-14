@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateTag } from 'next/cache';
 import prisma from '@/lib/prisma';
+import { AuditService } from '@/services/auditService';
 
 // GET /api/suppliers - Get all suppliers
 export async function GET(_request: NextRequest) {
     try {
+        // Get IDs of soft-deleted suppliers
+        const auditService = new AuditService();
+        const deletedSupplierIds = await auditService.getDeletedEntityIds('Supplier');
+
         const suppliers = await prisma.supplier.findMany({
+            where: {
+                id: {
+                    notIn: deletedSupplierIds
+                }
+            },
             orderBy: {
                 createdAt: 'desc'
             }

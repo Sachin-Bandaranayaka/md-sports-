@@ -1,11 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/utils/middleware';
 import { prisma } from '@/lib/prisma';
+import { AuditService } from '@/services/auditService';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET() {
     try {
+        // Get IDs of soft-deleted customers
+        const auditService = new AuditService();
+        const deletedCustomerIds = await auditService.getDeletedEntityIds('Customer');
+
         // Fetch customers from database using Prisma
         const customers = await prisma.customer.findMany({
+            where: {
+                id: {
+                    notIn: deletedCustomerIds
+                }
+            },
             orderBy: {
                 name: 'asc'
             },
