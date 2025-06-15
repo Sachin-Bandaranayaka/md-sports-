@@ -7,13 +7,11 @@ import { Button } from '@/components/ui/Button';
 import { Search, Plus, Edit, Trash, Phone, Mail, ExternalLink, X, Loader2 } from 'lucide-react';
 import { Supplier } from '@/types';
 import { queryKeys } from '@/context/QueryProvider';
+import { useSuppliers } from '@/hooks/useQueries';
 
 // Note: revalidate and dynamic exports are not valid for client components
 
 export default function Suppliers() {
-    const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [showAddModal, setShowAddModal] = useState(false);
     const [showViewModal, setShowViewModal] = useState(false);
@@ -24,28 +22,8 @@ export default function Suppliers() {
     const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
     const queryClient = useQueryClient();
 
-    // Fetch suppliers from API
-    useEffect(() => {
-        const fetchSuppliers = async () => {
-            try {
-                setLoading(true);
-                const response = await fetch('/api/suppliers');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch suppliers');
-                }
-                const data = await response.json();
-                setSuppliers(data);
-                setError(null);
-            } catch (err) {
-                console.error('Error fetching suppliers:', err);
-                setError('Failed to load suppliers. Please try again later.');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchSuppliers();
-    }, []);
+    // Use React Query for suppliers data
+    const { data: suppliers = [], isLoading: loading, error } = useSuppliers({ search: searchTerm });
 
     const filteredSuppliers = suppliers.filter(supplier =>
         supplier.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -82,9 +60,7 @@ export default function Suppliers() {
                     throw new Error('Failed to delete supplier');
                 }
 
-                setSuppliers(suppliers.filter(supplier => supplier.id !== id));
-                
-                // Invalidate suppliers cache
+                // Invalidate suppliers cache for immediate refresh
                 queryClient.invalidateQueries({ queryKey: queryKeys.suppliers });
                 queryClient.invalidateQueries({ queryKey: queryKeys.suppliersList() });
             } catch (err) {
@@ -141,12 +117,10 @@ export default function Suppliers() {
                 throw new Error(`Failed to delete ${failedDeletes.length} supplier(s)`);
             }
             
-            // Update local state
-            setSuppliers(suppliers.filter(supplier => !selectedItems.has(supplier.id)));
+            // Clear selections and invalidate cache for immediate refresh
             setSelectedItems(new Set());
             setSelectAll(false);
             
-            // Invalidate cache
             queryClient.invalidateQueries({ queryKey: queryKeys.suppliers });
             queryClient.invalidateQueries({ queryKey: queryKeys.suppliersList() });
             
@@ -188,9 +162,8 @@ export default function Suppliers() {
                 }
 
                 const updatedSupplier = await response.json();
-                setSuppliers(suppliers.map(s => s.id === updatedSupplier.id ? updatedSupplier : s));
                 
-                // Invalidate suppliers cache
+                // Invalidate suppliers cache for immediate refresh
                 queryClient.invalidateQueries({ queryKey: queryKeys.suppliers });
                 queryClient.invalidateQueries({ queryKey: queryKeys.suppliersList() });
             } else {
@@ -208,9 +181,9 @@ export default function Suppliers() {
                 }
 
                 const newSupplier = await response.json();
-                setSuppliers([...suppliers, newSupplier]);
+                setShowAddModal(false);
                 
-                // Invalidate suppliers cache
+                // Invalidate cache for immediate refresh
                 queryClient.invalidateQueries({ queryKey: queryKeys.suppliers });
                 queryClient.invalidateQueries({ queryKey: queryKeys.suppliersList() });
             }
@@ -311,7 +284,9 @@ export default function Suppliers() {
 
                 {error && (
                     <div className="text-center py-4">
-                        <p className="text-red-500">{error}</p>
+                        <p className="text-red-500">
+                            {error instanceof Error ? error.message : 'Failed to load suppliers. Please try again later.'}
+                        </p>
                         <Button
                             variant="outline"
                             size="sm"

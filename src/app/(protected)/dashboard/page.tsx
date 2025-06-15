@@ -92,17 +92,7 @@ export default function DashboardPage() {
         fetchDashboardData(newStartDate, newEndDate);
     };
 
-    // Quick date range presets
-    const setQuickRange = (days: number) => {
-        const end = new Date();
-        const start = new Date();
-        start.setDate(start.getDate() - days);
-        
-        const newStartDate = start.toISOString().split('T')[0];
-        const newEndDate = end.toISOString().split('T')[0];
-        
-        handleDateRangeChange(newStartDate, newEndDate);
-    };
+
 
     // Initial data fetch
     useEffect(() => {
@@ -219,31 +209,6 @@ export default function DashboardPage() {
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                     <h2 className="text-xl font-semibold text-gray-900">Analytics Overview</h2>
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                        {/* Quick Date Range Presets */}
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-600">Quick:</span>
-                            <div className="flex bg-gray-100 rounded-lg p-1">
-                                <button
-                                    onClick={() => setQuickRange(7)}
-                                    className="px-3 py-1 text-sm rounded-md transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-200"
-                                >
-                                    7 Days
-                                </button>
-                                <button
-                                    onClick={() => setQuickRange(30)}
-                                    className="px-3 py-1 text-sm rounded-md transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-200"
-                                >
-                                    30 Days
-                                </button>
-                                <button
-                                    onClick={() => setQuickRange(90)}
-                                    className="px-3 py-1 text-sm rounded-md transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-200"
-                                >
-                                    90 Days
-                                </button>
-                            </div>
-                        </div>
-                        
                         {/* Custom Date Range */}
                         <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4 text-gray-500" />
@@ -291,38 +256,7 @@ export default function DashboardPage() {
                     />
                     <DashboardTransfers recentTransfers={dashboardData.recentTransfers} />
                     
-                    {/* Permission-based Quick Actions */}
-                    {accessibleModules.length > 0 && (
-                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                            <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                {hasPermission('inventory') && (
-                                    <button className="p-4 text-left border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors">
-                                        <div className="text-blue-600 font-medium">Add Inventory</div>
-                                        <div className="text-sm text-gray-500 mt-1">Create new inventory items</div>
-                                    </button>
-                                )}
-                                {hasPermission('transfer') && (
-                                    <button className="p-4 text-left border border-gray-200 rounded-lg hover:border-green-300 hover:bg-green-50 transition-colors">
-                                        <div className="text-green-600 font-medium">New Transfer</div>
-                                        <div className="text-sm text-gray-500 mt-1">Transfer items between shops</div>
-                                    </button>
-                                )}
-                                {hasPermission('sales') && (
-                                    <button className="p-4 text-left border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors">
-                                        <div className="text-purple-600 font-medium">Create Sale</div>
-                                        <div className="text-sm text-gray-500 mt-1">Process new sales order</div>
-                                    </button>
-                                )}
-                                {hasPermission('reports') && (
-                                    <button className="p-4 text-left border border-gray-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-colors">
-                                        <div className="text-orange-600 font-medium">View Reports</div>
-                                        <div className="text-sm text-gray-500 mt-1">Generate business reports</div>
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    )}
+
                 </Suspense>
             </div>
         );

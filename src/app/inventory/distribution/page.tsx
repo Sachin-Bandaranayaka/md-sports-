@@ -11,8 +11,7 @@ import {
     ArrowLeft,
     Filter,
     X,
-    ArrowUpDown,
-    AlertTriangle
+    ArrowUpDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
@@ -48,6 +47,7 @@ export default function InventoryDistribution() {
 
     const [sortBy, setSortBy] = useState<string>('name');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+    const [selectedShopForSort, setSelectedShopForSort] = useState<number | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [showFilterPanel, setShowFilterPanel] = useState(false);
     const [viewMode, setViewMode] = useState<'product' | 'shop'>('product');
@@ -145,6 +145,13 @@ export default function InventoryDistribution() {
         return matchesSearch;
     });
 
+    // Calculate total shop cost for a product in a specific shop
+    const getTotalShopCost = (product: ProductStock, shopId: number) => {
+        const shopStock = product.branchStock.find(branch => branch.shopId === shopId);
+        if (!shopStock) return 0;
+        return shopStock.quantity * shopStock.shopSpecificCost;
+    };
+
     // Sort products
     const sortedProducts = [...filteredProducts].sort((a, b) => {
         let compareResult = 0;
@@ -155,6 +162,16 @@ export default function InventoryDistribution() {
             compareResult = a.totalStock - b.totalStock;
         } else if (sortBy === 'sku') {
             compareResult = a.sku.localeCompare(b.sku);
+        } else if (sortBy === 'shopStock' && selectedShopForSort) {
+            const aShopStock = a.branchStock.find(branch => branch.shopId === selectedShopForSort);
+            const bShopStock = b.branchStock.find(branch => branch.shopId === selectedShopForSort);
+            const aQuantity = aShopStock ? aShopStock.quantity : 0;
+            const bQuantity = bShopStock ? bShopStock.quantity : 0;
+            compareResult = aQuantity - bQuantity;
+        } else if (sortBy === 'shopTotalCost' && selectedShopForSort) {
+            const aTotalCost = getTotalShopCost(a, selectedShopForSort);
+            const bTotalCost = getTotalShopCost(b, selectedShopForSort);
+            compareResult = aTotalCost - bTotalCost;
         }
 
         return sortDirection === 'asc' ? compareResult : -compareResult;
@@ -168,18 +185,24 @@ export default function InventoryDistribution() {
     };
 
     // Handle sort
-    const handleSort = (column: string) => {
-        if (sortBy === column) {
+    const handleSort = (column: string, shopId?: number) => {
+        if (sortBy === column && selectedShopForSort === shopId) {
             setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
         } else {
             setSortBy(column);
             setSortDirection('asc');
+            if (shopId) {
+                setSelectedShopForSort(shopId);
+            }
         }
     };
 
     // Clear all filters
     const clearFilters = () => {
         setSearchTerm('');
+        setSortBy('name');
+        setSortDirection('asc');
+        setSelectedShopForSort(null);
         setShowFilterPanel(false);
     };
 
@@ -201,11 +224,7 @@ export default function InventoryDistribution() {
         );
     };
 
-    // Check if reordering is needed based on simple threshold (can be customized)
-    const needsReordering = (product: ProductStock) => {
-        // Simple logic: if any shop has less than 10 items or total stock is less than 20
-        return product.totalStock < 20 || product.branchStock.some(branch => branch.quantity < 10);
-    };
+
 
     if (loading) {
         return (
@@ -296,18 +315,40 @@ export default function InventoryDistribution() {
                                 <select
                                     className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-black"
                                     value={sortBy}
-                                    onChange={(e) => setSortBy(e.target.value)}
+                                    onChange={(e) => {
+                                        setSortBy(e.target.value);
+                                        if (!['shopStock', 'shopTotalCost'].includes(e.target.value)) {
+                                            setSelectedShopForSort(null);
+                                        }
+                                    }}
                                 >
                                     <option value="name">Product Name</option>
                                     <option value="sku">SKU</option>
                                     <option value="totalStock">Total Stock</option>
+                                    <option value="shopStock">Shop Stock Quantity</option>
+                                    <option value="shopTotalCost">Shop Total Cost</option>
                                 </select>
                             </div>
-                            <div className="flex items-end">
-                                <Button variant="outline" onClick={clearFilters} className="text-black">
-                                    Clear Filters
-                                </Button>
-                            </div>
+                            {(sortBy === 'shopStock' || sortBy === 'shopTotalCost') && (
+                                <div>
+                                    <label className="block text-sm font-medium text-black mb-1">Select Shop</label>
+                                    <select
+                                        className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-black"
+                                        value={selectedShopForSort || ''}
+                                        onChange={(e) => setSelectedShopForSort(Number(e.target.value))}
+                                    >
+                                        <option value="">Select a shop</option>
+                                        {shopList.map(shop => (
+                                            <option key={shop.id} value={shop.id}>{shop.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex items-end mt-4">
+                            <Button variant="outline" onClick={clearFilters} className="text-black">
+                                Clear Filters
+                            </Button>
                         </div>
                     </div>
                 )}
@@ -365,14 +406,36 @@ export default function InventoryDistribution() {
                                     {shopList.map(shop => (
                                         <th key={shop.id} scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             <div className="text-center">
-                                                <div>{shop.name}</div>
-                                                <div className="text-xs text-gray-400 font-normal">Qty / WAC</div>
+                                                <div className="flex flex-col items-center gap-1">
+                                                    <div>{shop.name}</div>
+                                                    <div className="flex gap-2 text-xs">
+                                                        <button
+                                                            onClick={() => handleSort('shopStock', shop.id)}
+                                                            className="text-blue-600 hover:text-blue-800 cursor-pointer flex items-center"
+                                                            title="Sort by quantity"
+                                                        >
+                                                            Qty
+                                                            {sortBy === 'shopStock' && selectedShopForSort === shop.id && (
+                                                                <ArrowUpDown className="ml-1 h-3 w-3" />
+                                                            )}
+                                                        </button>
+                                                        <span className="text-gray-400">|</span>
+                                                        <button
+                                                            onClick={() => handleSort('shopTotalCost', shop.id)}
+                                                            className="text-green-600 hover:text-green-800 cursor-pointer flex items-center"
+                                                            title="Sort by total cost"
+                                                        >
+                                                            Cost
+                                                            {sortBy === 'shopTotalCost' && selectedShopForSort === shop.id && (
+                                                                <ArrowUpDown className="ml-1 h-3 w-3" />
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </th>
                                     ))}
-                                    <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Reorder Status
-                                    </th>
+
                                     <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Actions
                                     </th>
@@ -382,10 +445,9 @@ export default function InventoryDistribution() {
                                 {sortedProducts.map(product => {
                                     const lowestStockShop = getLowestStockShop(product);
                                     const highestStockShop = getHighestStockShop(product);
-                                    const reorderNeeded = needsReordering(product);
 
                                     return (
-                                        <tr key={product.id} className={`hover:bg-gray-50 ${reorderNeeded ? 'bg-yellow-50' : ''}`}>
+                                        <tr key={product.id} className="hover:bg-gray-50">
                                             <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black">
                                                 {product.name}
                                             </td>
@@ -420,13 +482,18 @@ export default function InventoryDistribution() {
                                                         `}
                                                     >
                                                         <div className="text-center">
-                                                            <div className="font-semibold">{quantity}</div>
+                                                            <div className="font-semibold text-blue-600">{quantity}</div>
                                                             <div className="text-xs text-gray-500 mt-1">
                                                                 WAC: Rs. {product.weightedAverageCost.toLocaleString()}
                                                             </div>
                                                             {stockInShop && stockInShop.shopSpecificCost > 0 && (
                                                                 <div className="text-xs text-blue-600 mt-1">
-                                                                    Shop Cost: Rs. {stockInShop.shopSpecificCost.toLocaleString()}
+                                                                    Unit Cost: Rs. {stockInShop.shopSpecificCost.toLocaleString()}
+                                                                </div>
+                                                            )}
+                                                            {stockInShop && stockInShop.shopSpecificCost > 0 && (
+                                                                <div className="text-xs font-semibold text-green-600 mt-1 border-t border-gray-200 pt-1">
+                                                                    Total: Rs. {getTotalShopCost(product, shop.id).toLocaleString()}
                                                                 </div>
                                                             )}
                                                         </div>
@@ -434,17 +501,7 @@ export default function InventoryDistribution() {
                                                 );
                                             })}
 
-                                            {/* Reorder status */}
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
-                                                {reorderNeeded ? (
-                                                    <div className="flex items-center justify-center text-yellow-600">
-                                                        <AlertTriangle className="h-4 w-4 mr-1" />
-                                                        <span>Reorder</span>
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-green-600">Good</span>
-                                                )}
-                                            </td>
+
 
                                             {/* Actions */}
                                             <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
@@ -503,7 +560,10 @@ export default function InventoryDistribution() {
                                                         Retail Price
                                                     </th>
                                                     <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Value
+                                                        Retail Value
+                                                    </th>
+                                                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Total Shop Cost
                                                     </th>
                                                     <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                         Actions
@@ -516,7 +576,8 @@ export default function InventoryDistribution() {
                                                     .map(product => {
                                                         const shopStock = product.branchStock.find(branch => branch.shopId === shop.id);
                                                         const quantity = shopStock ? shopStock.quantity : 0;
-                                                        const value = quantity * product.retailPrice;
+                                                        const retailValue = quantity * product.retailPrice;
+                                                        const totalShopCost = getTotalShopCost(product, shop.id);
 
                                                         return (
                                                             <tr key={product.id} className="hover:bg-gray-50">
@@ -546,7 +607,10 @@ export default function InventoryDistribution() {
                                                                     Rs. {product.retailPrice.toLocaleString()}
                                                                 </td>
                                                                 <td className="px-4 py-3 whitespace-nowrap text-sm text-black">
-                                                                    Rs. {value.toLocaleString()}
+                                                                    Rs. {retailValue.toLocaleString()}
+                                                                </td>
+                                                                <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-green-600">
+                                                                    Rs. {totalShopCost.toLocaleString()}
                                                                 </td>
                                                                 <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
                                                                     <Button

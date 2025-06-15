@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/utils/middleware';
 import { prisma } from '@/lib/prisma';
 import { AuditService } from '@/services/auditService';
-import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET() {
     try {
