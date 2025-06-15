@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
-import { Search, Plus, Filter, FileText, Download, Eye, CheckCircle, Trash2, Edit, Loader2, X } from 'lucide-react';
+import { Search, Plus, Filter, FileText, Download, Eye, CheckCircle, Trash2, Edit, Loader2, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { InvoiceCreateModal, InvoiceEditModal, InvoiceViewModal } from '@/components/invoices';
 import type { InvoiceData } from '@/components/invoices';
 import { useAuth } from '@/hooks/useAuth';
@@ -91,6 +91,8 @@ export default function InvoiceClientWrapper({
     const [searchQuery, setSearchQuery] = useState<string>(searchParams.get('search') || '');
     const [timePeriodFilter, setTimePeriodFilter] = useState<string>(searchParams.get('timePeriod') || 'all');
     const [sortBy, setSortBy] = useState<string>(searchParams.get('sortBy') || 'newest');
+    const [dateSortOrder, setDateSortOrder] = useState<'asc' | 'desc'>('desc'); // desc = newest first, asc = oldest first
+    const [dueStatusSortOrder, setDueStatusSortOrder] = useState<'asc' | 'desc'>('asc'); // asc = overdue first, desc = current first
 
     // Selection state for bulk operations
     const [selectedInvoices, setSelectedInvoices] = useState<Set<string>>(new Set());
@@ -125,6 +127,20 @@ export default function InvoiceClientWrapper({
         setSelectAll(false);
     }, []);
 
+    // Handle date column sorting
+    const handleDateSort = useCallback(() => {
+        const newOrder = dateSortOrder === 'desc' ? 'asc' : 'desc';
+        setDateSortOrder(newOrder);
+        setSortBy(newOrder === 'desc' ? 'newest' : 'oldest');
+    }, [dateSortOrder]);
+
+    // Handle due status column sorting
+    const handleDueStatusSort = useCallback(() => {
+        const newOrder = dueStatusSortOrder === 'asc' ? 'desc' : 'asc';
+        setDueStatusSortOrder(newOrder);
+        setSortBy(newOrder === 'asc' ? 'due-date' : 'due-date-desc');
+    }, [dueStatusSortOrder]);
+
     useEffect(() => {
         setInvoices(initialInvoices);
         setTotalPages(initialTotalPages);
@@ -144,7 +160,7 @@ export default function InvoiceClientWrapper({
         if (sortBy !== 'newest') {
             handleFilterChange();
         }
-    }, [sortBy]);
+    }, [sortBy, dateSortOrder, dueStatusSortOrder]);
 
     // Fetch customers, products, and shops on component mount for better performance
     useEffect(() => {
@@ -631,10 +647,36 @@ export default function InvoiceClientWrapper({
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice #</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Date</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                                    <button 
+                                        onClick={handleDateSort}
+                                        className="flex items-center space-x-1 hover:text-gray-700 focus:outline-none focus:text-gray-700 transition-colors"
+                                        title={`Sort by date (${dateSortOrder === 'desc' ? 'oldest first' : 'newest first'})`}
+                                    >
+                                        <span>Date</span>
+                                        {dateSortOrder === 'desc' ? (
+                                            <ChevronDown size={14} className="text-indigo-600" />
+                                        ) : (
+                                            <ChevronUp size={14} className="text-indigo-600" />
+                                        )}
+                                    </button>
+                                </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Note</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Due Status</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                                    <button 
+                                        onClick={handleDueStatusSort}
+                                        className="flex items-center space-x-1 hover:text-gray-700 focus:outline-none focus:text-gray-700 transition-colors"
+                                        title={`Sort by due status (${dueStatusSortOrder === 'asc' ? 'current first' : 'overdue first'})`}
+                                    >
+                                        <span>Due Status</span>
+                                        {dueStatusSortOrder === 'asc' ? (
+                                            <ChevronUp size={14} className="text-indigo-600" />
+                                        ) : (
+                                            <ChevronDown size={14} className="text-indigo-600" />
+                                        )}
+                                    </button>
+                                </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profit</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>

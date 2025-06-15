@@ -164,6 +164,9 @@ async function fetchInvoicesData({
             case 'due-date':
                 orderBy = { dueDate: 'asc' };
                 break;
+            case 'due-date-desc':
+                orderBy = { dueDate: 'desc' };
+                break;
             case 'newest':
             default:
                 orderBy = { createdAt: 'desc' };

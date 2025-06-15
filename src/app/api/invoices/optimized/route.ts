@@ -123,6 +123,8 @@ function buildOrderBy(sortBy: string) {
             return { customer: { name: 'asc' } };
         case 'due-date':
             return { dueDate: 'asc' };
+        case 'due-date-desc':
+            return { dueDate: 'desc' };
         case 'newest':
         default:
             return { createdAt: 'desc' };
