@@ -26,7 +26,7 @@ interface Invoice {
     updatedAt: Date | string;
     date?: string;
     dueDate?: string;
-    itemCount?: number;
+    notes?: string;
 }
 
 // Memoized status badge component

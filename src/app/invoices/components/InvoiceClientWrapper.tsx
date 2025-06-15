@@ -23,7 +23,7 @@ interface Invoice {
     updatedAt: Date | string;
     date?: string; // UI formatted date
     dueDate?: string; // UI formatted due date
-    itemCount?: number; // Number of items in the invoice
+    notes?: string;
     totalPaid?: number; // Total amount paid
     dueAmount?: number; // Amount still due
 }
@@ -632,11 +632,11 @@ export default function InvoiceClientWrapper({
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice #</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Date</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Due Status</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profit</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Items</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Note</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Due Status</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profit</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
@@ -655,14 +655,13 @@ export default function InvoiceClientWrapper({
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-600 hover:text-indigo-800 cursor-pointer" onClick={() => router.push(`/invoices/${invoice.id}`)}>{invoice.invoiceNumber}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{invoice.customerName}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">{formatDate(invoice.createdAt)}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-semibold">Rs. {invoice.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{invoice.notes || '-'}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm hidden lg:table-cell">
                                         <span className={getDueDateStatus(invoice).className}>
                                             {getDueDateStatus(invoice).text}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-semibold">Rs. {invoice.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-semibold">Rs. {(invoice.totalProfit || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">{invoice.itemCount}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex flex-col space-y-1">
                                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(invoice.status)}`}>
@@ -675,6 +674,7 @@ export default function InvoiceClientWrapper({
                                             )}
                                         </div>
                                     </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-semibold">Rs. {(invoice.totalProfit || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div className="flex items-center space-x-1">
                                             <Button variant="ghost" size="icon" onClick={() => router.push(`/invoices/${invoice.id}`)} title="View Invoice" disabled={loading}>

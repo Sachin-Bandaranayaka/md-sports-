@@ -22,7 +22,7 @@ interface Invoice {
     updatedAt: Date | string;
     date?: string;
     dueDate?: string;
-    itemCount?: number;
+    notes?: string;
 }
 
 interface InvoiceListOptimizedProps {
@@ -262,16 +262,28 @@ const InvoiceRow = memo(({
                 </span>
             </div>
 
-            {/* Due Status */}
-            <div className="w-32 flex-shrink-0">
-                <DueStatusIndicator dueDate={invoice.dueDate} status={invoice.status} />
-            </div>
-
             {/* Total */}
             <div className="w-28 flex-shrink-0 text-right">
                 <span className="font-medium text-sm">
                     {formatCurrency(invoice.total)}
                 </span>
+            </div>
+
+            {/* Note */}
+            <div className="w-32 flex-shrink-0">
+                <span className="text-sm text-gray-600">
+                    {invoice.notes || '-'}
+                </span>
+            </div>
+
+            {/* Due Status */}
+            <div className="w-32 flex-shrink-0">
+                <DueStatusIndicator dueDate={invoice.dueDate} status={invoice.status} />
+            </div>
+
+            {/* Status */}
+            <div className="w-24 flex-shrink-0">
+                <StatusBadge status={invoice.status} />
             </div>
 
             {/* Profit */}
@@ -284,21 +296,6 @@ const InvoiceRow = memo(({
                         ({invoice.profitMargin.toFixed(1)}%)
                     </div>
                 )}
-            </div>
-
-            {/* Items */}
-            <div className="w-16 flex-shrink-0 text-center">
-                <span className="text-sm">{invoice.itemCount || 0}</span>
-            </div>
-
-            {/* Status */}
-            <div className="w-24 flex-shrink-0">
-                <StatusBadge status={invoice.status} />
-            </div>
-
-            {/* Payment Method */}
-            <div className="w-32 flex-shrink-0">
-                <PaymentMethodBadge method={invoice.paymentMethod} />
             </div>
 
             {/* Actions */}
@@ -364,12 +361,11 @@ const InvoiceListHeader = memo(({
             <div className="w-32 flex-shrink-0">Invoice #</div>
             <div className="w-48 flex-shrink-0">Customer</div>
             <div className="w-28 flex-shrink-0">Date</div>
-            <div className="w-32 flex-shrink-0">Due Status</div>
             <div className="w-28 flex-shrink-0 text-right">Total</div>
-            <div className="w-28 flex-shrink-0 text-right">Profit</div>
-            <div className="w-16 flex-shrink-0 text-center">Items</div>
+            <div className="w-32 flex-shrink-0">Note</div>
+            <div className="w-32 flex-shrink-0">Due Status</div>
             <div className="w-24 flex-shrink-0">Status</div>
-            <div className="w-32 flex-shrink-0">Payment</div>
+            <div className="w-28 flex-shrink-0 text-right">Profit</div>
             <div className="w-32 flex-shrink-0">Actions</div>
         </div>
     );

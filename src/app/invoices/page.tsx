@@ -75,7 +75,7 @@ interface Invoice {
     updatedAt: Date | string;
     date?: string; // Formatted for display
     dueDate?: string; // Formatted for display
-    itemCount?: number;
+    notes?: string;
     totalPaid?: number; // Total amount paid
     dueAmount?: number; // Amount still due
 }
