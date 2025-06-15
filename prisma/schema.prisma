@@ -105,6 +105,7 @@ model Product {
   barcode             String?
   categoryId          Int?
   shopId              String?
+  minStockLevel       Int?                  @default(10) @map("min_stock_level")
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
   inventoryItems      InventoryItem[]

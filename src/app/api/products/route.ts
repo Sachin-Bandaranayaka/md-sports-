@@ -185,6 +185,7 @@ export async function POST(request: NextRequest) {
                         weightedAverageCost: newWeightedAverageCost,
                         price: productData.retailPrice || 0,
                         categoryId: productData.categoryId ? parseInt(productData.categoryId) : null,
+                        minStockLevel: productData.minStockLevel ? parseInt(productData.minStockLevel) : 10,
                     }
                 });
             },

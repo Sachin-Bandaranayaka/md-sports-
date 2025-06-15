@@ -34,9 +34,9 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
     const [name, setName] = useState('');
     const [sku, setSku] = useState('');
     const [description, setDescription] = useState('');
-    const [retailPrice, setRetailPrice] = useState('0');
-
+    const [retailPrice, setRetailPrice] = useState('');
     const [categoryId, setCategoryId] = useState('');
+    const [minStockLevel, setMinStockLevel] = useState('10');
 
     // Fetch categories when modal opens
     useEffect(() => {
@@ -98,8 +98,8 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
                     sku,
                     description,
                     retailPrice: parseFloat(retailPrice),
-
-                    categoryId: categoryId || null
+                    categoryId: categoryId || null,
+                    minStockLevel: parseInt(minStockLevel)
                 }),
             });
 
@@ -136,6 +136,7 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
         setRetailPrice('0');
 
         setCategoryId(categories.length > 0 ? categories[0].id.toString() : '');
+        setMinStockLevel('10');
         setError(null);
     };
 
@@ -252,6 +253,25 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
                                 ))}
                             </select>
                         )}
+                    </div>
+
+                    <div className="mb-4">
+                        <label htmlFor="minStockLevel" className="block text-sm font-medium text-black mb-1">
+                            Low Stock Threshold
+                        </label>
+                        <input
+                            type="number"
+                            id="minStockLevel"
+                            className="bg-white border border-gray-300 text-black text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                            value={minStockLevel}
+                            onChange={(e) => setMinStockLevel(e.target.value)}
+                            min="1"
+                            disabled={isSubmitting}
+                            placeholder="Enter minimum stock level"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                            Products will be marked as "Low Stock" when quantity falls below this threshold
+                        </p>
                     </div>
 
                     <div className="flex justify-end space-x-2 mt-6">

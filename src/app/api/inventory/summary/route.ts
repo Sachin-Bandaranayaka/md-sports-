@@ -92,18 +92,19 @@ export async function GET(request: NextRequest) {
                 c.name as category,
                 COALESCE(SUM(ii.quantity), 0) as total_quantity,
                 COALESCE(p.weightedaveragecost, 0) as weighted_avg_cost,
-                COUNT(DISTINCT ii."shopId") as shop_count
+                COUNT(DISTINCT ii."shopId") as shop_count,
+                COALESCE(p.min_stock_level, 10) as min_stock_level
               FROM "Product" p
               LEFT JOIN "Category" c ON p."categoryId" = c.id
               LEFT JOIN "InventoryItem" ii ON p.id = ii."productId"
               WHERE ${whereClause}
-              GROUP BY p.id, p.name, p.sku, p.price, p.weightedaveragecost, c.name
+              GROUP BY p.id, p.name, p.sku, p.price, p.weightedaveragecost, c.name, p.min_stock_level
             ),
             status_calculation AS (
               SELECT *,
                 CASE 
                   WHEN total_quantity = 0 THEN 'Out of Stock'
-                  WHEN total_quantity <= 10 THEN 'Low Stock'
+                  WHEN total_quantity <= min_stock_level THEN 'Low Stock'
                   ELSE 'In Stock'
                 END as status
               FROM inventory_summary
@@ -134,18 +135,19 @@ export async function GET(request: NextRequest) {
             WITH inventory_summary AS (
               SELECT 
                 p.id,
-                COALESCE(SUM(ii.quantity), 0) as total_quantity
+                COALESCE(SUM(ii.quantity), 0) as total_quantity,
+                COALESCE(p.min_stock_level, 10) as min_stock_level
               FROM "Product" p
               LEFT JOIN "Category" c ON p."categoryId" = c.id
               LEFT JOIN "InventoryItem" ii ON p.id = ii."productId"
               WHERE ${whereClause}
-              GROUP BY p.id
+              GROUP BY p.id, p.min_stock_level
             ),
             status_calculation AS (
               SELECT *,
                 CASE 
                   WHEN total_quantity = 0 THEN 'Out of Stock'
-                  WHEN total_quantity <= 10 THEN 'Low Stock'
+                  WHEN total_quantity <= min_stock_level THEN 'Low Stock'
                   ELSE 'In Stock'
                 END as status
               FROM inventory_summary

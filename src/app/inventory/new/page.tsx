@@ -40,9 +40,9 @@ export default function NewProductPage() {
     const [name, setName] = useState('');
     const [sku, setSku] = useState('');
     const [description, setDescription] = useState('');
-    const [retailPrice, setRetailPrice] = useState('0');
-
+    const [retailPrice, setRetailPrice] = useState('');
     const [categoryId, setCategoryId] = useState('');
+    const [minStockLevel, setMinStockLevel] = useState('10');
 
     useEffect(() => {
         // Check for auth token on component mount
@@ -122,8 +122,8 @@ export default function NewProductPage() {
                 sku,
                 description,
                 retailPrice: parseFloat(retailPrice),
-
-                categoryId: categoryId || null
+                categoryId: categoryId || null,
+                minStockLevel: parseInt(minStockLevel)
             });
 
             const productData = await productResponse.json();
@@ -272,6 +272,25 @@ export default function NewProductPage() {
                                         ))}
                                     </select>
                                 )}
+                            </div>
+
+                            <div>
+                                <label htmlFor="minStockLevel" className="block text-sm font-medium text-gray-700 mb-1">
+                                    Low Stock Threshold
+                                </label>
+                                <input
+                                    type="number"
+                                    id="minStockLevel"
+                                    className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+                                    value={minStockLevel}
+                                    onChange={(e) => setMinStockLevel(e.target.value)}
+                                    min="1"
+                                    disabled={isSubmitting}
+                                    placeholder="Enter minimum stock level"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Products will be marked as "Low Stock" when quantity falls below this threshold
+                                </p>
                             </div>
                         </div>
 
