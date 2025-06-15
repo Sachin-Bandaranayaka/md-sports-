@@ -29,6 +29,10 @@ interface Receipt {
             id: number;
             name: string;
         };
+        account: {
+            id: number;
+            name: string;
+        } | null;
     };
     confirmedByUser: {
         id: number;
@@ -188,10 +192,10 @@ export default function ReceiptsClientWrapper({
                                         Amount
                                     </th>
                                     <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                        Payment Method
+                                        Account
                                     </th>
                                     <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                        Reference
+                                        Notes
                                     </th>
                                     <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         Actions
@@ -217,10 +221,10 @@ export default function ReceiptsClientWrapper({
                                             {formatCurrency(receipt.payment.amount)}
                                         </td>
                                         <td className="px-6 py-5 whitespace-nowrap text-sm text-black">
-                                            {receipt.payment.paymentMethod}
+                                            {receipt.payment.account?.name || 'N/A'}
                                         </td>
                                         <td className="px-6 py-5 whitespace-nowrap text-sm text-black">
-                                            {receipt.payment.referenceNumber || 'N/A'}
+                                            {receipt.notes || 'N/A'}
                                         </td>
                                         <td className="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
                                             <div className="flex items-center justify-end space-x-3">

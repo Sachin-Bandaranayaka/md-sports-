@@ -1,89 +1,97 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import MainLayout from '@/components/layout/MainLayout';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
-import { Search, Plus, Filter, CreditCard, ExternalLink } from 'lucide-react';
+import { Input } from '@/components/ui/Input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { CalendarIcon, Search, Filter, Plus, Eye, Edit, Trash2, CreditCard, ExternalLink } from 'lucide-react';
+import { format } from 'date-fns';
+import Link from 'next/link';
+import MainLayout from '@/components/layout/MainLayout';
 import { formatCurrency } from '@/utils/formatters';
+import ExpensePaymentForm from './components/ExpensePaymentForm';
 
-// Interface for Payment
-interface Payment {
+interface ExpensePayment {
+  id: number;
+  amount: number;
+  description: string;
+  reference?: string;
+  date: string;
+  createdAt: string;
+  account: {
     id: number;
-    invoiceId: number;
-    customerId: number;
-    amount: number;
-    paymentMethod: string;
-    referenceNumber?: string | null;
-    createdAt: string;
-    updatedAt: string;
-    // Relations
-    invoice?: {
-        invoiceNumber: string;
-    };
-    customer?: {
-        name: string;
-    };
-    // UI fields
-    date?: string;
+    name: string;
+    type: string;
+  };
+  toAccount: {
+    id: number;
+    name: string;
+    type: string;
+  };
+}
+
+interface ExpenseStats {
+    totalExpenses: number;
+    expensesThisMonth: number;
+    averageExpense: number;
 }
 
 export default function Payments() {
-    const [loading, setLoading] = useState<boolean>(true);
-    const [payments, setPayments] = useState<Payment[]>([]);
-    const [statistics, setStatistics] = useState({
-        totalPayments: 0,
-        paymentsThisMonth: 0,
-        avgPaymentAmount: 0
+    const [loading, setLoading] = useState(true);
+    const [expensePayments, setExpensePayments] = useState<ExpensePayment[]>([]);
+    const [stats, setStats] = useState<ExpenseStats>({
+        totalExpenses: 0,
+        expensesThisMonth: 0,
+        averageExpense: 0
     });
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterAccount, setFilterAccount] = useState('all');
+    const [dateRange, setDateRange] = useState('all');
+    const [showFilters, setShowFilters] = useState(false);
+    const [showExpenseForm, setShowExpenseForm] = useState(false);
 
     useEffect(() => {
-        async function fetchPayments() {
-            try {
-                // Fetch payments from API
-                const response = await fetch('/api/payments');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch payments');
-                }
-                const data = await response.json();
-
-                // Calculate statistics
-                const now = new Date();
-                const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-                let totalAmount = 0;
-                let monthlyTotal = 0;
-
-                // Format data for UI
-                const formattedPayments = data.map((payment: Payment) => {
-                    const paymentDate = new Date(payment.createdAt);
-
-                    // Add to statistics
-                    totalAmount += payment.amount;
-                    if (paymentDate >= firstDayOfMonth) {
-                        monthlyTotal += payment.amount;
-                    }
-
-                    return {
-                        ...payment,
-                        date: paymentDate.toISOString().split('T')[0]
-                    };
-                });
-
-                setPayments(formattedPayments);
-                setStatistics({
-                    totalPayments: data.length,
-                    paymentsThisMonth: data.filter((p: Payment) => new Date(p.createdAt) >= firstDayOfMonth).length,
-                    avgPaymentAmount: data.length > 0 ? totalAmount / data.length : 0
-                });
-            } catch (error) {
-                console.error('Error fetching payments:', error);
-            } finally {
-                setLoading(false);
-            }
-        }
-
-        fetchPayments();
+        fetchExpensePayments();
     }, []);
+
+    const fetchExpensePayments = async () => {
+        try {
+            setLoading(true);
+            const response = await fetch('/api/payments/expenses');
+            const data = await response.json();
+            
+            if (response.ok) {
+                setExpensePayments(data);
+                calculateStats(data);
+            } else {
+                console.error('Failed to fetch expense payments:', data.message);
+            }
+        } catch (error) {
+            console.error('Error fetching expense payments:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const calculateStats = (data: ExpensePayment[]) => {
+        const totalAmount = data.reduce((sum, payment) => sum + payment.amount, 0);
+        const currentMonth = new Date().getMonth();
+        const currentYear = new Date().getFullYear();
+        
+        const thisMonthPayments = data.filter(payment => {
+            const paymentDate = new Date(payment.createdAt);
+            return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
+        });
+        
+        const thisMonthTotal = thisMonthPayments.reduce((sum, payment) => sum + payment.amount, 0);
+        
+        setStats({
+            totalExpenses: totalAmount,
+            expensesThisMonth: thisMonthTotal,
+            averageExpense: data.length > 0 ? totalAmount / data.length : 0
+        });
+    };
 
     if (loading) {
         return (
@@ -148,71 +156,74 @@ export default function Payments() {
     return (
         <MainLayout>
             <div className="space-y-6">
-                {/* Header with actions */}
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Payment Management</h1>
-                        <p className="text-gray-500">View and manage payment records</p>
-                    </div>
-                    <div className="flex gap-3">
-                        <a href="/payments/new">
-                            <Button variant="primary" size="sm">
-                                <Plus className="w-4 h-4 mr-2" />
-                                Record Payment
-                            </Button>
-                        </a>
-                    </div>
+            {/* Header with actions */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">Expense Payments</h1>
+                    <p className="text-gray-500">Record and manage expense payments</p>
                 </div>
+                <div className="flex gap-3">
+                    <Button 
+                        onClick={() => setShowExpenseForm(true)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Record Expense Payment
+                    </Button>
+                </div>
+            </div>
 
-                {/* Search and filter bar */}
-                <div className="bg-tertiary p-4 rounded-lg shadow-sm border border-gray-200">
+            {/* Search and filter bar */}
+            <Card>
+                <CardContent className="p-4">
                     <div className="flex flex-col md:flex-row gap-4">
                         <div className="relative flex-grow">
-                            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                                <Search className="w-4 h-4 text-gray-400" />
-                            </div>
-                            <input
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                            <Input
                                 type="text"
-                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full pl-10 p-2.5"
-                                placeholder="Search payments..."
+                                placeholder="Search expense payments..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="pl-10"
                             />
                         </div>
                         <div className="flex gap-2">
-                            <select className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5">
-                                <option value="">All Methods</option>
-                                <option value="Cash">Cash</option>
-                                <option value="Bank Transfer">Bank Transfer</option>
-                                <option value="Check">Check</option>
-                                <option value="Credit Card">Credit Card</option>
-                                <option value="Online Payment">Online Payment</option>
+                            <select 
+                                value={filterAccount}
+                                onChange={(e) => setFilterAccount(e.target.value)}
+                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+                            >
+                                <option value="all">All Accounts</option>
+                                <option value="salary">Salary</option>
+                                <option value="utilities">Utilities</option>
+                                <option value="rent">Rent</option>
+                                <option value="supplies">Supplies</option>
                             </select>
-                            <input
-                                type="date"
-                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5"
-                                placeholder="From Date"
-                            />
-                            <input
-                                type="date"
-                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5"
-                                placeholder="To Date"
-                            />
-                            <Button variant="outline" size="sm">
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowFilters(!showFilters)}
+                            >
                                 <Filter className="w-4 h-4" />
                             </Button>
                         </div>
                     </div>
-                </div>
+                </CardContent>
+            </Card>
 
-                {/* Payments table */}
-                <div className="bg-tertiary rounded-lg shadow-sm border border-gray-200">
+            {/* Expense Payments table */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Expense Payments</CardTitle>
+                </CardHeader>
+                <CardContent>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left text-gray-500">
                             <thead className="text-xs text-gray-700 uppercase bg-gray-50">
                                 <tr>
-                                    <th className="px-6 py-3">Payment ID</th>
+                                    <th className="px-6 py-3">ID</th>
                                     <th className="px-6 py-3">Date</th>
-                                    <th className="px-6 py-3">Invoice</th>
-                                    <th className="px-6 py-3">Customer</th>
+                                    <th className="px-6 py-3">Description</th>
+                                    <th className="px-6 py-3">Expense Account</th>
                                     <th className="px-6 py-3">Method</th>
                                     <th className="px-6 py-3">Reference</th>
                                     <th className="px-6 py-3">Amount</th>
@@ -220,45 +231,41 @@ export default function Payments() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {payments.length > 0 ? payments.map((payment) => (
-                                    <tr key={payment.id} className="border-b hover:bg-gray-50">
+                                {expensePayments.length > 0 ? expensePayments.map((expense) => (
+                                    <tr key={expense.id} className="border-b hover:bg-gray-50">
                                         <td className="px-6 py-4 font-medium text-primary">
-                                            {payment.id}
+                                            {expense.id}
                                         </td>
                                         <td className="px-6 py-4">
-                                            {payment.date}
+                                            {new Date(expense.createdAt).toLocaleDateString()}
                                         </td>
                                         <td className="px-6 py-4 font-medium text-gray-900">
-                                            <a href={`/invoices/${payment.invoiceId}`} className="hover:underline">
-                                                {payment.invoice?.invoiceNumber || `Invoice #${payment.invoiceId}`}
-                                            </a>
+                                            {expense.description || 'Expense Payment'}
                                         </td>
                                         <td className="px-6 py-4">
-                                            {payment.customer?.name || `Customer #${payment.customerId}`}
+                                            {expense.account?.name || 'Unknown Account'}
                                         </td>
                                         <td className="px-6 py-4">
-                                            {payment.paymentMethod}
+                                            {expense.paymentMethod || 'Cash'}
                                         </td>
                                         <td className="px-6 py-4">
-                                            {payment.referenceNumber || '-'}
+                                            {expense.referenceNumber || '-'}
                                         </td>
                                         <td className="px-6 py-4 font-medium">
-                                            {formatCurrency(payment.amount)}
+                                            {formatCurrency(expense.amount)}
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex gap-2">
-                                                <a href={`/invoices/${payment.invoiceId}`}>
-                                                    <Button variant="ghost" size="sm" title="View Invoice">
-                                                        <ExternalLink className="w-4 h-4" />
-                                                    </Button>
-                                                </a>
+                                                <Button variant="ghost" size="sm" title="View Details">
+                                                    <ExternalLink className="w-4 h-4" />
+                                                </Button>
                                             </div>
                                         </td>
                                     </tr>
                                 )) : (
                                     <tr>
                                         <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
-                                            No payments found
+                                            No expense payments found
                                         </td>
                                     </tr>
                                 )}
@@ -267,54 +274,72 @@ export default function Payments() {
                     </div>
                     <div className="flex items-center justify-between p-4 border-t">
                         <div className="text-sm text-gray-700">
-                            Showing <span className="font-medium">1</span> to <span className="font-medium">{payments.length}</span> of <span className="font-medium">{payments.length}</span> payments
+                            Showing <span className="font-medium">1</span> to <span className="font-medium">{expensePayments.length}</span> of <span className="font-medium">{expensePayments.length}</span> expense payments
                         </div>
                         <div className="flex gap-2">
                             <Button variant="outline" size="sm" disabled>Previous</Button>
                             <Button variant="outline" size="sm" disabled>Next</Button>
                         </div>
                     </div>
-                </div>
+                </CardContent>
+            </Card>
 
-                {/* Summary cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-tertiary p-6 rounded-lg shadow-sm border border-gray-200">
+            {/* Summary cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card>
+                    <CardContent className="p-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-gray-500">Total Payments</p>
-                                <p className="text-2xl font-bold text-gray-900">{statistics.totalPayments}</p>
+                                <p className="text-sm text-gray-500">Total Expenses</p>
+                                <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalExpenses)}</p>
                             </div>
-                            <div className="p-3 rounded-full bg-blue-100">
-                                <CreditCard className="h-6 w-6 text-blue-600" />
+                            <div className="p-3 rounded-full bg-red-100">
+                                <CreditCard className="h-6 w-6 text-red-600" />
                             </div>
                         </div>
-                    </div>
+                    </CardContent>
+                </Card>
 
-                    <div className="bg-tertiary p-6 rounded-lg shadow-sm border border-gray-200">
+                <Card>
+                    <CardContent className="p-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-gray-500">Payments This Month</p>
-                                <p className="text-2xl font-bold text-gray-900">{statistics.paymentsThisMonth}</p>
+                                <p className="text-sm text-gray-500">Expenses This Month</p>
+                                <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.expensesThisMonth)}</p>
                             </div>
-                            <div className="p-3 rounded-full bg-green-100">
-                                <CreditCard className="h-6 w-6 text-green-600" />
+                            <div className="p-3 rounded-full bg-orange-100">
+                                <CreditCard className="h-6 w-6 text-orange-600" />
                             </div>
                         </div>
-                    </div>
+                    </CardContent>
+                </Card>
 
-                    <div className="bg-tertiary p-6 rounded-lg shadow-sm border border-gray-200">
+                <Card>
+                    <CardContent className="p-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-gray-500">Average Payment</p>
-                                <p className="text-2xl font-bold text-gray-900">{formatCurrency(statistics.avgPaymentAmount)}</p>
+                                <p className="text-sm text-gray-500">Average Expense</p>
+                                <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.averageExpense)}</p>
                             </div>
-                            <div className="p-3 rounded-full bg-purple-100">
-                                <CreditCard className="h-6 w-6 text-purple-600" />
+                            <div className="p-3 rounded-full bg-yellow-100">
+                                <CreditCard className="h-6 w-6 text-yellow-600" />
                             </div>
                         </div>
-                    </div>
-                </div>
+                    </CardContent>
+                </Card>
+            </div>
+            
+            {/* Expense Payment Form Modal */}
+            {showExpenseForm && (
+                <ExpensePaymentForm
+                    onClose={() => setShowExpenseForm(false)}
+                    onSuccess={() => {
+                        fetchExpensePayments();
+                        setShowExpenseForm(false);
+                    }}
+                />
+            )}
             </div>
         </MainLayout>
     );
-} 
+}

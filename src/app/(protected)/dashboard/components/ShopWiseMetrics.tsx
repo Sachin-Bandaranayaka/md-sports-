@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Store, TrendingUp, CreditCard, AlertTriangle, Loader2 } from 'lucide-react';
+import { Store, TrendingUp, CreditCard, AlertTriangle, Loader2, DollarSign } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 // Interface for shop-wise metrics data
@@ -10,6 +10,7 @@ interface ShopMetrics {
     shopName: string;
     totalInventoryCost: number;
     totalProfit: number;
+    totalSales: number;
     outstandingInvoices: number;
     lowStockItems: number;
 }
@@ -19,6 +20,7 @@ interface ShopWiseData {
     totals: {
         totalInventoryCost: number;
         totalProfit: number;
+        totalSales: number;
         outstandingInvoices: number;
         lowStockItems: number;
     };
@@ -188,6 +190,18 @@ export default function ShopWiseMetrics({ startDate, endDate, refreshTrigger }: 
                 )}
                 
                 {hasSalesPermission && (
+                    <div className="bg-purple-50 p-4 rounded-lg">
+                        <div className="flex items-center">
+                            <DollarSign className="h-5 w-5 text-purple-600 mr-2" />
+                            <span className="text-sm font-medium text-purple-900">Total Sales</span>
+                        </div>
+                        <p className="text-xl font-bold text-purple-900 mt-1">
+                            {formatCurrency(data.totals.totalSales)}
+                        </p>
+                    </div>
+                )}
+                
+                {hasSalesPermission && (
                     <div className="bg-orange-50 p-4 rounded-lg">
                         <div className="flex items-center">
                             <CreditCard className="h-5 w-5 text-orange-600 mr-2" />
@@ -222,6 +236,11 @@ export default function ShopWiseMetrics({ startDate, endDate, refreshTrigger }: 
                             )}
                             {hasSalesPermission && (
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Total Sales
+                                </th>
+                            )}
+                            {hasSalesPermission && (
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Outstanding
                                 </th>
                             )}
@@ -243,6 +262,13 @@ export default function ShopWiseMetrics({ startDate, endDate, refreshTrigger }: 
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                         <span className={shop.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}>
                                             {formatCurrency(shop.totalProfit)}
+                                        </span>
+                                    </td>
+                                )}
+                                {hasSalesPermission && (
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <span className="text-purple-600">
+                                            {formatCurrency(shop.totalSales)}
                                         </span>
                                     </td>
                                 )}

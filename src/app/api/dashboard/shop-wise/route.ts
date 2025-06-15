@@ -8,6 +8,7 @@ interface ShopWiseMetrics {
     shopName: string;
     totalInventoryCost: number;
     totalProfit: number;
+    totalSales: number;
     outstandingInvoices: number;
     lowStockItems: number;
 }
@@ -115,6 +116,27 @@ export async function GET(request: NextRequest) {
 
                 const outstandingInvoices = outstandingResult._sum.total || 0;
 
+                // Calculate total sales for this shop (from invoices in the date range)
+                const salesResult = await safeQuery(
+                    () => prisma.invoice.aggregate({
+                        where: {
+                            shopId: shop.id,
+                            status: { not: 'Cancelled' },
+                            invoiceDate: {
+                                gte: startDate,
+                                lte: endDate
+                            }
+                        },
+                        _sum: {
+                            total: true
+                        }
+                    }),
+                    { _sum: { total: null } },
+                    `Failed to calculate sales for shop ${shop.id}`
+                );
+
+                const totalSales = salesResult._sum.total || 0;
+
                 // Count low stock items for this shop (quantity <= 10)
                 const lowStockCount = await safeQuery(
                     () => prisma.inventoryItem.count({
@@ -132,6 +154,7 @@ export async function GET(request: NextRequest) {
                     shopName: shop.name,
                     totalInventoryCost,
                     totalProfit,
+                    totalSales,
                     outstandingInvoices,
                     lowStockItems: lowStockCount
                 };
@@ -143,12 +166,14 @@ export async function GET(request: NextRequest) {
             (acc, shop) => ({
                 totalInventoryCost: acc.totalInventoryCost + shop.totalInventoryCost,
                 totalProfit: acc.totalProfit + shop.totalProfit,
+                totalSales: acc.totalSales + shop.totalSales,
                 outstandingInvoices: acc.outstandingInvoices + shop.outstandingInvoices,
                 lowStockItems: acc.lowStockItems + shop.lowStockItems
             }),
             {
                 totalInventoryCost: 0,
                 totalProfit: 0,
+                totalSales: 0,
                 outstandingInvoices: 0,
                 lowStockItems: 0
             }

@@ -35,7 +35,8 @@ async function getReceipts(page = 1, limit = 10, search = '') {
                 payment: {
                     include: {
                         customer: true,
-                        invoice: true
+                        invoice: true,
+                        account: true
                     }
                 },
                 confirmedByUser: true

@@ -96,19 +96,16 @@ function AccountingContent() {
         (account.description && account.description.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
-    // Calculate simplified cash flow summary based on paid invoices and transactions
-    const cashInHand = transactions
-        .filter(transaction => transaction.type === 'income' &&
-            (transaction.category?.toLowerCase().includes('cash') ||
-                transaction.accountName?.toLowerCase().includes('cash')))
-        .reduce((sum, transaction) => sum + Number(transaction.amount), 0);
+    // Calculate simplified cash flow summary based on actual account balances
+    const cashInHand = accounts
+        .filter(account => account.name?.toLowerCase().includes('cash in hand') ||
+                          account.name?.toLowerCase().includes('cash'))
+        .reduce((sum, account) => sum + Number(account.balance), 0);
 
-    const cashInBank = transactions
-        .filter(transaction => transaction.type === 'income' &&
-            (transaction.category?.toLowerCase().includes('bank') ||
-                transaction.category?.toLowerCase().includes('card') ||
-                transaction.accountName?.toLowerCase().includes('bank')))
-        .reduce((sum, transaction) => sum + Number(transaction.amount), 0);
+    const cashInBank = accounts
+        .filter(account => account.name?.toLowerCase().includes('bank') ||
+                          account.type?.toLowerCase().includes('bank'))
+        .reduce((sum, account) => sum + Number(account.balance), 0);
 
     // Calculate total sales from all income transactions (representing paid invoices)
     const totalSales = transactions
