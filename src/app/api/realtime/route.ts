@@ -15,7 +15,7 @@ export const maxDuration = 10;
 
 // Real-time data types
 interface RealtimeUpdate {
-  type: 'inventory' | 'invoice' | 'transfer' | 'notification' | 'purchase';
+  type: 'inventory' | 'invoice' | 'transfer' | 'notification' | 'purchase' | 'supplier';
   data: any;
   timestamp: number;
   shopId?: string;
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     
     // Check if user has any view permissions for the requested data types
     const url = new URL(request.url);
-    const types = url.searchParams.get('types')?.split(',') || ['inventory', 'invoice', 'transfer', 'notification'];
+    const types = url.searchParams.get('types')?.split(',') || ['inventory', 'invoice', 'transfer', 'notification', 'supplier'];
     
     // Check permissions based on requested types
     let hasAnyPermission = false;
@@ -64,6 +64,9 @@ export async function GET(request: NextRequest) {
           break;
         case 'notification':
           requiredPermission = 'view_dashboard'; // notifications are general
+          break;
+        case 'supplier':
+          requiredPermission = 'purchases:view'; // suppliers are part of purchases
           break;
         default:
           continue;
@@ -117,6 +120,12 @@ export async function GET(request: NextRequest) {
     if (types.includes('notification')) {
       const notifications = await getNotifications(userId, since);
       updates.push(...notifications);
+    }
+
+    // Get supplier updates
+    if (types.includes('supplier')) {
+      const supplierUpdates = await getSupplierUpdates(since);
+      updates.push(...supplierUpdates);
     }
 
     // Sort by timestamp
@@ -399,6 +408,54 @@ async function getNotifications(userId: number, since: number): Promise<Realtime
         action: 'created'
       },
       timestamp: notification.createdAt.getTime()
+    }));
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    return [];
+  }
+}
+
+async function getSupplierUpdates(since: number): Promise<RealtimeUpdate[]> {
+  try {
+    const suppliers = await prisma.supplier.findMany({
+      where: {
+        OR: [
+          {
+            createdAt: {
+              gte: new Date(since)
+            }
+          },
+          {
+            updatedAt: {
+              gte: new Date(since)
+            }
+          }
+        ]
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        createdAt: true,
+        updatedAt: true
+      },
+      orderBy: {
+        updatedAt: 'desc'
+      },
+      take: 10
+    });
+
+    return suppliers.map(supplier => ({
+      type: 'supplier' as const,
+      data: {
+        supplierId: supplier.id,
+        name: supplier.name,
+        email: supplier.email,
+        phone: supplier.phone,
+        action: supplier.createdAt.getTime() >= since ? 'created' : 'updated'
+      },
+      timestamp: Math.max(supplier.createdAt.getTime(), supplier.updatedAt.getTime())
     }));
   } catch (error) {
     console.error('Error fetching notifications:', error);

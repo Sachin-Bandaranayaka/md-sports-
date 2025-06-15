@@ -13,6 +13,7 @@ import {
   usePurchaseSearchSuggestions
 } from '@/hooks/usePurchaseInvoicesOptimized';
 import { useSuppliersOptimized } from '@/hooks/useQueries';
+import { useSupplierUpdates } from '@/hooks/useRealtime';
 import { toast } from 'sonner';
 import NewPurchaseInvoiceModal from '@/components/purchases/NewPurchaseInvoiceModal';
 import { FixedSizeList as List } from 'react-window';
@@ -230,6 +231,9 @@ export default function PurchaseListClientOptimized({
 
   // Suppliers query
   const { data: suppliers = initialSuppliers } = useSuppliersOptimized();
+  
+  // Enable real-time updates for suppliers
+  useSupplierUpdates();
 
   // Search suggestions
   const { data: searchSuggestions = [] } = usePurchaseSearchSuggestions(searchTerm);

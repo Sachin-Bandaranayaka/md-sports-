@@ -7,6 +7,7 @@ import { Combobox } from '@/components/ui/Combobox';
 import { Loader2, Save, XCircle, Plus, FileText, DollarSign, Calendar, Trash, Store, PackagePlus, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PurchaseInvoice, Supplier, Product, Category, Shop, PurchaseInvoiceItem } from '@/types';
+import { useSuppliersOptimized } from '@/hooks/useQueries';
 
 const cardVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -45,7 +46,8 @@ export default function EditPurchaseInvoiceForm({
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const [suppliers, setSuppliers] = useState<Supplier[]>(initialSuppliers || []);
+    // Use real-time hooks for data fetching
+    const { data: suppliers = initialSuppliers || [] } = useSuppliersOptimized();
     const [products, setProducts] = useState<Product[]>(initialProducts || []);
     const [filteredProducts, setFilteredProducts] = useState<Product[]>(initialProducts || []);
     const [categories, setCategories] = useState<Category[]>(initialCategories || []);

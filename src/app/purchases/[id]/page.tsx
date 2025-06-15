@@ -32,7 +32,12 @@ async function fetchPurchaseInvoice(id: string, baseUrl: string): Promise<Purcha
 
 async function fetchShops(baseUrl: string) {
     try {
-        const response = await fetch(`${baseUrl}/api/shops`, { cache: 'no-store' });
+        const response = await fetch(`${baseUrl}/api/shops`, { 
+            cache: 'no-store',
+            headers: {
+                'Authorization': 'Bearer dev-token'
+            }
+        });
         if (!response.ok) {
             console.error('Failed to fetch shops:', response.status);
             return [];
@@ -316,7 +321,8 @@ export default async function PurchaseInvoiceDetailPage({ params }: PurchaseInvo
                                                         {itemDistribution && Object.keys(itemDistribution).length > 0 ? (
                                                             <div className="space-y-1">
                                                                 {Object.entries(itemDistribution).map(([shopId, quantity]) => {
-                                                                    const shop = shops.find((s: any) => s.id === shopId);
+                                                                    // Find the shop by matching the ID as string
+                                                                    const shop = shops.find((s: any) => String(s.id) === String(shopId));
                                                                     const shopName = shop?.name || `Shop ${shopId}`;
                                                                     return (
                                                                         <div key={shopId} className="flex items-center justify-between bg-green-50 px-2 py-1 rounded text-sm">

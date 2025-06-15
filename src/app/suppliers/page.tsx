@@ -8,6 +8,7 @@ import { Search, Plus, Edit, Trash, Phone, Mail, ExternalLink, X, Loader2 } from
 import { Supplier } from '@/types';
 import { queryKeys } from '@/context/QueryProvider';
 import { useSuppliers } from '@/hooks/useQueries';
+import { useSupplierUpdates } from '@/hooks/useRealtime';
 
 // Note: revalidate and dynamic exports are not valid for client components
 
@@ -24,6 +25,9 @@ export default function Suppliers() {
 
     // Use React Query for suppliers data
     const { data: suppliers = [], isLoading: loading, error } = useSuppliers({ search: searchTerm });
+    
+    // Enable real-time updates for suppliers
+    useSupplierUpdates();
 
     const filteredSuppliers = suppliers.filter(supplier =>
         supplier.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||

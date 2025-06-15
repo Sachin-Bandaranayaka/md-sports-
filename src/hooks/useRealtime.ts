@@ -295,3 +295,7 @@ export function useTransferUpdates(options?: Omit<UseRealtimeOptions, 'types'>) 
 export function usePurchaseUpdates(options?: Omit<UseRealtimeOptions, 'types'>) {
   return useRealtime({ ...options, types: ['purchase'] });
 }
+
+export function useSupplierUpdates(options?: Omit<UseRealtimeOptions, 'types'>) {
+  return useRealtime({ ...options, types: ['supplier'] });
+}
