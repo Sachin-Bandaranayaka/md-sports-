@@ -63,7 +63,11 @@ export default function NewCustomer() {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ message: 'Failed to create customer' }));
-                throw new Error(errorData.message || 'Failed to create customer. Please check server logs.');
+                if (errorData.error === 'Duplicate mobile number') {
+                    throw new Error('A customer with this mobile number already exists. Please use a different mobile number.');
+                } else {
+                    throw new Error(errorData.message || 'Failed to create customer. Please check server logs.');
+                }
             }
 
             toast.success('Customer created successfully!');
@@ -247,4 +251,4 @@ export default function NewCustomer() {
             </div>
         </MainLayout>
     );
-} 
+}

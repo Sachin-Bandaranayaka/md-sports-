@@ -156,6 +156,28 @@ export async function PUT(
             }
         });
 
+        // Check for duplicate mobile number if phone is being updated
+        if (phone && phone.trim()) {
+            const existingCustomer = await prisma.customer.findFirst({
+                where: {
+                    phone: phone.trim(),
+                    id: {
+                        not: id // Exclude the current customer being updated
+                    }
+                }
+            });
+
+            if (existingCustomer) {
+                return NextResponse.json(
+                    {
+                        success: false,
+                        message: 'A customer with this mobile number already exists',
+                        error: 'Duplicate mobile number'
+                    },
+                    { status: 400 }
+                );
+            }
+        }
 
         const updatedCustomer = await prisma.customer.update({
             where: {
@@ -236,16 +258,8 @@ export async function DELETE(
             );
         }
 
-        // Check if customer has related invoices
-        if (customer.invoices.length > 0) {
-            return NextResponse.json(
-                {
-                    success: false,
-                    message: 'Cannot delete customer with existing invoices'
-                },
-                { status: 400 }
-            );
-        }
+        // Note: Since we're using soft deletion, we allow deletion of customers with invoices
+        // The customer will be moved to recycle bin and can be recovered if needed
 
         // Use audit service for soft delete
         const auditService = new AuditService();

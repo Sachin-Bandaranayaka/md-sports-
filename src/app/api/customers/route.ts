@@ -77,6 +77,26 @@ export async function POST(request: NextRequest) {
             creditPeriod = parseInt(customerData.creditPeriod) || null;
         }
 
+        // Check for duplicate mobile number if phone is provided
+        if (customerData.phone && customerData.phone.trim()) {
+            const existingCustomer = await prisma.customer.findFirst({
+                where: {
+                    phone: customerData.phone.trim()
+                }
+            });
+
+            if (existingCustomer) {
+                return NextResponse.json(
+                    {
+                        success: false,
+                        message: 'A customer with this mobile number already exists',
+                        error: 'Duplicate mobile number'
+                    },
+                    { status: 400 }
+                );
+            }
+        }
+
         // Create new customer using Prisma
         const customer = await prisma.customer.create({
             data: {

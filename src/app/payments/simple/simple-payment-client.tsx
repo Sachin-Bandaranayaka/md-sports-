@@ -132,7 +132,7 @@ export function SimplePaymentClientForm() {
             const receiptData = await receiptResponse.json();
 
             alert(`Payment successfully recorded and receipt generated (${receiptData.receiptNumber}). The invoice has been marked as Paid.`);
-            router.push(`/invoices/${invoiceId}`);
+            router.push('/invoices');
 
         } catch (err) {
             console.error('Error:', err);

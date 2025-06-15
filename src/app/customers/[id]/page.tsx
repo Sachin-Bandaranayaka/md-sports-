@@ -118,7 +118,8 @@ export default function CustomerDetails({ params }: { params: { id: string } }) 
             const data = await response.json();
 
             if (data.success) {
-                router.push('/customers');
+                // Force navigation to customers page and refresh to clear cache
+                window.location.href = '/customers';
             } else {
                 setError(data.message || 'Failed to delete customer');
                 setDeleteLoading(false);

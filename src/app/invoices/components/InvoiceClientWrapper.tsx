@@ -3,10 +3,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
-import { Search, Plus, Filter, FileText, Download, Eye, CheckCircle, Trash2, Edit, Loader2, X, ChevronUp, ChevronDown } from 'lucide-react';
+import { Search, Plus, Filter, FileText, Download, Eye, CheckCircle, Trash2, Edit, Loader2, X, ChevronUp, ChevronDown, CalendarIcon } from 'lucide-react';
 import { InvoiceCreateModal, InvoiceEditModal, InvoiceViewModal } from '@/components/invoices';
 import type { InvoiceData } from '@/components/invoices';
 import { useAuth } from '@/hooks/useAuth';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 // Interface for Invoice (should match what the API provides or what page.tsx transforms)
 interface Invoice {
@@ -89,7 +97,8 @@ export default function InvoiceClientWrapper({
     const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('status') || '');
     const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>(searchParams.get('paymentMethod') || '');
     const [searchQuery, setSearchQuery] = useState<string>(searchParams.get('search') || '');
-    const [timePeriodFilter, setTimePeriodFilter] = useState<string>(searchParams.get('timePeriod') || 'all');
+    const [dateFrom, setDateFrom] = useState<Date | undefined>(searchParams.get('dateFrom') ? new Date(searchParams.get('dateFrom')!) : undefined);
+    const [dateTo, setDateTo] = useState<Date | undefined>(searchParams.get('dateTo') ? new Date(searchParams.get('dateTo')!) : undefined);
     const [sortBy, setSortBy] = useState<string>(searchParams.get('sortBy') || 'newest');
     const [dateSortOrder, setDateSortOrder] = useState<'asc' | 'desc'>('desc'); // desc = newest first, asc = oldest first
     const [dueStatusSortOrder, setDueStatusSortOrder] = useState<'asc' | 'desc'>('asc'); // asc = overdue first, desc = current first
@@ -148,12 +157,26 @@ export default function InvoiceClientWrapper({
         setStatistics(initialStatistics);
     }, [initialInvoices, initialTotalPages, initialCurrentPage, initialStatistics]);
 
-    // Handle time period filter changes
+    // Handle search query changes
     useEffect(() => {
-        if (timePeriodFilter !== 'all') {
+        const timeoutId = setTimeout(() => {
+            handleFilterChange();
+        }, 300); // Debounce search by 300ms
+        
+        return () => clearTimeout(timeoutId);
+    }, [searchQuery]);
+
+    // Handle status and payment method filter changes
+    useEffect(() => {
+        handleFilterChange();
+    }, [statusFilter, paymentMethodFilter]);
+
+    // Handle date range filter changes
+    useEffect(() => {
+        if (dateFrom || dateTo) {
             handleFilterChange();
         }
-    }, [timePeriodFilter]);
+    }, [dateFrom, dateTo]);
 
     // Handle sort changes
     useEffect(() => {
@@ -214,8 +237,10 @@ export default function InvoiceClientWrapper({
         else params.delete('status');
         if (paymentMethodFilter) params.set('paymentMethod', paymentMethodFilter);
         else params.delete('paymentMethod');
-        if (timePeriodFilter && timePeriodFilter !== 'all') params.set('timePeriod', timePeriodFilter);
-        else params.delete('timePeriod');
+        if (dateFrom) params.set('dateFrom', dateFrom.toISOString().split('T')[0]);
+        else params.delete('dateFrom');
+        if (dateTo) params.set('dateTo', dateTo.toISOString().split('T')[0]);
+        else params.delete('dateTo');
         if (sortBy && sortBy !== 'newest') params.set('sortBy', sortBy);
         else params.delete('sortBy');
         params.set('page', '1'); // Reset to page 1 on new filter
@@ -226,7 +251,8 @@ export default function InvoiceClientWrapper({
         setSearchQuery('');
         setStatusFilter('');
         setPaymentMethodFilter('');
-        setTimePeriodFilter('all');
+        setDateFrom(undefined);
+        setDateTo(undefined);
         setSortBy('newest');
         const params = new URLSearchParams();
         params.set('page', '1');
@@ -509,21 +535,76 @@ export default function InvoiceClientWrapper({
                             />
                         </div>
                     </div>
-                    <div>
-                        <label htmlFor="timePeriodFilter" className="block text-sm font-medium text-gray-700 mb-1">Time Period</label>
-                        <select
-                            id="timePeriodFilter"
-                            value={timePeriodFilter}
-                            onChange={(e) => setTimePeriodFilter(e.target.value)}
-                            className="w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
-                        >
-                            <option value="all">All Time</option>
-                            <option value="today">Today</option>
-                            <option value="week">This Week</option>
-                            <option value="month">This Month</option>
-                            <option value="quarter">This Quarter</option>
-                            <option value="year">This Year</option>
-                        </select>
+                    <div className="grid grid-cols-2 gap-2">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <button
+                                        type="button"
+                                        className={cn(
+                                            "w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-left flex items-center",
+                                            !dateFrom && "text-gray-500"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4 text-gray-400" />
+                                        <span className="text-gray-900">
+                                            {dateFrom ? format(dateFrom, "MMM dd, yyyy") : "From"}
+                                        </span>
+                                    </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0 bg-white border border-gray-200 shadow-lg rounded-md" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        selected={dateFrom}
+                                        onSelect={setDateFrom}
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <button
+                                        type="button"
+                                        className={cn(
+                                            "w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-left flex items-center",
+                                            !dateTo && "text-gray-500"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4 text-gray-400" />
+                                        <span className="text-gray-900">
+                                            {dateTo ? format(dateTo, "MMM dd, yyyy") : "To"}
+                                        </span>
+                                    </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0 bg-white border border-gray-200 shadow-lg rounded-md" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        selected={dateTo}
+                                        onSelect={setDateTo}
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        {(dateFrom || dateTo) && (
+                            <div className="col-span-2 mt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setDateFrom(undefined);
+                                        setDateTo(undefined);
+                                    }}
+                                    className="w-full py-1 px-3 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 bg-white rounded-md hover:bg-gray-50 flex items-center justify-center"
+                                >
+                                    <X className="mr-1 h-3 w-3" />
+                                    Clear Date Range
+                                </button>
+                            </div>
+                        )}
                     </div>
                     <div>
                         <label htmlFor="statusFilter" className="block text-sm font-medium text-gray-700 mb-1">Status</label>
@@ -534,10 +615,8 @@ export default function InvoiceClientWrapper({
                             className="w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
                         >
                             <option value="">All Statuses</option>
-                            <option value="Pending">Pending</option>
-                            <option value="Paid">Paid</option>
-                            <option value="Overdue">Overdue</option>
-                            <option value="Cancelled">Cancelled</option>
+                            <option value="pending">Pending</option>
+                            <option value="paid">Paid</option>
                         </select>
                     </div>
                     <div>
@@ -719,9 +798,6 @@ export default function InvoiceClientWrapper({
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-semibold">Rs. {(invoice.totalProfit || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div className="flex items-center space-x-1">
-                                            <Button variant="ghost" size="icon" onClick={() => router.push(`/invoices/${invoice.id}`)} title="View Invoice" disabled={loading}>
-                                                {loading ? <Loader2 className="animate-spin h-4 w-4" /> : <Eye size={16} className="text-blue-600" />}
-                                            </Button>
                                             {(invoice.status.toLowerCase() === 'pending' || invoice.status.toLowerCase() === 'partial') && (
                                                 <Button variant="ghost" size="icon" onClick={() => handleRecordPayment(invoice.id)} title="Record Payment" disabled={loading}>
                                                     {loading ? <Loader2 className="animate-spin h-4 w-4" /> : <CheckCircle size={16} className="text-green-600" />}

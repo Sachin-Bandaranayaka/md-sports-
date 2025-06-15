@@ -307,11 +307,12 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
             const data = await response.json();
 
             if (data.success) {
-                // Remove the deleted customer from the state and refetch or update
+                // Remove the deleted customer from the state immediately for better UX
                 setCustomers(prevCustomers => prevCustomers.filter(customer => customer.id !== customerId));
                 setAllCustomers(prevAllCustomers => prevAllCustomers.filter(customer => customer.id !== customerId));
-                // Potentially refetch the current page data
-                // router.refresh(); // or fetch specific page data
+                
+                // Force a page refresh to clear any cached data
+                window.location.reload();
             } else {
                 setError(data.message || 'Failed to delete customer. Please try again.');
             }
@@ -373,7 +374,7 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
 
             const deletedIds = await Promise.all(deletePromises);
 
-            // Update state to remove deleted customers
+            // Update state to remove deleted customers immediately for better UX
             setCustomers(prevCustomers => 
                 prevCustomers.filter(customer => !deletedIds.includes(String(customer.id)))
             );
@@ -384,6 +385,9 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
             // Clear selection
             setSelectedItems(new Set());
             setSelectAll(false);
+            
+            // Force a page refresh to clear any cached data
+            window.location.reload();
 
         } catch (err) {
             console.error('Error during bulk delete:', err);

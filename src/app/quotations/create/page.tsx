@@ -349,7 +349,11 @@ export default function CreateQuotation() {
                 });
             } else {
                 const errorData = await response.json();
-                alert(`Failed to create customer: ${errorData.message || 'Unknown error'}`);
+                if (errorData.error === 'Duplicate mobile number') {
+                    alert('A customer with this mobile number already exists. Please use a different mobile number.');
+                } else {
+                    alert(`Failed to create customer: ${errorData.message || 'Unknown error'}`);
+                }
             }
         } catch (error) {
             console.error('Error creating customer:', error);

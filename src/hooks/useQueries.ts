@@ -356,3 +356,55 @@ export const useDeleteInvoice = () => {
     },
   });
 };
+
+// Customer Mutation Hooks
+export const useCreateCustomer = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: any) =>
+      fetchApi<ApiResponse<any>>('/api/customers', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      // Invalidate all customer-related queries
+      queryClient.invalidateQueries({ queryKey: queryKeys.customers });
+      queryClient.invalidateQueries({ queryKey: queryKeys.customersList() });
+    },
+  });
+};
+
+export const useUpdateCustomer = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      fetchApi<ApiResponse<any>>(`/api/customers/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: (_, { id }) => {
+      // Invalidate specific customer and all customer lists
+      queryClient.invalidateQueries({ queryKey: queryKeys.customer(id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.customers });
+      queryClient.invalidateQueries({ queryKey: queryKeys.customersList() });
+    },
+  });
+};
+
+export const useDeleteCustomer = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) =>
+      fetchApi<ApiResponse<any>>(`/api/customers/${id}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: () => {
+      // Invalidate all customer-related queries to ensure deleted customers don't appear
+      queryClient.invalidateQueries({ queryKey: queryKeys.customers });
+      queryClient.invalidateQueries({ queryKey: queryKeys.customersList() });
+    },
+  });
+};

@@ -385,12 +385,15 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                 });
                 setShowQuickCustomerModal(false);
                 
-                // Refresh customers list
-                if (onCustomerCreated) {
-                    onCustomerCreated();
-                }
+                // Customer created successfully - the parent component will handle refreshing
+                // if needed through the onSuccess callback
             } else {
-                alert('Failed to create customer.');
+                const errorData = await response.json();
+                if (errorData.error === 'Duplicate mobile number') {
+                    alert('A customer with this mobile number already exists. Please use a different mobile number.');
+                } else {
+                    alert(errorData.message || 'Failed to create customer.');
+                }
             }
         } catch (error) {
             console.error('Error creating customer:', error);
