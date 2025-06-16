@@ -1,6 +1,14 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react'; import { useRouter, useParams } from 'next/navigation'; import MainLayout from '@/components/layout/MainLayout'; import { Button } from '@/components/ui/Button'; import { Printer, ArrowLeft, Edit, Trash2, CheckCircle, Clock, AlertTriangle, Download, Bell, Receipt } from 'lucide-react'; import { useReactToPrint } from 'react-to-print'; import { formatCurrency } from '@/utils/formatters'; import { generateInvoicePDF } from '@/utils/pdfGenerator'; import InvoiceTemplate from '@/components/templates/InvoiceTemplate';
+import { useEffect, useState, useRef } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import MainLayout from '@/components/layout/MainLayout';
+import { Button } from '@/components/ui/Button';
+import { Printer, ArrowLeft, Edit, Trash2, CheckCircle, Clock, AlertTriangle, Download, Bell, Receipt } from 'lucide-react';
+import { useReactToPrint } from 'react-to-print';
+import { formatCurrency } from '@/utils/formatters';
+import { generateInvoicePDF } from '@/utils/pdfGenerator';
+import InvoiceTemplate from '@/components/templates/InvoiceTemplate';
 
 // Invoice and related interfaces
 interface Product {
@@ -52,6 +60,11 @@ interface Payment {
     paymentMethod: string;
     referenceNumber?: string;
     createdAt: string;
+    receipt?: {
+        id: number;
+        receiptNumber: string;
+        receiptDate: string;
+    };
 }
 
 interface Invoice {
@@ -109,7 +122,7 @@ export default function InvoiceDetail() {
     const [smsStatus, setSmsStatus] = useState<{ success: boolean; message: string } | null>(null);
 
     const handlePrint = useReactToPrint({
-        content: () => printRef.current,
+        contentRef: printRef,
         documentTitle: invoice ? `Invoice-${invoice.invoiceNumber}` : 'Invoice',
         onAfterPrint: () => console.log('Printed successfully'),
     });

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 // Removed react-hot-toast Toaster - using Sonner from MainLayout instead
@@ -77,6 +78,8 @@ const queryClient = new QueryClient({
 
 // Main invoice page component
 function InvoicePageContent() {
+    const router = useRouter();
+    
     // Modal states
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -354,6 +357,7 @@ function InvoicePageContent() {
                         filters={filters}
                         onFiltersChange={updateFilters}
                         customers={customers}
+                        shops={shops}
                         selectedCount={selectedInvoices.size}
                         onBulkDelete={handleBulkDelete}
                         onExport={handleExport}

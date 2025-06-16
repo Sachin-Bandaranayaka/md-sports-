@@ -89,7 +89,8 @@ async function fetchInvoicesData({
     paymentMethod,
     timePeriod,
     searchQueryParam,
-    sortByParam
+    sortByParam,
+    shopId
 }: {
     pageParam?: number;
     status?: string;
@@ -97,6 +98,7 @@ async function fetchInvoicesData({
     timePeriod?: string;
     searchQueryParam?: string;
     sortByParam?: string;
+    shopId?: string;
 }) {
     const page = typeof pageParam === 'string' ? parseInt(pageParam, 10) : pageParam;
     const skip = (page - 1) * ITEMS_PER_PAGE;
@@ -106,6 +108,7 @@ async function fetchInvoicesData({
     const whereClause: Prisma.InvoiceWhereInput = {
         ...(status && status !== 'all' && { status }),
         ...(paymentMethod && paymentMethod !== 'all' && { paymentMethod }),
+        ...(shopId && { shopId: parseInt(shopId) }),
         ...(searchQueryParam && {
             OR: [
                 { invoiceNumber: { contains: searchQueryParam, mode: 'insensitive' } },
@@ -196,6 +199,13 @@ async function fetchInvoicesData({
                     notes: true,
                     shopId: true,
                     customer: true,
+                    shop: {
+                        select: {
+                            id: true,
+                            name: true,
+                            location: true
+                        }
+                    },
                     payments: {
                         select: {
                             amount: true
@@ -338,15 +348,26 @@ export default async function InvoicesPage({
     const searchQueryParam = Array.isArray(searchParams.search) ? searchParams.search[0] : searchParams.search;
     const timePeriodParam = Array.isArray(searchParams.timePeriod) ? searchParams.timePeriod[0] : searchParams.timePeriod;
     const sortByParam = Array.isArray(searchParams.sortBy) ? searchParams.sortBy[0] : searchParams.sortBy;
+    const shopIdParam = Array.isArray(searchParams.shopId) ? searchParams.shopId[0] : searchParams.shopId;
 
-    const { invoices, totalPages, currentPage, statistics, error } = await fetchInvoicesData({
-        pageParam: pageParam ? parseInt(pageParam, 10) : 1,
-        status: statusFilterParam,
-        paymentMethod: paymentMethodFilterParam,
-        searchQueryParam,
-        timePeriod: timePeriodParam,
-        sortByParam
-    });
+    const [{ invoices, totalPages, currentPage, statistics, error }, shops] = await Promise.all([
+        fetchInvoicesData({
+            pageParam: pageParam ? parseInt(pageParam, 10) : 1,
+            status: statusFilterParam,
+            paymentMethod: paymentMethodFilterParam,
+            searchQueryParam,
+            timePeriod: timePeriodParam,
+            sortByParam,
+            shopId: shopIdParam
+        }),
+        prisma.shop.findMany({
+            select: {
+                id: true,
+                name: true,
+                location: true
+            }
+        })
+    ]);
 
     if (error) {
         return (
@@ -372,6 +393,7 @@ export default async function InvoicesPage({
                         totalCreditSales: statistics.creditSales,
                         totalNonCreditSales: statistics.nonCreditSales
                     }}
+                    shops={shops}
                 />
             </Suspense>
         </MainLayout>

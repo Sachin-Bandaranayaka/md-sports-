@@ -34,6 +34,11 @@ interface Invoice {
     notes?: string;
     totalPaid?: number; // Total amount paid
     dueAmount?: number; // Amount still due
+    shop?: {
+        id: string;
+        name: string;
+        location?: string;
+    };
 }
 
 // Status badge colors
@@ -54,6 +59,24 @@ const getStatusBadgeClass = (status: string) => {
     }
 };
 
+// Shop-based row colors
+const getShopRowClass = (shopName?: string) => {
+    if (!shopName) return 'hover:bg-gray-50';
+    
+    switch (shopName.toLowerCase()) {
+        case 'mba':
+        case 'mba branch':
+            return 'bg-blue-50 hover:bg-blue-100 border-l-4 border-blue-400';
+        case 'zymantra':
+        case 'zymantra branch':
+        case 'zimantra':
+        case 'zimantra branch':
+            return 'bg-green-50 hover:bg-green-100 border-l-4 border-green-400';
+        default:
+            return 'hover:bg-gray-50';
+    }
+};
+
 interface InvoiceClientWrapperProps {
     initialInvoices: Invoice[];
     initialTotalPages: number;
@@ -65,13 +88,15 @@ interface InvoiceClientWrapperProps {
         totalCreditSales: number;
         totalNonCreditSales: number;
     };
+    shops: { id: number; name: string; location: string }[];
 }
 
 export default function InvoiceClientWrapper({
     initialInvoices,
     initialTotalPages,
     initialCurrentPage,
-    initialStatistics
+    initialStatistics,
+    shops
 }: InvoiceClientWrapperProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -85,7 +110,7 @@ export default function InvoiceClientWrapper({
     const [error, setError] = useState<string | null>(null);
     const [customers, setCustomers] = useState<{ id: number; name: string }[]>([]);
     const [products, setProducts] = useState<{ id: number; name: string; price: number }[]>([]);
-    const [shops, setShops] = useState<{ id: string; name: string; location: string }[]>([]);
+    const [shopsState, setShopsState] = useState<{ id: number; name: string; location: string }[]>(shops);
 
     // Modal states
     const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
@@ -96,6 +121,7 @@ export default function InvoiceClientWrapper({
     // Filters state - initialized from URL search params if present
     const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('status') || '');
     const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>(searchParams.get('paymentMethod') || '');
+    const [shopFilter, setShopFilter] = useState<string>(searchParams.get('shopId') || '');
     const [searchQuery, setSearchQuery] = useState<string>(searchParams.get('search') || '');
     const [dateFrom, setDateFrom] = useState<Date | undefined>(searchParams.get('dateFrom') ? new Date(searchParams.get('dateFrom')!) : undefined);
     const [dateTo, setDateTo] = useState<Date | undefined>(searchParams.get('dateTo') ? new Date(searchParams.get('dateTo')!) : undefined);
@@ -166,10 +192,10 @@ export default function InvoiceClientWrapper({
         return () => clearTimeout(timeoutId);
     }, [searchQuery]);
 
-    // Handle status and payment method filter changes
+    // Handle status, payment method, and shop filter changes
     useEffect(() => {
         handleFilterChange();
-    }, [statusFilter, paymentMethodFilter]);
+    }, [statusFilter, paymentMethodFilter, shopFilter]);
 
     // Handle date range filter changes
     useEffect(() => {
@@ -185,9 +211,9 @@ export default function InvoiceClientWrapper({
         }
     }, [sortBy, dateSortOrder, dueStatusSortOrder]);
 
-    // Fetch customers, products, and shops on component mount for better performance
+    // Fetch customers and products on component mount for better performance
     useEffect(() => {
-        const fetchCustomersProductsAndShops = async () => {
+        const fetchCustomersAndProducts = async () => {
             if (!accessToken) return;
             
             try {
@@ -209,24 +235,12 @@ export default function InvoiceClientWrapper({
                         setProducts(productsData);
                     }
                 }
-
-                // Fetch shops
-                const shopsResponse = await fetch('/api/shops');
-                if (shopsResponse.ok) {
-                    const shopsData = await shopsResponse.json();
-                    // Handle the API response structure
-                    if (shopsData.success && shopsData.data) {
-                        setShops(shopsData.data);
-                    } else {
-                        setShops(shopsData);
-                    }
-                }
             } catch (err) {
-                console.error('Error fetching customers, products, or shops:', err);
+                console.error('Error fetching customers and products:', err);
             }
         };
 
-        fetchCustomersProductsAndShops();
+        fetchCustomersAndProducts();
     }, [accessToken]); // Run when accessToken becomes available
 
     const handleFilterChange = () => {
@@ -237,6 +251,8 @@ export default function InvoiceClientWrapper({
         else params.delete('status');
         if (paymentMethodFilter) params.set('paymentMethod', paymentMethodFilter);
         else params.delete('paymentMethod');
+        if (shopFilter) params.set('shopId', shopFilter);
+        else params.delete('shopId');
         if (dateFrom) params.set('dateFrom', dateFrom.toISOString().split('T')[0]);
         else params.delete('dateFrom');
         if (dateTo) params.set('dateTo', dateTo.toISOString().split('T')[0]);
@@ -251,6 +267,7 @@ export default function InvoiceClientWrapper({
         setSearchQuery('');
         setStatusFilter('');
         setPaymentMethodFilter('');
+        setShopFilter('');
         setDateFrom(undefined);
         setDateTo(undefined);
         setSortBy('newest');
@@ -635,6 +652,22 @@ export default function InvoiceClientWrapper({
                         </select>
                     </div>
                     <div>
+                        <label htmlFor="shopFilter" className="block text-sm font-medium text-gray-700 mb-1">Shop</label>
+                        <select
+                            id="shopFilter"
+                            value={shopFilter}
+                            onChange={(e) => setShopFilter(e.target.value)}
+                            className="w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
+                        >
+                            <option value="">All Shops</option>
+                            {shopsState.map((shop) => (
+                                <option key={shop.id} value={shop.id}>
+                                    {shop.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
                         <label htmlFor="sortBy" className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
                         <select
                             id="sortBy"
@@ -763,7 +796,11 @@ export default function InvoiceClientWrapper({
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {invoices.map((invoice) => (
-                                <tr key={invoice.id} className={`hover:bg-gray-50 transition-colors duration-150 ${selectedInvoices.has(String(invoice.id)) ? 'bg-blue-50' : ''}`}>
+                                <tr key={invoice.id} className={`transition-colors duration-150 ${
+                                    selectedInvoices.has(String(invoice.id)) 
+                                        ? 'bg-blue-100 border-l-4 border-blue-500' 
+                                        : getShopRowClass(invoice.shop?.name)
+                                }`}>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <input
                                             type="checkbox"

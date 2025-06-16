@@ -466,17 +466,8 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
                             },
                         });
 
-                        if (invoiceDetails.paymentMethod === 'Cash') {
-                            await tx.payment.create({
-                                data: {
-                                    invoiceId: createdInvoice.id,
-                                    customerId: invoiceDetails.customerId || null,
-                                    amount: 0, // Will be updated after items are processed
-                                    paymentMethod: 'Cash',
-                                    referenceNumber: `AUTO-${createdInvoice.invoiceNumber}`,
-                                }
-                            });
-                        }
+                        // Removed automatic payment creation for cash invoices
+                        // Users will manually record payments when they actually receive them
 
                         if (invoiceDetails.items && Array.isArray(invoiceDetails.items)) {
                             // Get shop-specific costs for profit calculation instead of global weighted average

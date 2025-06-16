@@ -39,10 +39,16 @@ interface Customer {
     email?: string;
 }
 
+interface Shop {
+    id: string;
+    name: string;
+}
+
 interface InvoiceFiltersOptimizedProps {
     filters: InvoiceFilters;
     onFiltersChange: (filters: Partial<InvoiceFilters>) => void;
     customers?: Customer[];
+    shops?: Shop[];
     selectedCount: number;
     onBulkDelete?: () => void;
     onExport?: () => void;
@@ -218,6 +224,42 @@ const CustomerFilter = memo(({
 });
 
 CustomerFilter.displayName = 'CustomerFilter';
+
+// Memoized shop filter
+const ShopFilter = memo(({
+    value,
+    onChange,
+    shops = []
+}: {
+    value?: string;
+    onChange: (value: string) => void;
+    shops?: Shop[];
+}) => {
+    const shopOptions = useMemo(() => [
+        { value: 'all', label: 'All Shops' },
+        ...shops.map(shop => ({
+            value: String(shop.id),
+            label: shop.name
+        }))
+    ], [shops]);
+
+    return (
+        <Select value={value || 'all'} onValueChange={onChange}>
+            <SelectTrigger className="w-40">
+                <SelectValue placeholder="Shop" />
+            </SelectTrigger>
+            <SelectContent>
+                {shopOptions.map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                    </SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
+    );
+});
+
+ShopFilter.displayName = 'ShopFilter';
 
 // Memoized sort filter
 const SortFilter = memo(({
@@ -476,16 +518,19 @@ const BulkActions = memo(({
 BulkActions.displayName = 'BulkActions';
 
 // Main component
-export const InvoiceFiltersOptimized = memo<InvoiceFiltersOptimizedProps>(({
-    filters,
-    onFiltersChange,
-    customers = [],
-    selectedCount,
-    onBulkDelete,
-    onExport,
-    isLoading = false,
-    className
-}) => {
+export const InvoiceFiltersOptimized = memo<InvoiceFiltersOptimizedProps>((
+    {
+        filters,
+        onFiltersChange,
+        customers = [],
+        shops = [],
+        selectedCount,
+        onBulkDelete,
+        onExport,
+        isLoading = false,
+        className
+    }
+) => {
     // Filter change handlers
     const handleSearchChange = useCallback((search: string) => {
         onFiltersChange({ search: search || undefined });
@@ -501,6 +546,10 @@ export const InvoiceFiltersOptimized = memo<InvoiceFiltersOptimizedProps>(({
 
     const handleCustomerChange = useCallback((customerId: string) => {
         onFiltersChange({ customerId: customerId === 'all' ? undefined : customerId });
+    }, [onFiltersChange]);
+
+    const handleShopChange = useCallback((shopId: string) => {
+        onFiltersChange({ shopId: shopId === 'all' ? undefined : shopId });
     }, [onFiltersChange]);
 
     const handleSortChange = useCallback((sortBy: string) => {
@@ -524,6 +573,7 @@ export const InvoiceFiltersOptimized = memo<InvoiceFiltersOptimizedProps>(({
             status: undefined,
             paymentMethod: undefined,
             customerId: undefined,
+            shopId: undefined,
             search: undefined,
             dateFrom: undefined,
             dateTo: undefined
@@ -534,6 +584,7 @@ export const InvoiceFiltersOptimized = memo<InvoiceFiltersOptimizedProps>(({
         return !!(filters.status && filters.status !== 'all') ||
             !!(filters.paymentMethod && filters.paymentMethod !== 'all') ||
             !!(filters.customerId && filters.customerId !== 'all') ||
+            !!(filters.shopId && filters.shopId !== 'all') ||
             !!filters.search ||
             !!filters.dateFrom ||
             !!filters.dateTo;
@@ -576,6 +627,13 @@ export const InvoiceFiltersOptimized = memo<InvoiceFiltersOptimizedProps>(({
                     value={filters.customerId}
                     onChange={handleCustomerChange}
                     customers={customers}
+                />
+
+                {/* Shop Filter */}
+                <ShopFilter
+                    value={filters.shopId}
+                    onChange={handleShopChange}
+                    shops={shops}
                 />
 
                 {/* Sort Filter */}

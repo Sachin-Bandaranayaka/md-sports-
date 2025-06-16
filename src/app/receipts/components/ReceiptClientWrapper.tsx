@@ -58,7 +58,7 @@ export default function ReceiptClientWrapper({ receipt: initialReceipt }: Receip
     const printRef = useRef<HTMLDivElement>(null);
 
     const handlePrint = useReactToPrint({
-        content: () => printRef.current,
+        contentRef: printRef,
         documentTitle: `Receipt-${receipt.receiptNumber}`,
     });
 
@@ -355,4 +355,4 @@ export default function ReceiptClientWrapper({ receipt: initialReceipt }: Receip
             </div>
         </div>
     );
-} 
+}

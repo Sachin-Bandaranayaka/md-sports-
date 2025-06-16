@@ -81,7 +81,7 @@ export default function ViewQuotation() {
     };
 
     const handlePrintQuotation = useReactToPrint({
-        content: () => printRef.current,
+        contentRef: printRef,
         documentTitle: `Quotation-${quotation?.quotationNumber}`,
         onAfterPrint: () => console.log('Printed successfully'),
     });
@@ -162,96 +162,30 @@ export default function ViewQuotation() {
                             </Button>
                         </div>
 
-                        {/* Quotation Header */}
-                        <div className="flex flex-col md:flex-row justify-between mb-6">
-                            <div>
-                                <h2 className="text-xl font-bold text-black mb-1">
-                                    Quotation #{quotation.quotationNumber}
-                                </h2>
-
-                            </div>
-                            <div className="mt-4 md:mt-0">
-                                <div className="flex items-center text-black mb-1">
-                                    <Calendar className="w-4 h-4 mr-2" />
-                                    <span>Created: {quotation.createdAt ? new Date(quotation.createdAt).toLocaleDateString() : 'N/A'}</span>
-                                </div>
-                                <div className="flex items-center text-black">
-                                    <Calendar className="w-4 h-4 mr-2" />
-                                    <span>Expires: {quotation.validUntil ? new Date(quotation.validUntil).toLocaleDateString() : 'N/A'}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Customer Info */}
-                        <div className="mb-8">
-                            <h3 className="text-lg font-bold text-black mb-2">Customer Information</h3>
-                            <div className="p-4 bg-white rounded border border-gray-200">
-                                <div className="flex items-start">
-                                    <User className="w-5 h-5 mr-2 text-black" />
-                                    <div>
-                                        <p className="font-medium text-black">{quotation.customer?.name}</p>
-                                        <p className="text-black">Customer ID: {quotation.customerId}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Items */}
-                        <div className="mb-8">
-                            <h3 className="text-lg font-bold text-black mb-2">Items</h3>
-                            <div className="overflow-x-auto">
-                                <table className="w-full border-collapse">
-                                    <thead>
-                                        <tr className="bg-gray-100">
-                                            <th className="p-3 text-left text-black font-medium">Product</th>
-                                            <th className="p-3 text-left text-black font-medium">Quantity</th>
-                                            <th className="p-3 text-right text-black font-medium">Unit Price</th>
-                                            <th className="p-3 text-right text-black font-medium">Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {quotation.items.map((item, index) => (
-                                            <tr key={index} className="border-b">
-                                                <td className="p-3 text-black">
-                                                    <div>
-                                                        <p className="font-medium">{item.product?.name}</p>
-                                                        <p className="text-sm">SKU: {item.product?.sku || 'N/A'}</p>
-                                                    </div>
-                                                </td>
-                                                <td className="p-3 text-black">{item.quantity}</td>
-                                                <td className="p-3 text-right text-black">{item.price?.toLocaleString() ?? 'N/A'}</td>
-                                                <td className="p-3 text-right text-black font-medium">{item.total?.toLocaleString() ?? 'N/A'}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        {/* Summary */}
-                        <div className="flex flex-col items-end mb-8">
-                            <div className="w-full md:w-1/3 space-y-2">
-                                <div className="flex justify-between pt-2 border-t border-gray-200">
-                                    <span className="text-black font-bold">Total:</span>
-                                    <span className="text-black font-bold">{quotation.total?.toLocaleString() ?? 'N/A'}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Notes */}
-                        {/* quotation.notes is not available from the API for the main quotation object
-                        {quotation.notes && (
-                            <div className="mb-6">
-                                <h3 className="text-lg font-bold text-black mb-2">Notes</h3>
-                                <div className="p-4 bg-white rounded border border-gray-200">
-                                    <div className="flex items-start">
-                                        <FileText className="w-5 h-5 mr-2 text-black" />
-                                        <p className="text-black whitespace-pre-wrap">{quotation.notes}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        */}
+                        {/* Display Quotation Template */}
+                        <QuotationTemplate 
+                            quotation={{
+                                quotationNumber: quotation.quotationNumber,
+                                customerName: quotation.customer?.name || 'N/A',
+                                customerId: quotation.customerId,
+                                date: quotation.createdAt || new Date().toISOString(),
+                                expiryDate: quotation.validUntil || new Date().toISOString(),
+                                items: quotation.items.map(item => ({
+                                    id: item.id,
+                                    productId: item.product?.sku || 'N/A',
+                                    productName: item.product?.name || 'N/A',
+                                    quantity: item.quantity,
+                                    unitPrice: item.price || 0,
+                                    total: item.total || 0
+                                })),
+                                subtotal: quotation.total || 0,
+                                discount: 0,
+                                tax: 0,
+                                total: quotation.total || 0,
+                                notes: '',
+                                termsAndConditions: 'Thank you for your business. This quotation is valid for 30 days from the issue date.'
+                            }}
+                        />
                     </div>
                 ) : (
                     <div className="text-center py-4">
@@ -262,7 +196,29 @@ export default function ViewQuotation() {
                 {/* Printable Quotation */}
                 {quotation && (
                     <div ref={printRef} className="hidden print:block">
-                        <QuotationTemplate quotation={quotation} />
+                        <QuotationTemplate 
+                            quotation={{
+                                quotationNumber: quotation.quotationNumber,
+                                customerName: quotation.customer?.name || 'N/A',
+                                customerId: quotation.customerId,
+                                date: quotation.createdAt || new Date().toISOString(),
+                                expiryDate: quotation.validUntil || new Date().toISOString(),
+                                items: quotation.items.map(item => ({
+                                    id: item.id,
+                                    productId: item.product?.sku || 'N/A',
+                                    productName: item.product?.name || 'N/A',
+                                    quantity: item.quantity,
+                                    unitPrice: item.price || 0,
+                                    total: item.total || 0
+                                })),
+                                subtotal: quotation.total || 0,
+                                discount: 0,
+                                tax: 0,
+                                total: quotation.total || 0,
+                                notes: '',
+                                termsAndConditions: 'Thank you for your business. This quotation is valid for 30 days from the issue date.'
+                            }}
+                        />
                     </div>
                 )}
             </div>

@@ -45,7 +45,11 @@ export async function GET(
                         product: true
                     }
                 },
-                payments: true
+                payments: {
+                    include: {
+                        receipt: true
+                    }
+                }
             }
         });
 
@@ -304,42 +308,8 @@ export async function PUT(
                     });
 
                     // Handle cash payment method
-                    if (invoiceData.paymentMethod === 'Cash') {
-                        // Check if there's already a payment record
-                        const existingPayments = await tx.payment.findMany({
-                            where: { invoiceId: invoiceId }
-                        });
-
-                        const totalPaid = existingPayments.reduce((sum, payment) => sum + payment.amount, 0);
-
-                        // If no payments or total paid doesn't match invoice total, create/update payment
-                        if (existingPayments.length === 0 || totalPaid !== invoiceData.total) {
-                            // Delete existing payments if any
-                            if (existingPayments.length > 0) {
-                                // First delete any receipts that reference these payments
-                                const paymentIds = existingPayments.map(p => p.id);
-                                await tx.receipt.deleteMany({
-                                    where: { paymentId: { in: paymentIds } }
-                                });
-                                
-                                // Then delete the payments
-                                await tx.payment.deleteMany({
-                                    where: { invoiceId: invoiceId }
-                                });
-                            }
-
-                            // Create a new payment for the full amount
-                            await tx.payment.create({
-                                data: {
-                                    invoiceId: invoiceId,
-                                    customerId: invoiceData.customerId,
-                                    amount: invoiceData.total,
-                                    paymentMethod: 'Cash',
-                                    referenceNumber: `AUTO-UPDATE-${finalUpdatedInvoice.invoiceNumber}`,
-                                }
-                            });
-                        }
-                    }
+                    // Removed automatic payment creation/update for cash invoices
+                    // Users will manually record payments when they actually receive them
 
                     return finalUpdatedInvoice;
                 } catch (txError) {

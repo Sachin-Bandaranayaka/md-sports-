@@ -52,6 +52,11 @@ interface Payment {
     paymentMethod: string;
     referenceNumber?: string;
     createdAt: string;
+    receipt?: {
+        id: number;
+        receiptNumber: string;
+        receiptDate: string;
+    };
 }
 
 interface Shop {
@@ -190,14 +195,13 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
             {/* Header */}
             <div className="flex justify-between items-start mb-8">
                 <div className="flex items-center">
-                    {/* Company Logo/Brand */}
+                    {/* Company Logo */}
                     <div className="mr-4">
-                        <div className="bg-red-600 text-white px-3 py-1 text-sm font-bold rounded">
-                            SPORTS
-                        </div>
-                        <div className="bg-black text-white px-3 py-1 text-lg font-bold mt-1">
-                            MS
-                        </div>
+                        <img 
+                            src="/mssport-logo.jpeg" 
+                            alt="MS Sports Logo" 
+                            className="h-16 w-auto object-contain"
+                        />
                     </div>
                     <div>
                         <h1 className="text-xl font-bold text-black">{currentCompanyInfo.name}</h1>
@@ -278,10 +282,14 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
                             <span className="text-black font-bold">Total</span>
                             <span className="text-black font-bold">{formatCurrency(invoice.total)}</span>
                         </div>
-                        <div className="flex justify-between py-2 text-sm text-gray-600">
-                            <span>Receipt — 6359 — {formatDate(invoice.createdAt)}</span>
-                            <span>-{formatCurrency(paidAmount)}</span>
-                        </div>
+                        {invoice.payments && invoice.payments.length > 0 && invoice.payments.some(p => p.receipt) && (
+                            <div className="flex justify-between py-2 text-sm text-gray-600">
+                                <span>
+                                    Receipt — {invoice.payments.find(p => p.receipt)?.receipt?.receiptNumber || 'N/A'} — {formatDate(invoice.createdAt)}
+                                </span>
+                                <span>-{formatCurrency(paidAmount)}</span>
+                            </div>
+                        )}
                         <div className="flex justify-between py-2 border-t border-gray-300">
                             <span className="text-black font-bold">Balance due</span>
                             <span className="text-black font-bold">{formatCurrency(remainingBalance)}</span>
