@@ -154,7 +154,7 @@ export async function DELETE(
             }
         }
 
-        // Delete receipt and update invoice status back to Pending
+        // Delete receipt and recalculate invoice status
         await prisma.$transaction(async (tx) => {
             // Find the related accounting transaction to reverse it
             const relatedTransaction = await tx.transaction.findFirst({
@@ -187,10 +187,40 @@ export async function DELETE(
                 where: { id }
             });
 
-            // Update the invoice status back to Pending
+            // Recalculate invoice status based on remaining payments
+            const remainingPayments = await tx.payment.findMany({
+                where: { invoiceId: existingReceipt.payment.invoiceId },
+                include: { receipt: true }
+            });
+
+            // Calculate total amount from remaining receipts
+            const totalPaid = remainingPayments.reduce((sum, payment) => {
+                if (payment.receipt) {
+                    return sum + payment.receipt.amount;
+                }
+                return sum;
+            }, 0);
+
+            // Get invoice total
+            const invoice = await tx.invoice.findUnique({
+                where: { id: existingReceipt.payment.invoiceId },
+                select: { total: true }
+            });
+
+            const invoiceTotal = invoice?.total || 0;
+
+            // Determine the correct status based on remaining payment amount
+            let newStatus = 'pending';
+            if (totalPaid >= invoiceTotal) {
+                newStatus = 'paid';
+            } else if (totalPaid > 0) {
+                newStatus = 'partial';
+            }
+
+            // Update invoice status based on remaining payments
             await tx.invoice.update({
                 where: { id: existingReceipt.payment.invoiceId },
-                data: { status: 'pending' }
+                data: { status: newStatus }
             });
         });
 

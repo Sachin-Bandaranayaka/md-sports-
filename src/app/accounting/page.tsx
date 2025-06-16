@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Search, Plus, Edit, Trash, X, ArrowUp, ArrowDown, Filter, Calendar, DollarSign, Briefcase, CreditCard, PieChart, TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
+import { Search, Plus, Edit, Trash, X, ArrowUp, ArrowDown, Filter, Calendar, RefreshCw, TrendingUp, TrendingDown } from 'lucide-react';
 import { Transaction, Account } from '@/types';
 import { authGet, authPost, authDelete, authPatch } from '@/utils/api';
 // Removed framer-motion animations
@@ -96,26 +96,7 @@ function AccountingContent() {
         (account.description && account.description.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
-    // Calculate simplified cash flow summary based on actual account balances
-    const cashInHand = accounts
-        .filter(account => account.name?.toLowerCase().includes('cash in hand') ||
-                          account.name?.toLowerCase().includes('cash'))
-        .reduce((sum, account) => sum + Number(account.balance), 0);
 
-    const cashInBank = accounts
-        .filter(account => account.name?.toLowerCase().includes('bank') ||
-                          account.type?.toLowerCase().includes('bank'))
-        .reduce((sum, account) => sum + Number(account.balance), 0);
-
-    // Calculate total sales from all income transactions (representing paid invoices)
-    const totalSales = transactions
-        .filter(transaction => transaction.type === 'income')
-        .reduce((sum, transaction) => sum + Number(transaction.amount), 0);
-
-    // Calculate expenses from transactions
-    const totalExpenses = transactions
-        .filter(transaction => transaction.type === 'expense')
-        .reduce((sum, transaction) => sum + Number(transaction.amount), 0);
 
     const handleAddTransaction = () => {
         router.push('/accounting/add-transaction');
@@ -254,60 +235,7 @@ function AccountingContent() {
                     )}
                 </div>
 
-                {/* Simplified Cash Flow Summary Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="bg-white p-5 rounded-lg shadow-md border border-gray-100">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h3 className="text-sm font-medium text-gray-500 mb-1">Cash in Hand</h3>
-                                <p className="text-2xl font-bold text-green-600">Rs. {cashInHand.toLocaleString()}</p>
-                                <div className="mt-1 text-sm text-gray-600">From cash payments</div>
-                            </div>
-                            <div className="bg-green-100 p-3 rounded-full">
-                                <DollarSign className="w-6 h-6 text-green-600" />
-                            </div>
-                        </div>
-                    </div>
 
-                    <div className="bg-white p-5 rounded-lg shadow-md border border-gray-100">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h3 className="text-sm font-medium text-gray-500 mb-1">Cash in Bank</h3>
-                                <p className="text-2xl font-bold text-blue-600">Rs. {cashInBank.toLocaleString()}</p>
-                                <div className="mt-1 text-sm text-gray-600">From bank transfers & cards</div>
-                            </div>
-                            <div className="bg-blue-100 p-3 rounded-full">
-                                <Briefcase className="w-6 h-6 text-blue-600" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white p-5 rounded-lg shadow-md border border-gray-100">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h3 className="text-sm font-medium text-gray-500 mb-1">Total Sales</h3>
-                                <p className="text-2xl font-bold text-purple-600">Rs. {totalSales.toLocaleString()}</p>
-                                <div className="mt-1 text-sm text-gray-600">From paid invoices</div>
-                            </div>
-                            <div className="bg-purple-100 p-3 rounded-full">
-                                <TrendingUp className="w-6 h-6 text-purple-600" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white p-5 rounded-lg shadow-md border border-gray-100">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h3 className="text-sm font-medium text-gray-500 mb-1">Total Expenses</h3>
-                                <p className="text-2xl font-bold text-red-600">Rs. {totalExpenses.toLocaleString()}</p>
-                                <div className="mt-1 text-sm text-gray-600">Business expenses</div>
-                            </div>
-                            <div className="bg-red-100 p-3 rounded-full">
-                                <TrendingDown className="w-6 h-6 text-red-600" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 {/* Tab Navigation */}
                 <div className="border-b border-gray-200 mb-6">

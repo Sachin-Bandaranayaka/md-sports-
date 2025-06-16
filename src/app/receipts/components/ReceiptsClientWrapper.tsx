@@ -63,6 +63,9 @@ export default function ReceiptsClientWrapper({
     const [currentPage, setCurrentPage] = useState(initialCurrentPage);
     const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
+    const [selectedReceipts, setSelectedReceipts] = useState<number[]>([]);
+    const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+    const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -107,6 +110,65 @@ export default function ReceiptsClientWrapper({
         setConfirmDelete(null);
     };
 
+    const handleSelectAll = (checked: boolean) => {
+        if (checked) {
+            setSelectedReceipts(receipts.map(receipt => receipt.id));
+        } else {
+            setSelectedReceipts([]);
+        }
+    };
+
+    const handleSelectReceipt = (receiptId: number, checked: boolean) => {
+        if (checked) {
+            setSelectedReceipts(prev => [...prev, receiptId]);
+        } else {
+            setSelectedReceipts(prev => prev.filter(id => id !== receiptId));
+        }
+    };
+
+    const handleBulkDelete = () => {
+        if (selectedReceipts.length === 0) return;
+        setShowBulkDeleteConfirm(true);
+    };
+
+    const handleConfirmBulkDelete = async () => {
+        if (selectedReceipts.length === 0) return;
+
+        try {
+            setBulkDeleteLoading(true);
+            
+            // Delete all selected receipts
+            const deletePromises = selectedReceipts.map(receiptId => 
+                fetch(`/api/receipts/${receiptId}`, { method: 'DELETE' })
+            );
+            
+            const responses = await Promise.all(deletePromises);
+            
+            // Check if all deletions were successful
+            const failedDeletions = responses.filter(response => !response.ok);
+            if (failedDeletions.length > 0) {
+                throw new Error(`Failed to delete ${failedDeletions.length} receipt(s)`);
+            }
+
+            // Remove deleted receipts from state
+            setReceipts(receipts.filter(receipt => !selectedReceipts.includes(receipt.id)));
+            setSelectedReceipts([]);
+            setShowBulkDeleteConfirm(false);
+        } catch (err) {
+            console.error('Error deleting receipts:', err);
+            alert(err instanceof Error ? err.message : 'An error occurred while deleting the receipts');
+        } finally {
+            setBulkDeleteLoading(false);
+        }
+    };
+
+    const handleCancelBulkDelete = () => {
+        setShowBulkDeleteConfirm(false);
+    };
+
+    const isAllSelected = receipts.length > 0 && selectedReceipts.length === receipts.length;
+    const isIndeterminate = selectedReceipts.length > 0 && selectedReceipts.length < receipts.length;
+
     return (
         <div className="space-y-6">
             {/* Search Bar */}
@@ -125,6 +187,36 @@ export default function ReceiptsClientWrapper({
                     <Button type="submit" variant="primary" className="px-6 py-3 bg-primary hover:bg-red-700 text-white font-medium rounded-lg transition-colors duration-200">Search</Button>
                 </form>
             </div>
+
+            {/* Bulk Actions Bar */}
+            {selectedReceipts.length > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <span className="text-sm font-medium text-blue-900">
+                                {selectedReceipts.length} receipt{selectedReceipts.length !== 1 ? 's' : ''} selected
+                            </span>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setSelectedReceipts([])}
+                                className="text-blue-700 border-blue-300 hover:bg-blue-100"
+                            >
+                                Clear Selection
+                            </Button>
+                        </div>
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={handleBulkDelete}
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                        >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete Selected
+                        </Button>
+                    </div>
+                </div>
+            )}
 
             {/* Delete Confirmation Dialog */}
             {confirmDelete && (
@@ -156,6 +248,36 @@ export default function ReceiptsClientWrapper({
                 </div>
             )}
 
+            {/* Bulk Delete Confirmation Dialog */}
+            {showBulkDeleteConfirm && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl p-8 max-w-md w-full shadow-2xl border border-gray-200">
+                        <h3 className="text-xl font-semibold text-black mb-4">Confirm Bulk Delete</h3>
+                        <p className="text-gray-600 mb-8 leading-relaxed">
+                            Are you sure you want to delete {selectedReceipts.length} selected receipt{selectedReceipts.length !== 1 ? 's' : ''}? This action cannot be undone.
+                        </p>
+                        <div className="flex justify-end space-x-4">
+                            <Button
+                                variant="outline"
+                                onClick={handleCancelBulkDelete}
+                                disabled={bulkDeleteLoading}
+                                className="px-6 py-2 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                variant="destructive"
+                                onClick={handleConfirmBulkDelete}
+                                disabled={bulkDeleteLoading}
+                                className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors duration-200"
+                            >
+                                {bulkDeleteLoading ? 'Deleting...' : `Delete ${selectedReceipts.length} Receipt${selectedReceipts.length !== 1 ? 's' : ''}`}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Receipts Table */}
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
                 {loading ? (
@@ -176,6 +298,17 @@ export default function ReceiptsClientWrapper({
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-100">
                                 <tr>
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                        <input
+                                            type="checkbox"
+                                            checked={isAllSelected}
+                                            ref={(el) => {
+                                                if (el) el.indeterminate = isIndeterminate;
+                                            }}
+                                            onChange={(e) => handleSelectAll(e.target.checked)}
+                                            className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                                        />
+                                    </th>
                                     <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         Receipt Number
                                     </th>
@@ -205,6 +338,14 @@ export default function ReceiptsClientWrapper({
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {receipts.map((receipt) => (
                                     <tr key={receipt.id} className="hover:bg-gray-50 transition-colors duration-150">
+                                        <td className="px-6 py-5 whitespace-nowrap text-sm">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedReceipts.includes(receipt.id)}
+                                                onChange={(e) => handleSelectReceipt(receipt.id, e.target.checked)}
+                                                className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                                            />
+                                        </td>
                                         <td className="px-6 py-5 whitespace-nowrap text-sm font-semibold text-black">
                                             {receipt.receiptNumber}
                                         </td>
@@ -217,7 +358,7 @@ export default function ReceiptsClientWrapper({
                                         <td className="px-6 py-5 whitespace-nowrap text-sm text-black">
                                             {receipt.payment.customer.name}
                                         </td>
-                                        <td className="px-6 py-5 whitespace-nowrap text-sm font-semibold text-primary">
+                                        <td className="px-6 py-5 whitespace-nowrap text-sm font-semibold text-green-600">
                                             {formatCurrency(receipt.payment.amount)}
                                         </td>
                                         <td className="px-6 py-5 whitespace-nowrap text-sm text-black">

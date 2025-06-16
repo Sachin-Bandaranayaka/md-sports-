@@ -143,7 +143,9 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
     };
     
     const currentCompanyInfo = getCompanyInfo();
-    const paidAmount = invoice.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
+    const paidAmount = invoice.payments?.reduce((sum, payment) => {
+        return payment.receipt ? sum + (Number(payment.amount) || 0) : sum;
+    }, 0) || 0;
     const remainingBalance = invoice.total - paidAmount;
 
     // Calculate due date (30 days after creation)
@@ -342,6 +344,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
                                 <th className="border border-gray-300 px-4 py-2 text-left text-black font-bold">Date</th>
                                 <th className="border border-gray-300 px-4 py-2 text-left text-black font-bold">Method</th>
                                 <th className="border border-gray-300 px-4 py-2 text-left text-black font-bold">Reference</th>
+                                <th className="border border-gray-300 px-4 py-2 text-left text-black font-bold">Receipt</th>
                                 <th className="border border-gray-300 px-4 py-2 text-right text-black font-bold">Amount</th>
                             </tr>
                         </thead>
@@ -351,7 +354,10 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
                                     <td className="border border-gray-300 px-4 py-2 text-black">{formatDate(payment.createdAt)}</td>
                                     <td className="border border-gray-300 px-4 py-2 text-black">{payment.paymentMethod}</td>
                                     <td className="border border-gray-300 px-4 py-2 text-black">{payment.referenceNumber || '-'}</td>
-                                    <td className="border border-gray-300 px-4 py-2 text-right text-black">{formatCurrency(payment.amount)}</td>
+                                    <td className="border border-gray-300 px-4 py-2 text-black">
+                                        {payment.receipt ? payment.receipt.receiptNumber : 'No receipt'}
+                                    </td>
+                                    <td className="border border-gray-300 px-4 py-2 text-right text-black">{payment.receipt ? formatCurrency(Number(payment.amount) || 0) : formatCurrency(0)}</td>
                                 </tr>
                             ))}
                         </tbody>

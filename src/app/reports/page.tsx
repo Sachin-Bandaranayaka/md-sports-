@@ -9,10 +9,18 @@ import InventoryReportViewModal from '@/components/reports/InventoryReportViewMo
 import CustomerPaymentsViewModal from '@/components/reports/CustomerPaymentsViewModal';
 import ProductPerformanceViewModal from '@/components/reports/ProductPerformanceViewModal';
 import ShopPerformanceViewModal from '@/components/reports/ShopPerformanceViewModal';
+import DailySalesReportModal from '@/components/reports/DailySalesReportModal';
 import ScheduleReportModal from '@/components/reports/ScheduleReportModal';
 import GenerateReportModal from '@/components/reports/GenerateReportModal';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable'; // Ensure this is imported for the autoTable method to be available
+import autoTable from 'jspdf-autotable';
+
+// Extend jsPDF type to include autoTable
+declare module 'jspdf' {
+    interface jsPDF {
+        autoTable: (options: any) => jsPDF;
+    }
+}
 import * as XLSX from 'xlsx';
 
 interface Report {
@@ -27,6 +35,14 @@ interface Report {
 
 // Initial dummy data for reports
 const initialReports: Report[] = [
+    {
+        id: 'REP-006',
+        name: 'Daily Sales Report',
+        description: 'Daily sales breakdown by shop with Excel and PDF export',
+        type: 'Sales',
+        lastGenerated: 'loading...',
+        format: 'Both'
+    },
     {
         id: 'REP-001',
         name: 'Monthly Sales Summary',
@@ -443,6 +459,9 @@ export default function Reports() {
     const [isShopPerformanceModalOpen, setIsShopPerformanceModalOpen] = useState(false);
     const [selectedShopPerformanceData, setSelectedShopPerformanceData] = useState<any | null>(null);
 
+    const [isDailySalesModalOpen, setIsDailySalesModalOpen] = useState(false);
+    const [selectedDailySalesData, setSelectedDailySalesData] = useState<any | null>(null);
+
     const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
     const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
 
@@ -638,6 +657,41 @@ export default function Reports() {
             setLoading(prev => ({ ...prev, 'REP-005': false }));
         };
 
+        const fetchDailySales = async () => {
+            setLoading(prev => ({ ...prev, 'REP-006': true }));
+            try {
+                const response = await fetch('/api/reports/daily-sales');
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch daily sales: ${response.statusText}`);
+                }
+                const data = await response.json();
+                if (data.success) {
+                    setReports(prevReports => prevReports.map(report => {
+                        if (report.id === 'REP-006') {
+                            const totalSales = data.summary.totalSales;
+                            const totalShops = data.summary.totalShops;
+                            return {
+                                ...report,
+                                description: `Daily sales for ${data.summary.date}: ${totalSales.toLocaleString(undefined, { style: 'currency', currency: 'LKR' })} across ${totalShops} shops.`,
+                                lastGenerated: new Date().toLocaleDateString('en-CA'),
+                                data: data
+                            };
+                        }
+                        return report;
+                    }));
+                } else {
+                    throw new Error(data.message || 'Failed to fetch daily sales');
+                }
+            } catch (err: any) {
+                console.error(err);
+                setReports(prevReports => prevReports.map(report =>
+                    report.id === 'REP-006' ? { ...report, description: 'Error loading daily sales data', lastGenerated: 'Error' } : report
+                ));
+            }
+            setLoading(prev => ({ ...prev, 'REP-006': false }));
+        };
+
+        fetchDailySales();
         fetchSalesSummary();
         fetchInventoryStatus();
         fetchCustomerPayments();
@@ -685,6 +739,9 @@ export default function Reports() {
         } else if (report.id === 'REP-005' && report.data) {
             setSelectedShopPerformanceData(report.data);
             setIsShopPerformanceModalOpen(true);
+        } else if (report.id === 'REP-006' && report.data) {
+            setSelectedDailySalesData(report.data);
+            setIsDailySalesModalOpen(true);
         } else {
             alert(`View functionality for "${report.name}" is not yet implemented or data is missing.`);
         }
@@ -855,6 +912,101 @@ export default function Reports() {
                 link.click();
                 document.body.removeChild(link);
                 URL.revokeObjectURL(url);
+            }
+        } else if (report.id === 'REP-006' && report.data) {
+            // Daily Sales Report - supports both PDF and Excel
+            if (report.format === 'Both' || report.format === 'PDF') {
+                // Generate PDF using the same logic as in DailySalesReportModal
+                const doc = new jsPDF();
+                
+                // Title
+                doc.setFontSize(20);
+                doc.text('Daily Sales Report', 20, 20);
+                
+                // Date and summary
+                doc.setFontSize(12);
+                doc.text(`Date: ${report.data.summary.date}`, 20, 35);
+                doc.text(`Total Sales: ${report.data.summary.totalSales.toLocaleString(undefined, { style: 'currency', currency: 'LKR' })}`, 20, 45);
+                doc.text(`Total Invoices: ${report.data.summary.totalInvoices}`, 20, 55);
+                doc.text(`Active Shops: ${report.data.summary.numberOfShops}`, 20, 65);
+                
+                // Shop summary table
+                const shopTableData = report.data.shopData.map((shop: any) => [
+                    shop.shopName,
+                    shop.totalSales.toLocaleString(undefined, { style: 'currency', currency: 'LKR' }),
+                    shop.numberOfInvoices.toString(),
+                    shop.totalQuantitySold.toString(),
+                    shop.averageTransactionValue.toLocaleString(undefined, { style: 'currency', currency: 'LKR' })
+                ]);
+                
+                autoTable(doc, {
+                    head: [['Shop Name', 'Total Sales', 'Invoices', 'Quantity', 'Avg. Transaction']],
+                    body: shopTableData,
+                    startY: 75,
+                    styles: { fontSize: 10 },
+                    headStyles: { fillColor: [66, 139, 202] }
+                });
+                
+                doc.save(`Daily_Sales_Report_${report.data.summary.date}.pdf`);
+            }
+            
+            if (report.format === 'Both' || report.format === 'Excel') {
+                // Generate Excel using the same logic as in DailySalesReportModal
+                const wb = XLSX.utils.book_new();
+                
+                // Summary sheet
+                const summaryData = [
+                    ['Daily Sales Report Summary'],
+                    ['Date', report.data.summary.date],
+                    ['Total Sales', report.data.summary.totalSales],
+                    ['Total Invoices', report.data.summary.totalInvoices],
+                    ['Active Shops', report.data.summary.numberOfShops],
+                    ['Average Per Shop', report.data.summary.averagePerShop]
+                ];
+                const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+                XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
+                
+                // Shop overview sheet
+                const shopOverviewData = [
+                    ['Shop Name', 'Total Sales', 'Invoice Count', 'Total Quantity', 'Average Transaction Value']
+                ];
+                report.data.shopData.forEach((shop: any) => {
+                    shopOverviewData.push([
+                        shop.shopName,
+                        shop.totalSales,
+                        shop.numberOfInvoices,
+                        shop.totalQuantitySold,
+                        shop.averageTransactionValue
+                    ]);
+                });
+                const shopOverviewWs = XLSX.utils.aoa_to_sheet(shopOverviewData);
+                XLSX.utils.book_append_sheet(wb, shopOverviewWs, 'Shop Overview');
+                
+                // Detailed invoices sheet
+                const detailedData = [
+                    ['Invoice Number', 'Shop', 'Customer', 'Total Amount', 'Payment Status', 'Created At', 'Items']
+                ];
+                report.data.shopData.forEach((shop: any) => {
+                    shop.invoices.forEach((invoice: any) => {
+                        const itemsText = invoice.items.map((item: any) => 
+                            `${item.productName} (${item.quantity}x${item.unitPrice})`
+                        ).join('; ');
+                        
+                        detailedData.push([
+                            invoice.invoiceNumber,
+                            shop.shopName,
+                            invoice.customerName || 'Walk-in Customer',
+                            invoice.totalAmount,
+                            invoice.paymentStatus,
+                            new Date(invoice.createdAt).toLocaleString(),
+                            itemsText
+                        ]);
+                    });
+                });
+                const detailedWs = XLSX.utils.aoa_to_sheet(detailedData);
+                XLSX.utils.book_append_sheet(wb, detailedWs, 'Detailed Invoices');
+                
+                XLSX.writeFile(wb, `Daily_Sales_Report_${report.data.summary.date}.xlsx`);
             }
         } else {
             alert(`Download functionality for "${report.name}" is not yet implemented or data is missing.`);
@@ -1136,6 +1288,14 @@ export default function Reports() {
                     reportData={selectedShopPerformanceData}
                 />
             )}
+            {isDailySalesModalOpen && selectedDailySalesData && (
+                <DailySalesReportModal
+                    isOpen={isDailySalesModalOpen}
+                    onClose={() => setIsDailySalesModalOpen(false)}
+                    reportName={selectedReportName}
+                    reportData={selectedDailySalesData}
+                />
+            )}
             {isScheduleModalOpen && (
                 <ScheduleReportModal
                     isOpen={isScheduleModalOpen}
@@ -1152,4 +1312,4 @@ export default function Reports() {
             )}
         </MainLayout>
     );
-} 
+}

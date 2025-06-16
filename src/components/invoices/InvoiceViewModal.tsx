@@ -105,7 +105,9 @@ const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({
         }
     };
 
-    const paidAmount = invoice.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
+    const paidAmount = invoice.payments?.reduce((sum, payment) => {
+        return payment.receipt ? sum + (Number(payment.amount) || 0) : sum;
+    }, 0) || 0;
     const remainingBalance = invoice.total - paidAmount;
     const isOverdue = new Date(invoice.dueDate) < new Date() && invoice.status.toLowerCase() !== 'paid';
 
@@ -285,6 +287,7 @@ const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({
                                         <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Date</th>
                                         <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Method</th>
                                         <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Reference</th>
+                                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Receipt</th>
                                         <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">Amount</th>
                                     </tr>
                                 </thead>
@@ -294,8 +297,17 @@ const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({
                                             <td className="px-4 py-3 text-gray-900">{formatDate(payment.createdAt)}</td>
                                             <td className="px-4 py-3 text-gray-900 capitalize">{payment.paymentMethod}</td>
                                             <td className="px-4 py-3 text-gray-900">{payment.referenceNumber || '-'}</td>
+                                            <td className="px-4 py-3 text-gray-900">
+                                                {payment.receipt ? (
+                                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                        {payment.receipt.receiptNumber}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-gray-400 text-xs">No receipt</span>
+                                                )}
+                                            </td>
                                             <td className="px-4 py-3 text-right font-medium text-green-600">
-                                                {formatCurrency(payment.amount)}
+                                                {payment.receipt ? formatCurrency(Number(payment.amount) || 0) : formatCurrency(0)}
                                             </td>
                                         </tr>
                                     ))}

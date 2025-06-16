@@ -32,6 +32,11 @@ export default function CreateQuotation() {
     });
     const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
 
+    // Add state for product search functionality
+    const [productSearches, setProductSearches] = useState<string[]>([]);
+    const [showProductDropdowns, setShowProductDropdowns] = useState<boolean[]>([]);
+    const [filteredProducts, setFilteredProducts] = useState<Product[][]>([]);
+
     // Initialize form with empty quotation
     const [formData, setFormData] = useState<Partial<SalesQuotation> & { customerName?: string }>({
         customerId: '',
@@ -132,10 +137,19 @@ export default function CreateQuotation() {
             if (customerDropdownRef.current && !customerDropdownRef.current.contains(event.target as Node)) {
                 setShowCustomerDropdown(false);
             }
+            
+            // Check product dropdowns
+            productDropdownRefs.current.forEach((ref, index) => {
+                if (ref && !ref.contains(event.target as Node)) {
+                    const newShowProductDropdowns = [...showProductDropdowns];
+                    newShowProductDropdowns[index] = false;
+                    setShowProductDropdowns(newShowProductDropdowns);
+                }
+            });
         }
 
-        // Add event listener when dropdown is open
-        if (showCustomerDropdown) {
+        // Add event listener when any dropdown is open
+        if (showCustomerDropdown || showProductDropdowns.some(show => show)) {
             document.addEventListener('mousedown', handleClickOutside);
         }
 
@@ -143,7 +157,7 @@ export default function CreateQuotation() {
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [showCustomerDropdown]);
+    }, [showCustomerDropdown, showProductDropdowns]);
 
     // Initialize product search arrays when items change
     useEffect(() => {
@@ -294,11 +308,6 @@ export default function CreateQuotation() {
 
     // Add state for form submission
     const [isSubmitting, setIsSubmitting] = useState(false);
-
-    // Add state for product search functionality
-    const [productSearches, setProductSearches] = useState<string[]>([]);
-    const [showProductDropdowns, setShowProductDropdowns] = useState<boolean[]>([]);
-    const [filteredProducts, setFilteredProducts] = useState<Product[][]>([]);
 
     // Handle quick customer submission
     const handleQuickCustomerSubmit = async (e: React.FormEvent) => {
@@ -647,8 +656,8 @@ export default function CreateQuotation() {
                                 </Button>
                             </div>
 
-                            <div className="relative z-10" style={{overflowX: 'auto', overflowY: 'visible'}}>
-                                <table className="w-full border-collapse" style={{overflow: 'visible'}}>
+                            <div className="relative" style={{overflowX: 'auto', overflowY: 'visible'}}>
+                                <table className="w-full border-collapse" style={{overflow: 'visible', position: 'relative', zIndex: 1}}>
                                     <thead>
                                         <tr className="bg-gray-100">
                                             <th className="p-3 text-left text-black font-medium">Product</th>
@@ -661,7 +670,7 @@ export default function CreateQuotation() {
                                     <tbody>
                                         {items.map((item, index) => (
                                             <tr key={index} className="border-b">
-                                                <td className="p-3 relative" style={{overflow: 'visible', position: 'relative'}}>
+                                                <td className="p-3" style={{overflow: 'visible', position: 'relative', zIndex: 1}}>
                                                     <div className="relative" ref={el => productDropdownRefs.current[index] = el}>
                                                         <div className="relative">
                                                             <input
@@ -681,7 +690,7 @@ export default function CreateQuotation() {
                                                         </div>
                                                         
                                                         {showProductDropdowns[index] && filteredProducts[index] && filteredProducts[index].length > 0 && (
-                                                            <div className="absolute z-[9999] w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto" style={{position: 'absolute', top: '100%', left: '0', right: '0'}}>
+                                                            <div className="absolute w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto" style={{position: 'fixed', top: `${productDropdownRefs.current[index]?.getBoundingClientRect().bottom + window.scrollY}px`, left: `${productDropdownRefs.current[index]?.getBoundingClientRect().left + window.scrollX}px`, width: `${productDropdownRefs.current[index]?.getBoundingClientRect().width}px`, zIndex: 10000}}>
                                                                 {filteredProducts[index].map((product) => (
                                                                     <div
                                                                         key={product.id}
@@ -699,7 +708,7 @@ export default function CreateQuotation() {
                                                         )}
                                                         
                                                         {showProductDropdowns[index] && filteredProducts[index] && filteredProducts[index].length === 0 && productSearches[index] && (
-                                                            <div className="absolute z-[9999] w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg" style={{position: 'absolute', top: '100%', left: '0', right: '0'}}>
+                                                            <div className="absolute w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg" style={{position: 'fixed', top: `${productDropdownRefs.current[index]?.getBoundingClientRect().bottom + window.scrollY}px`, left: `${productDropdownRefs.current[index]?.getBoundingClientRect().left + window.scrollX}px`, width: `${productDropdownRefs.current[index]?.getBoundingClientRect().width}px`, zIndex: 10000}}>
                                                                 <div className="px-3 py-2 text-gray-500 text-center">
                                                                     No products found
                                                                 </div>
@@ -932,9 +941,15 @@ export default function CreateQuotation() {
         }
     }, [items.length, products]);
 
-    // Close product dropdown when clicking outside
+    // Handle clicks outside to close dropdowns and window events for positioning
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
+            // Check customer dropdown
+            if (customerDropdownRef.current && !customerDropdownRef.current.contains(event.target as Node)) {
+                setShowCustomerDropdown(false);
+            }
+            
+            // Check product dropdowns
             productDropdownRefs.current.forEach((ref, index) => {
                 if (ref && !ref.contains(event.target as Node)) {
                     const newShowProductDropdowns = [...showProductDropdowns];
@@ -944,9 +959,24 @@ export default function CreateQuotation() {
             });
         };
 
+        const handleScroll = () => {
+            // Force re-render to update dropdown positions
+            setShowProductDropdowns(prev => [...prev]);
+        };
+
+        const handleResize = () => {
+            // Force re-render to update dropdown positions
+            setShowProductDropdowns(prev => [...prev]);
+        };
+
         document.addEventListener('mousedown', handleClickOutside);
+        window.addEventListener('scroll', handleScroll);
+        window.addEventListener('resize', handleResize);
+        
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
+            window.removeEventListener('scroll', handleScroll);
+            window.removeEventListener('resize', handleResize);
         };
     }, [showProductDropdowns]);
 }
