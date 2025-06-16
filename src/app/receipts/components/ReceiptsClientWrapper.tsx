@@ -231,8 +231,8 @@ export default function ReceiptsClientWrapper({
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    onClick={() => router.push(`/receipts/${receipt.id}`)}
-                                                    title="View Receipt"
+                                                    onClick={() => router.push(`/receipts/${receipt.id}/detail`)}
+                                                    title="View Receipt Details"
                                                     className="p-2 hover:bg-blue-50 rounded-lg transition-colors duration-200"
                                                 >
                                                     <Eye className="h-5 w-5 text-blue-600" />

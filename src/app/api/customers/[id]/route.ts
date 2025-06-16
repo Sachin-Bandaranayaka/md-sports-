@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { AuditService } from '@/services/auditService';
 import { verifyToken } from '@/lib/auth';
+import { requirePermission } from '@/lib/utils/middleware';
 
 export async function GET(
     request: Request,
@@ -66,6 +67,12 @@ export async function PUT(
     request: Request,
     context: { params: { id: string } }
 ) {
+    // Check for 'customer:update' permission
+    const permissionError = await requirePermission('customer:update')(request);
+    if (permissionError) {
+        return permissionError;
+    }
+
     try {
         // Get params from context and ensure it's resolved
         const { id: paramId } = context.params;
@@ -208,6 +215,12 @@ export async function DELETE(
     request: Request,
     context: { params: { id: string } }
 ) {
+    // Check for 'customer:delete' permission
+    const permissionError = await requirePermission('customer:delete')(request);
+    if (permissionError) {
+        return permissionError;
+    }
+
     try {
         // Verify token and get user
         const token = request.headers.get('authorization')?.replace('Bearer ', '');

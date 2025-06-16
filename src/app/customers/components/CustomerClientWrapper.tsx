@@ -311,8 +311,8 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                 setCustomers(prevCustomers => prevCustomers.filter(customer => customer.id !== customerId));
                 setAllCustomers(prevAllCustomers => prevAllCustomers.filter(customer => customer.id !== customerId));
                 
-                // Force a page refresh to clear any cached data
-                window.location.reload();
+                // Refresh the page to get updated data from server
+                router.refresh();
             } else {
                 setError(data.message || 'Failed to delete customer. Please try again.');
             }

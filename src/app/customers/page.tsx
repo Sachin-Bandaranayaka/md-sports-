@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import CustomerClientWrapper from './components/CustomerClientWrapper';
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
+import { AuditService } from '@/services/auditService';
 
 // Add revalidation - cache customers page for 60 seconds
 export const revalidate = 60;
@@ -66,6 +67,17 @@ async function fetchCustomersData(
     }
 
     try {
+        // Get IDs of soft-deleted customers
+        const auditService = new AuditService();
+        const deletedCustomerIds = await auditService.getDeletedEntityIds('Customer');
+
+        // Add soft delete filter to where clause
+        if (deletedCustomerIds.length > 0) {
+            whereClause.id = {
+                notIn: deletedCustomerIds
+            };
+        }
+
         const customersFromDB = await prisma.customer.findMany({
             where: whereClause,
             include: {
@@ -224,4 +236,4 @@ export default async function CustomersPage({ searchParams }: { searchParams?: {
             </div>
         </MainLayout>
     );
-} 
+}

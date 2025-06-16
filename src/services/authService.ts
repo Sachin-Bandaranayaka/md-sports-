@@ -191,9 +191,14 @@ export const verifyToken = async (token: string) => {
  * Check if a token has a specific permission with caching
  */
 export const hasPermission = async (tokenPayload: TokenPayload, permission: string) => {
+    // Import the proper permission checking utility
+    const { hasPermission: checkPermission } = await import('@/lib/utils/permissions');
+    
     // Quick check from token payload first
-    if (tokenPayload.permissions?.includes(permission)) {
-        return true;
+    if (tokenPayload.permissions) {
+        if (checkPermission(tokenPayload.permissions, permission)) {
+            return true;
+        }
     }
 
     // If not in token, check cached user permissions
@@ -202,7 +207,7 @@ export const hasPermission = async (tokenPayload: TokenPayload, permission: stri
     try {
         const cachedPermissions = await cacheService.get(permissionsCacheKey);
         if (cachedPermissions) {
-            return cachedPermissions.includes(permission);
+            return checkPermission(cachedPermissions, permission);
         }
 
         // Fallback to database query if not cached
@@ -221,7 +226,7 @@ export const hasPermission = async (tokenPayload: TokenPayload, permission: stri
             const permissions = user.role.permissions.map(p => p.name);
             // Cache permissions for future checks
             await cacheService.set(permissionsCacheKey, permissions, CACHE_CONFIG.TTL.USER_PERMISSIONS);
-            return permissions.includes(permission);
+            return checkPermission(permissions, permission);
         }
     } catch (error) {
         console.error('Error checking permissions:', error);
