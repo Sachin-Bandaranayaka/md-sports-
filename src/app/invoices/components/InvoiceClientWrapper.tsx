@@ -756,18 +756,19 @@ export default function InvoiceClientWrapper({
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8">
                                     <input
                                         type="checkbox"
                                         checked={selectAll}
                                         onChange={handleSelectAll}
-                                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 scale-90"
                                         disabled={loading}
                                     />
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice #</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Actions</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice #</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
                                     <button 
                                         onClick={handleDateSort}
                                         className="flex items-center space-x-1 hover:text-gray-700 focus:outline-none focus:text-gray-700 transition-colors"
@@ -775,15 +776,15 @@ export default function InvoiceClientWrapper({
                                     >
                                         <span>Date</span>
                                         {dateSortOrder === 'desc' ? (
-                                            <ChevronDown size={14} className="text-indigo-600" />
+                                            <ChevronDown size={12} className="text-indigo-600" />
                                         ) : (
-                                            <ChevronUp size={14} className="text-indigo-600" />
+                                            <ChevronUp size={12} className="text-indigo-600" />
                                         )}
                                     </button>
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Note</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Note</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
                                     <button 
                                         onClick={handleDueStatusSort}
                                         className="flex items-center space-x-1 hover:text-gray-700 focus:outline-none focus:text-gray-700 transition-colors"
@@ -791,15 +792,14 @@ export default function InvoiceClientWrapper({
                                     >
                                         <span>Due Days</span>
                                         {dueStatusSortOrder === 'asc' ? (
-                                            <ChevronUp size={14} className="text-indigo-600" />
+                                            <ChevronUp size={12} className="text-indigo-600" />
                                         ) : (
-                                            <ChevronDown size={14} className="text-indigo-600" />
+                                            <ChevronDown size={12} className="text-indigo-600" />
                                         )}
                                     </button>
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profit</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profit</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -809,28 +809,43 @@ export default function InvoiceClientWrapper({
                                         ? 'bg-blue-100 border-l-4 border-blue-500' 
                                         : getShopRowClass(invoice.shop?.name)
                                 }`}>
-                                    <td className="px-6 py-4 whitespace-nowrap">
+                                    <td className="px-3 py-2 whitespace-nowrap">
                                         <input
                                             type="checkbox"
                                             checked={selectedInvoices.has(String(invoice.id))}
                                             onChange={() => handleToggleSelection(String(invoice.id))}
-                                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 scale-90"
                                             disabled={loading}
                                         />
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-600 hover:text-indigo-800 cursor-pointer" onClick={() => router.push(`/invoices/${invoice.id}`)}>{invoice.invoiceNumber}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{invoice.customerName}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">{formatDate(invoice.createdAt)}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-semibold">Rs. {invoice.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{invoice.notes || '-'}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm hidden lg:table-cell">
+                                    <td className="px-2 py-2 whitespace-nowrap text-xs font-medium">
+                                        <div className="flex items-center space-x-0.5">
+                                            {(invoice.status.toLowerCase() === 'pending' || invoice.status.toLowerCase() === 'partial') && (
+                                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleRecordPayment(invoice.id)} title="Record Payment" disabled={loading}>
+                                                    {loading ? <Loader2 className="animate-spin h-3 w-3" /> : <CheckCircle size={12} className="text-green-600" />}
+                                                </Button>
+                                            )}
+                                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleEditInvoice(invoice.id)} title="Edit Invoice" disabled={loading}>
+                                                {loading ? <Loader2 className="animate-spin h-3 w-3" /> : <Edit size={12} className="text-yellow-600" />}
+                                            </Button>
+                                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleDeleteInvoice(invoice.id)} title="Delete Invoice" disabled={loading}>
+                                                {loading ? <Loader2 className="animate-spin h-3 w-3" /> : <Trash2 size={12} className="text-red-600" />}
+                                            </Button>
+                                        </div>
+                                    </td>
+                                    <td className="px-3 py-2 whitespace-nowrap text-xs font-medium text-indigo-600 hover:text-indigo-800 cursor-pointer" onClick={() => router.push(`/invoices/${invoice.id}`)}>{invoice.invoiceNumber}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-700">{invoice.customerName}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500 hidden md:table-cell">{formatDate(invoice.createdAt)}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-800 font-semibold">Rs. {invoice.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">{invoice.notes || '-'}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap text-xs hidden lg:table-cell">
                                         <span className={getDueDateStatus(invoice).className}>
                                             {getDueDateStatus(invoice).text}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex flex-col space-y-1">
-                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(invoice.status)}`}>
+                                    <td className="px-3 py-2 whitespace-nowrap">
+                                        <div className="flex flex-col space-y-0.5">
+                                            <span className={`px-1.5 inline-flex text-xs leading-4 font-semibold rounded-full ${getStatusBadgeClass(invoice.status)}`}>
                                                 {invoice.status}
                                             </span>
                                             {invoice.status.toLowerCase() === 'partial' && invoice.dueAmount !== undefined && (
@@ -840,22 +855,7 @@ export default function InvoiceClientWrapper({
                                             )}
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-semibold">Rs. {(invoice.totalProfit || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <div className="flex items-center space-x-1">
-                                            {(invoice.status.toLowerCase() === 'pending' || invoice.status.toLowerCase() === 'partial') && (
-                                                <Button variant="ghost" size="icon" onClick={() => handleRecordPayment(invoice.id)} title="Record Payment" disabled={loading}>
-                                                    {loading ? <Loader2 className="animate-spin h-4 w-4" /> : <CheckCircle size={16} className="text-green-600" />}
-                                                </Button>
-                                            )}
-                                            <Button variant="ghost" size="icon" onClick={() => handleEditInvoice(invoice.id)} title="Edit Invoice" disabled={loading}>
-                                                {loading ? <Loader2 className="animate-spin h-4 w-4" /> : <Edit size={16} className="text-yellow-600" />}
-                                            </Button>
-                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteInvoice(invoice.id)} title="Delete Invoice" disabled={loading}>
-                                                {loading ? <Loader2 className="animate-spin h-4 w-4" /> : <Trash2 size={16} className="text-red-600" />}
-                                            </Button>
-                                        </div>
-                                    </td>
+                                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-800 font-semibold">Rs. {(invoice.totalProfit || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 </tr>
                             ))}
                         </tbody>

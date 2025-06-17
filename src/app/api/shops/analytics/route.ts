@@ -23,12 +23,12 @@ export async function GET(request: NextRequest) {
         };
 
         if (shopId) {
-            whereCondition.shopId = parseInt(shopId);
+            whereCondition.shopId = shopId;
         }
 
         // Get all shops
         const shops = await prisma.shop.findMany({
-            where: shopId ? { id: parseInt(shopId) } : undefined,
+            where: shopId ? { id: shopId } : undefined,
             select: {
                 id: true,
                 name: true,
@@ -93,4 +93,4 @@ export async function GET(request: NextRequest) {
             { status: 500 }
         );
     }
-} 
+}

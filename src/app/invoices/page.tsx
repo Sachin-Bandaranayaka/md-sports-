@@ -108,7 +108,7 @@ async function fetchInvoicesData({
     const whereClause: Prisma.InvoiceWhereInput = {
         ...(status && status !== 'all' && { status }),
         ...(paymentMethod && paymentMethod !== 'all' && { paymentMethod }),
-        ...(shopId && { shopId: parseInt(shopId) }),
+        ...(shopId && shopId !== 'all' && { shopId }),
         ...(searchQueryParam && {
             OR: [
                 { invoiceNumber: { contains: searchQueryParam, mode: 'insensitive' } },

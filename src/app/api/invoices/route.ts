@@ -99,8 +99,8 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
             if (paymentMethod) {
                 whereClause.paymentMethod = paymentMethod;
             }
-            if (shopId) {
-                whereClause.shopId = parseInt(shopId);
+            if (shopId && shopId !== 'all') {
+                whereClause.shopId = shopId;
             }
 
             console.log('Invoices where clause:', JSON.stringify(whereClause, null, 2));
