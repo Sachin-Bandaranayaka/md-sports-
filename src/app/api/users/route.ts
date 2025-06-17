@@ -120,13 +120,38 @@ export async function POST(req: NextRequest) {
         // Hash the password
         const hashedPassword = await bcrypt.hash(userData.password, 12);
 
+        // Determine role based on permissions
+        let roleId = null;
+        let roleName = null;
+        
+        // Check if user has admin permissions
+        if (userData.permissions.includes('admin:all')) {
+            const adminRole = await prisma.role.findUnique({
+                where: { name: 'Admin' }
+            });
+            if (adminRole) {
+                roleId = adminRole.id;
+                roleName = 'Admin';
+            }
+        }
+        // Check if user has shop staff permissions
+        else if (userData.permissions.includes('shop:assigned_only')) {
+            const shopStaffRole = await prisma.role.findUnique({
+                where: { name: 'Shop Staff' }
+            });
+            if (shopStaffRole) {
+                roleId = shopStaffRole.id;
+                roleName = 'Shop Staff';
+            }
+        }
+
         // Prepare user data
         const userData_final = {
             name: userData.name,
             email: userData.email,
             password: hashedPassword,
-            roleId: null, // No role assignment needed
-            roleName: null, // No role name needed
+            roleId: roleId,
+            roleName: roleName,
             shopId: shopId,
             permissions: userData.permissions || [],
             isActive: true

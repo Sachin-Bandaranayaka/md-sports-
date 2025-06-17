@@ -63,10 +63,32 @@ export const requirePermission = (permission: string) => {
                 );
             }
 
-            // Special case for development token
+            // Special case for development token - only grant basic permissions, not admin
             if (token === 'dev-token') {
-                console.log(`Development mode: granting permission '${permission}'`);
-                return null;
+                const allowedDevPermissions = [
+                    'shop:distribution:view',
+                    'read:products',
+                    'write:products', 
+                    'read:invoices',
+                    'write:invoices',
+                    'user:manage',
+                    'shop:manage',
+                    'inventory:manage',
+                    'settings:manage',
+                    'sales:manage',
+                    'sales:create:shop'
+                ];
+                
+                if (allowedDevPermissions.includes(permission)) {
+                    console.log(`Development mode: granting permission '${permission}'`);
+                    return null;
+                } else {
+                    console.log(`Development mode: denying admin permission '${permission}'`);
+                    return NextResponse.json(
+                        { success: false, message: `Permission denied: ${permission}` },
+                        { status: 403 }
+                    );
+                }
             }
 
             // Verify the token to get the payload first

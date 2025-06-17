@@ -170,9 +170,9 @@ export const getShopIdFromToken = async (req: NextRequest): Promise<string | nul
         return null;
     }
 
-    // Special case for development token
+    // Special case for development token - assign to first shop for testing shop staff behavior
     if (token === 'dev-token') {
-        return null; // Development user might not have a shop
+        return 'cmbtr9q6l000061romoxi7uvf'; // Assign dev-token to first shop from database
     }
 
     const payload = await verifyToken(token);

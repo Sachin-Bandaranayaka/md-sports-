@@ -30,15 +30,28 @@ export async function GET(req: NextRequest) {
     const token = req.headers.get('authorization')?.split(' ')[1];
     const isDevMode = token === 'dev-token';
 
+    // Debug logging
+    console.log('Shops API Debug:', {
+        isAdmin,
+        userShopId,
+        isDevMode,
+        shopManagePermission: shopManagePermission.isValid,
+        adminAllPermission: adminAllPermission.isValid,
+        userManagePermission: userManagePermission.isValid
+    });
+
     if (simple) {
       // Return simplified shop data for dropdowns
       let whereClause = {};
       
-      // If user is not admin and not in dev mode, filter by their assigned shop
-       if (!isAdmin && !isDevMode && userShopId) {
+      // If user is not admin, filter by their assigned shop
+       if (!isAdmin && userShopId) {
          whereClause = {
            id: userShopId
          };
+         console.log('Applying shop filter:', whereClause);
+       } else {
+         console.log('No shop filter applied - isAdmin:', isAdmin, 'userShopId:', userShopId);
        }
       
       const shops = await prisma.shop.findMany({
@@ -61,8 +74,8 @@ export async function GET(req: NextRequest) {
         // Fetch shops from the database with proper numeric IDs
         let whereClause = {};
         
-        // If user is not admin and not in dev mode, filter by their assigned shop
-         if (!isAdmin && !isDevMode && userShopId) {
+        // If user is not admin, filter by their assigned shop
+         if (!isAdmin && userShopId) {
              whereClause = {
                  id: userShopId
              };

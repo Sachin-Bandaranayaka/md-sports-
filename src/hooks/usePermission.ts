@@ -6,18 +6,19 @@ import { useAuth } from './useAuth';
 
 // Map routes to required permissions
 const routePermissions: Record<string, string> = {
-    '/dashboard': '',  // Everyone can access dashboard
-    '/inventory': 'inventory:view',
-    '/inventory/transfers': 'inventory:view',
-    '/suppliers': 'inventory:view',
-    '/purchases': 'inventory:manage',
-    '/quotations': 'sales:view',
-    '/shops': 'inventory:view',
-    '/customers': 'sales:view',
-    '/invoices': 'sales:view',
-    '/accounting': 'sales:manage',
-    '/reports': 'reports:view',
-    '/settings': 'settings:manage',
+    '/dashboard': 'view_dashboard',  // Require dashboard permission
+    '/inventory': 'inventory:view',  // Full inventory access (blocked for shop staff)
+    '/inventory/transfers': 'inventory:transfer',
+    '/inventory/distribution': 'shop:distribution:view',  // Shop distribution access
+    '/suppliers': 'supplier:view',
+    '/purchases': 'purchase:view',
+    '/quotations': 'quotation:view',
+    '/shops': 'shop:view',
+    '/customers': 'customer:view',
+    '/invoices': 'invoice:view',
+    '/accounting': 'accounting:view',
+    '/reports': 'report:view',
+    '/settings': 'settings:view',
 };
 
 export function usePermission() {
@@ -28,6 +29,12 @@ export function usePermission() {
     const hasPermission = (permission: string): boolean => {
         if (!permission) return true; // No permission required
         if (!user?.permissions || !user.permissions.length) return false;
+        
+        // Check for admin permissions first
+        if (user.permissions.includes('*') || user.permissions.includes('admin:all')) {
+            return true;
+        }
+        
         return user.permissions.includes(permission);
     };
 
@@ -60,4 +67,4 @@ export function usePermission() {
         hasPermission,
         checkRoutePermission
     };
-} 
+}

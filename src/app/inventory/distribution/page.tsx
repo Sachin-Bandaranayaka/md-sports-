@@ -14,6 +14,7 @@ import {
     ArrowUpDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { useAuth } from '@/hooks/useAuth';
 
 // Define types
 interface ShopStock {
@@ -40,6 +41,7 @@ interface Shop {
 
 export default function InventoryDistribution() {
     const router = useRouter();
+    const { hasPermission } = useAuth();
     const [loading, setLoading] = useState(true);
     const [shopList, setShopList] = useState<Shop[]>([]);
     const [products, setProducts] = useState<ProductStock[]>([]);
@@ -48,6 +50,9 @@ export default function InventoryDistribution() {
     const [sortBy, setSortBy] = useState<string>('name');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
     const [selectedShopForSort, setSelectedShopForSort] = useState<number | null>(null);
+    
+    // Check if user can view cost data
+    const canViewCosts = hasPermission('shop:view_costs') || hasPermission('admin:all');
     const [error, setError] = useState<string | null>(null);
     const [showFilterPanel, setShowFilterPanel] = useState(false);
     const [viewMode, setViewMode] = useState<'product' | 'shop'>('product');
@@ -317,7 +322,7 @@ export default function InventoryDistribution() {
                                     value={sortBy}
                                     onChange={(e) => {
                                         setSortBy(e.target.value);
-                                        if (!['shopStock', 'shopTotalCost'].includes(e.target.value)) {
+                                        if (!['shopStock', 'shopTotalCost'].includes(e.target.value) || (e.target.value === 'shopTotalCost' && !canViewCosts)) {
                                             setSelectedShopForSort(null);
                                         }
                                     }}
@@ -326,10 +331,12 @@ export default function InventoryDistribution() {
                                     <option value="sku">SKU</option>
                                     <option value="totalStock">Total Stock</option>
                                     <option value="shopStock">Shop Stock Quantity</option>
-                                    <option value="shopTotalCost">Shop Total Cost</option>
+                                    {canViewCosts && (
+                                        <option value="shopTotalCost">Shop Total Cost</option>
+                                    )}
                                 </select>
                             </div>
-                            {(sortBy === 'shopStock' || sortBy === 'shopTotalCost') && (
+                            {(sortBy === 'shopStock' || (sortBy === 'shopTotalCost' && canViewCosts)) && (
                                 <div>
                                     <label className="block text-sm font-medium text-black mb-1">Select Shop</label>
                                     <select
@@ -419,17 +426,21 @@ export default function InventoryDistribution() {
                                                                 <ArrowUpDown className="ml-1 h-3 w-3" />
                                                             )}
                                                         </button>
-                                                        <span className="text-gray-400">|</span>
-                                                        <button
-                                                            onClick={() => handleSort('shopTotalCost', shop.id)}
-                                                            className="text-green-600 hover:text-green-800 cursor-pointer flex items-center"
-                                                            title="Sort by total cost"
-                                                        >
-                                                            Cost
-                                                            {sortBy === 'shopTotalCost' && selectedShopForSort === shop.id && (
-                                                                <ArrowUpDown className="ml-1 h-3 w-3" />
-                                                            )}
-                                                        </button>
+                                                        {canViewCosts && (
+                                                            <>
+                                                                <span className="text-gray-400">|</span>
+                                                                <button
+                                                                    onClick={() => handleSort('shopTotalCost', shop.id)}
+                                                                    className="text-green-600 hover:text-green-800 cursor-pointer flex items-center"
+                                                                    title="Sort by total cost"
+                                                                >
+                                                                    Cost
+                                                                    {sortBy === 'shopTotalCost' && selectedShopForSort === shop.id && (
+                                                                        <ArrowUpDown className="ml-1 h-3 w-3" />
+                                                                    )}
+                                                                </button>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -483,15 +494,17 @@ export default function InventoryDistribution() {
                                                     >
                                                         <div className="text-center">
                                                             <div className="font-semibold text-blue-600">{quantity}</div>
-                                                            <div className="text-xs text-gray-500 mt-1">
-                                                                WAC: Rs. {product.weightedAverageCost.toLocaleString()}
-                                                            </div>
-                                                            {stockInShop && stockInShop.shopSpecificCost > 0 && (
+                                                            {canViewCosts && (
+                                                                <div className="text-xs text-gray-500 mt-1">
+                                                                    WAC: Rs. {product.weightedAverageCost.toLocaleString()}
+                                                                </div>
+                                                            )}
+                                                            {canViewCosts && stockInShop && stockInShop.shopSpecificCost > 0 && (
                                                                 <div className="text-xs text-blue-600 mt-1">
                                                                     Unit Cost: Rs. {stockInShop.shopSpecificCost.toLocaleString()}
                                                                 </div>
                                                             )}
-                                                            {stockInShop && stockInShop.shopSpecificCost > 0 && (
+                                                            {canViewCosts && stockInShop && stockInShop.shopSpecificCost > 0 && (
                                                                 <div className="text-xs font-semibold text-green-600 mt-1 border-t border-gray-200 pt-1">
                                                                     Total: Rs. {getTotalShopCost(product, shop.id).toLocaleString()}
                                                                 </div>
@@ -553,18 +566,22 @@ export default function InventoryDistribution() {
                                                     <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                         Quantity
                                                     </th>
-                                                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Cost Info
-                                                    </th>
+                                                    {canViewCosts && (
+                                                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                            Cost Info
+                                                        </th>
+                                                    )}
                                                     <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                         Retail Price
                                                     </th>
                                                     <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                         Retail Value
                                                     </th>
-                                                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Total Shop Cost
-                                                    </th>
+                                                    {canViewCosts && (
+                                                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                            Total Shop Cost
+                                                        </th>
+                                                    )}
                                                     <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                         Actions
                                                     </th>
@@ -591,27 +608,31 @@ export default function InventoryDistribution() {
                                                                 <td className="px-4 py-3 whitespace-nowrap text-sm text-black">
                                                                     {quantity}
                                                                 </td>
-                                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-black">
-                                                                    <div className="space-y-1">
-                                                                        <div className="text-xs text-gray-600">
-                                                                            WAC: Rs. {product.weightedAverageCost.toLocaleString()}
-                                                                        </div>
-                                                                        {shopStock && shopStock.shopSpecificCost > 0 && (
-                                                                            <div className="text-xs text-blue-600">
-                                                                                Shop Cost: Rs. {shopStock.shopSpecificCost.toLocaleString()}
+                                                                {canViewCosts && (
+                                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-black">
+                                                                        <div className="space-y-1">
+                                                                            <div className="text-xs text-gray-600">
+                                                                                WAC: Rs. {product.weightedAverageCost.toLocaleString()}
                                                                             </div>
-                                                                        )}
-                                                                    </div>
-                                                                </td>
+                                                                            {shopStock && shopStock.shopSpecificCost > 0 && (
+                                                                                <div className="text-xs text-blue-600">
+                                                                                    Shop Cost: Rs. {shopStock.shopSpecificCost.toLocaleString()}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </td>
+                                                                )}
                                                                 <td className="px-4 py-3 whitespace-nowrap text-sm text-black">
                                                                     Rs. {product.retailPrice.toLocaleString()}
                                                                 </td>
                                                                 <td className="px-4 py-3 whitespace-nowrap text-sm text-black">
                                                                     Rs. {retailValue.toLocaleString()}
                                                                 </td>
-                                                                <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-green-600">
-                                                                    Rs. {totalShopCost.toLocaleString()}
-                                                                </td>
+                                                                {canViewCosts && (
+                                                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-green-600">
+                                                                        Rs. {totalShopCost.toLocaleString()}
+                                                                    </td>
+                                                                )}
                                                                 <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
                                                                     <Button
                                                                         variant="outline"

@@ -169,7 +169,7 @@ export default function InvoiceClientWrapper({
         setSortBy(newOrder === 'desc' ? 'newest' : 'oldest');
     }, [dateSortOrder]);
 
-    // Handle due status column sorting
+    // Handle due days column sorting
     const handleDueStatusSort = useCallback(() => {
         const newOrder = dueStatusSortOrder === 'asc' ? 'desc' : 'asc';
         setDueStatusSortOrder(newOrder);
@@ -456,6 +456,14 @@ export default function InvoiceClientWrapper({
 
     // Calculate countdown or overdue days for due date
     const getDueDateStatus = (invoice: Invoice) => {
+        // If invoice is paid, show 'Paid' instead of due days
+        if (invoice.status.toLowerCase() === 'paid') {
+            return {
+                text: 'Paid',
+                className: 'text-green-600 font-medium'
+            };
+        }
+
         let dueDate: Date;
 
         if (invoice.dueDate) {
@@ -779,9 +787,9 @@ export default function InvoiceClientWrapper({
                                     <button 
                                         onClick={handleDueStatusSort}
                                         className="flex items-center space-x-1 hover:text-gray-700 focus:outline-none focus:text-gray-700 transition-colors"
-                                        title={`Sort by due status (${dueStatusSortOrder === 'asc' ? 'current first' : 'overdue first'})`}
+                                        title={`Sort by due days (${dueStatusSortOrder === 'asc' ? 'current first' : 'overdue first'})`}
                                     >
-                                        <span>Due Status</span>
+                                        <span>Due Days</span>
                                         {dueStatusSortOrder === 'asc' ? (
                                             <ChevronUp size={14} className="text-indigo-600" />
                                         ) : (

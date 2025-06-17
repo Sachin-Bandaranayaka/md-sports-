@@ -69,7 +69,12 @@ const InvoiceRow = memo(({ index, style, data }: { index: number; style: any; da
         });
     }, []);
 
-    const getDueStatus = useCallback((dueDate: string | Date | undefined) => {
+    const getDueStatus = useCallback((dueDate: string | Date | undefined, status: string) => {
+        // If invoice is paid, show 'Paid' instead of due days
+        if (status.toLowerCase() === 'paid') {
+            return { text: 'Paid', class: 'text-green-600 font-medium' };
+        }
+
         if (!dueDate) return { text: 'No due date', class: 'text-gray-500' };
 
         const due = new Date(dueDate);
@@ -88,7 +93,7 @@ const InvoiceRow = memo(({ index, style, data }: { index: number; style: any; da
         }
     }, []);
 
-    const dueStatus = getDueStatus(invoice.dueDate);
+    const dueStatus = getDueStatus(invoice.dueDate, invoice.status);
 
     return (
         <div style={style} className="border-b border-gray-200 hover:bg-gray-50">
@@ -509,7 +514,7 @@ export default function InvoiceClientWrapperOptimized({
                         <div>Invoice #</div>
                         <div>Customer</div>
                         <div>Date</div>
-                        <div>Due Status</div>
+                        <div>Due Days</div>
                         <div>Total</div>
                         <div>Profit</div>
                         <div>Items</div>

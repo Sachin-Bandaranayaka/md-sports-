@@ -59,9 +59,8 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
             const searchQuery = searchParams.get('search') || '';
             const shopId = searchParams.get('shopId');
 
-            // Generate cache key including user context for non-admin users
-            const isAdmin = user.roleName === 'Admin' || user.roleName === 'Super Admin' || 
-                           (user.permissions && user.permissions.includes('admin:all'));
+            // Use the admin status from the shop access control middleware for consistency
+            const isAdmin = context.isAdmin;
             
             const cacheKey = cacheService.generateKey(CACHE_CONFIG.KEYS.INVOICES, {
                 page,

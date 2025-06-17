@@ -49,9 +49,9 @@ const navItems: NavItem[] = [
         children: [
             { icon: Package, href: '/inventory', label: 'All Products', requiredPermission: 'inventory:view' },
             { icon: TruckIcon, href: '/inventory/transfers', label: 'Transfers', requiredPermission: 'inventory:transfer' },
-            { icon: Store, href: '/inventory/distribution', label: 'Shop Distribution', requiredPermission: 'shop:distribution:view' },
         ]
     },
+    { icon: Store, href: '/inventory/distribution', label: 'Shop Distribution', requiredPermission: 'shop:distribution:view' },
     { icon: Store, href: '/shops', label: 'Shops', requiredPermission: 'shop:view' },
     { icon: Users, href: '/customers', label: 'Customers', requiredPermission: 'customer:view' },
     { icon: FileText, href: '/invoices', label: 'Sales Invoices', requiredPermission: 'invoice:view' },

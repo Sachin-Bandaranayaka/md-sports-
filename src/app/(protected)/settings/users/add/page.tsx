@@ -21,11 +21,30 @@ interface RoleTemplate {
 
 const roleTemplates: RoleTemplate[] = [
     {
+        id: 'admin',
+        name: 'Admin',
+        description: 'Full administrative access to all system features',
+        icon: Users,
+        permissions: ['admin:all'],
+        color: 'bg-red-100 text-red-800 border-red-200'
+    },
+    {
         id: 'shop_staff',
         name: 'Shop Staff',
-        description: 'Basic shop operations including sales, inventory viewing, and customer management for assigned shop',
+        description: 'Shop operations including sales, customer management, quotations, and shop distribution access for assigned shop only',
         icon: Users,
-        permissions: ['view_dashboard', 'inventory:view:basic', 'sales:create:shop', 'customer:create', 'view_sales'],
+        permissions: [
+            'view_dashboard',
+            'invoice:create',
+            'invoice:view',
+            'customer:create',
+            'customer:view',
+            'quotation:create',
+            'quotation:view',
+            'shop:distribution:view',
+            'inventory:transfer',
+            'shop:assigned_only'
+        ],
         color: 'bg-blue-100 text-blue-800 border-blue-200'
     }
 ];

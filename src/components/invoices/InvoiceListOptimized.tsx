@@ -89,10 +89,12 @@ const PaymentMethodBadge = memo(({ method }: { method: string }) => {
 
 PaymentMethodBadge.displayName = 'PaymentMethodBadge';
 
-// Memoized due status indicator
+// Memoized due days indicator
 const DueStatusIndicator = memo(({ dueDate, status }: { dueDate?: string; status: string }) => {
     const dueStatus = useMemo(() => {
-        if (status.toLowerCase() === 'paid') return null;
+        if (status.toLowerCase() === 'paid') {
+            return { text: 'Paid', className: 'text-green-600 font-medium' };
+        }
         if (!dueDate) return null;
 
         const due = new Date(dueDate);
@@ -276,7 +278,7 @@ const InvoiceRow = memo(({
                 </span>
             </div>
 
-            {/* Due Status */}
+            {/* Due Days */}
             <div className="w-32 flex-shrink-0">
                 <DueStatusIndicator dueDate={invoice.dueDate} status={invoice.status} />
             </div>
@@ -363,7 +365,7 @@ const InvoiceListHeader = memo(({
             <div className="w-28 flex-shrink-0">Date</div>
             <div className="w-28 flex-shrink-0 text-right">Total</div>
             <div className="w-32 flex-shrink-0">Note</div>
-            <div className="w-32 flex-shrink-0">Due Status</div>
+            <div className="w-32 flex-shrink-0">Due Days</div>
             <div className="w-24 flex-shrink-0">Status</div>
             <div className="w-28 flex-shrink-0 text-right">Profit</div>
             <div className="w-32 flex-shrink-0">Actions</div>
