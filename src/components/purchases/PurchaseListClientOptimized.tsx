@@ -181,7 +181,12 @@ export default function PurchaseListClientOptimized({
 
   // State management
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
-  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
+  // Handle success status separately from invoice status filter
+    const urlStatus = searchParams.get('status') || '';
+    const urlAction = searchParams.get('action') || '';
+    const [statusFilter, setStatusFilter] = useState(
+        urlStatus === 'success' ? '' : urlStatus
+    );
   const [supplierFilter, setSupplierFilter] = useState(searchParams.get('supplierId') || '');
   const [startDateFilter, setStartDateFilter] = useState(searchParams.get('startDate') || '');
   const [endDateFilter, setEndDateFilter] = useState(searchParams.get('endDate') || '');
@@ -191,6 +196,24 @@ export default function PurchaseListClientOptimized({
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const itemsPerPage = 20; // Increased for better performance
+
+  // Handle success status messages from URL
+  useEffect(() => {
+    if (urlStatus === 'success') {
+      // Show success message based on action
+      if (urlAction === 'update') {
+        toast.success('Purchase invoice updated successfully!');
+      } else if (urlAction === 'create') {
+        toast.success('Purchase invoice created successfully!');
+      }
+      
+      // Clear the success status from URL without affecting other params
+      const params = new URLSearchParams(searchParams);
+      params.delete('status');
+      params.delete('action');
+      router.replace(`${pathname}?${params.toString()}`);
+    }
+  }, [urlStatus, urlAction, searchParams, pathname, router]);
 
   // Memoized filters object
   const filters = useMemo(() => ({

@@ -11,6 +11,7 @@ import Link from 'next/link';
 import MainLayout from '@/components/layout/MainLayout';
 import { formatCurrency } from '@/utils/formatters';
 import ExpensePaymentForm from './components/ExpensePaymentForm';
+import EditExpensePaymentForm from './components/EditExpensePaymentForm';
 
 interface ExpensePayment {
   id: number;
@@ -51,6 +52,9 @@ export default function Payments() {
     const [dateRange, setDateRange] = useState('all');
     const [showFilters, setShowFilters] = useState(false);
     const [showExpenseForm, setShowExpenseForm] = useState(false);
+    const [showEditForm, setShowEditForm] = useState(false);
+    const [selectedExpense, setSelectedExpense] = useState<ExpensePayment | null>(null);
+    const [deletingExpense, setDeletingExpense] = useState<number | null>(null);
 
     useEffect(() => {
         fetchExpensePayments();
@@ -107,6 +111,42 @@ export default function Payments() {
             expensesThisMonth: thisMonthTotal,
             averageExpense: data.length > 0 ? totalAmount / data.length : 0
         });
+    };
+
+    const handleEditExpense = (expense: ExpensePayment) => {
+        setSelectedExpense(expense);
+        setShowEditForm(true);
+    };
+
+    const handleEditSuccess = () => {
+        fetchExpensePayments();
+        setShowEditForm(false);
+        setSelectedExpense(null);
+    };
+
+    const handleDeleteExpense = async (expenseId: number) => {
+        if (!confirm('Are you sure you want to delete this expense payment? This action cannot be undone and will reverse all account balance changes.')) {
+            return;
+        }
+
+        setDeletingExpense(expenseId);
+        try {
+            const response = await fetch(`/api/payments/expenses?id=${expenseId}`, {
+                method: 'DELETE',
+            });
+
+            if (response.ok) {
+                fetchExpensePayments();
+            } else {
+                const errorData = await response.json();
+                alert(`Failed to delete expense payment: ${errorData.message}`);
+            }
+        } catch (error) {
+            console.error('Error deleting expense payment:', error);
+            alert('An error occurred while deleting the expense payment');
+        } finally {
+            setDeletingExpense(null);
+        }
     };
 
     if (loading) {
@@ -292,8 +332,24 @@ export default function Payments() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex gap-2">
-                                                <Button variant="ghost" size="sm" title="View Details">
-                                                    <ExternalLink className="w-4 h-4" />
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="flex items-center space-x-1"
+                                                    onClick={() => handleEditExpense(expense)}
+                                                >
+                                                    <Edit className="h-4 w-4" />
+                                                    <span>Edit</span>
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="flex items-center space-x-1 text-red-600 hover:text-red-700 hover:border-red-300"
+                                                    onClick={() => handleDeleteExpense(expense.id)}
+                                                    disabled={deletingExpense === expense.id}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                    <span>{deletingExpense === expense.id ? 'Deleting...' : 'Delete'}</span>
                                                 </Button>
                                             </div>
                                         </td>
@@ -383,13 +439,32 @@ export default function Payments() {
             
             {/* Expense Payment Form Modal */}
             {showExpenseForm && (
-                <ExpensePaymentForm
-                    onClose={() => setShowExpenseForm(false)}
-                    onSuccess={() => {
-                        fetchExpensePayments();
-                        setShowExpenseForm(false);
-                    }}
-                />
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                        <ExpensePaymentForm
+                            onSuccess={() => {
+                                fetchExpensePayments();
+                                setShowExpenseForm(false);
+                            }}
+                            onCancel={() => setShowExpenseForm(false)}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {showEditForm && selectedExpense && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                        <EditExpensePaymentForm
+                            expense={selectedExpense}
+                            onSuccess={handleEditSuccess}
+                            onCancel={() => {
+                                setShowEditForm(false);
+                                setSelectedExpense(null);
+                            }}
+                        />
+                    </div>
+                </div>
             )}
             </div>
         </MainLayout>

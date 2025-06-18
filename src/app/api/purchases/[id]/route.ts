@@ -119,7 +119,7 @@ export async function PUT(
                                         shopSpecificCost: newQuantity === 0 ? 0 : inventory.shopSpecificCost
                                     }
                                 });
-                                inventoryUpdates.push({ productId: oldItem.productId, shopId: Number(shopId), newQuantity, quantityChange: newQuantity - oldShopQuantity, source: 'purchase_update' });
+                                inventoryUpdates.push({ productId: oldItem.productId, shopId: Number(shopId), newQuantity, oldQuantity: oldShopQuantity });
                             }
                         }
                     } else {
@@ -141,7 +141,7 @@ export async function PUT(
                                     shopSpecificCost: newQuantity === 0 ? 0 : inventory.shopSpecificCost
                                 }
                             });
-                            inventoryUpdates.push({ productId: oldItem.productId, shopId: Number(shopIdToReverseFrom), newQuantity, quantityChange: newQuantity - oldShopQuantity, source: 'purchase_update_reversal_inferred_shop' });
+                            inventoryUpdates.push({ productId: oldItem.productId, shopId: Number(shopIdToReverseFrom), newQuantity, oldQuantity: oldShopQuantity });
                             console.log(`Reversed ${oldItem.quantity} from product ${oldItem.productId} in inferred shop ${shopIdToReverseFrom}.`);
                         } else if (existingInventoriesForOldItem.length === 0) {
                             console.error(`Old item ${oldItem.productId} not found in any inventory. Cannot reverse stock for this item line from a specific shop.`);
@@ -252,7 +252,7 @@ export async function PUT(
                                     }
                                 });
                             }
-                            inventoryUpdates.push({ productId: Number(newItem.productId), shopId: Number(shopId), newQuantity: finalQuantity, quantityChange: finalQuantity - oldInvQty, source: 'purchase_update' });
+                            inventoryUpdates.push({ productId: Number(newItem.productId), shopId: Number(shopId), newQuantity: finalQuantity, oldQuantity: oldInvQty });
                         }
                     } else {
                         // newItemDistribution is missing or empty. Try to infer shop or log error.
@@ -307,7 +307,7 @@ export async function PUT(
                                         }
                                     });
                                 }
-                                inventoryUpdates.push({ productId: Number(newItem.productId), shopId: Number(targetShopId), newQuantity: finalQuantity, quantityChange: finalQuantity - oldInvQty, source: 'purchase_update_inferred_shop' });
+                                inventoryUpdates.push({ productId: Number(newItem.productId), shopId: Number(targetShopId), newQuantity: finalQuantity, oldQuantity: oldInvQty });
                             } else {
                                 console.warn(`Quantity for product ${newItem.productId} is zero or negative. No inventory update performed for this item.`);
                             }
@@ -364,6 +364,9 @@ export async function PUT(
             await cacheService.del('dashboard:shops');
             await cacheService.del('dashboard:all');
             await cacheService.del('dashboard:summary');
+            // Invalidate purchases-specific caches
+            await cacheService.invalidatePattern('purchases-optimized*');
+            await cacheService.invalidatePattern('purchase-stats*');
             console.log('Relevant caches invalidated after purchase update.');
         } catch (cacheError) {
             console.error('Error invalidating caches after purchase update:', cacheError);
@@ -413,7 +416,7 @@ export async function DELETE(
         }
 
         const result = await prisma.$transaction(async (tx) => {
-            const inventoryUpdates: Array<{ productId: number, shopId: number, newQuantity: number, quantityChange: number, source: string }> = [];
+            const inventoryUpdates: Array<{ productId: number, shopId: number, newQuantity: number, oldQuantity?: number }> = [];
 
             if (purchaseToDelete.items && purchaseToDelete.items.length > 0) {
                 for (const item of purchaseToDelete.items) {
@@ -461,7 +464,7 @@ export async function DELETE(
                                     where: { id: inventoryItem.id },
                                     data: updateData,
                                 });
-                                inventoryUpdates.push({ productId, shopId: Number(shopId), newQuantity: newShopQuantity, quantityChange: newShopQuantity - oldShopQuantity, source: 'purchase_delete_explicit_dist' });
+                                inventoryUpdates.push({ productId, shopId: Number(shopId), newQuantity: newShopQuantity, oldQuantity: oldShopQuantity });
                                 console.log(`  - Reduced inventory for product ${productId} in shop ${shopId} by ${qtyInShopToRemove}. Old: ${oldShopQuantity}, New: ${newShopQuantity}`);
                             } else {
                                 console.warn(`  - Inventory item not found for product ${productId} in shop ${shopId} during purchase deletion with explicit distribution. Stock may be inaccurate.`);
@@ -489,7 +492,7 @@ export async function DELETE(
                                 where: { id: singleShopInventory.id },
                                 data: updateDataInferred,
                             });
-                            inventoryUpdates.push({ productId, shopId: Number(shopIdToDeductFrom), newQuantity: newShopQuantity, quantityChange: newShopQuantity - oldShopQuantity, source: 'purchase_delete_inferred_shop' });
+                            inventoryUpdates.push({ productId, shopId: Number(shopIdToDeductFrom), newQuantity: newShopQuantity, oldQuantity: oldShopQuantity });
                             console.log(`  - Reduced inventory for product ${productId} in inferred shop ${shopIdToDeductFrom} by ${quantityToRemoveForItemTotal}. Old: ${oldShopQuantity}, New: ${newShopQuantity}`);
                         } else if (existingInventoriesForItem.length === 0) {
                             console.error(`Product ${productId} (from deleted purchase ${purchaseId}) not found in any inventory. Cannot reverse stock for this item.`);
@@ -544,6 +547,9 @@ export async function DELETE(
             await cacheService.del('dashboard:shops');
             await cacheService.del('dashboard:all');
             await cacheService.del('dashboard:summary');
+            // Invalidate purchases-specific caches
+            await cacheService.invalidatePattern('purchases-optimized*');
+            await cacheService.invalidatePattern('purchase-stats*');
             console.log('Relevant caches invalidated after purchase deletion.');
         } catch (cacheError) {
             console.error('Error invalidating caches after purchase deletion:', cacheError);

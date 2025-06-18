@@ -125,12 +125,37 @@ export default function PurchaseListClient({
     // Update state if initial props change (e.g. due to navigation)
     useEffect(() => {
         setSearchTerm(searchParams.get('search') || '');
-        setStatusFilter(searchParams.get('status') || '');
+        
+        // Handle success status separately from invoice status filter
+        const urlStatus = searchParams.get('status') || '';
+        const urlAction = searchParams.get('action') || '';
+        
+        if (urlStatus === 'success') {
+            // Show success message based on action
+            if (urlAction === 'update') {
+                toast.success('Purchase invoice updated successfully!');
+            } else if (urlAction === 'create') {
+                toast.success('Purchase invoice created successfully!');
+            }
+            
+            // Clear the success status from URL without affecting other params
+            const params = new URLSearchParams(searchParams);
+            params.delete('status');
+            params.delete('action');
+            router.replace(`${pathname}?${params.toString()}`);
+            
+            // Don't set statusFilter to 'success'
+            setStatusFilter('');
+        } else {
+            // Normal invoice status filter (paid, unpaid, etc.)
+            setStatusFilter(urlStatus);
+        }
+        
         setSupplierFilter(searchParams.get('supplierId') || '');
         setStartDateFilter(searchParams.get('startDate') || '');
         setEndDateFilter(searchParams.get('endDate') || '');
         setLastRefreshed(new Date());
-    }, [searchParams]);
+    }, [searchParams, pathname, router]);
 
     // Refetch when filters change
     useEffect(() => {

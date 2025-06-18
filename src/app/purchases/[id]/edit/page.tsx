@@ -2,7 +2,35 @@ import { Suspense } from 'react';
 import { headers } from 'next/headers';
 import MainLayout from '@/components/layout/MainLayout';
 import EditPurchaseInvoiceForm from '@/components/purchases/EditPurchaseInvoiceForm';
-import { PurchaseInvoice, Supplier, Product, Category, Shop, PurchaseInvoiceItem } from '@/types';
+import { PurchaseInvoice, Supplier } from '@/types';
+
+// Local interfaces for this page
+interface Product {
+    id: number;
+    name: string;
+    price: number;
+    description?: string;
+    sku?: string;
+    weightedAverageCost?: number;
+}
+
+interface Category {
+    id: string;
+    name: string;
+}
+
+interface Shop {
+    id: string;
+    name: string;
+}
+
+interface PurchaseInvoiceItem {
+    id?: number;
+    productId: string;
+    productName: string;
+    quantity: number;
+    price: number;
+}
 import { Loader2, AlertTriangle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
@@ -81,7 +109,12 @@ async function fetchCategories(baseUrl: string): Promise<Category[]> {
 
 async function fetchShops(baseUrl: string): Promise<Shop[]> {
     try {
-        const response = await fetch(`${baseUrl}/api/shops`, { next: { revalidate: 3600 } });
+        const response = await fetch(`${baseUrl}/api/shops`, { 
+            next: { revalidate: 3600 },
+            headers: {
+                'Authorization': 'Bearer dev-token'
+            }
+        });
         if (!response.ok) {
             console.error(`Failed to fetch shops: ${response.status} ${await response.text()}`);
             return [];

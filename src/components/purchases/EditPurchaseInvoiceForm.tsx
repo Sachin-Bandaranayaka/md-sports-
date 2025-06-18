@@ -6,7 +6,39 @@ import { Button } from '@/components/ui/Button';
 import { Combobox } from '@/components/ui/Combobox';
 import { Loader2, Save, XCircle, Plus, FileText, DollarSign, Calendar, Trash, Store, PackagePlus, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PurchaseInvoice, Supplier, Product, Category, Shop, PurchaseInvoiceItem } from '@/types';
+import { PurchaseInvoice, Supplier, PurchaseItem } from '@/types';
+
+// Local interfaces for this component
+interface Product {
+    id: number;
+    name: string;
+    price: number;
+    description?: string;
+    sku?: string;
+    weightedAverageCost?: number;
+}
+
+interface Category {
+    id: string;
+    name: string;
+}
+
+interface Shop {
+    id: string;
+    name: string;
+}
+
+// Extended PurchaseInvoice interface with additional properties
+interface ExtendedPurchaseInvoice extends PurchaseInvoice {
+    totalAmount?: number;
+    paidAmount?: number;
+    distributions?: Array<Record<string, number>>;
+}
+
+// Extended PurchaseItem interface with price property
+interface ExtendedPurchaseItem extends PurchaseItem {
+    price?: number;
+}
 import { useSuppliersOptimized } from '@/hooks/useQueries';
 
 const cardVariants = {
@@ -27,8 +59,18 @@ const itemVariants = {
     }
 };
 
+interface PurchaseInvoiceItem {
+    id?: number;
+    productId: string;
+    productName: string;
+    quantity: number;
+    price: number;
+}
+
 interface EditPurchaseInvoiceFormProps {
-    initialInvoice: PurchaseInvoice & { items: PurchaseInvoiceItem[], distributions?: Array<Record<string, number>> };
+    initialInvoice: ExtendedPurchaseInvoice & {
+        items: PurchaseInvoiceItem[];
+    };
     initialSuppliers: Supplier[];
     initialProducts: Product[];
     initialCategories: Category[];
@@ -82,8 +124,9 @@ export default function EditPurchaseInvoiceForm({
         initialInvoice.items.map(item => Number(item.quantity))
     );
 
-    const [formData, setFormData] = useState<Partial<PurchaseInvoice>>({
+    const [formData, setFormData] = useState<Partial<ExtendedPurchaseInvoice & { items: PurchaseInvoiceItem[] }>>({
         ...initialInvoice,
+        supplierId: initialInvoice.supplierId?.toString() || '', // Ensure supplierId is string for Combobox
         date: initialInvoice.date ? new Date(initialInvoice.date).toISOString().split('T')[0] : '',
         dueDate: initialInvoice.dueDate ? new Date(initialInvoice.dueDate).toISOString().split('T')[0] : '',
         items: initialInvoice.items.map(item => ({
@@ -233,7 +276,13 @@ export default function EditPurchaseInvoiceForm({
             ...prev,
             items: (prev.items || []).filter((_, i) => i !== index)
         }));
-        setItemDistributions(prevDist => prevDist.filter((_, i) => i !== index));
+        // Properly remove the distribution at the specified index and shift remaining distributions
+        setItemDistributions(prevDist => {
+            const newDist = prevDist.filter((_, i) => i !== index);
+            return newDist;
+        });
+        // Also update previousItemQuantities to maintain sync
+        setPreviousItemQuantities(prev => prev.filter((_, i) => i !== index));
     };
 
     const handleOpenDistributionModal = (itemIndex: number) => {
@@ -260,8 +309,9 @@ export default function EditPurchaseInvoiceForm({
     };
 
     const getTotalDistributedForItem = (itemIndex: number): number => {
-        if (itemIndex === null || !itemDistributions[itemIndex]) return 0;
-        return Object.values(itemDistributions[itemIndex]).reduce((sum, qty) => sum + Number(qty), 0);
+        if (itemIndex === null || itemIndex < 0 || itemIndex >= itemDistributions.length) return 0;
+        if (!itemDistributions[itemIndex] || typeof itemDistributions[itemIndex] !== 'object') return 0;
+        return Object.values(itemDistributions[itemIndex]).reduce((sum, qty) => sum + (Number(qty) || 0), 0);
     };
 
     // New helper to get shop options for combobox, ensuring shop.id is string
@@ -313,7 +363,12 @@ export default function EditPurchaseInvoiceForm({
                 setError(`Please ensure all fields for item #${i + 1} (Product, valid Quantity, valid Price) are correctly filled.`);
                 return;
             }
-            const distributedAmount = getTotalDistributedForItem(i);
+            
+            // Ensure we have a valid distribution object for this item index
+            const distributedAmount = (itemDistributions[i] && typeof itemDistributions[i] === 'object') 
+                ? getTotalDistributedForItem(i) 
+                : 0;
+                
             if (distributedAmount > Number(item.quantity)) {
                 setError(`Distributed quantity for ${item.productName || `item #${i + 1}`} (${distributedAmount}) exceeds item quantity (${item.quantity}).`);
                 return;
@@ -448,7 +503,7 @@ export default function EditPurchaseInvoiceForm({
                         <Button type="button" variant="outline" size="sm" onClick={() => setShowNewProductModal(true)} className="flex items-center">
                             <PackagePlus className="w-4 h-4 mr-2" /> New Product
                         </Button>
-                        <Button type="button" variant="primary" size="sm" onClick={handleAddItem} className="flex items-center">
+                        <Button type="button" variant="outline" size="sm" onClick={handleAddItem} className="flex items-center">
                             <Plus className="w-4 h-4 mr-2" /> Add Item
                         </Button>
                     </div>
@@ -483,8 +538,8 @@ export default function EditPurchaseInvoiceForm({
                                 <Button type="button" variant="outline" size="sm" onClick={() => handleOpenDistributionModal(index)} className="w-full flex items-center justify-center text-xs py-2" disabled={!item.productId || !item.quantity || Number(item.quantity) <= 0}>
                                     <Store className="w-3 h-3 mr-1" /> Distribute
                                 </Button>
-                                <Button type="button" variant="danger_outline" size="icon_sm" onClick={() => handleRemoveItem(index)} className="h-9 w-9 flex-shrink-0">
-                                    <Trash className="w-4 h-4" />
+                                <Button type="button" variant="destructive" size="sm" onClick={() => handleRemoveItem(index)} className="h-8 w-8 p-0">
+                                    <Trash className="h-4 w-4" />
                                 </Button>
                             </div>
                         </motion.div>
@@ -575,7 +630,7 @@ export default function EditPurchaseInvoiceForm({
                                 )) : <p className="text-sm text-gray-500 py-4 text-center">No shops available for distribution.</p>}
                             </div>
                             <div className="mt-6 flex justify-end">
-                                <Button variant="primary" onClick={() => setShowDistributionModal(false)}>Done</Button>
+                                <Button variant="default" onClick={() => setShowDistributionModal(false)}>Done</Button>
                             </div>
                         </motion.div>
                     </motion.div>
@@ -585,7 +640,7 @@ export default function EditPurchaseInvoiceForm({
                 <Button type="button" variant="outline" onClick={() => router.back()} disabled={submitting}>
                     <XCircle className="w-4 h-4 mr-2" /> Cancel
                 </Button>
-                <Button type="submit" variant="primary" disabled={submitting || !formData.items || formData.items.length === 0} className="min-w-[120px]">
+                <Button type="submit" variant="default" disabled={submitting || !formData.items || formData.items.length === 0} className="min-w-[120px]">
                     {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />} Update Invoice
                 </Button>
             </div>

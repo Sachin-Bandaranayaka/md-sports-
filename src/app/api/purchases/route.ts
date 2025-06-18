@@ -361,8 +361,8 @@ export async function POST(request: NextRequest) {
                     await tx.payment.create({
                         data: {
                             amount: parseFloat(body.paidAmount as unknown as string) || 0,
-                            paymentDate: new Date(), // Or use a date from body if provided
-                            paymentMethod: body.paymentMethod || 'cash' // Default or from body
+                            paymentMethod: body.paymentMethod || 'cash', // Default or from body
+                            invoice: { connect: { id: newInvoice.id } }
                         }
                     });
                 }
@@ -391,6 +391,9 @@ export async function POST(request: NextRequest) {
             await cacheService.del('dashboard:shops');
             await cacheService.del('dashboard:all');
             await cacheService.del('dashboard:summary'); // As per DASHBOARD_PERFORMANCE_OPTIMIZATIONS.md
+            // Invalidate purchases-specific caches
+            await cacheService.invalidatePattern('purchases-optimized*');
+            await cacheService.invalidatePattern('purchase-stats*');
             console.log('Relevant caches invalidated after purchase creation.');
         } catch (cacheError) {
             console.error('Error invalidating caches after purchase creation:', cacheError);
