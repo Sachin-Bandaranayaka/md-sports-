@@ -187,19 +187,19 @@ export async function DELETE(
                 where: { id }
             });
 
-            // Recalculate invoice status based on remaining payments
-            const remainingPayments = await tx.payment.findMany({
-                where: { invoiceId: existingReceipt.payment.invoiceId },
-                include: { receipt: true }
+            // Recalculate invoice status based on remaining payments with receipts
+            // Only count payments that have receipts (confirmed payments)
+            const totalPayments = await tx.payment.aggregate({
+                where: { 
+                    invoiceId: existingReceipt.payment.invoiceId,
+                    receipt: {
+                        isNot: null
+                    }
+                },
+                _sum: { amount: true }
             });
 
-            // Calculate total amount from remaining receipts
-            const totalPaid = remainingPayments.reduce((sum, payment) => {
-                if (payment.receipt) {
-                    return sum + payment.receipt.amount;
-                }
-                return sum;
-            }, 0);
+            const totalPaid = totalPayments._sum.amount || 0;
 
             // Get invoice total
             const invoice = await tx.invoice.findUnique({

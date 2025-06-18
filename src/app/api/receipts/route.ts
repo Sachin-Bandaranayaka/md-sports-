@@ -124,9 +124,15 @@ export async function POST(request: Request) {
                 }
             });
 
-            // Calculate total payments for the invoice to determine correct status
+            // Calculate total payments with receipts for the invoice to determine correct status
+            // Only count payments that have receipts (confirmed payments)
             const totalPayments = await tx.payment.aggregate({
-                where: { invoiceId: existingPayment.invoiceId },
+                where: { 
+                    invoiceId: existingPayment.invoiceId,
+                    receipt: {
+                        isNot: null
+                    }
+                },
                 _sum: { amount: true }
             });
 

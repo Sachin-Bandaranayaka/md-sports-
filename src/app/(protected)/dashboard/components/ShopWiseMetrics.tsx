@@ -145,7 +145,7 @@ export default function ShopWiseMetrics({ startDate, endDate, refreshTrigger }: 
         );
     }
 
-    if (!data || data.shopMetrics.length === 0) {
+    if (!data || !data.shopMetrics || !data.totals || !data.dateRange || data.shopMetrics.length === 0) {
         return (
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Shop-wise Metrics</h3>

@@ -207,6 +207,11 @@ async function fetchInvoicesData({
                         }
                     },
                     payments: {
+                        where: {
+                            receipt: {
+                                isNot: null
+                            }
+                        },
                         select: {
                             amount: true
                         }

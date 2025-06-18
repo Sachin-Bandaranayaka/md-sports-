@@ -317,6 +317,11 @@ export async function GET(request: NextRequest) {
                         }
                     },
                     payments: {
+                        where: {
+                            receipt: {
+                                isNot: null
+                            }
+                        },
                         select: {
                             amount: true
                         }

@@ -37,13 +37,37 @@ export default function AccountDetails({ params }: { params: { id: string } }) {
 
                 setAccount(accountData.data);
 
-                // Fetch transactions for this account
-                const transactionsResponse = await authGet(`/api/accounting/transactions?accountId=${id}`);
-                if (!transactionsResponse.ok) {
+                // Fetch transactions for this account (both as primary account and as destination account)
+                const [primaryTransactionsResponse, destinationTransactionsResponse] = await Promise.all([
+                    authGet(`/api/accounting/transactions?accountId=${id}`),
+                    authGet(`/api/accounting/transactions`)
+                ]);
+                
+                if (!primaryTransactionsResponse.ok || !destinationTransactionsResponse.ok) {
                     throw new Error('Failed to fetch account transactions');
                 }
-                const transactionsData = await transactionsResponse.json();
-                setTransactions(transactionsData.data || []);
+                
+                const primaryTransactionsData = await primaryTransactionsResponse.json();
+                const allTransactionsData = await destinationTransactionsResponse.json();
+                
+                // Filter transactions where this account is either the primary account or destination account
+                const primaryTransactions = primaryTransactionsData.data || [];
+                const destinationTransactions = (allTransactionsData.data || []).filter(
+                    (transaction: any) => transaction.toAccountId === parseInt(id)
+                );
+                
+                // Combine and deduplicate transactions
+                const allAccountTransactions = [...primaryTransactions];
+                destinationTransactions.forEach((destTransaction: any) => {
+                    if (!allAccountTransactions.find(t => t.id === destTransaction.id)) {
+                        allAccountTransactions.push(destTransaction);
+                    }
+                });
+                
+                // Sort by date (newest first)
+                allAccountTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                
+                setTransactions(allAccountTransactions);
 
             } catch (err) {
                 console.error('Error fetching account data:', err);

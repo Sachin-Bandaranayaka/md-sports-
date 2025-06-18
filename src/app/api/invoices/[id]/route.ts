@@ -46,6 +46,11 @@ export async function GET(
                     }
                 },
                 payments: {
+                    where: {
+                        receipt: {
+                            isNot: null
+                        }
+                    },
                     include: {
                         receipt: true
                     }

@@ -287,7 +287,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
                         {invoice.payments && invoice.payments.length > 0 && invoice.payments.some(p => p.receipt) && (
                             <div className="flex justify-between py-2 text-sm text-gray-600">
                                 <span>
-                                    Receipt — {invoice.payments.find(p => p.receipt)?.receipt?.receiptNumber || 'N/A'} — {formatDate(invoice.createdAt)}
+                                    Receipt — {invoice.payments.filter(p => p.receipt).map(p => p.receipt?.receiptNumber).join(', ') || 'N/A'} — {formatDate(invoice.createdAt)}
                                 </span>
                                 <span>-{formatCurrency(paidAmount)}</span>
                             </div>

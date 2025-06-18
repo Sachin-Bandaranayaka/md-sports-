@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/Button';
+import React from 'react';
 import { X } from 'lucide-react';
 
 interface ProductPerformanceDetail {
@@ -89,9 +90,9 @@ export default function ProductPerformanceViewModal({
                             </tr>
                         </thead>
                         <tbody>
-                            {reportData.details?.map((category: CategoryPerformance, catIndex: number) => (
+                            {reportData.details?.map((category: CategoryPerformanceDetail, catIndex: number) => (
                                 <React.Fragment key={category.categoryId || catIndex}>
-                                    {category.products.map((product: ProductDetail, prodIndex: number) => (
+                                    {category.products.map((product: ProductPerformanceDetail, prodIndex: number) => (
                                         <tr key={product.productId || prodIndex} className="border-b hover:bg-gray-50">
                                             {prodIndex === 0 && (
                                                 <td rowSpan={category.products.length + 1} className="px-3 py-2 align-top font-medium border-r">
@@ -120,4 +121,4 @@ export default function ProductPerformanceViewModal({
             </div>
         </div>
     );
-} 
+}

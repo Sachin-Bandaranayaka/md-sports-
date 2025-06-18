@@ -40,6 +40,7 @@ interface ExpenseStats {
 export default function Payments() {
     const [loading, setLoading] = useState(true);
     const [expensePayments, setExpensePayments] = useState<ExpensePayment[]>([]);
+    const [accounts, setAccounts] = useState<any[]>([]);
     const [stats, setStats] = useState<ExpenseStats>({
         totalExpenses: 0,
         expensesThisMonth: 0,
@@ -53,6 +54,7 @@ export default function Payments() {
 
     useEffect(() => {
         fetchExpensePayments();
+        fetchAccounts();
     }, []);
 
     const fetchExpensePayments = async () => {
@@ -71,6 +73,20 @@ export default function Payments() {
             console.error('Error fetching expense payments:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchAccounts = async () => {
+        try {
+            const response = await fetch('/api/accounting/accounts');
+            if (response.ok) {
+                const result = await response.json();
+                setAccounts(result.data || []);
+            } else {
+                console.error('Failed to fetch accounts');
+            }
+        } catch (error) {
+            console.error('Error fetching accounts:', error);
         }
     };
 
@@ -194,10 +210,14 @@ export default function Payments() {
                                 className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
                             >
                                 <option value="all">All Accounts</option>
-                                <option value="salary">Salary</option>
-                                <option value="utilities">Utilities</option>
-                                <option value="rent">Rent</option>
-                                <option value="supplies">Supplies</option>
+                                {accounts
+                                    .filter(account => account.type === 'expense' || account.name.toLowerCase().includes('expense'))
+                                    .map((account) => (
+                                        <option key={account.id} value={account.id}>
+                                            {account.name}
+                                        </option>
+                                    ))
+                                }
                             </select>
                             <Button
                                 variant="outline"
@@ -231,7 +251,23 @@ export default function Payments() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {expensePayments.length > 0 ? expensePayments.map((expense) => (
+                                {(() => {
+                                    const filteredPayments = expensePayments.filter(expense => {
+                                        // Apply search filter
+                                        const matchesSearch = !searchTerm || 
+                                            expense.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                            expense.account?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                            expense.id.toString().includes(searchTerm) ||
+                                            expense.amount.toString().includes(searchTerm);
+                                        
+                                        // Apply account filter
+                                        const matchesAccount = filterAccount === 'all' || 
+                                            expense.account?.id?.toString() === filterAccount;
+                                        
+                                        return matchesSearch && matchesAccount;
+                                    });
+                                    
+                                    return filteredPayments.length > 0 ? filteredPayments.map((expense) => (
                                     <tr key={expense.id} className="border-b hover:bg-gray-50">
                                         <td className="px-6 py-4 font-medium text-primary">
                                             {expense.id}
@@ -262,19 +298,35 @@ export default function Payments() {
                                             </div>
                                         </td>
                                     </tr>
-                                )) : (
-                                    <tr>
-                                        <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
-                                            No expense payments found
-                                        </td>
-                                    </tr>
-                                )}
+                                    )) : (
+                                        <tr>
+                                            <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
+                                                No expense payments found
+                                            </td>
+                                        </tr>
+                                    );
+                                })()}
                             </tbody>
                         </table>
                     </div>
                     <div className="flex items-center justify-between p-4 border-t">
                         <div className="text-sm text-gray-700">
-                            Showing <span className="font-medium">1</span> to <span className="font-medium">{expensePayments.length}</span> of <span className="font-medium">{expensePayments.length}</span> expense payments
+                            {(() => {
+                                const filteredCount = expensePayments.filter(expense => {
+                                    const matchesSearch = !searchTerm || 
+                                        expense.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                        expense.account?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                        expense.id.toString().includes(searchTerm) ||
+                                        expense.amount.toString().includes(searchTerm);
+                                    
+                                    const matchesAccount = filterAccount === 'all' || 
+                                        expense.account?.id?.toString() === filterAccount;
+                                    
+                                    return matchesSearch && matchesAccount;
+                                }).length;
+                                
+                                return `Showing ${filteredCount > 0 ? '1' : '0'} to ${filteredCount} of ${filteredCount} expense payments`;
+                            })()} 
                         </div>
                         <div className="flex gap-2">
                             <Button variant="outline" size="sm" disabled>Previous</Button>
