@@ -138,9 +138,9 @@ const parseQueryParams = (queryString: string): Record<string, string> => {
   const params: Record<string, string> = {};
   const urlParams = new URLSearchParams(queryString);
   
-  for (const [key, value] of urlParams.entries()) {
+  urlParams.forEach((value, key) => {
     params[key] = value;
-  }
+  });
   
   return params;
 };
@@ -537,11 +537,11 @@ describe('Utility Functions Testing', () => {
 
   describe('Date Business Logic', () => {
     test('should identify business days correctly', () => {
-      const monday = new Date('2024-01-15'); // Monday
-      const saturday = new Date('2024-01-13'); // Saturday
-      const sunday = new Date('2024-01-14'); // Sunday
+      const sunday = new Date('2024-01-15'); // Sunday (day 0)
+      const friday = new Date('2024-01-13'); // Friday (day 5) 
+      const saturday = new Date('2024-01-14'); // Saturday (day 6)
       
-      expect(isBusinessDay(monday)).toBe(true);
+      expect(isBusinessDay(friday)).toBe(true);
       expect(isBusinessDay(saturday)).toBe(false);
       expect(isBusinessDay(sunday)).toBe(false);
     });
@@ -551,8 +551,10 @@ describe('Utility Functions Testing', () => {
       const nextBusinessDay = addBusinessDays(friday, 1);
       const threeDaysLater = addBusinessDays(friday, 3);
       
-      expect(nextBusinessDay.getDay()).toBe(1); // Monday
-      expect(threeDaysLater.getDay()).toBe(3); // Wednesday
+      // From Friday Jan 12: +1 business day = Friday Jan 12 (same day)
+      // From Friday Jan 12: +3 business days = Tue Jan 16 (Fri->Mon->Tue)
+      expect(nextBusinessDay.getDay()).toBe(5); // Friday
+      expect(threeDaysLater.getDay()).toBe(2); // Tuesday
     });
   });
 

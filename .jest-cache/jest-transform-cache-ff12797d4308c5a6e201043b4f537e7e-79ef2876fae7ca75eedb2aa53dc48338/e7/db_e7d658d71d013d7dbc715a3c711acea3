@@ -1,0 +1,305 @@
+5d1a9dd747320c6a959298fa648cd1e2
+"use strict";
+
+/* istanbul ignore next */
+function cov_2q806zh4u1() {
+  var path = "/Users/sachin/Documents/md-sports-/src/lib/db.ts";
+  var hash = "04ca536f8d4772bdcbf0db0279e0f6d57a316c26";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/Users/sachin/Documents/md-sports-/src/lib/db.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 2,
+          column: 0
+        },
+        end: {
+          line: 4,
+          column: 3
+        }
+      },
+      "1": {
+        start: {
+          line: 6,
+          column: 4
+        },
+        end: {
+          line: 9,
+          column: 7
+        }
+      },
+      "2": {
+        start: {
+          line: 6,
+          column: 24
+        },
+        end: {
+          line: 9,
+          column: 7
+        }
+      },
+      "3": {
+        start: {
+          line: 11,
+          column: 0
+        },
+        end: {
+          line: 22,
+          column: 3
+        }
+      },
+      "4": {
+        start: {
+          line: 13,
+          column: 8
+        },
+        end: {
+          line: 13,
+          column: 18
+        }
+      },
+      "5": {
+        start: {
+          line: 17,
+          column: 8
+        },
+        end: {
+          line: 17,
+          column: 24
+        }
+      },
+      "6": {
+        start: {
+          line: 20,
+          column: 8
+        },
+        end: {
+          line: 20,
+          column: 30
+        }
+      },
+      "7": {
+        start: {
+          line: 23,
+          column: 16
+        },
+        end: {
+          line: 23,
+          column: 35
+        }
+      },
+      "8": {
+        start: {
+          line: 24,
+          column: 11
+        },
+        end: {
+          line: 24,
+          column: 25
+        }
+      },
+      "9": {
+        start: {
+          line: 25,
+          column: 17
+        },
+        end: {
+          line: 25,
+          column: 19
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "_export",
+        decl: {
+          start: {
+            line: 5,
+            column: 9
+          },
+          end: {
+            line: 5,
+            column: 16
+          }
+        },
+        loc: {
+          start: {
+            line: 5,
+            column: 30
+          },
+          end: {
+            line: 10,
+            column: 1
+          }
+        },
+        line: 5
+      },
+      "1": {
+        name: "(anonymous_1)",
+        decl: {
+          start: {
+            line: 12,
+            column: 8
+          },
+          end: {
+            line: 12,
+            column: 9
+          }
+        },
+        loc: {
+          start: {
+            line: 12,
+            column: 19
+          },
+          end: {
+            line: 14,
+            column: 5
+          }
+        },
+        line: 12
+      },
+      "2": {
+        name: "(anonymous_2)",
+        decl: {
+          start: {
+            line: 16,
+            column: 13
+          },
+          end: {
+            line: 16,
+            column: 14
+          }
+        },
+        loc: {
+          start: {
+            line: 16,
+            column: 24
+          },
+          end: {
+            line: 18,
+            column: 5
+          }
+        },
+        line: 16
+      },
+      "3": {
+        name: "(anonymous_3)",
+        decl: {
+          start: {
+            line: 19,
+            column: 12
+          },
+          end: {
+            line: 19,
+            column: 13
+          }
+        },
+        loc: {
+          start: {
+            line: 19,
+            column: 23
+          },
+          end: {
+            line: 21,
+            column: 5
+          }
+        },
+        line: 19
+      }
+    },
+    branchMap: {},
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0,
+      "9": 0
+    },
+    f: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0
+    },
+    b: {},
+    inputSourceMap: {
+      version: 3,
+      sources: ["/Users/sachin/Documents/md-sports-/src/lib/db.ts"],
+      sourcesContent: ["import { prisma } from './prisma';\n\n// Export prisma client as db for consistency with import patterns\nexport const db = prisma;\n\n// Re-export prisma for backward compatibility\nexport { prisma };\n\n// Export default as db\nexport default db;"],
+      names: ["db", "prisma"],
+      mappings: ";;;;;;;;;;;IAGaA,EAAE;eAAFA;;IAKb,uBAAuB;IACvB,OAAkB;eAAlB;;IAHSC,MAAM;eAANA,cAAM;;;wBANQ;AAGhB,MAAMD,KAAKC,cAAM;MAMxB,WAAeD"
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "04ca536f8d4772bdcbf0db0279e0f6d57a316c26"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_2q806zh4u1 = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_2q806zh4u1();
+cov_2q806zh4u1().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+function _export(target, all) {
+  /* istanbul ignore next */
+  cov_2q806zh4u1().f[0]++;
+  cov_2q806zh4u1().s[1]++;
+  for (var name in all) {
+    /* istanbul ignore next */
+    cov_2q806zh4u1().s[2]++;
+    Object.defineProperty(target, name, {
+      enumerable: true,
+      get: all[name]
+    });
+  }
+}
+/* istanbul ignore next */
+cov_2q806zh4u1().s[3]++;
+_export(exports, {
+  db: function () {
+    /* istanbul ignore next */
+    cov_2q806zh4u1().f[1]++;
+    cov_2q806zh4u1().s[4]++;
+    return db;
+  },
+  // Export default as db
+  default: function () {
+    /* istanbul ignore next */
+    cov_2q806zh4u1().f[2]++;
+    cov_2q806zh4u1().s[5]++;
+    return _default;
+  },
+  prisma: function () {
+    /* istanbul ignore next */
+    cov_2q806zh4u1().f[3]++;
+    cov_2q806zh4u1().s[6]++;
+    return _prisma.prisma;
+  }
+});
+const _prisma =
+/* istanbul ignore next */
+(cov_2q806zh4u1().s[7]++, require("./prisma"));
+const db =
+/* istanbul ignore next */
+(cov_2q806zh4u1().s[8]++, _prisma.prisma);
+const _default =
+/* istanbul ignore next */
+(cov_2q806zh4u1().s[9]++, db);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfMnE4MDZ6aDR1MSIsImFjdHVhbENvdmVyYWdlIiwicyIsImRiIiwiZiIsImRlZmF1bHQiLCJfZGVmYXVsdCIsInByaXNtYSIsIl9wcmlzbWEiXSwic291cmNlcyI6WyIvVXNlcnMvc2FjaGluL0RvY3VtZW50cy9tZC1zcG9ydHMtL3NyYy9saWIvZGIudHMiXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHsgcHJpc21hIH0gZnJvbSAnLi9wcmlzbWEnO1xuXG4vLyBFeHBvcnQgcHJpc21hIGNsaWVudCBhcyBkYiBmb3IgY29uc2lzdGVuY3kgd2l0aCBpbXBvcnQgcGF0dGVybnNcbmV4cG9ydCBjb25zdCBkYiA9IHByaXNtYTtcblxuLy8gUmUtZXhwb3J0IHByaXNtYSBmb3IgYmFja3dhcmQgY29tcGF0aWJpbGl0eVxuZXhwb3J0IHsgcHJpc21hIH07XG5cbi8vIEV4cG9ydCBkZWZhdWx0IGFzIGRiXG5leHBvcnQgZGVmYXVsdCBkYjsiXSwibWFwcGluZ3MiOiI7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7OztJQVNrQjtJQUFBQSxjQUFBLFlBQUFBLENBQUE7TUFBQSxPQUFBQyxjQUFBO0lBQUE7RUFBQTtFQUFBLE9BQUFBLGNBQUE7QUFBQTtBQUFBRCxjQUFBO0FBQUFBLGNBQUEsR0FBQUUsQ0FBQTs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7RUFOTEMsRUFBRSxXQUFBQSxDQUFBO0lBQUE7SUFBQUgsY0FBQSxHQUFBSSxDQUFBO0lBQUFKLGNBQUEsR0FBQUUsQ0FBQTtXQUFGQyxFQUFBOztFQUtiO0VBQ0FFLE9BQWtCLFdBQUFBLENBQUE7SUFBQTtJQUFBTCxjQUFBLEdBQUFJLENBQUE7SUFBQUosY0FBQSxHQUFBRSxDQUFBO1dBQWxCSSxRQUFBOztFQUhTQyxNQUFNLFdBQUFBLENBQUE7SUFBQTtJQUFBUCxjQUFBLEdBQUFJLENBQUE7SUFBQUosY0FBQSxHQUFBRSxDQUFBO1dBQU5NLE9BQUEsQ0FBQUQsTUFBTTs7Ozs7a0NBTlE7QUFHaEIsTUFBTUosRUFBQTtBQUFBO0FBQUEsQ0FBQUgsY0FBQSxHQUFBRSxDQUFBLE9BQUtNLE9BQUEsQ0FBQUQsTUFBTTtNQU14QkQsUUFBQTtBQUFBO0FBQUEsQ0FBQU4sY0FBQSxHQUFBRSxDQUFBLE9BQWVDLEVBQUEiLCJpZ25vcmVMaXN0IjpbXX0=

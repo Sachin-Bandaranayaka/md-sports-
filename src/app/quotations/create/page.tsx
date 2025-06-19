@@ -48,15 +48,15 @@ export default function CreateQuotation() {
         discount: 0,
         total: 0,
         notes: '',
-        customerName: ''
+        status: 'pending'
     });
 
     // Initialize items state
     const [items, setItems] = useState<Partial<QuotationItem>[]>([{
         productId: '',
         productName: '',
-        quantity: '',
-        unitPrice: '',
+        quantity: 0,
+        unitPrice: 0,
         total: 0
     }]);
 
@@ -435,7 +435,7 @@ export default function CreateQuotation() {
         // Filter products based on search
         const filtered = products.filter(product => 
             product.name.toLowerCase().includes(value.toLowerCase()) ||
-            product.code?.toLowerCase().includes(value.toLowerCase())
+            product.sku?.toLowerCase().includes(value.toLowerCase())
         );
         
         const newFilteredProducts = [...filteredProducts];
@@ -462,13 +462,13 @@ export default function CreateQuotation() {
         const updatedItems = [...items];
         updatedItems[index] = {
             ...updatedItems[index],
-            productId: product.id,
+            productId: product.id.toString(),
             productName: product.name,
-            unitPrice: product.price || ''
+            unitPrice: product.price || 0
         };
         
         // Recalculate total for this item
-        const quantity = updatedItems[index].quantity === '' || isNaN(Number(updatedItems[index].quantity)) ? 0 : Number(updatedItems[index].quantity);
+        const quantity = updatedItems[index].quantity || 0;
         const unitPrice = product.price || 0;
         updatedItems[index].total = quantity * unitPrice;
         
@@ -671,7 +671,7 @@ export default function CreateQuotation() {
                                         {items.map((item, index) => (
                                             <tr key={index} className="border-b">
                                                 <td className="p-3" style={{overflow: 'visible', position: 'relative', zIndex: 1}}>
-                                                    <div className="relative" ref={el => productDropdownRefs.current[index] = el}>
+                                                    <div className="relative" ref={el => { productDropdownRefs.current[index] = el; }}>
                                                         <div className="relative">
                                                             <input
                                                                 type="text"
@@ -690,7 +690,7 @@ export default function CreateQuotation() {
                                                         </div>
                                                         
                                                         {showProductDropdowns[index] && filteredProducts[index] && filteredProducts[index].length > 0 && (
-                                                            <div className="absolute w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto" style={{position: 'fixed', top: `${productDropdownRefs.current[index]?.getBoundingClientRect().bottom + window.scrollY}px`, left: `${productDropdownRefs.current[index]?.getBoundingClientRect().left + window.scrollX}px`, width: `${productDropdownRefs.current[index]?.getBoundingClientRect().width}px`, zIndex: 10000}}>
+                                                            <div className="absolute w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto" style={{position: 'fixed', top: `${productDropdownRefs.current[index]?.getBoundingClientRect()?.bottom ? productDropdownRefs.current[index]!.getBoundingClientRect().bottom + window.scrollY : 0}px`, left: `${productDropdownRefs.current[index]?.getBoundingClientRect()?.left ? productDropdownRefs.current[index]!.getBoundingClientRect().left + window.scrollX : 0}px`, width: `${productDropdownRefs.current[index]?.getBoundingClientRect()?.width ? productDropdownRefs.current[index]!.getBoundingClientRect().width : 200}px`, zIndex: 10000}}>
                                                                 {filteredProducts[index].map((product) => (
                                                                     <div
                                                                         key={product.id}
@@ -698,8 +698,8 @@ export default function CreateQuotation() {
                                                                         className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-black border-b border-gray-100 last:border-b-0"
                                                                     >
                                                                         <div className="font-medium">{product.name}</div>
-                                                                        {product.code && (
-                                                                            <div className="text-sm text-gray-500">Code: {product.code}</div>
+                                                                        {product.sku && (
+                                                                            <div className="text-sm text-gray-500">SKU: {product.sku}</div>
                                                                         )}
                                                                         <div className="text-sm text-gray-600">Price: Rs {product.price}</div>
                                                                     </div>

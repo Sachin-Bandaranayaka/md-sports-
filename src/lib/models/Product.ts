@@ -108,4 +108,4 @@ Product.init({
     timestamps: true,
 });
 
-export default Product; 
+export default Product;

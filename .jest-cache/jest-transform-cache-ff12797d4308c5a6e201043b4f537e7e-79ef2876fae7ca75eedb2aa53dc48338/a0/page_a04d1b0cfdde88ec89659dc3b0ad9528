@@ -1,0 +1,261 @@
+e23219d5934adf9d94805d17432d2814
+"use client";
+"use strict";
+
+/* istanbul ignore next */
+function cov_d8qrzlvc3() {
+  var path = "/Users/sachin/Documents/md-sports-/src/app/page.tsx";
+  var hash = "0f8c10192b6fa42e85004d071dad41b328f8d254";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/Users/sachin/Documents/md-sports-/src/app/page.tsx",
+    statementMap: {
+      "0": {
+        start: {
+          line: 3,
+          column: 0
+        },
+        end: {
+          line: 5,
+          column: 3
+        }
+      },
+      "1": {
+        start: {
+          line: 6,
+          column: 0
+        },
+        end: {
+          line: 11,
+          column: 3
+        }
+      },
+      "2": {
+        start: {
+          line: 9,
+          column: 8
+        },
+        end: {
+          line: 9,
+          column: 20
+        }
+      },
+      "3": {
+        start: {
+          line: 12,
+          column: 15
+        },
+        end: {
+          line: 12,
+          column: 31
+        }
+      },
+      "4": {
+        start: {
+          line: 13,
+          column: 20
+        },
+        end: {
+          line: 13,
+          column: 46
+        }
+      },
+      "5": {
+        start: {
+          line: 15,
+          column: 19
+        },
+        end: {
+          line: 15,
+          column: 47
+        }
+      },
+      "6": {
+        start: {
+          line: 16,
+          column: 4
+        },
+        end: {
+          line: 21,
+          column: 7
+        }
+      },
+      "7": {
+        start: {
+          line: 18,
+          column: 8
+        },
+        end: {
+          line: 18,
+          column: 34
+        }
+      },
+      "8": {
+        start: {
+          line: 22,
+          column: 4
+        },
+        end: {
+          line: 22,
+          column: 16
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "(anonymous_0)",
+        decl: {
+          start: {
+            line: 8,
+            column: 9
+          },
+          end: {
+            line: 8,
+            column: 10
+          }
+        },
+        loc: {
+          start: {
+            line: 8,
+            column: 20
+          },
+          end: {
+            line: 10,
+            column: 5
+          }
+        },
+        line: 8
+      },
+      "1": {
+        name: "Home",
+        decl: {
+          start: {
+            line: 14,
+            column: 9
+          },
+          end: {
+            line: 14,
+            column: 13
+          }
+        },
+        loc: {
+          start: {
+            line: 14,
+            column: 16
+          },
+          end: {
+            line: 23,
+            column: 1
+          }
+        },
+        line: 14
+      },
+      "2": {
+        name: "(anonymous_2)",
+        decl: {
+          start: {
+            line: 16,
+            column: 26
+          },
+          end: {
+            line: 16,
+            column: 27
+          }
+        },
+        loc: {
+          start: {
+            line: 16,
+            column: 30
+          },
+          end: {
+            line: 19,
+            column: 5
+          }
+        },
+        line: 16
+      }
+    },
+    branchMap: {},
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0
+    },
+    f: {
+      "0": 0,
+      "1": 0,
+      "2": 0
+    },
+    b: {},
+    inputSourceMap: {
+      version: 3,
+      sources: ["/Users/sachin/Documents/md-sports-/src/app/page.tsx"],
+      sourcesContent: ["'use client';\n\nimport { useEffect } from 'react';\nimport { useRouter } from 'next/navigation';\n\nexport default function Home() {\n  const router = useRouter();\n\n  useEffect(() => {\n    // Redirect to the dashboard\n    router.push('/dashboard');\n  }, [router]);\n\n  return null;\n}\n"],
+      names: ["Home", "router", "useRouter", "useEffect", "push"],
+      mappings: "AAAA;;;;;+BAKA;;;eAAwBA;;;uBAHE;4BACA;AAEX,SAASA;IACtB,MAAMC,SAASC,IAAAA,qBAAS;IAExBC,IAAAA,gBAAS,EAAC;QACR,4BAA4B;QAC5BF,OAAOG,IAAI,CAAC;IACd,GAAG;QAACH;KAAO;IAEX,OAAO;AACT"
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "0f8c10192b6fa42e85004d071dad41b328f8d254"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_d8qrzlvc3 = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_d8qrzlvc3();
+cov_d8qrzlvc3().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+/* istanbul ignore next */
+cov_d8qrzlvc3().s[1]++;
+Object.defineProperty(exports, "default", {
+  enumerable: true,
+  get: function () {
+    /* istanbul ignore next */
+    cov_d8qrzlvc3().f[0]++;
+    cov_d8qrzlvc3().s[2]++;
+    return Home;
+  }
+});
+const _react =
+/* istanbul ignore next */
+(cov_d8qrzlvc3().s[3]++, require("react"));
+const _navigation =
+/* istanbul ignore next */
+(cov_d8qrzlvc3().s[4]++, require("next/navigation"));
+function Home() {
+  /* istanbul ignore next */
+  cov_d8qrzlvc3().f[1]++;
+  const router =
+  /* istanbul ignore next */
+  (cov_d8qrzlvc3().s[5]++, (0, _navigation.useRouter)());
+  /* istanbul ignore next */
+  cov_d8qrzlvc3().s[6]++;
+  (0, _react.useEffect)(() => {
+    /* istanbul ignore next */
+    cov_d8qrzlvc3().f[2]++;
+    cov_d8qrzlvc3().s[7]++;
+    // Redirect to the dashboard
+    router.push("/dashboard");
+  }, [router]);
+  /* istanbul ignore next */
+  cov_d8qrzlvc3().s[8]++;
+  return null;
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfZDhxcnpsdmMzIiwiYWN0dWFsQ292ZXJhZ2UiLCJzIiwiSG9tZSIsImYiLCJyb3V0ZXIiLCJfbmF2aWdhdGlvbiIsInVzZVJvdXRlciIsIl9yZWFjdCIsInVzZUVmZmVjdCIsInB1c2giXSwic291cmNlcyI6WyIvVXNlcnMvc2FjaGluL0RvY3VtZW50cy9tZC1zcG9ydHMtL3NyYy9hcHAvcGFnZS50c3giXSwic291cmNlc0NvbnRlbnQiOlsiJ3VzZSBjbGllbnQnO1xuXG5pbXBvcnQgeyB1c2VFZmZlY3QgfSBmcm9tICdyZWFjdCc7XG5pbXBvcnQgeyB1c2VSb3V0ZXIgfSBmcm9tICduZXh0L25hdmlnYXRpb24nO1xuXG5leHBvcnQgZGVmYXVsdCBmdW5jdGlvbiBIb21lKCkge1xuICBjb25zdCByb3V0ZXIgPSB1c2VSb3V0ZXIoKTtcblxuICB1c2VFZmZlY3QoKCkgPT4ge1xuICAgIC8vIFJlZGlyZWN0IHRvIHRoZSBkYXNoYm9hcmRcbiAgICByb3V0ZXIucHVzaCgnL2Rhc2hib2FyZCcpO1xuICB9LCBbcm91dGVyXSk7XG5cbiAgcmV0dXJuIG51bGw7XG59XG4iXSwibWFwcGluZ3MiOiJBQUFBOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7O0lBUUU7SUFBQUEsYUFBQSxZQUFBQSxDQUFBO01BQUEsT0FBQUMsY0FBQTtJQUFBO0VBQUE7RUFBQSxPQUFBQSxjQUFBO0FBQUE7QUFBQUQsYUFBQTtBQUFBQSxhQUFBLEdBQUFFLENBQUE7Ozs7OzsrQkFIRjs7Ozs7O1dBQXdCQyxJQUFBOzs7OztpQ0FIRTs7O2lDQUNBO0FBRVgsU0FBU0EsS0FBQTtFQUFBO0VBQUFILGFBQUEsR0FBQUksQ0FBQTtFQUN0QixNQUFNQyxNQUFBO0VBQUE7RUFBQSxDQUFBTCxhQUFBLEdBQUFFLENBQUEsT0FBUyxJQUFBSSxXQUFBLENBQUFDLFNBQVM7RUFBQTtFQUFBUCxhQUFBLEdBQUFFLENBQUE7RUFFeEIsSUFBQU0sTUFBQSxDQUFBQyxTQUFTLEVBQUM7SUFBQTtJQUFBVCxhQUFBLEdBQUFJLENBQUE7SUFBQUosYUFBQSxHQUFBRSxDQUFBO0lBQ1I7SUFDQUcsTUFBQSxDQUFPSyxJQUFJLENBQUM7RUFDZCxHQUFHLENBQUNMLE1BQUEsQ0FBTztFQUFBO0VBQUFMLGFBQUEsR0FBQUUsQ0FBQTtFQUVYLE9BQU87QUFDVCIsImlnbm9yZUxpc3QiOltdfQ==

@@ -1,0 +1,328 @@
+bd70d29de31e4e1267fca455ff9d91ef
+"use strict";
+
+/* istanbul ignore next */
+function cov_11wk1lb51n() {
+  var path = "/Users/sachin/Documents/md-sports-/src/lib/models/TransferItem.ts";
+  var hash = "64ea5c8784d807d5ad0f0f7a320adc44e6c4f9ad";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/Users/sachin/Documents/md-sports-/src/lib/models/TransferItem.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 2,
+          column: 0
+        },
+        end: {
+          line: 4,
+          column: 3
+        }
+      },
+      "1": {
+        start: {
+          line: 5,
+          column: 0
+        },
+        end: {
+          line: 10,
+          column: 3
+        }
+      },
+      "2": {
+        start: {
+          line: 8,
+          column: 8
+        },
+        end: {
+          line: 8,
+          column: 24
+        }
+      },
+      "3": {
+        start: {
+          line: 11,
+          column: 19
+        },
+        end: {
+          line: 11,
+          column: 39
+        }
+      },
+      "4": {
+        start: {
+          line: 12,
+          column: 26
+        },
+        end: {
+          line: 12,
+          column: 68
+        }
+      },
+      "5": {
+        start: {
+          line: 14,
+          column: 4
+        },
+        end: {
+          line: 16,
+          column: 6
+        }
+      },
+      "6": {
+        start: {
+          line: 20,
+          column: 0
+        },
+        end: {
+          line: 50,
+          column: 3
+        }
+      },
+      "7": {
+        start: {
+          line: 51,
+          column: 17
+        },
+        end: {
+          line: 51,
+          column: 29
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "(anonymous_0)",
+        decl: {
+          start: {
+            line: 7,
+            column: 9
+          },
+          end: {
+            line: 7,
+            column: 10
+          }
+        },
+        loc: {
+          start: {
+            line: 7,
+            column: 20
+          },
+          end: {
+            line: 9,
+            column: 5
+          }
+        },
+        line: 7
+      },
+      "1": {
+        name: "_interop_require_default",
+        decl: {
+          start: {
+            line: 13,
+            column: 9
+          },
+          end: {
+            line: 13,
+            column: 33
+          }
+        },
+        loc: {
+          start: {
+            line: 13,
+            column: 39
+          },
+          end: {
+            line: 17,
+            column: 1
+          }
+        },
+        line: 13
+      }
+    },
+    branchMap: {
+      "0": {
+        loc: {
+          start: {
+            line: 14,
+            column: 11
+          },
+          end: {
+            line: 16,
+            column: 5
+          }
+        },
+        type: "cond-expr",
+        locations: [{
+          start: {
+            line: 14,
+            column: 35
+          },
+          end: {
+            line: 14,
+            column: 38
+          }
+        }, {
+          start: {
+            line: 14,
+            column: 41
+          },
+          end: {
+            line: 16,
+            column: 5
+          }
+        }],
+        line: 14
+      },
+      "1": {
+        loc: {
+          start: {
+            line: 14,
+            column: 11
+          },
+          end: {
+            line: 14,
+            column: 32
+          }
+        },
+        type: "binary-expr",
+        locations: [{
+          start: {
+            line: 14,
+            column: 11
+          },
+          end: {
+            line: 14,
+            column: 14
+          }
+        }, {
+          start: {
+            line: 14,
+            column: 18
+          },
+          end: {
+            line: 14,
+            column: 32
+          }
+        }],
+        line: 14
+      }
+    },
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0
+    },
+    f: {
+      "0": 0,
+      "1": 0
+    },
+    b: {
+      "0": [0, 0],
+      "1": [0, 0]
+    },
+    inputSourceMap: {
+      version: 3,
+      sources: ["/Users/sachin/Documents/md-sports-/src/lib/models/TransferItem.ts"],
+      sourcesContent: ["import { Model, DataTypes } from 'sequelize';\nimport sequelize from '../db';\n\nclass TransferItem extends Model {\n    public id!: number;\n    public transferId!: number;\n    public productId!: number;\n    public quantity!: number;\n    public notes!: string;\n}\n\nTransferItem.init({\n    id: {\n        type: DataTypes.INTEGER,\n        autoIncrement: true,\n        primaryKey: true\n    },\n    transferId: {\n        type: DataTypes.INTEGER,\n        allowNull: false\n    },\n    productId: {\n        type: DataTypes.INTEGER,\n        allowNull: false\n    },\n    quantity: {\n        type: DataTypes.INTEGER,\n        allowNull: false,\n        validate: {\n            min: 1\n        }\n    },\n    notes: {\n        type: DataTypes.STRING(200),\n        allowNull: true\n    }\n}, {\n    sequelize,\n    modelName: 'transfer_item',\n    tableName: 'transfer_items',\n    timestamps: false\n});\n\nexport default TransferItem; "],
+      names: ["TransferItem", "Model", "init", "id", "type", "DataTypes", "INTEGER", "autoIncrement", "primaryKey", "transferId", "allowNull", "productId", "quantity", "validate", "min", "notes", "STRING", "sequelize", "modelName", "tableName", "timestamps"],
+      mappings: ";;;;+BA2CA;;;eAAA;;;2BA3CiC;2DACX;;;;;;AAEtB,MAAMA,qBAAqBC,gBAAK;AAMhC;AAEAD,aAAaE,IAAI,CAAC;IACdC,IAAI;QACAC,MAAMC,oBAAS,CAACC,OAAO;QACvBC,eAAe;QACfC,YAAY;IAChB;IACAC,YAAY;QACRL,MAAMC,oBAAS,CAACC,OAAO;QACvBI,WAAW;IACf;IACAC,WAAW;QACPP,MAAMC,oBAAS,CAACC,OAAO;QACvBI,WAAW;IACf;IACAE,UAAU;QACNR,MAAMC,oBAAS,CAACC,OAAO;QACvBI,WAAW;QACXG,UAAU;YACNC,KAAK;QACT;IACJ;IACAC,OAAO;QACHX,MAAMC,oBAAS,CAACW,MAAM,CAAC;QACvBN,WAAW;IACf;AACJ,GAAG;IACCO,WAAAA,WAAS;IACTC,WAAW;IACXC,WAAW;IACXC,YAAY;AAChB;MAEA,WAAepB"
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "64ea5c8784d807d5ad0f0f7a320adc44e6c4f9ad"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_11wk1lb51n = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_11wk1lb51n();
+cov_11wk1lb51n().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+/* istanbul ignore next */
+cov_11wk1lb51n().s[1]++;
+Object.defineProperty(exports, "default", {
+  enumerable: true,
+  get: function () {
+    /* istanbul ignore next */
+    cov_11wk1lb51n().f[0]++;
+    cov_11wk1lb51n().s[2]++;
+    return _default;
+  }
+});
+const _sequelize =
+/* istanbul ignore next */
+(cov_11wk1lb51n().s[3]++, require("sequelize"));
+const _db =
+/* istanbul ignore next */
+(/*#__PURE__*/cov_11wk1lb51n().s[4]++, _interop_require_default(require("../db")));
+function _interop_require_default(obj) {
+  /* istanbul ignore next */
+  cov_11wk1lb51n().f[1]++;
+  cov_11wk1lb51n().s[5]++;
+  return /* istanbul ignore next */(cov_11wk1lb51n().b[1][0]++, obj) &&
+  /* istanbul ignore next */
+  (cov_11wk1lb51n().b[1][1]++, obj.__esModule) ?
+  /* istanbul ignore next */
+  (cov_11wk1lb51n().b[0][0]++, obj) :
+  /* istanbul ignore next */
+  (cov_11wk1lb51n().b[0][1]++, {
+    default: obj
+  });
+}
+class TransferItem extends
+/* istanbul ignore next */
+(_sequelize.Model) {}
+/* istanbul ignore next */
+cov_11wk1lb51n().s[6]++;
+TransferItem.init({
+  id: {
+    type: _sequelize.DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
+  },
+  transferId: {
+    type: _sequelize.DataTypes.INTEGER,
+    allowNull: false
+  },
+  productId: {
+    type: _sequelize.DataTypes.INTEGER,
+    allowNull: false
+  },
+  quantity: {
+    type: _sequelize.DataTypes.INTEGER,
+    allowNull: false,
+    validate: {
+      min: 1
+    }
+  },
+  notes: {
+    type: _sequelize.DataTypes.STRING(200),
+    allowNull: true
+  }
+}, {
+  sequelize: _db.default,
+  modelName: "transfer_item",
+  tableName: "transfer_items",
+  timestamps: false
+});
+const _default =
+/* istanbul ignore next */
+(cov_11wk1lb51n().s[7]++, TransferItem);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJfZGVmYXVsdCIsIlRyYW5zZmVySXRlbSIsIl9zZXF1ZWxpemUiLCJNb2RlbCIsImNvdl8xMXdrMWxiNTFuIiwicyIsImluaXQiLCJpZCIsInR5cGUiLCJEYXRhVHlwZXMiLCJJTlRFR0VSIiwiYXV0b0luY3JlbWVudCIsInByaW1hcnlLZXkiLCJ0cmFuc2ZlcklkIiwiYWxsb3dOdWxsIiwicHJvZHVjdElkIiwicXVhbnRpdHkiLCJ2YWxpZGF0ZSIsIm1pbiIsIm5vdGVzIiwiU1RSSU5HIiwic2VxdWVsaXplIiwiX2RiIiwiZGVmYXVsdCIsIm1vZGVsTmFtZSIsInRhYmxlTmFtZSIsInRpbWVzdGFtcHMiXSwic291cmNlcyI6WyIvVXNlcnMvc2FjaGluL0RvY3VtZW50cy9tZC1zcG9ydHMtL3NyYy9saWIvbW9kZWxzL1RyYW5zZmVySXRlbS50cyJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyBNb2RlbCwgRGF0YVR5cGVzIH0gZnJvbSAnc2VxdWVsaXplJztcbmltcG9ydCBzZXF1ZWxpemUgZnJvbSAnLi4vZGInO1xuXG5jbGFzcyBUcmFuc2Zlckl0ZW0gZXh0ZW5kcyBNb2RlbCB7XG4gICAgcHVibGljIGlkITogbnVtYmVyO1xuICAgIHB1YmxpYyB0cmFuc2ZlcklkITogbnVtYmVyO1xuICAgIHB1YmxpYyBwcm9kdWN0SWQhOiBudW1iZXI7XG4gICAgcHVibGljIHF1YW50aXR5ITogbnVtYmVyO1xuICAgIHB1YmxpYyBub3RlcyE6IHN0cmluZztcbn1cblxuVHJhbnNmZXJJdGVtLmluaXQoe1xuICAgIGlkOiB7XG4gICAgICAgIHR5cGU6IERhdGFUeXBlcy5JTlRFR0VSLFxuICAgICAgICBhdXRvSW5jcmVtZW50OiB0cnVlLFxuICAgICAgICBwcmltYXJ5S2V5OiB0cnVlXG4gICAgfSxcbiAgICB0cmFuc2ZlcklkOiB7XG4gICAgICAgIHR5cGU6IERhdGFUeXBlcy5JTlRFR0VSLFxuICAgICAgICBhbGxvd051bGw6IGZhbHNlXG4gICAgfSxcbiAgICBwcm9kdWN0SWQ6IHtcbiAgICAgICAgdHlwZTogRGF0YVR5cGVzLklOVEVHRVIsXG4gICAgICAgIGFsbG93TnVsbDogZmFsc2VcbiAgICB9LFxuICAgIHF1YW50aXR5OiB7XG4gICAgICAgIHR5cGU6IERhdGFUeXBlcy5JTlRFR0VSLFxuICAgICAgICBhbGxvd051bGw6IGZhbHNlLFxuICAgICAgICB2YWxpZGF0ZToge1xuICAgICAgICAgICAgbWluOiAxXG4gICAgICAgIH1cbiAgICB9LFxuICAgIG5vdGVzOiB7XG4gICAgICAgIHR5cGU6IERhdGFUeXBlcy5TVFJJTkcoMjAwKSxcbiAgICAgICAgYWxsb3dOdWxsOiB0cnVlXG4gICAgfVxufSwge1xuICAgIHNlcXVlbGl6ZSxcbiAgICBtb2RlbE5hbWU6ICd0cmFuc2Zlcl9pdGVtJyxcbiAgICB0YWJsZU5hbWU6ICd0cmFuc2Zlcl9pdGVtcycsXG4gICAgdGltZXN0YW1wczogZmFsc2Vcbn0pO1xuXG5leHBvcnQgZGVmYXVsdCBUcmFuc2Zlckl0ZW07ICJdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7OytCQTJDQTs7Ozs7O1dBQUFBLFFBQUE7Ozs7O2tDQTNDaUM7Ozt3RUFDWDs7Ozs7Ozs7Ozs7Ozs7O0FBRXRCLE1BQU1DLFlBQUE7QUFBQTtBQUFBLENBQXFCQyxVQUFBLENBQUFDLEtBQUs7QUFNaEM7QUFBQUMsY0FBQSxHQUFBQyxDQUFBO0FBRUFKLFlBQUEsQ0FBYUssSUFBSSxDQUFDO0VBQ2RDLEVBQUEsRUFBSTtJQUNBQyxJQUFBLEVBQU1OLFVBQUEsQ0FBQU8sU0FBUyxDQUFDQyxPQUFPO0lBQ3ZCQyxhQUFBLEVBQWU7SUFDZkMsVUFBQSxFQUFZO0VBQ2hCO0VBQ0FDLFVBQUEsRUFBWTtJQUNSTCxJQUFBLEVBQU1OLFVBQUEsQ0FBQU8sU0FBUyxDQUFDQyxPQUFPO0lBQ3ZCSSxTQUFBLEVBQVc7RUFDZjtFQUNBQyxTQUFBLEVBQVc7SUFDUFAsSUFBQSxFQUFNTixVQUFBLENBQUFPLFNBQVMsQ0FBQ0MsT0FBTztJQUN2QkksU0FBQSxFQUFXO0VBQ2Y7RUFDQUUsUUFBQSxFQUFVO0lBQ05SLElBQUEsRUFBTU4sVUFBQSxDQUFBTyxTQUFTLENBQUNDLE9BQU87SUFDdkJJLFNBQUEsRUFBVztJQUNYRyxRQUFBLEVBQVU7TUFDTkMsR0FBQSxFQUFLO0lBQ1Q7RUFDSjtFQUNBQyxLQUFBLEVBQU87SUFDSFgsSUFBQSxFQUFNTixVQUFBLENBQUFPLFNBQVMsQ0FBQ1csTUFBTSxDQUFDO0lBQ3ZCTixTQUFBLEVBQVc7RUFDZjtBQUNKLEdBQUc7RUFDQ08sU0FBQSxFQUFBQyxHQUFBLENBQUFDLE9BQVM7RUFDVEMsU0FBQSxFQUFXO0VBQ1hDLFNBQUEsRUFBVztFQUNYQyxVQUFBLEVBQVk7QUFDaEI7TUFFQTFCLFFBQUE7QUFBQTtBQUFBLENBQUFJLGNBQUEsR0FBQUMsQ0FBQSxPQUFlSixZQUFBIiwiaWdub3JlTGlzdCI6W119

@@ -4,6 +4,32 @@ export interface BranchStock {
     quantity: number;
 }
 
+// Customer types
+export interface Customer {
+    id: string;
+    name: string;
+    phone: string;
+    address: string;
+    customerType: 'Retail' | 'Wholesale';
+    creditLimit?: number;
+    creditPeriod?: number;
+}
+
+// Product types
+export interface Product {
+    id: number;
+    name: string;
+    price: number;
+    description?: string;
+    sku?: string;
+    stock?: number;
+    weightedAverageCost?: number;
+    inventoryItems?: Array<{
+        shopId: string;
+        quantity: number;
+    }>;
+}
+
 export interface InventoryItem {
     id: string;
     name: string;

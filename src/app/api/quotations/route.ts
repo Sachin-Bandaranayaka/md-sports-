@@ -21,9 +21,10 @@ export async function GET(request: NextRequest) {
             };
         }
 
-        if (status) {
-            whereClause.status = status;
-        }
+        // Note: status field is not available in Quotation model
+        // if (status) {
+        //     whereClause.status = status;
+        // }
 
         if (customerId) {
             whereClause.customerId = parseInt(customerId);
@@ -137,6 +138,11 @@ export async function POST(request: NextRequest) {
         // Remove notes as it is not a direct field of the Quotation model
         if ('notes' in quotationData) {
             delete quotationData.notes;
+        }
+
+        // Remove status as it is not a direct field of the Quotation model
+        if ('status' in quotationData) {
+            delete quotationData.status;
         }
 
         // Create the quotation with items in a transaction

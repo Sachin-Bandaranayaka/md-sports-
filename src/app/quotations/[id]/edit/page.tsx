@@ -144,7 +144,7 @@ export default function EditQuotation() {
         // Filter products based on search
         const filtered = products.filter(product => 
             product.name.toLowerCase().includes(value.toLowerCase()) ||
-            product.code?.toLowerCase().includes(value.toLowerCase())
+            product.sku?.toLowerCase().includes(value.toLowerCase())
         );
         
         const newFilteredProducts = [...filteredProducts];
@@ -171,13 +171,13 @@ export default function EditQuotation() {
         const updatedItems = [...items];
         updatedItems[index] = {
             ...updatedItems[index],
-            productId: product.id,
+            productId: product.id.toString(),
             productName: product.name,
-            unitPrice: product.retailPrice || product.price || 0
+            unitPrice: product.price || 0
         };
         
         // Recalculate total for this item
-        const quantity = Number(updatedItems[index].quantity) || 0;
+        const quantity = updatedItems[index].quantity || 0;
         const unitPrice = Number(updatedItems[index].unitPrice) || 0;
         updatedItems[index].total = quantity * unitPrice;
         
@@ -448,7 +448,7 @@ export default function EditQuotation() {
                                         {items.map((item, index) => (
                                             <tr key={index} className="border-b">
                                                 <td className="p-3">
-                                                    <div className="relative" ref={el => productDropdownRefs.current[index] = el}>
+                                                    <div className="relative" ref={el => { productDropdownRefs.current[index] = el; }}>
                                                         <div className="relative">
                                                             <input
                                                                 type="text"
@@ -469,11 +469,11 @@ export default function EditQuotation() {
                                                                         onClick={() => handleProductSelect(index, product)}
                                                                     >
                                                                         <div className="font-medium">{product.name}</div>
-                                                                        {product.code && (
-                                                                            <div className="text-sm text-gray-500">{product.code}</div>
+                                                                        {product.sku && (
+                                                                            <div className="text-sm text-gray-500">SKU: {product.sku}</div>
                                                                         )}
                                                                         <div className="text-sm text-gray-600">
-                                                                            ${(product.retailPrice || product.price || 0).toFixed(2)}
+                                                                            ${(product.price || 0).toFixed(2)}
                                                                         </div>
                                                                     </div>
                                                                 ))}
