@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Search, Plus, Edit, Trash, X, ArrowUp, ArrowDown, Filter, Calendar, RefreshCw, TrendingUp, TrendingDown } from 'lucide-react';
+import { Search, Plus, Edit, Trash, X, ArrowUp, ArrowDown, Filter, Calendar, RefreshCw, TrendingUp, TrendingDown, ArrowLeftRight } from 'lucide-react';
 import { Transaction, Account } from '@/types';
 import { authGet, authPost, authDelete, authPatch } from '@/utils/api';
 // Removed framer-motion animations
@@ -15,8 +15,8 @@ function AccountingContent() {
     const searchParams = useSearchParams();
     const tabParam = searchParams.get('tab');
 
-    const [activeTab, setActiveTab] = useState<'transactions' | 'accounts'>(
-        tabParam === 'accounts' ? 'accounts' : 'transactions'
+    const [activeTab, setActiveTab] = useState<'income-accounts' | 'expense-accounts'>(
+        tabParam === 'expense-accounts' ? 'expense-accounts' : 'income-accounts'
     );
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [accounts, setAccounts] = useState<Account[]>([]);
@@ -64,8 +64,8 @@ function AccountingContent() {
     // Update URL when tab changes
     useEffect(() => {
         const newParams = new URLSearchParams(searchParams);
-        if (activeTab === 'accounts') {
-            newParams.set('tab', 'accounts');
+        if (activeTab === 'expense-accounts') {
+            newParams.set('tab', 'expense-accounts');
         } else {
             newParams.delete('tab');
         }
@@ -89,12 +89,18 @@ function AccountingContent() {
         return matchesSearch && matchesType && matchesStartDate && matchesEndDate;
     });
 
-    // Filter accounts based on search term
-    const filteredAccounts = accounts.filter((account) =>
-        account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        account.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (account.description && account.description.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    // Filter accounts based on search term and tab type
+    const filteredAccounts = accounts.filter((account) => {
+        const matchesSearch = account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            account.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (account.description && account.description.toLowerCase().includes(searchTerm.toLowerCase()));
+        
+        const matchesTabType = activeTab === 'income-accounts' 
+            ? account.type === 'income' || account.type === 'asset'
+            : account.type === 'expense' || account.type === 'liability';
+        
+        return matchesSearch && matchesTabType;
+    });
 
 
 
@@ -220,19 +226,28 @@ function AccountingContent() {
                         <h1 className="text-2xl font-bold text-gray-900">Cash Flow Overview</h1>
                         <p className="text-gray-500">Track your cash flow from sales and expenses</p>
                     </div>
-                    {activeTab === 'accounts' && (
-                        <div className="flex gap-3">
+                    <div className="flex gap-3">
+                        {activeTab === 'income-accounts' && (
                             <Button
-                                variant="primary"
+                                variant="outline"
                                 size="sm"
-                                onClick={handleAddAccount}
+                                onClick={() => router.push('/accounting/transfer')}
                                 className="flex items-center shadow-md"
                             >
-                                <Plus className="w-4 h-4 mr-2" />
-                                New Account
+                                <ArrowLeftRight className="w-4 h-4 mr-2" />
+                                Transfer Funds
                             </Button>
-                        </div>
-                    )}
+                        )}
+                        <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={handleAddAccount}
+                            className="flex items-center shadow-md"
+                        >
+                            <Plus className="w-4 h-4 mr-2" />
+                            New Account
+                        </Button>
+                    </div>
                 </div>
 
 
@@ -241,28 +256,28 @@ function AccountingContent() {
                 <div className="border-b border-gray-200 mb-6">
                     <nav className="flex space-x-8">
                         <button
-                            onClick={() => setActiveTab('transactions')}
+                            onClick={() => setActiveTab('income-accounts')}
                             className={`relative py-3 px-1 text-sm font-medium ${
-                                activeTab === 'transactions'
+                                activeTab === 'income-accounts'
                                     ? 'text-blue-600'
                                     : 'text-gray-500 hover:text-gray-700'
                             }`}
                         >
-                            Transactions
-                            {activeTab === 'transactions' && (
+                            Income Accounts
+                            {activeTab === 'income-accounts' && (
                                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
                             )}
                         </button>
                         <button
-                            onClick={() => setActiveTab('accounts')}
+                            onClick={() => setActiveTab('expense-accounts')}
                             className={`relative py-3 px-1 text-sm font-medium ${
-                                activeTab === 'accounts'
+                                activeTab === 'expense-accounts'
                                     ? 'text-blue-600'
                                     : 'text-gray-500 hover:text-gray-700'
                             }`}
                         >
-                            Accounts
-                            {activeTab === 'accounts' && (
+                            Expense Accounts
+                            {activeTab === 'expense-accounts' && (
                                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
                             )}
                         </button>
@@ -279,7 +294,7 @@ function AccountingContent() {
                             <input
                                 type="text"
                                 className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5"
-                                placeholder={`Search ${activeTab === 'transactions' ? 'transactions' : 'accounts'}...`}
+                                placeholder={`Search ${activeTab === 'income-accounts' ? 'income accounts' : 'expense accounts'}...`}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
@@ -295,390 +310,169 @@ function AccountingContent() {
                         </Button>
                     </div>
 
-                    {/* Advanced filters */}
-                    {isFilterOpen && activeTab === 'transactions' && (
-                        <div className="mt-4 pt-4 border-t border-gray-200">
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    {/* Date range filter */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Start Date
-                                        </label>
-                                        <div className="relative">
-                                            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                                                <Calendar className="w-4 h-4 text-gray-400" />
-                                            </div>
-                                            <input
-                                                type="date"
-                                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5"
-                                                value={startDate}
-                                                onChange={(e) => setStartDate(e.target.value)}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            End Date
-                                        </label>
-                                        <div className="relative">
-                                            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                                                <Calendar className="w-4 h-4 text-gray-400" />
-                                            </div>
-                                            <input
-                                                type="date"
-                                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5"
-                                                value={endDate}
-                                                onChange={(e) => setEndDate(e.target.value)}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="flex items-end">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={clearFilters}
-                                            className="w-full flex items-center justify-center"
-                                        >
-                                            <X className="w-4 h-4 mr-2" />
-                                            Clear Filters
-                                        </Button>
-                                    </div>
-                                </div>
-                        </div>
-                    )}
+                    {/* Advanced filters - removed for accounts view */}
                 </div>
 
-                {/* Filter by transaction type */}
-                {activeTab === 'transactions' && (
-                    <div className="mt-6">
-                        <div className="text-sm font-medium mb-3">Filter by Type</div>
-                        <div className="flex flex-wrap gap-2">
-                            <button
-                                className={`px-4 py-2 text-sm rounded-md flex items-center ${activeTab === 'transactions' && !typeFilter ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}
-                                onClick={() => setTypeFilter('')}
-                            >
-                                <RefreshCw className="w-3 h-3 mr-2" />
-                                All
-                            </button>
-                            <button
-                                className={`px-4 py-2 text-sm rounded-md flex items-center ${typeFilter === 'income' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}
-                                onClick={() => setTypeFilter('income')}
-                            >
-                                <TrendingUp className="w-3 h-3 mr-2" />
-                                Income
-                            </button>
-                            <button
-                                className={`px-4 py-2 text-sm rounded-md flex items-center ${typeFilter === 'expense' ? 'bg-red-100 text-red-800 border border-red-200' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}
-                                onClick={() => setTypeFilter('expense')}
-                            >
-                                <TrendingDown className="w-3 h-3 mr-2" />
-                                Expense
-                            </button>
-                            <button
-                                className={`px-4 py-2 text-sm rounded-md flex items-center ${typeFilter === 'withdrawal' ? 'bg-orange-100 text-orange-800 border border-orange-200' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}
-                                onClick={() => setTypeFilter('withdrawal')}
-                            >
-                                <ArrowUp className="w-3 h-3 mr-2" />
-                                Withdrawal
-                            </button>
-                            <button
-                                className={`px-4 py-2 text-sm rounded-md flex items-center ${typeFilter === 'transfer' ? 'bg-purple-100 text-purple-800 border border-purple-200' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}
-                                onClick={() => setTypeFilter('transfer')}
-                            >
-                                <RefreshCw className="w-3 h-3 mr-2" />
-                                Transfer
-                            </button>
-                        </div>
+                {/* Account type indicator */}
+                <div className="mt-6">
+                    <div className="text-sm font-medium mb-3">
+                        {activeTab === 'income-accounts' ? 'Income & Asset Accounts' : 'Expense & Liability Accounts'}
                     </div>
-                )}
-
-                {/* Transactions Table */}
-                {activeTab === 'transactions' && (
-                    <div className="bg-white rounded-lg shadow-md border border-gray-100 overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left text-gray-500">
-                                <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3">Date</th>
-                                        <th className="px-6 py-3">Description</th>
-                                        <th className="px-6 py-3">Account</th>
-                                        <th className="px-6 py-3">Category</th>
-                                        <th className="px-6 py-3">Reference</th>
-                                        <th className="px-6 py-3">Type</th>
-                                        <th className="px-6 py-3">Amount</th>
-                                        <th className="px-6 py-3">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredTransactions.length > 0 ? (
-                                        filteredTransactions.map((transaction) => (
-                                            <tr
-                                                key={transaction.id}
-                                                className="border-b hover:bg-gray-50"
-                                            >
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    {new Date(transaction.date).toLocaleDateString()}
-                                                </td>
-                                                <td className="px-6 py-4 font-medium text-gray-900">
-                                                    <span
-                                                        onClick={() => router.push(`/accounting/transaction/${transaction.id}`)}
-                                                        className="hover:underline hover:text-blue-600 cursor-pointer"
-                                                    >
-                                                        {transaction.description}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    {transaction.accountName}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    {transaction.category}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    {transaction.reference || '—'}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${transaction.type === 'income'
-                                                        ? 'bg-green-100 text-green-800'
-                                                        : transaction.type === 'expense'
-                                                            ? 'bg-red-100 text-red-800'
-                                                            : transaction.type === 'withdrawal'
-                                                                ? 'bg-orange-100 text-orange-800'
-                                                                : 'bg-purple-100 text-purple-800'
-                                                        }`}>
-                                                        {transaction.type === 'income' ? (
-                                                            <TrendingUp className="w-3 h-3 mr-1" />
-                                                        ) : transaction.type === 'expense' ? (
-                                                            <TrendingDown className="w-3 h-3 mr-1" />
-                                                        ) : transaction.type === 'withdrawal' ? (
-                                                            <ArrowUp className="w-3 h-3 mr-1" />
-                                                        ) : (
-                                                            <RefreshCw className="w-3 h-3 mr-1" />
-                                                        )}
-                                                        <span>
-                                                            {transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}
-                                                        </span>
-                                                    </span>
-                                                </td>
-                                                <td className={`px-6 py-4 font-medium ${transaction.type === 'income'
-                                                    ? 'text-green-600'
-                                                    : transaction.type === 'expense'
-                                                        ? 'text-red-600'
-                                                        : transaction.type === 'withdrawal'
-                                                            ? 'text-orange-600'
-                                                            : 'text-purple-600'
-                                                    }`}>
-                                                    {transaction.type === 'income' ? '+' : '-'} Rs. {Number(transaction.amount).toLocaleString()}
-                                                    {transaction.type === 'transfer' && transaction.toAccountName && (
-                                                        <div className="text-xs text-gray-500 mt-1">
-                                                            To: {transaction.toAccountName}
-                                                        </div>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center space-x-3">
-                                                        <button
-                                                            className="text-blue-500 hover:text-blue-700"
-                                                            title="View"
-                                                            onClick={() => router.push(`/accounting/transaction/${transaction.id}`)}
-                                                        >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                                                        </button>
-                                                        <button
-                                                            className="text-yellow-500 hover:text-yellow-700"
-                                                            title="Edit"
-                                                            onClick={() => router.push(`/accounting/edit-transaction/${transaction.id}`)}
-                                                        >
-                                                            <Edit className="w-4 h-4" />
-                                                        </button>
-                                                        <button
-                                                            className="text-red-500 hover:text-red-700"
-                                                            title="Delete"
-                                                            onClick={() => handleDeleteTransaction(transaction.id)}
-                                                        >
-                                                            <Trash className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
-                                                {searchTerm || typeFilter
-                                                    ? 'No transactions found matching your search criteria.'
-                                                    : 'No transactions found. Create your first transaction!'}
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                        <div className="flex items-center justify-between p-4 border-t">
-                            <div className="text-sm text-gray-700">
-                                Showing <span className="font-medium">{filteredTransactions.length}</span> transactions
-                            </div>
-                            <Button
-                                variant="primary"
-                                size="sm"
-                                onClick={handleAddTransaction}
-                                className="flex items-center"
-                            >
-                                <Plus className="w-4 h-4 mr-2" />
-                                New Transaction
-                            </Button>
-                        </div>
+                    <div className="text-sm text-gray-600">
+                        {activeTab === 'income-accounts' 
+                            ? 'Accounts that track money coming in and assets owned by the business.'
+                            : 'Accounts that track money going out and liabilities owed by the business.'
+                        }
                     </div>
-                )}
+                </div>
 
                 {/* Accounts Table */}
-                {activeTab === 'accounts' && (
-                    <div className="bg-white rounded-lg shadow-md border border-gray-100 overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left text-gray-500">
-                                <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3">Name</th>
-                                        <th className="px-6 py-3">Type</th>
-                                        <th className="px-6 py-3">Balance</th>
-                                        <th className="px-6 py-3">Description</th>
-                                        <th className="px-6 py-3">Status</th>
-                                        <th className="px-6 py-3">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredAccounts.length > 0 ? (
-                                        filteredAccounts.map((account) => (
-                                            <tr
-                                                key={account.id}
-                                                className="border-b hover:bg-gray-50"
-                                            >
-                                                <td className="px-6 py-4 font-medium text-gray-900">
-                                                    <div className="flex items-center">
-                                                        {account.parentId && (
-                                                            <span className="mr-2 text-gray-400">└─</span>
-                                                        )}
-                                                        <span
-                                                            onClick={() => router.push(`/accounting/account/${account.id}`)}
-                                                            className="hover:underline hover:text-blue-600 cursor-pointer"
-                                                        >
-                                                            {account.name}
+                <div className="bg-white rounded-lg shadow-md border border-gray-100 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left text-gray-500">
+                            <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3">Name</th>
+                                    <th className="px-6 py-3">Type</th>
+                                    <th className="px-6 py-3">Balance</th>
+                                    <th className="px-6 py-3">Description</th>
+                                    <th className="px-6 py-3">Status</th>
+                                    <th className="px-6 py-3">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredAccounts.length > 0 ? (
+                                    filteredAccounts.map((account) => (
+                                        <tr
+                                            key={account.id}
+                                            className="border-b hover:bg-gray-50"
+                                        >
+                                            <td className="px-6 py-4 font-medium text-gray-900">
+                                                <div className="flex items-center">
+                                                    {account.parentId && (
+                                                        <span className="mr-2 text-gray-400">└─</span>
+                                                    )}
+                                                    <span
+                                                        onClick={() => router.push(`/accounting/account/${account.id}`)}
+                                                        className="hover:underline hover:text-blue-600 cursor-pointer"
+                                                    >
+                                                        {account.name}
+                                                    </span>
+                                                    {account.parentId && account.parent && (
+                                                        <span className="ml-2 text-xs text-gray-500">
+                                                            (under {account.parent.name})
                                                         </span>
-                                                        {account.parentId && account.parent && (
-                                                            <span className="ml-2 text-xs text-gray-500">
-                                                                (under {account.parent.name})
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                        account.type === 'asset'
-                                                            ? 'bg-blue-100 text-blue-800'
-                                                            : account.type === 'liability'
-                                                                ? 'bg-red-100 text-red-800'
-                                                                : account.type === 'equity'
-                                                                    ? 'bg-purple-100 text-purple-800'
-                                                                    : account.type === 'income'
-                                                                        ? 'bg-green-100 text-green-800'
-                                                                        : 'bg-orange-100 text-orange-800'
-                                                        }`}>
-                                                        {account.type.charAt(0).toUpperCase() + account.type.slice(1)}
-                                                    </span>
-                                                </td>
-                                                <td className={`px-6 py-4 font-medium ${
-                                                    ['income', 'asset'].includes(account.type)
-                                                        ? 'text-green-600'
-                                                        : 'text-red-600'
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                    account.type === 'asset'
+                                                        ? 'bg-blue-100 text-blue-800'
+                                                        : account.type === 'liability'
+                                                            ? 'bg-red-100 text-red-800'
+                                                            : account.type === 'equity'
+                                                                ? 'bg-purple-100 text-purple-800'
+                                                                : account.type === 'income'
+                                                                    ? 'bg-green-100 text-green-800'
+                                                                    : 'bg-orange-100 text-orange-800'
                                                     }`}>
-                                                    Rs. {Number(account.balance).toLocaleString()}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    {account.description || '—'}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                                                        account.isActive
-                                                            ? 'bg-green-100 text-green-800'
-                                                            : 'bg-red-100 text-red-800'
-                                                        }`}>
-                                                        {account.isActive ? 'Active' : 'Inactive'}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center space-x-3">
+                                                    {account.type.charAt(0).toUpperCase() + account.type.slice(1)}
+                                                </span>
+                                            </td>
+                                            <td className={`px-6 py-4 font-medium ${
+                                                ['income', 'asset'].includes(account.type)
+                                                    ? 'text-green-600'
+                                                    : 'text-red-600'
+                                                }`}>
+                                                Rs. {Number(account.balance).toLocaleString()}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                {account.description || '—'}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                                                    account.isActive
+                                                        ? 'bg-green-100 text-green-800'
+                                                        : 'bg-red-100 text-red-800'
+                                                    }`}>
+                                                    {account.isActive ? 'Active' : 'Inactive'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center space-x-3">
+                                                    <button
+                                                        className="text-blue-500 hover:text-blue-700"
+                                                        title="View"
+                                                        onClick={() => router.push(`/accounting/account/${account.id}`)}
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                                    </button>
+                                                    <button
+                                                        className="text-yellow-500 hover:text-yellow-700"
+                                                        title="Edit"
+                                                        onClick={() => router.push(`/accounting/edit-account/${account.id}`)}
+                                                    >
+                                                        <Edit className="w-4 h-4" />
+                                                    </button>
+                                                    {!account.parentId && (
                                                         <button
-                                                            className="text-blue-500 hover:text-blue-700"
-                                                            title="View"
-                                                            onClick={() => router.push(`/accounting/account/${account.id}`)}
+                                                            className="text-purple-500 hover:text-purple-700"
+                                                            title="Add Sub-Account"
+                                                            onClick={() => handleAddSubAccount(String(account.id))}
                                                         >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                                            <Plus className="w-4 h-4" />
                                                         </button>
-                                                        <button
-                                                            className="text-yellow-500 hover:text-yellow-700"
-                                                            title="Edit"
-                                                            onClick={() => router.push(`/accounting/edit-account/${account.id}`)}
-                                                        >
-                                                            <Edit className="w-4 h-4" />
-                                                        </button>
-                                                        {!account.parentId && (
-                                                            <button
-                                                                className="text-purple-500 hover:text-purple-700"
-                                                                title="Add Sub-Account"
-                                                                onClick={() => handleAddSubAccount(account.id)}
-                                                            >
-                                                                <Plus className="w-4 h-4" />
-                                                            </button>
+                                                    )}
+                                                    <button
+                                                        className={`${account.isActive ? 'text-orange-500 hover:text-orange-700' : 'text-green-500 hover:text-green-700'}`}
+                                                        title={account.isActive ? 'Deactivate' : 'Activate'}
+                                                        onClick={() => handleToggleAccountStatus(account)}
+                                                    >
+                                                        {account.isActive ? (
+                                                            <ArrowDown className="w-4 h-4" />
+                                                        ) : (
+                                                            <ArrowUp className="w-4 h-4" />
                                                         )}
-                                                        <button
-                                                            className={`${account.isActive ? 'text-orange-500 hover:text-orange-700' : 'text-green-500 hover:text-green-700'}`}
-                                                            title={account.isActive ? 'Deactivate' : 'Activate'}
-                                                            onClick={() => handleToggleAccountStatus(account)}
-                                                        >
-                                                            {account.isActive ? (
-                                                                <ArrowDown className="w-4 h-4" />
-                                                            ) : (
-                                                                <ArrowUp className="w-4 h-4" />
-                                                            )}
-                                                        </button>
-                                                        <button
-                                                            className="text-red-500 hover:text-red-700"
-                                                            title="Delete Account"
-                                                            onClick={() => handleDeleteAccount(account)}
-                                                        >
-                                                            <Trash className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                                                {searchTerm
-                                                    ? 'No accounts found matching your search criteria.'
-                                                    : 'No accounts found. Create your first account!'}
+                                                    </button>
+                                                    <button
+                                                        className="text-red-500 hover:text-red-700"
+                                                        title="Delete Account"
+                                                        onClick={() => handleDeleteAccount(account)}
+                                                    >
+                                                        <Trash className="w-4 h-4" />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                        <div className="flex items-center justify-between p-4 border-t">
-                            <div className="text-sm text-gray-700">
-                                Showing <span className="font-medium">{filteredAccounts.length}</span> accounts
-                            </div>
-                            <Button
-                                variant="primary"
-                                size="sm"
-                                onClick={handleAddAccount}
-                                className="flex items-center"
-                            >
-                                <Plus className="w-4 h-4 mr-2" />
-                                New Account
-                            </Button>
-                        </div>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                                            {searchTerm
+                                                ? `No ${activeTab === 'income-accounts' ? 'income' : 'expense'} accounts found matching your search criteria.`
+                                                : `No ${activeTab === 'income-accounts' ? 'income' : 'expense'} accounts found. Create your first account!`}
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
-                )}
+                    <div className="flex items-center justify-between p-4 border-t">
+                        <div className="text-sm text-gray-700">
+                            Showing <span className="font-medium">{filteredAccounts.length}</span> {activeTab === 'income-accounts' ? 'income' : 'expense'} accounts
+                        </div>
+                        <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={handleAddAccount}
+                            className="flex items-center"
+                        >
+                            <Plus className="w-4 h-4 mr-2" />
+                            New Account
+                        </Button>
+                    </div>
+                </div>
             </div>
         </MainLayout>
     );
