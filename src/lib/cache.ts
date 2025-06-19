@@ -92,7 +92,9 @@ class MemoryCache {
     }
 
     destroy(): void {
-        clearInterval(this.cleanupInterval);
+        if (this.cleanupInterval) {
+            clearInterval(this.cleanupInterval);
+        }
         this.cache.clear();
     }
 }
@@ -178,6 +180,7 @@ interface CacheService {
     set(key: string, value: any, ttlSeconds?: number): Promise<void>;
     del(key: string): Promise<void>;
     invalidatePattern(pattern: string): Promise<void>;
+    destroy?(): void;
 }
 
 // Cache service implementation
@@ -296,6 +299,15 @@ class CacheManager implements CacheService {
             this.invalidateUserPermissions(userId),
         ]);
     }
+
+    destroy(): void {
+        if (this.cache && typeof (this.cache as any).destroy === 'function') {
+            (this.cache as any).destroy();
+        }
+        if (this.cache && typeof (this.cache as any).disconnect === 'function') {
+            (this.cache as any).disconnect();
+        }
+    }
 }
 
 // Export singleton instance
@@ -311,9 +323,14 @@ export type { CacheService };
 
 // Cleanup on process exit
 process.on('SIGINT', () => {
-    if (cache.cache instanceof RedisCache) {
-        (cache.cache as any).disconnect();
-    } else if (cache.cache instanceof MemoryCache) {
-        (cache.cache as any).destroy();
-    }
+    cache.destroy();
 });
+
+process.on('SIGTERM', () => {
+    cache.destroy();
+});
+
+// Export cleanup function for tests
+export const cleanupCache = () => {
+    cache.destroy();
+};

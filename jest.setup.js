@@ -1,5 +1,11 @@
 // jest-dom adds custom jest matchers for asserting on DOM nodes.
 import '@testing-library/jest-dom';
+import { cleanupCache } from './src/lib/cache';
+
+// Set up environment variables for testing
+process.env.JWT_SECRET = 'test-secret-key';
+process.env.NEXTAUTH_SECRET = 'test-nextauth-secret';
+process.env.NODE_ENV = 'test';
 
 // Mock IntersectionObserver
 global.IntersectionObserver = class IntersectionObserver {
@@ -33,3 +39,8 @@ if (typeof window !== 'undefined') {
     })),
   });
 }
+
+// Clean up cache after all tests
+afterAll(() => {
+  cleanupCache();
+});

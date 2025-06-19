@@ -17,7 +17,7 @@ export class ShopAccessControl {
     }> {
         try {
             const userShopId = await getShopIdFromToken(req);
-            const userId = await getUserIdFromToken(req);
+            const _userId = await getUserIdFromToken(req);
 
             // Development mode - allow all access
             const token = req.headers.get('authorization')?.split(' ')[1];

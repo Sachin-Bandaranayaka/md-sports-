@@ -1,0 +1,297 @@
+config:
+  target: 'http://localhost:3000'
+  phases:
+    # Warm-up phase
+    - duration: 30
+      arrivalRate: 5
+      name: "Warm-up"
+    # Ramp-up phase
+    - duration: 60
+      arrivalRate: 10
+      rampTo: 50
+      name: "Ramp-up load"
+    # Sustained load phase
+    - duration: 120
+      arrivalRate: 50
+      name: "Sustained load"
+    # Peak load phase
+    - duration: 60
+      arrivalRate: 100
+      name: "Peak load"
+    # Cool-down phase
+    - duration: 30
+      arrivalRate: 10
+      name: "Cool-down"
+  
+  # Performance thresholds
+  ensure:
+    # 95% of requests should complete within 2 seconds
+    - p95: 2000
+    # 99% of requests should complete within 5 seconds
+    - p99: 5000
+    # Error rate should be less than 1%
+    - maxErrorRate: 1
+  
+  # Load testing configuration
+  http:
+    timeout: 10
+    pool: 50
+  
+  # Variables for dynamic data
+  variables:
+    testUsers:
+      - "admin@test.com"
+      - "user1@test.com"
+      - "user2@test.com"
+      - "manager@test.com"
+    testPasswords:
+      - "password123"
+      - "testpass456"
+    shopIds:
+      - "shop-1"
+      - "shop-2"
+      - "shop-3"
+    productNames:
+      - "Test Product A"
+      - "Test Product B"
+      - "Test Product C"
+      - "Sample Item 1"
+      - "Sample Item 2"
+    categories:
+      - "Electronics"
+      - "Clothing"
+      - "Sports"
+      - "Books"
+
+scenarios:
+  # Authentication flow testing
+  - name: "Authentication Flow"
+    weight: 30
+    flow:
+      - post:
+          url: "/api/auth/login"
+          headers:
+            Content-Type: "application/json"
+          json:
+            email: "{{ $randomPick(testUsers) }}"
+            password: "{{ $randomPick(testPasswords) }}"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+            - json: "$.user.id"
+              as: "userId"
+          expect:
+            - statusCode: [200, 401]
+      
+      # Test token validation
+      - get:
+          url: "/api/user"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: [200, 401]
+          ifTrue: "authToken"
+      
+      # Logout
+      - post:
+          url: "/api/auth/logout"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: [200, 401]
+          ifTrue: "authToken"
+
+  # Product management testing
+  - name: "Product Operations"
+    weight: 40
+    flow:
+      # Login first
+      - post:
+          url: "/api/auth/login"
+          headers:
+            Content-Type: "application/json"
+          json:
+            email: "admin@test.com"
+            password: "password123"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+          expect:
+            - statusCode: 200
+      
+      # Get products list
+      - get:
+          url: "/api/products"
+          qs:
+            shopId: "{{ $randomPick(shopIds) }}"
+            page: "{{ $randomInt(1, 5) }}"
+            limit: "{{ $randomInt(10, 50) }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+            - hasProperty: "products"
+            - hasProperty: "pagination"
+      
+      # Search products
+      - get:
+          url: "/api/products"
+          qs:
+            shopId: "{{ $randomPick(shopIds) }}"
+            search: "{{ $randomPick(productNames) }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      
+      # Create new product (with random data to avoid conflicts)
+      - post:
+          url: "/api/products"
+          headers:
+            Content-Type: "application/json"
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            name: "Load Test Product {{ $randomString() }}"
+            description: "Generated during load test"
+            price: "{{ $randomInt(10, 1000) }}"
+            sku: "LT-{{ $randomString() }}"
+            shopId: "{{ $randomPick(shopIds) }}"
+            category: "{{ $randomPick(categories) }}"
+          capture:
+            - json: "$.id"
+              as: "productId"
+          expect:
+            - statusCode: [201, 400, 409]
+      
+      # Get specific product
+      - get:
+          url: "/api/products/{{ productId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: [200, 404]
+          ifTrue: "productId"
+
+  # Dashboard and analytics testing
+  - name: "Dashboard Analytics"
+    weight: 20
+    flow:
+      # Login
+      - post:
+          url: "/api/auth/login"
+          headers:
+            Content-Type: "application/json"
+          json:
+            email: "admin@test.com"
+            password: "password123"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+          expect:
+            - statusCode: 200
+      
+      # Get dashboard stats
+      - get:
+          url: "/api/dashboard/stats"
+          qs:
+            shopId: "{{ $randomPick(shopIds) }}"
+            period: "{{ $randomPick(['7d', '30d', '90d']) }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      
+      # Get sales analytics
+      - get:
+          url: "/api/analytics/sales"
+          qs:
+            shopId: "{{ $randomPick(shopIds) }}"
+            startDate: "2024-01-01"
+            endDate: "2024-12-31"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      
+      # Get inventory report
+      - get:
+          url: "/api/reports/inventory"
+          qs:
+            shopId: "{{ $randomPick(shopIds) }}"
+            format: "json"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+  # Customer management testing
+  - name: "Customer Operations"
+    weight: 10
+    flow:
+      # Login
+      - post:
+          url: "/api/auth/login"
+          headers:
+            Content-Type: "application/json"
+          json:
+            email: "admin@test.com"
+            password: "password123"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+          expect:
+            - statusCode: 200
+      
+      # Get customers list
+      - get:
+          url: "/api/customers"
+          qs:
+            shopId: "{{ $randomPick(shopIds) }}"
+            page: "1"
+            limit: "20"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      
+      # Search customers
+      - get:
+          url: "/api/customers"
+          qs:
+            shopId: "{{ $randomPick(shopIds) }}"
+            search: "test"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      
+      # Create customer
+      - post:
+          url: "/api/customers"
+          headers:
+            Content-Type: "application/json"
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            name: "Load Test Customer {{ $randomString() }}"
+            email: "customer-{{ $randomString() }}@test.com"
+            phone: "+1{{ $randomInt(1000000000, 9999999999) }}"
+            shopId: "{{ $randomPick(shopIds) }}"
+          expect:
+            - statusCode: [201, 400]
+
+# Error scenarios for resilience testing
+before:
+  flow:
+    # Health check
+    - get:
+        url: "/api/health"
+        expect:
+          - statusCode: 200
+
+after:
+  flow:
+    # Final health check
+    - get:
+        url: "/api/health"
+        expect:
+          - statusCode: 200

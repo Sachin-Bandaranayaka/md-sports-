@@ -1,0 +1,329 @@
+98e0fce3021af0dfa0975bd098afb8c2
+// Load environment variables from .env.local
+"use strict";
+
+/* istanbul ignore next */
+function cov_2m4v4irat3() {
+  var path = "/Users/sachin/Documents/md-sports-/src/scripts/test-db-connection.js";
+  var hash = "d5cc13d855709ade047587fd1f4a3eb153d718f7";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/Users/sachin/Documents/md-sports-/src/scripts/test-db-connection.js",
+    statementMap: {
+      "0": {
+        start: {
+          line: 3,
+          column: 0
+        },
+        end: {
+          line: 5,
+          column: 3
+        }
+      },
+      "1": {
+        start: {
+          line: 6,
+          column: 22
+        },
+        end: {
+          line: 6,
+          column: 42
+        }
+      },
+      "2": {
+        start: {
+          line: 8,
+          column: 20
+        },
+        end: {
+          line: 8,
+          column: 44
+        }
+      },
+      "3": {
+        start: {
+          line: 9,
+          column: 0
+        },
+        end: {
+          line: 9,
+          column: 46
+        }
+      },
+      "4": {
+        start: {
+          line: 10,
+          column: 0
+        },
+        end: {
+          line: 10,
+          column: 74
+        }
+      },
+      "5": {
+        start: {
+          line: 12,
+          column: 18
+        },
+        end: {
+          line: 21,
+          column: 2
+        }
+      },
+      "6": {
+        start: {
+          line: 24,
+          column: 4
+        },
+        end: {
+          line: 33,
+          column: 5
+        }
+      },
+      "7": {
+        start: {
+          line: 25,
+          column: 8
+        },
+        end: {
+          line: 25,
+          column: 39
+        }
+      },
+      "8": {
+        start: {
+          line: 26,
+          column: 8
+        },
+        end: {
+          line: 26,
+          column: 78
+        }
+      },
+      "9": {
+        start: {
+          line: 27,
+          column: 8
+        },
+        end: {
+          line: 27,
+          column: 20
+        }
+      },
+      "10": {
+        start: {
+          line: 29,
+          column: 8
+        },
+        end: {
+          line: 29,
+          column: 67
+        }
+      },
+      "11": {
+        start: {
+          line: 30,
+          column: 8
+        },
+        end: {
+          line: 30,
+          column: 21
+        }
+      },
+      "12": {
+        start: {
+          line: 32,
+          column: 8
+        },
+        end: {
+          line: 32,
+          column: 32
+        }
+      },
+      "13": {
+        start: {
+          line: 35,
+          column: 0
+        },
+        end: {
+          line: 35,
+          column: 17
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "testConnection",
+        decl: {
+          start: {
+            line: 23,
+            column: 15
+          },
+          end: {
+            line: 23,
+            column: 29
+          }
+        },
+        loc: {
+          start: {
+            line: 23,
+            column: 32
+          },
+          end: {
+            line: 34,
+            column: 1
+          }
+        },
+        line: 23
+      }
+    },
+    branchMap: {
+      "0": {
+        loc: {
+          start: {
+            line: 10,
+            column: 29
+          },
+          end: {
+            line: 10,
+            column: 72
+          }
+        },
+        type: "cond-expr",
+        locations: [{
+          start: {
+            line: 10,
+            column: 43
+          },
+          end: {
+            line: 10,
+            column: 54
+          }
+        }, {
+          start: {
+            line: 10,
+            column: 57
+          },
+          end: {
+            line: 10,
+            column: 72
+          }
+        }],
+        line: 10
+      }
+    },
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0,
+      "9": 0,
+      "10": 0,
+      "11": 0,
+      "12": 0,
+      "13": 0
+    },
+    f: {
+      "0": 0
+    },
+    b: {
+      "0": [0, 0]
+    },
+    inputSourceMap: {
+      version: 3,
+      sources: ["/Users/sachin/Documents/md-sports-/src/scripts/test-db-connection.js"],
+      sourcesContent: ["// Load environment variables from .env.local\nrequire('dotenv').config({ path: '.env.local' });\nconst { Sequelize } = require('sequelize');\n\n// Get connection string from environment variables\nconst databaseUrl = process.env.DATABASE_URL;\n\nconsole.log('Testing database connection...');\nconsole.log('Database URL:', databaseUrl ? 'Available' : 'Not available');\n\n// Create Sequelize instance\nconst sequelize = new Sequelize(databaseUrl, {\n  dialect: 'postgres',\n  dialectOptions: {\n    ssl: {\n      require: true,\n      rejectUnauthorized: false\n    }\n  },\n  logging: false\n});\n\n// Test database connection\nasync function testConnection() {\n  try {\n    await sequelize.authenticate();\n    console.log('Database connection has been established successfully.');\n    return true;\n  } catch (error) {\n    console.error('Unable to connect to the database:', error);\n    return false;\n  } finally {\n    await sequelize.close();\n  }\n}\n\ntestConnection(); "],
+      names: ["require", "config", "path", "Sequelize", "databaseUrl", "process", "env", "DATABASE_URL", "console", "log", "sequelize", "dialect", "dialectOptions", "ssl", "rejectUnauthorized", "logging", "testConnection", "authenticate", "error", "close"],
+      mappings: "AAAA,6CAA6C;;AAC7CA,QAAQ,UAAUC,MAAM,CAAC;IAAEC,MAAM;AAAa;AAC9C,MAAM,EAAEC,SAAS,EAAE,GAAGH,QAAQ;AAE9B,mDAAmD;AACnD,MAAMI,cAAcC,QAAQC,GAAG,CAACC,YAAY;AAE5CC,QAAQC,GAAG,CAAC;AACZD,QAAQC,GAAG,CAAC,iBAAiBL,cAAc,cAAc;AAEzD,4BAA4B;AAC5B,MAAMM,YAAY,IAAIP,UAAUC,aAAa;IAC3CO,SAAS;IACTC,gBAAgB;QACdC,KAAK;YACHb,SAAS;YACTc,oBAAoB;QACtB;IACF;IACAC,SAAS;AACX;AAEA,2BAA2B;AAC3B,eAAeC;IACb,IAAI;QACF,MAAMN,UAAUO,YAAY;QAC5BT,QAAQC,GAAG,CAAC;QACZ,OAAO;IACT,EAAE,OAAOS,OAAO;QACdV,QAAQU,KAAK,CAAC,sCAAsCA;QACpD,OAAO;IACT,SAAU;QACR,MAAMR,UAAUS,KAAK;IACvB;AACF;AAEAH"
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "d5cc13d855709ade047587fd1f4a3eb153d718f7"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_2m4v4irat3 = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_2m4v4irat3();
+cov_2m4v4irat3().s[0]++;
+require("dotenv").config({
+  path: ".env.local"
+});
+const {
+  Sequelize
+} =
+/* istanbul ignore next */
+(cov_2m4v4irat3().s[1]++, require("sequelize"));
+// Get connection string from environment variables
+const databaseUrl =
+/* istanbul ignore next */
+(cov_2m4v4irat3().s[2]++, process.env.DATABASE_URL);
+/* istanbul ignore next */
+cov_2m4v4irat3().s[3]++;
+console.log("Testing database connection...");
+/* istanbul ignore next */
+cov_2m4v4irat3().s[4]++;
+console.log("Database URL:", databaseUrl ?
+/* istanbul ignore next */
+(cov_2m4v4irat3().b[0][0]++, "Available") :
+/* istanbul ignore next */
+(cov_2m4v4irat3().b[0][1]++, "Not available"));
+// Create Sequelize instance
+const sequelize =
+/* istanbul ignore next */
+(cov_2m4v4irat3().s[5]++, new Sequelize(databaseUrl, {
+  dialect: "postgres",
+  dialectOptions: {
+    ssl: {
+      require: true,
+      rejectUnauthorized: false
+    }
+  },
+  logging: false
+}));
+// Test database connection
+async function testConnection() {
+  /* istanbul ignore next */
+  cov_2m4v4irat3().f[0]++;
+  cov_2m4v4irat3().s[6]++;
+  try {
+    /* istanbul ignore next */
+    cov_2m4v4irat3().s[7]++;
+    await sequelize.authenticate();
+    /* istanbul ignore next */
+    cov_2m4v4irat3().s[8]++;
+    console.log("Database connection has been established successfully.");
+    /* istanbul ignore next */
+    cov_2m4v4irat3().s[9]++;
+    return true;
+  } catch (error) {
+    /* istanbul ignore next */
+    cov_2m4v4irat3().s[10]++;
+    console.error("Unable to connect to the database:", error);
+    /* istanbul ignore next */
+    cov_2m4v4irat3().s[11]++;
+    return false;
+  } finally {
+    /* istanbul ignore next */
+    cov_2m4v4irat3().s[12]++;
+    await sequelize.close();
+  }
+}
+/* istanbul ignore next */
+cov_2m4v4irat3().s[13]++;
+testConnection();
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfMm00djRpcmF0MyIsImFjdHVhbENvdmVyYWdlIiwicyIsInJlcXVpcmUiLCJjb25maWciLCJwYXRoIiwiU2VxdWVsaXplIiwiZGF0YWJhc2VVcmwiLCJwcm9jZXNzIiwiZW52IiwiREFUQUJBU0VfVVJMIiwiY29uc29sZSIsImxvZyIsImIiLCJzZXF1ZWxpemUiLCJkaWFsZWN0IiwiZGlhbGVjdE9wdGlvbnMiLCJzc2wiLCJyZWplY3RVbmF1dGhvcml6ZWQiLCJsb2dnaW5nIiwidGVzdENvbm5lY3Rpb24iLCJmIiwiYXV0aGVudGljYXRlIiwiZXJyb3IiLCJjbG9zZSJdLCJzb3VyY2VzIjpbIi9Vc2Vycy9zYWNoaW4vRG9jdW1lbnRzL21kLXNwb3J0cy0vc3JjL3NjcmlwdHMvdGVzdC1kYi1jb25uZWN0aW9uLmpzIl0sInNvdXJjZXNDb250ZW50IjpbIi8vIExvYWQgZW52aXJvbm1lbnQgdmFyaWFibGVzIGZyb20gLmVudi5sb2NhbFxucmVxdWlyZSgnZG90ZW52JykuY29uZmlnKHsgcGF0aDogJy5lbnYubG9jYWwnIH0pO1xuY29uc3QgeyBTZXF1ZWxpemUgfSA9IHJlcXVpcmUoJ3NlcXVlbGl6ZScpO1xuXG4vLyBHZXQgY29ubmVjdGlvbiBzdHJpbmcgZnJvbSBlbnZpcm9ubWVudCB2YXJpYWJsZXNcbmNvbnN0IGRhdGFiYXNlVXJsID0gcHJvY2Vzcy5lbnYuREFUQUJBU0VfVVJMO1xuXG5jb25zb2xlLmxvZygnVGVzdGluZyBkYXRhYmFzZSBjb25uZWN0aW9uLi4uJyk7XG5jb25zb2xlLmxvZygnRGF0YWJhc2UgVVJMOicsIGRhdGFiYXNlVXJsID8gJ0F2YWlsYWJsZScgOiAnTm90IGF2YWlsYWJsZScpO1xuXG4vLyBDcmVhdGUgU2VxdWVsaXplIGluc3RhbmNlXG5jb25zdCBzZXF1ZWxpemUgPSBuZXcgU2VxdWVsaXplKGRhdGFiYXNlVXJsLCB7XG4gIGRpYWxlY3Q6ICdwb3N0Z3JlcycsXG4gIGRpYWxlY3RPcHRpb25zOiB7XG4gICAgc3NsOiB7XG4gICAgICByZXF1aXJlOiB0cnVlLFxuICAgICAgcmVqZWN0VW5hdXRob3JpemVkOiBmYWxzZVxuICAgIH1cbiAgfSxcbiAgbG9nZ2luZzogZmFsc2Vcbn0pO1xuXG4vLyBUZXN0IGRhdGFiYXNlIGNvbm5lY3Rpb25cbmFzeW5jIGZ1bmN0aW9uIHRlc3RDb25uZWN0aW9uKCkge1xuICB0cnkge1xuICAgIGF3YWl0IHNlcXVlbGl6ZS5hdXRoZW50aWNhdGUoKTtcbiAgICBjb25zb2xlLmxvZygnRGF0YWJhc2UgY29ubmVjdGlvbiBoYXMgYmVlbiBlc3RhYmxpc2hlZCBzdWNjZXNzZnVsbHkuJyk7XG4gICAgcmV0dXJuIHRydWU7XG4gIH0gY2F0Y2ggKGVycm9yKSB7XG4gICAgY29uc29sZS5lcnJvcignVW5hYmxlIHRvIGNvbm5lY3QgdG8gdGhlIGRhdGFiYXNlOicsIGVycm9yKTtcbiAgICByZXR1cm4gZmFsc2U7XG4gIH0gZmluYWxseSB7XG4gICAgYXdhaXQgc2VxdWVsaXplLmNsb3NlKCk7XG4gIH1cbn1cblxudGVzdENvbm5lY3Rpb24oKTsgIl0sIm1hcHBpbmdzIjoiQUFBQTs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7O0lBZU07SUFBQUEsY0FBQSxZQUFBQSxDQUFBO01BQUEsT0FBQUMsY0FBQTtJQUFBO0VBQUE7RUFBQSxPQUFBQSxjQUFBO0FBQUE7QUFBQUQsY0FBQTtBQUFBQSxjQUFBLEdBQUFFLENBQUE7QUFkTkMsT0FBQSxDQUFRLFVBQVVDLE1BQU0sQ0FBQztFQUFFQyxJQUFBLEVBQU07QUFBYTtBQUM5QyxNQUFNO0VBQUVDO0FBQVMsQ0FBRTtBQUFBO0FBQUEsQ0FBQU4sY0FBQSxHQUFBRSxDQUFBLE9BQUdDLE9BQUEsQ0FBUTtBQUU5QjtBQUNBLE1BQU1JLFdBQUE7QUFBQTtBQUFBLENBQUFQLGNBQUEsR0FBQUUsQ0FBQSxPQUFjTSxPQUFBLENBQVFDLEdBQUcsQ0FBQ0MsWUFBWTtBQUFBO0FBQUFWLGNBQUEsR0FBQUUsQ0FBQTtBQUU1Q1MsT0FBQSxDQUFRQyxHQUFHLENBQUM7QUFBQTtBQUFBWixjQUFBLEdBQUFFLENBQUE7QUFDWlMsT0FBQSxDQUFRQyxHQUFHLENBQUMsaUJBQWlCTCxXQUFBO0FBQUE7QUFBQSxDQUFBUCxjQUFBLEdBQUFhLENBQUEsVUFBYztBQUFBO0FBQUEsQ0FBQWIsY0FBQSxHQUFBYSxDQUFBLFVBQWM7QUFFekQ7QUFDQSxNQUFNQyxTQUFBO0FBQUE7QUFBQSxDQUFBZCxjQUFBLEdBQUFFLENBQUEsT0FBWSxJQUFJSSxTQUFBLENBQVVDLFdBQUEsRUFBYTtFQUMzQ1EsT0FBQSxFQUFTO0VBQ1RDLGNBQUEsRUFBZ0I7SUFDZEMsR0FBQSxFQUFLO01BQ0hkLE9BQUEsRUFBUztNQUNUZSxrQkFBQSxFQUFvQjtJQUN0QjtFQUNGO0VBQ0FDLE9BQUEsRUFBUztBQUNYO0FBRUE7QUFDQSxlQUFlQyxlQUFBO0VBQUE7RUFBQXBCLGNBQUEsR0FBQXFCLENBQUE7RUFBQXJCLGNBQUEsR0FBQUUsQ0FBQTtFQUNiLElBQUk7SUFBQTtJQUFBRixjQUFBLEdBQUFFLENBQUE7SUFDRixNQUFNWSxTQUFBLENBQVVRLFlBQVk7SUFBQTtJQUFBdEIsY0FBQSxHQUFBRSxDQUFBO0lBQzVCUyxPQUFBLENBQVFDLEdBQUcsQ0FBQztJQUFBO0lBQUFaLGNBQUEsR0FBQUUsQ0FBQTtJQUNaLE9BQU87RUFDVCxFQUFFLE9BQU9xQixLQUFBLEVBQU87SUFBQTtJQUFBdkIsY0FBQSxHQUFBRSxDQUFBO0lBQ2RTLE9BQUEsQ0FBUVksS0FBSyxDQUFDLHNDQUFzQ0EsS0FBQTtJQUFBO0lBQUF2QixjQUFBLEdBQUFFLENBQUE7SUFDcEQsT0FBTztFQUNULFVBQVU7SUFBQTtJQUFBRixjQUFBLEdBQUFFLENBQUE7SUFDUixNQUFNWSxTQUFBLENBQVVVLEtBQUs7RUFDdkI7QUFDRjtBQUFBO0FBQUF4QixjQUFBLEdBQUFFLENBQUE7QUFFQWtCLGNBQUEiLCJpZ25vcmVMaXN0IjpbXX0=

@@ -1,0 +1,206 @@
+b291f28294685eb4cbfa5269b7124567
+"use strict";
+
+/* istanbul ignore next */
+function cov_25trnnfrxv() {
+  var path = "/Users/sachin/Documents/md-sports-/src/app/payments/simple/page.tsx";
+  var hash = "a0e0ec3e65547bfcb14af8307a46dbcb35b5bc83";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/Users/sachin/Documents/md-sports-/src/app/payments/simple/page.tsx",
+    statementMap: {
+      "0": {
+        start: {
+          line: 2,
+          column: 0
+        },
+        end: {
+          line: 4,
+          column: 3
+        }
+      },
+      "1": {
+        start: {
+          line: 5,
+          column: 0
+        },
+        end: {
+          line: 10,
+          column: 3
+        }
+      },
+      "2": {
+        start: {
+          line: 8,
+          column: 8
+        },
+        end: {
+          line: 8,
+          column: 33
+        }
+      },
+      "3": {
+        start: {
+          line: 11,
+          column: 20
+        },
+        end: {
+          line: 11,
+          column: 48
+        }
+      },
+      "4": {
+        start: {
+          line: 12,
+          column: 15
+        },
+        end: {
+          line: 12,
+          column: 31
+        }
+      },
+      "5": {
+        start: {
+          line: 13,
+          column: 29
+        },
+        end: {
+          line: 13,
+          column: 63
+        }
+      },
+      "6": {
+        start: {
+          line: 15,
+          column: 4
+        },
+        end: {
+          line: 18,
+          column: 7
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "(anonymous_0)",
+        decl: {
+          start: {
+            line: 7,
+            column: 9
+          },
+          end: {
+            line: 7,
+            column: 10
+          }
+        },
+        loc: {
+          start: {
+            line: 7,
+            column: 20
+          },
+          end: {
+            line: 9,
+            column: 5
+          }
+        },
+        line: 7
+      },
+      "1": {
+        name: "SimplePaymentPage",
+        decl: {
+          start: {
+            line: 14,
+            column: 9
+          },
+          end: {
+            line: 14,
+            column: 26
+          }
+        },
+        loc: {
+          start: {
+            line: 14,
+            column: 29
+          },
+          end: {
+            line: 19,
+            column: 1
+          }
+        },
+        line: 14
+      }
+    },
+    branchMap: {},
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0
+    },
+    f: {
+      "0": 0,
+      "1": 0
+    },
+    b: {},
+    inputSourceMap: {
+      version: 3,
+      sources: ["/Users/sachin/Documents/md-sports-/src/app/payments/simple/page.tsx"],
+      sourcesContent: ["import { Suspense } from 'react';\nimport { SimplePaymentClientForm, Loading } from './simple-payment-client';\n\nexport default function SimplePaymentPage() {\n    return (\n        <Suspense fallback={<Loading />}>\n            <SimplePaymentClientForm />\n        </Suspense>\n    );\n} "],
+      names: ["SimplePaymentPage", "Suspense", "fallback", "Loading", "SimplePaymentClientForm"],
+      mappings: ";;;;+BAGA;;;eAAwBA;;;;uBAHC;qCACwB;AAElC,SAASA;IACpB,qBACI,qBAACC,eAAQ;QAACC,wBAAU,qBAACC,4BAAO;kBACxB,cAAA,qBAACC,4CAAuB;;AAGpC"
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "a0e0ec3e65547bfcb14af8307a46dbcb35b5bc83"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_25trnnfrxv = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_25trnnfrxv();
+cov_25trnnfrxv().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+/* istanbul ignore next */
+cov_25trnnfrxv().s[1]++;
+Object.defineProperty(exports, "default", {
+  enumerable: true,
+  get: function () {
+    /* istanbul ignore next */
+    cov_25trnnfrxv().f[0]++;
+    cov_25trnnfrxv().s[2]++;
+    return SimplePaymentPage;
+  }
+});
+const _jsxruntime =
+/* istanbul ignore next */
+(cov_25trnnfrxv().s[3]++, require("react/jsx-runtime"));
+const _react =
+/* istanbul ignore next */
+(cov_25trnnfrxv().s[4]++, require("react"));
+const _simplepaymentclient =
+/* istanbul ignore next */
+(cov_25trnnfrxv().s[5]++, require("./simple-payment-client"));
+function SimplePaymentPage() {
+  /* istanbul ignore next */
+  cov_25trnnfrxv().f[1]++;
+  cov_25trnnfrxv().s[6]++;
+  return /*#__PURE__*/(0, _jsxruntime.jsx)(_react.Suspense, {
+    fallback: /*#__PURE__*/(0, _jsxruntime.jsx)(_simplepaymentclient.Loading, {}),
+    children: /*#__PURE__*/(0, _jsxruntime.jsx)(_simplepaymentclient.SimplePaymentClientForm, {})
+  });
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfMjV0cm5uZnJ4diIsImFjdHVhbENvdmVyYWdlIiwicyIsIlNpbXBsZVBheW1lbnRQYWdlIiwiZiIsIl9qc3hydW50aW1lIiwianN4IiwiX3JlYWN0IiwiU3VzcGVuc2UiLCJmYWxsYmFjayIsIl9zaW1wbGVwYXltZW50Y2xpZW50IiwiTG9hZGluZyIsIlNpbXBsZVBheW1lbnRDbGllbnRGb3JtIl0sInNvdXJjZXMiOlsiL1VzZXJzL3NhY2hpbi9Eb2N1bWVudHMvbWQtc3BvcnRzLS9zcmMvYXBwL3BheW1lbnRzL3NpbXBsZS9wYWdlLnRzeCJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyBTdXNwZW5zZSB9IGZyb20gJ3JlYWN0JztcbmltcG9ydCB7IFNpbXBsZVBheW1lbnRDbGllbnRGb3JtLCBMb2FkaW5nIH0gZnJvbSAnLi9zaW1wbGUtcGF5bWVudC1jbGllbnQnO1xuXG5leHBvcnQgZGVmYXVsdCBmdW5jdGlvbiBTaW1wbGVQYXltZW50UGFnZSgpIHtcbiAgICByZXR1cm4gKFxuICAgICAgICA8U3VzcGVuc2UgZmFsbGJhY2s9ezxMb2FkaW5nIC8+fT5cbiAgICAgICAgICAgIDxTaW1wbGVQYXltZW50Q2xpZW50Rm9ybSAvPlxuICAgICAgICA8L1N1c3BlbnNlPlxuICAgICk7XG59ICJdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7OztJQUtrQjtJQUFBQSxjQUFBLFlBQUFBLENBQUE7TUFBQSxPQUFBQyxjQUFBO0lBQUE7RUFBQTtFQUFBLE9BQUFBLGNBQUE7QUFBQTtBQUFBRCxjQUFBO0FBQUFBLGNBQUEsR0FBQUUsQ0FBQTs7Ozs7OytCQUZsQjs7Ozs7O1dBQXdCQyxpQkFBQTs7Ozs7Ozs7a0NBSEM7OztrQ0FDd0I7QUFFbEMsU0FBU0Esa0JBQUE7RUFBQTtFQUFBSCxjQUFBLEdBQUFJLENBQUE7RUFBQUosY0FBQSxHQUFBRSxDQUFBO0VBQ3BCLG9CQUNJLElBQUFHLFdBQUEsQ0FBQUMsR0FBQSxFQUFDQyxNQUFBLENBQUFDLFFBQVE7SUFBQ0MsUUFBQSxlQUFVLElBQUFKLFdBQUEsQ0FBQUMsR0FBQSxFQUFDSSxvQkFBQSxDQUFBQyxPQUFPO2NBQ3hCLGlCQUFBTixXQUFBLENBQUFDLEdBQUEsRUFBQ0ksb0JBQUEsQ0FBQUUsdUJBQXVCOztBQUdwQyIsImlnbm9yZUxpc3QiOltdfQ==

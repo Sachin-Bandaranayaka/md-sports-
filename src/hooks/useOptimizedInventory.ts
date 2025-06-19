@@ -2,7 +2,7 @@
 export { useOptimizedInventory } from './useQueries';
 
 // Missing exports
-export const useInventoryAnalytics = (shopId?: number) => {
+export const useInventoryAnalytics = (_shopId?: number) => {
   // Return a placeholder implementation for now
   return {
     data: {
@@ -15,7 +15,7 @@ export const useInventoryAnalytics = (shopId?: number) => {
   };
 };
 
-export const useLowStockAlerts = (shopId?: number) => {
+export const useLowStockAlerts = (_shopId?: number) => {
   // Return a placeholder implementation for now
   return {
     data: [],

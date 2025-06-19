@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
 import { verifyToken, getUserFromToken, hasPermission } from '@/services/authService';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-key-for-development';
 
 /**
  * Middleware to require authentication

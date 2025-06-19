@@ -73,7 +73,7 @@ class InventoryCacheService {
         this.redis = new Redis(process.env.REDIS_URL);
         console.log('✅ Inventory cache Redis connection established');
       }
-    } catch (error) {
+    } catch {
       console.warn('⚠️ Redis not available, using memory cache fallback');
     }
   }

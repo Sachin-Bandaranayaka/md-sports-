@@ -63,7 +63,7 @@ class InventoryTransfer extends Model {
                 });
 
                 // Increment destination inventory (or create if not exists)
-                const [destInventory, created] = await InventoryItem.findOrCreate({
+                const [destInventory, _created] = await InventoryItem.findOrCreate({
                     where: {
                         shopId: this.destinationShopId,
                         productId
@@ -202,4 +202,4 @@ export interface TransferItemWithDetails extends TransferItem {
     productName: string;
     sku: string;
     retailPrice: string;
-} 
+}

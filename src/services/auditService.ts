@@ -154,7 +154,7 @@ export class AuditService {
 
     return {
       items: recycleBinItems,
-      total: recycleBinItems.length,
+      total,
     };
   }
 

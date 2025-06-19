@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateTokenPermission, getUserIdFromToken, getShopIdFromToken } from '@/lib/auth';
+import { getUserIdFromToken, getShopIdFromToken } from '@/lib/auth';
 
 // Generate UUID using Web Crypto API instead of Node.js crypto
 function generateUUID() {
@@ -40,7 +40,7 @@ const ADMIN_CROSS_SHOP_ROUTES = [
 async function validateShopAccess(req: NextRequest, targetShopId?: string | number): Promise<boolean> {
     try {
         const userShopId = await getShopIdFromToken(req);
-        const userId = await getUserIdFromToken(req);
+        const _userId = await getUserIdFromToken(req);
 
         // Development mode - allow all access
         const token = req.headers.get('authorization')?.split(' ')[1];

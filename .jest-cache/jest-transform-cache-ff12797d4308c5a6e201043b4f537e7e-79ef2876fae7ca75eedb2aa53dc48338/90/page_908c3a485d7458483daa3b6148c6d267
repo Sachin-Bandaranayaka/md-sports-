@@ -1,0 +1,260 @@
+e65621bb4cf88d858fd0129b1011e7de
+"use client";
+"use strict";
+
+/* istanbul ignore next */
+function cov_13kg57zk0m() {
+  var path = "/Users/sachin/Documents/md-sports-/src/app/(protected)/settings/users/page.tsx";
+  var hash = "4ab53d8d92f2b6f8cfaff69198f4a82ee9bda2ba";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/Users/sachin/Documents/md-sports-/src/app/(protected)/settings/users/page.tsx",
+    statementMap: {
+      "0": {
+        start: {
+          line: 3,
+          column: 0
+        },
+        end: {
+          line: 5,
+          column: 3
+        }
+      },
+      "1": {
+        start: {
+          line: 6,
+          column: 0
+        },
+        end: {
+          line: 11,
+          column: 3
+        }
+      },
+      "2": {
+        start: {
+          line: 9,
+          column: 8
+        },
+        end: {
+          line: 9,
+          column: 25
+        }
+      },
+      "3": {
+        start: {
+          line: 12,
+          column: 15
+        },
+        end: {
+          line: 12,
+          column: 31
+        }
+      },
+      "4": {
+        start: {
+          line: 13,
+          column: 20
+        },
+        end: {
+          line: 13,
+          column: 46
+        }
+      },
+      "5": {
+        start: {
+          line: 15,
+          column: 19
+        },
+        end: {
+          line: 15,
+          column: 47
+        }
+      },
+      "6": {
+        start: {
+          line: 16,
+          column: 4
+        },
+        end: {
+          line: 20,
+          column: 7
+        }
+      },
+      "7": {
+        start: {
+          line: 17,
+          column: 8
+        },
+        end: {
+          line: 17,
+          column: 43
+        }
+      },
+      "8": {
+        start: {
+          line: 21,
+          column: 4
+        },
+        end: {
+          line: 21,
+          column: 16
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "(anonymous_0)",
+        decl: {
+          start: {
+            line: 8,
+            column: 9
+          },
+          end: {
+            line: 8,
+            column: 10
+          }
+        },
+        loc: {
+          start: {
+            line: 8,
+            column: 20
+          },
+          end: {
+            line: 10,
+            column: 5
+          }
+        },
+        line: 8
+      },
+      "1": {
+        name: "UsersPage",
+        decl: {
+          start: {
+            line: 14,
+            column: 9
+          },
+          end: {
+            line: 14,
+            column: 18
+          }
+        },
+        loc: {
+          start: {
+            line: 14,
+            column: 21
+          },
+          end: {
+            line: 22,
+            column: 1
+          }
+        },
+        line: 14
+      },
+      "2": {
+        name: "(anonymous_2)",
+        decl: {
+          start: {
+            line: 16,
+            column: 26
+          },
+          end: {
+            line: 16,
+            column: 27
+          }
+        },
+        loc: {
+          start: {
+            line: 16,
+            column: 30
+          },
+          end: {
+            line: 18,
+            column: 5
+          }
+        },
+        line: 16
+      }
+    },
+    branchMap: {},
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0
+    },
+    f: {
+      "0": 0,
+      "1": 0,
+      "2": 0
+    },
+    b: {},
+    inputSourceMap: {
+      version: 3,
+      sources: ["/Users/sachin/Documents/md-sports-/src/app/(protected)/settings/users/page.tsx"],
+      sourcesContent: ["'use client';\n\nimport { useEffect } from 'react';\nimport { useRouter } from 'next/navigation';\n\nexport default function UsersPage() {\n    const router = useRouter();\n\n    useEffect(() => {\n        router.push('/settings?tab=users');\n    }, [router]);\n\n    return null;\n} "],
+      names: ["UsersPage", "router", "useRouter", "useEffect", "push"],
+      mappings: "AAAA;;;;;+BAKA;;;eAAwBA;;;uBAHE;4BACA;AAEX,SAASA;IACpB,MAAMC,SAASC,IAAAA,qBAAS;IAExBC,IAAAA,gBAAS,EAAC;QACNF,OAAOG,IAAI,CAAC;IAChB,GAAG;QAACH;KAAO;IAEX,OAAO;AACX"
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "4ab53d8d92f2b6f8cfaff69198f4a82ee9bda2ba"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_13kg57zk0m = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_13kg57zk0m();
+cov_13kg57zk0m().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+/* istanbul ignore next */
+cov_13kg57zk0m().s[1]++;
+Object.defineProperty(exports, "default", {
+  enumerable: true,
+  get: function () {
+    /* istanbul ignore next */
+    cov_13kg57zk0m().f[0]++;
+    cov_13kg57zk0m().s[2]++;
+    return UsersPage;
+  }
+});
+const _react =
+/* istanbul ignore next */
+(cov_13kg57zk0m().s[3]++, require("react"));
+const _navigation =
+/* istanbul ignore next */
+(cov_13kg57zk0m().s[4]++, require("next/navigation"));
+function UsersPage() {
+  /* istanbul ignore next */
+  cov_13kg57zk0m().f[1]++;
+  const router =
+  /* istanbul ignore next */
+  (cov_13kg57zk0m().s[5]++, (0, _navigation.useRouter)());
+  /* istanbul ignore next */
+  cov_13kg57zk0m().s[6]++;
+  (0, _react.useEffect)(() => {
+    /* istanbul ignore next */
+    cov_13kg57zk0m().f[2]++;
+    cov_13kg57zk0m().s[7]++;
+    router.push("/settings?tab=users");
+  }, [router]);
+  /* istanbul ignore next */
+  cov_13kg57zk0m().s[8]++;
+  return null;
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfMTNrZzU3emswbSIsImFjdHVhbENvdmVyYWdlIiwicyIsIlVzZXJzUGFnZSIsImYiLCJyb3V0ZXIiLCJfbmF2aWdhdGlvbiIsInVzZVJvdXRlciIsIl9yZWFjdCIsInVzZUVmZmVjdCIsInB1c2giXSwic291cmNlcyI6WyIvVXNlcnMvc2FjaGluL0RvY3VtZW50cy9tZC1zcG9ydHMtL3NyYy9hcHAvKHByb3RlY3RlZCkvc2V0dGluZ3MvdXNlcnMvcGFnZS50c3giXSwic291cmNlc0NvbnRlbnQiOlsiJ3VzZSBjbGllbnQnO1xuXG5pbXBvcnQgeyB1c2VFZmZlY3QgfSBmcm9tICdyZWFjdCc7XG5pbXBvcnQgeyB1c2VSb3V0ZXIgfSBmcm9tICduZXh0L25hdmlnYXRpb24nO1xuXG5leHBvcnQgZGVmYXVsdCBmdW5jdGlvbiBVc2Vyc1BhZ2UoKSB7XG4gICAgY29uc3Qgcm91dGVyID0gdXNlUm91dGVyKCk7XG5cbiAgICB1c2VFZmZlY3QoKCkgPT4ge1xuICAgICAgICByb3V0ZXIucHVzaCgnL3NldHRpbmdzP3RhYj11c2VycycpO1xuICAgIH0sIFtyb3V0ZXJdKTtcblxuICAgIHJldHVybiBudWxsO1xufSAiXSwibWFwcGluZ3MiOiJBQUFBOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7O0lBUUk7SUFBQUEsY0FBQSxZQUFBQSxDQUFBO01BQUEsT0FBQUMsY0FBQTtJQUFBO0VBQUE7RUFBQSxPQUFBQSxjQUFBO0FBQUE7QUFBQUQsY0FBQTtBQUFBQSxjQUFBLEdBQUFFLENBQUE7Ozs7OzsrQkFISjs7Ozs7O1dBQXdCQyxTQUFBOzs7OztrQ0FIRTs7O2tDQUNBO0FBRVgsU0FBU0EsVUFBQTtFQUFBO0VBQUFILGNBQUEsR0FBQUksQ0FBQTtFQUNwQixNQUFNQyxNQUFBO0VBQUE7RUFBQSxDQUFBTCxjQUFBLEdBQUFFLENBQUEsT0FBUyxJQUFBSSxXQUFBLENBQUFDLFNBQVM7RUFBQTtFQUFBUCxjQUFBLEdBQUFFLENBQUE7RUFFeEIsSUFBQU0sTUFBQSxDQUFBQyxTQUFTLEVBQUM7SUFBQTtJQUFBVCxjQUFBLEdBQUFJLENBQUE7SUFBQUosY0FBQSxHQUFBRSxDQUFBO0lBQ05HLE1BQUEsQ0FBT0ssSUFBSSxDQUFDO0VBQ2hCLEdBQUcsQ0FBQ0wsTUFBQSxDQUFPO0VBQUE7RUFBQUwsY0FBQSxHQUFBRSxDQUFBO0VBRVgsT0FBTztBQUNYIiwiaWdub3JlTGlzdCI6W119

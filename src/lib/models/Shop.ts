@@ -35,13 +35,13 @@ class Shop extends Model<ShopAttributes, ShopCreationAttributes> implements Shop
         return [];
     }
 
-    public async getInventoryItem(productId: number) {
+    public async getInventoryItem(_productId: number) {
         // This will be implemented to query the InventoryItem table
         // to get a specific inventory item for this shop and product
         return null;
     }
 
-    public async updateInventory(productId: number, quantity: number) {
+    public async updateInventory(_productId: number, _quantity: number) {
         // This will be implemented to update inventory levels
         return true;
     }
@@ -95,4 +95,4 @@ Shop.init({
     timestamps: true,
 });
 
-export default Shop; 
+export default Shop;

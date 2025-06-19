@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="jest tests" tests="76" failures="0" errors="0" time="0.744">
+  <testsuite name="Prisma Utilities" errors="0" failures="0" skipped="0" timestamp="2025-06-19T11:03:52" time="0.26" tests="15">
+    <testcase classname="Prisma Utilities › PrismaClient Configuration" name="should export prisma client instance" time="0.001">
+    </testcase>
+    <testcase classname="Prisma Utilities › safeQuery function (isolated implementation)" name="should return result for successful operation" time="0.001">
+    </testcase>
+    <testcase classname="Prisma Utilities › safeQuery function (isolated implementation)" name="should return fallback and log error for failed operation" time="0.001">
+    </testcase>
+    <testcase classname="Prisma Utilities › safeQuery function (isolated implementation)" name="should handle database errors with fallback" time="0.002">
+    </testcase>
+    <testcase classname="Prisma Utilities › safeQuery function (isolated implementation)" name="should use default log message when none provided" time="0">
+    </testcase>
+    <testcase classname="Prisma Utilities › safeQuery function (isolated implementation)" name="should handle different fallback types" time="0">
+    </testcase>
+    <testcase classname="Prisma Utilities › safeQuery function (isolated implementation)" name="should handle async operations correctly" time="0.013">
+    </testcase>
+    <testcase classname="Prisma Utilities › safeQuery function (isolated implementation)" name="should preserve error objects in logs" time="0.001">
+    </testcase>
+    <testcase classname="Prisma Utilities › Database Operations with safeQuery" name="should safely execute user findMany operation" time="0">
+    </testcase>
+    <testcase classname="Prisma Utilities › Database Operations with safeQuery" name="should safely execute user create operation" time="0.001">
+    </testcase>
+    <testcase classname="Prisma Utilities › Database Operations with safeQuery" name="should safely execute shop operations" time="0">
+    </testcase>
+    <testcase classname="Prisma Utilities › Database Operations with safeQuery" name="should return fallback when operation fails" time="0.001">
+    </testcase>
+    <testcase classname="Prisma Utilities › Prisma Client Lifecycle" name="should handle connection operations" time="0">
+    </testcase>
+    <testcase classname="Prisma Utilities › Prisma Client Lifecycle" name="should handle disconnection operations" time="0">
+    </testcase>
+    <testcase classname="Prisma Utilities › Prisma Client Lifecycle" name="should handle connection errors" time="0.006">
+    </testcase>
+  </testsuite>
+  <testsuite name="Database Library" errors="0" failures="0" skipped="0" timestamp="2025-06-19T11:03:52" time="0.077" tests="11">
+    <testcase classname="Database Library › db export" name="should export db as the prisma client" time="0">
+    </testcase>
+    <testcase classname="Database Library › db export" name="should have user methods" time="0.001">
+    </testcase>
+    <testcase classname="Database Library › db export" name="should have shop methods" time="0">
+    </testcase>
+    <testcase classname="Database Library › db export" name="should have connection methods" time="0.001">
+    </testcase>
+    <testcase classname="Database Library › prisma export" name="should export prisma as the same client" time="0">
+    </testcase>
+    <testcase classname="Database Library › database operations" name="should allow user queries" time="0.003">
+    </testcase>
+    <testcase classname="Database Library › database operations" name="should allow shop queries" time="0.001">
+    </testcase>
+    <testcase classname="Database Library › database operations" name="should allow transactions" time="0">
+    </testcase>
+    <testcase classname="Database Library › database operations" name="should handle connection operations" time="0">
+    </testcase>
+    <testcase classname="Database Library › error handling" name="should propagate database errors" time="0.002">
+    </testcase>
+    <testcase classname="Database Library › error handling" name="should propagate transaction errors" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="Auth Utility Functions (Isolated)" errors="0" failures="0" skipped="0" timestamp="2025-06-19T11:03:52" time="0.06" tests="23">
+    <testcase classname="Auth Utility Functions (Isolated) › extractToken (isolated implementation)" name="should extract token from valid authorization header" time="0.001">
+    </testcase>
+    <testcase classname="Auth Utility Functions (Isolated) › extractToken (isolated implementation)" name="should return null for missing authorization header" time="0">
+    </testcase>
+    <testcase classname="Auth Utility Functions (Isolated) › extractToken (isolated implementation)" name="should return null for invalid authorization header format" time="0">
+    </testcase>
+    <testcase classname="Auth Utility Functions (Isolated) › extractToken (isolated implementation)" name="should return null for empty authorization header" time="0">
+    </testcase>
+    <testcase classname="Auth Utility Functions (Isolated) › extractToken (isolated implementation)" name="should handle authorization header without Bearer prefix" time="0.001">
+    </testcase>
+    <testcase classname="Auth Utility Functions (Isolated) › getUserIdFromToken (isolated implementation)" name="should return null for missing token" time="0">
+    </testcase>
+    <testcase classname="Auth Utility Functions (Isolated) › getUserIdFromToken (isolated implementation)" name="should return 1 for dev-token" time="0">
+    </testcase>
+    <testcase classname="Auth Utility Functions (Isolated) › getUserIdFromToken (isolated implementation)" name="should return user ID from valid token" time="0">
+    </testcase>
+    <testcase classname="Auth Utility Functions (Isolated) › getUserIdFromToken (isolated implementation)" name="should return null for invalid token payload" time="0">
+    </testcase>
+    <testcase classname="Auth Utility Functions (Isolated) › getUserIdFromToken (isolated implementation)" name="should return null for token without sub claim" time="0.001">
+    </testcase>
+    <testcase classname="Auth Utility Functions (Isolated) › getUserIdFromToken (isolated implementation)" name="should handle verification errors" time="0">
+    </testcase>
+    <testcase classname="Auth Utility Functions (Isolated) › getShopIdFromToken (isolated implementation)" name="should return null for missing token" time="0">
+    </testcase>
+    <testcase classname="Auth Utility Functions (Isolated) › getShopIdFromToken (isolated implementation)" name="should return default shop ID for dev-token" time="0">
+    </testcase>
+    <testcase classname="Auth Utility Functions (Isolated) › getShopIdFromToken (isolated implementation)" name="should return shop ID from valid token" time="0">
+    </testcase>
+    <testcase classname="Auth Utility Functions (Isolated) › getShopIdFromToken (isolated implementation)" name="should return null for token without shopId" time="0.001">
+    </testcase>
+    <testcase classname="Auth Utility Functions (Isolated) › getShopIdFromToken (isolated implementation)" name="should convert numeric shopId to string" time="0">
+    </testcase>
+    <testcase classname="Auth Utility Functions (Isolated) › getShopIdFromToken (isolated implementation)" name="should handle verification errors" time="0">
+    </testcase>
+    <testcase classname="Auth Utility Functions (Isolated) › validateTokenPermission (isolated implementation)" name="should return invalid for missing token" time="0">
+    </testcase>
+    <testcase classname="Auth Utility Functions (Isolated) › validateTokenPermission (isolated implementation)" name="should grant permission for dev-token" time="0">
+    </testcase>
+    <testcase classname="Auth Utility Functions (Isolated) › validateTokenPermission (isolated implementation)" name="should grant permission from token payload" time="0.001">
+    </testcase>
+    <testcase classname="Auth Utility Functions (Isolated) › validateTokenPermission (isolated implementation)" name="should fallback to database when permission not in token" time="0">
+    </testcase>
+    <testcase classname="Auth Utility Functions (Isolated) › validateTokenPermission (isolated implementation)" name="should return invalid for user not found" time="0">
+    </testcase>
+    <testcase classname="Auth Utility Functions (Isolated) › validateTokenPermission (isolated implementation)" name="should handle database errors" time="0">
+    </testcase>
+  </testsuite>
+  <testsuite name="Validators" errors="0" failures="0" skipped="0" timestamp="2025-06-19T11:03:53" time="0.077" tests="27">
+    <testcase classname="Validators › loginSchema" name="should validate valid login data" time="0.001">
+    </testcase>
+    <testcase classname="Validators › loginSchema" name="should reject invalid email" time="0">
+    </testcase>
+    <testcase classname="Validators › loginSchema" name="should reject missing password" time="0">
+    </testcase>
+    <testcase classname="Validators › registerSchema" name="should validate valid registration data" time="0.001">
+    </testcase>
+    <testcase classname="Validators › registerSchema" name="should reject invalid email format" time="0">
+    </testcase>
+    <testcase classname="Validators › registerSchema" name="should reject short password" time="0.001">
+    </testcase>
+    <testcase classname="Validators › productSchema" name="should validate valid product data" time="0.001">
+    </testcase>
+    <testcase classname="Validators › productSchema" name="should reject negative price" time="0">
+    </testcase>
+    <testcase classname="Validators › productSchema" name="should reject missing required fields" time="0">
+    </testcase>
+    <testcase classname="Validators › categorySchema" name="should validate valid category data" time="0">
+    </testcase>
+    <testcase classname="Validators › categorySchema" name="should reject empty name" time="0">
+    </testcase>
+    <testcase classname="Validators › inventorySchema" name="should validate valid inventory data" time="0">
+    </testcase>
+    <testcase classname="Validators › inventorySchema" name="should reject invalid data" time="0.001">
+    </testcase>
+    <testcase classname="Validators › shopSchema" name="should validate valid shop data" time="0">
+    </testcase>
+    <testcase classname="Validators › shopSchema" name="should reject invalid email" time="0.001">
+    </testcase>
+    <testcase classname="Validators › customerSchema" name="should validate valid customer data" time="0">
+    </testcase>
+    <testcase classname="Validators › customerSchema" name="should reject invalid email" time="0">
+    </testcase>
+    <testcase classname="Validators › supplierSchema" name="should validate valid supplier data" time="0">
+    </testcase>
+    <testcase classname="Validators › supplierSchema" name="should reject invalid data" time="0">
+    </testcase>
+    <testcase classname="Validators › paginationSchema" name="should validate valid pagination data" time="0">
+    </testcase>
+    <testcase classname="Validators › paginationSchema" name="should reject negative page number" time="0">
+    </testcase>
+    <testcase classname="Validators › searchSchema" name="should validate valid search data" time="0">
+    </testcase>
+    <testcase classname="Validators › searchSchema" name="should handle empty query" time="0">
+    </testcase>
+    <testcase classname="Validators › idSchema" name="should validate valid ID" time="0">
+    </testcase>
+    <testcase classname="Validators › idSchema" name="should reject negative ID" time="0">
+    </testcase>
+    <testcase classname="Validators › validateInput utility" name="should validate input using provided schema" time="0">
+    </testcase>
+    <testcase classname="Validators › validateInput utility" name="should return error for invalid input" time="0.001">
+    </testcase>
+  </testsuite>
+</testsuites>

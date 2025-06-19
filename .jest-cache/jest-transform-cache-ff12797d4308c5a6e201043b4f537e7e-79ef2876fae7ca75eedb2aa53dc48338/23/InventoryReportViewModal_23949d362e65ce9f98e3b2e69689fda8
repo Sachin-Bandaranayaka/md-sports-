@@ -1,0 +1,738 @@
+446b7bbf86749b25452e7cac09961f53
+"use strict";
+
+/* istanbul ignore next */
+function cov_5glgps56q() {
+  var path = "/Users/sachin/Documents/md-sports-/src/components/reports/InventoryReportViewModal.tsx";
+  var hash = "dd89a2d6078237fce3e6e33c2871bf0f66e96f99";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/Users/sachin/Documents/md-sports-/src/components/reports/InventoryReportViewModal.tsx",
+    statementMap: {
+      "0": {
+        start: {
+          line: 2,
+          column: 0
+        },
+        end: {
+          line: 4,
+          column: 3
+        }
+      },
+      "1": {
+        start: {
+          line: 5,
+          column: 0
+        },
+        end: {
+          line: 10,
+          column: 3
+        }
+      },
+      "2": {
+        start: {
+          line: 8,
+          column: 8
+        },
+        end: {
+          line: 8,
+          column: 40
+        }
+      },
+      "3": {
+        start: {
+          line: 11,
+          column: 20
+        },
+        end: {
+          line: 11,
+          column: 48
+        }
+      },
+      "4": {
+        start: {
+          line: 12,
+          column: 16
+        },
+        end: {
+          line: 12,
+          column: 39
+        }
+      },
+      "5": {
+        start: {
+          line: 13,
+          column: 21
+        },
+        end: {
+          line: 13,
+          column: 44
+        }
+      },
+      "6": {
+        start: {
+          line: 15,
+          column: 4
+        },
+        end: {
+          line: 15,
+          column: 44
+        }
+      },
+      "7": {
+        start: {
+          line: 15,
+          column: 32
+        },
+        end: {
+          line: 15,
+          column: 44
+        }
+      },
+      "8": {
+        start: {
+          line: 16,
+          column: 27
+        },
+        end: {
+          line: 21,
+          column: 5
+        }
+      },
+      "9": {
+        start: {
+          line: 17,
+          column: 8
+        },
+        end: {
+          line: 20,
+          column: 11
+        }
+      },
+      "10": {
+        start: {
+          line: 22,
+          column: 30
+        },
+        end: {
+          line: 22,
+          column: 92
+        }
+      },
+      "11": {
+        start: {
+          line: 22,
+          column: 69
+        },
+        end: {
+          line: 22,
+          column: 88
+        }
+      },
+      "12": {
+        start: {
+          line: 23,
+          column: 30
+        },
+        end: {
+          line: 23,
+          column: 94
+        }
+      },
+      "13": {
+        start: {
+          line: 23,
+          column: 69
+        },
+        end: {
+          line: 23,
+          column: 90
+        }
+      },
+      "14": {
+        start: {
+          line: 24,
+          column: 4
+        },
+        end: {
+          line: 167,
+          column: 7
+        }
+      },
+      "15": {
+        start: {
+          line: 112,
+          column: 88
+        },
+        end: {
+          line: 144,
+          column: 83
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "(anonymous_0)",
+        decl: {
+          start: {
+            line: 7,
+            column: 9
+          },
+          end: {
+            line: 7,
+            column: 10
+          }
+        },
+        loc: {
+          start: {
+            line: 7,
+            column: 20
+          },
+          end: {
+            line: 9,
+            column: 5
+          }
+        },
+        line: 7
+      },
+      "1": {
+        name: "InventoryReportViewModal",
+        decl: {
+          start: {
+            line: 14,
+            column: 9
+          },
+          end: {
+            line: 14,
+            column: 33
+          }
+        },
+        loc: {
+          start: {
+            line: 14,
+            column: 79
+          },
+          end: {
+            line: 168,
+            column: 1
+          }
+        },
+        line: 14
+      },
+      "2": {
+        name: "(anonymous_2)",
+        decl: {
+          start: {
+            line: 16,
+            column: 27
+          },
+          end: {
+            line: 16,
+            column: 28
+          }
+        },
+        loc: {
+          start: {
+            line: 16,
+            column: 37
+          },
+          end: {
+            line: 21,
+            column: 5
+          }
+        },
+        line: 16
+      },
+      "3": {
+        name: "(anonymous_3)",
+        decl: {
+          start: {
+            line: 22,
+            column: 56
+          },
+          end: {
+            line: 22,
+            column: 57
+          }
+        },
+        loc: {
+          start: {
+            line: 22,
+            column: 69
+          },
+          end: {
+            line: 22,
+            column: 88
+          }
+        },
+        line: 22
+      },
+      "4": {
+        name: "(anonymous_4)",
+        decl: {
+          start: {
+            line: 23,
+            column: 56
+          },
+          end: {
+            line: 23,
+            column: 57
+          }
+        },
+        loc: {
+          start: {
+            line: 23,
+            column: 69
+          },
+          end: {
+            line: 23,
+            column: 90
+          }
+        },
+        line: 23
+      },
+      "5": {
+        name: "(anonymous_5)",
+        decl: {
+          start: {
+            line: 112,
+            column: 59
+          },
+          end: {
+            line: 112,
+            column: 60
+          }
+        },
+        loc: {
+          start: {
+            line: 112,
+            column: 88
+          },
+          end: {
+            line: 144,
+            column: 83
+          }
+        },
+        line: 112
+      }
+    },
+    branchMap: {
+      "0": {
+        loc: {
+          start: {
+            line: 15,
+            column: 4
+          },
+          end: {
+            line: 15,
+            column: 44
+          }
+        },
+        type: "if",
+        locations: [{
+          start: {
+            line: 15,
+            column: 4
+          },
+          end: {
+            line: 15,
+            column: 44
+          }
+        }, {
+          start: {
+            line: undefined,
+            column: undefined
+          },
+          end: {
+            line: undefined,
+            column: undefined
+          }
+        }],
+        line: 15
+      },
+      "1": {
+        loc: {
+          start: {
+            line: 15,
+            column: 8
+          },
+          end: {
+            line: 15,
+            column: 30
+          }
+        },
+        type: "binary-expr",
+        locations: [{
+          start: {
+            line: 15,
+            column: 8
+          },
+          end: {
+            line: 15,
+            column: 15
+          }
+        }, {
+          start: {
+            line: 15,
+            column: 19
+          },
+          end: {
+            line: 15,
+            column: 30
+          }
+        }],
+        line: 15
+      },
+      "2": {
+        loc: {
+          start: {
+            line: 34,
+            column: 38
+          },
+          end: {
+            line: 34,
+            column: 78
+          }
+        },
+        type: "binary-expr",
+        locations: [{
+          start: {
+            line: 34,
+            column: 38
+          },
+          end: {
+            line: 34,
+            column: 48
+          }
+        }, {
+          start: {
+            line: 34,
+            column: 52
+          },
+          end: {
+            line: 34,
+            column: 78
+          }
+        }],
+        line: 34
+      },
+      "3": {
+        loc: {
+          start: {
+            line: 121,
+            column: 62
+          },
+          end: {
+            line: 121,
+            column: 79
+          }
+        },
+        type: "binary-expr",
+        locations: [{
+          start: {
+            line: 121,
+            column: 62
+          },
+          end: {
+            line: 121,
+            column: 70
+          }
+        }, {
+          start: {
+            line: 121,
+            column: 74
+          },
+          end: {
+            line: 121,
+            column: 79
+          }
+        }],
+        line: 121
+      },
+      "4": {
+        loc: {
+          start: {
+            line: 145,
+            column: 36
+          },
+          end: {
+            line: 151,
+            column: 38
+          }
+        },
+        type: "binary-expr",
+        locations: [{
+          start: {
+            line: 145,
+            column: 36
+          },
+          end: {
+            line: 145,
+            column: 67
+          }
+        }, {
+          start: {
+            line: 145,
+            column: 85
+          },
+          end: {
+            line: 151,
+            column: 38
+          }
+        }],
+        line: 145
+      }
+    },
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0,
+      "9": 0,
+      "10": 0,
+      "11": 0,
+      "12": 0,
+      "13": 0,
+      "14": 0,
+      "15": 0
+    },
+    f: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0
+    },
+    b: {
+      "0": [0, 0],
+      "1": [0, 0],
+      "2": [0, 0],
+      "3": [0, 0],
+      "4": [0, 0]
+    },
+    inputSourceMap: {
+      version: 3,
+      sources: ["/Users/sachin/Documents/md-sports-/src/components/reports/InventoryReportViewModal.tsx"],
+      sourcesContent: ["import { Button } from '@/components/ui/Button';\nimport { X } from 'lucide-react';\n\ninterface InventoryItemDetail {\n    productName: string;\n    sku: string | null;\n    barcode: string | null;\n    category: string;\n    shopName: string;\n    quantity: number;\n    price: number; // Retail price from Product.price\n    totalValue: number; // quantity * price\n    // weightedAverageCost?: number; // Could be added later\n    // totalWACValue?: number; // Could be added later\n}\n\ninterface InventoryReportData {\n    details: InventoryItemDetail[];\n    generatedAt: string;\n    // Add summary fields if any are calculated in API, e.g., total_items, grand_total_value\n}\n\ninterface InventoryReportViewModalProps {\n    isOpen: boolean;\n    onClose: () => void;\n    reportName?: string;\n    reportData: InventoryReportData | null;\n}\n\nexport default function InventoryReportViewModal({\n    isOpen,\n    onClose,\n    reportName,\n    reportData,\n}: InventoryReportViewModalProps) {\n    if (!isOpen || !reportData) return null;\n\n    const formatCurrency = (amount: number) => {\n        return amount.toLocaleString(undefined, { style: 'currency', currency: 'LKR' });\n    };\n\n    const overallTotalItems = reportData.details.reduce((sum, item) => sum + item.quantity, 0);\n    const overallTotalValue = reportData.details.reduce((sum, item) => sum + item.totalValue, 0);\n\n\n    return (\n        <div className=\"fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4\">\n            <div className=\"bg-white rounded-lg shadow-xl p-6 w-full max-w-6xl max-h-[90vh] flex flex-col\">\n                <div className=\"flex justify-between items-center mb-4\">\n                    <h2 className=\"text-xl font-semibold text-gray-800\">{reportName || 'Inventory Status Details'}</h2>\n                    <Button variant=\"ghost\" size=\"sm\" onClick={onClose} className=\"p-1\">\n                        <X className=\"w-5 h-5\" />\n                    </Button>\n                </div>\n                <div className=\"text-sm text-gray-600 mb-2\">\n                    <p>Generated At: {new Date(reportData.generatedAt).toLocaleString()}</p>\n                    <p>Overall Total Items: {overallTotalItems.toLocaleString()}</p>\n                    <p>Overall Total Value (Retail): {formatCurrency(overallTotalValue)}</p>\n                </div>\n                <div className=\"overflow-y-auto flex-grow\">\n                    <table className=\"w-full text-sm text-left text-gray-500\">\n                        <thead className=\"text-xs text-gray-700 uppercase bg-gray-50 sticky top-0\">\n                            <tr>\n                                <th className=\"px-3 py-2\">Product Name</th>\n                                <th className=\"px-3 py-2\">SKU</th>\n                                <th className=\"px-3 py-2\">Shop</th>\n                                <th className=\"px-3 py-2\">Category</th>\n                                <th className=\"px-3 py-2 text-right\">Quantity</th>\n                                <th className=\"px-3 py-2 text-right\">Price (Retail)</th>\n                                <th className=\"px-3 py-2 text-right\">Total Value (Retail)</th>\n                            </tr>\n                        </thead>\n                        <tbody>\n                            {reportData.details.map((item, index) => (\n                                <tr key={`${item.sku}-${item.shopName}-${index}`} className=\"border-b hover:bg-gray-50\">\n                                    <td className=\"px-3 py-2 font-medium text-gray-900\">{item.productName}</td>\n                                    <td className=\"px-3 py-2\">{item.sku || 'N/A'}</td>\n                                    <td className=\"px-3 py-2\">{item.shopName}</td>\n                                    <td className=\"px-3 py-2\">{item.category}</td>\n                                    <td className=\"px-3 py-2 text-right\">{item.quantity.toLocaleString()}</td>\n                                    <td className=\"px-3 py-2 text-right\">{formatCurrency(item.price)}</td>\n                                    <td className=\"px-3 py-2 text-right\">{formatCurrency(item.totalValue)}</td>\n                                </tr>\n                            ))}\n                            {reportData.details.length === 0 && (\n                                <tr>\n                                    <td colSpan={7} className=\"text-center py-4 text-gray-500\">No inventory items found.</td>\n                                </tr>\n                            )}\n                        </tbody>\n                    </table>\n                </div>\n                <div className=\"mt-6 text-right\">\n                    <Button variant=\"outline\" onClick={onClose}>Close</Button>\n                </div>\n            </div>\n        </div>\n    );\n} "],
+      names: ["InventoryReportViewModal", "isOpen", "onClose", "reportName", "reportData", "formatCurrency", "amount", "toLocaleString", "undefined", "style", "currency", "overallTotalItems", "details", "reduce", "sum", "item", "quantity", "overallTotalValue", "totalValue", "div", "className", "h2", "Button", "variant", "size", "onClick", "X", "p", "Date", "generatedAt", "table", "thead", "tr", "th", "tbody", "map", "index", "td", "productName", "sku", "shopName", "category", "price", "length", "colSpan"],
+      mappings: ";;;;+BA6BA;;;eAAwBA;;;;wBA7BD;6BACL;AA4BH,SAASA,yBAAyB,EAC7CC,MAAM,EACNC,OAAO,EACPC,UAAU,EACVC,UAAU,EACkB;IAC5B,IAAI,CAACH,UAAU,CAACG,YAAY,OAAO;IAEnC,MAAMC,iBAAiB,CAACC;QACpB,OAAOA,OAAOC,cAAc,CAACC,WAAW;YAAEC,OAAO;YAAYC,UAAU;QAAM;IACjF;IAEA,MAAMC,oBAAoBP,WAAWQ,OAAO,CAACC,MAAM,CAAC,CAACC,KAAKC,OAASD,MAAMC,KAAKC,QAAQ,EAAE;IACxF,MAAMC,oBAAoBb,WAAWQ,OAAO,CAACC,MAAM,CAAC,CAACC,KAAKC,OAASD,MAAMC,KAAKG,UAAU,EAAE;IAG1F,qBACI,qBAACC;QAAIC,WAAU;kBACX,cAAA,sBAACD;YAAIC,WAAU;;8BACX,sBAACD;oBAAIC,WAAU;;sCACX,qBAACC;4BAAGD,WAAU;sCAAuCjB,cAAc;;sCACnE,qBAACmB,cAAM;4BAACC,SAAQ;4BAAQC,MAAK;4BAAKC,SAASvB;4BAASkB,WAAU;sCAC1D,cAAA,qBAACM,cAAC;gCAACN,WAAU;;;;;8BAGrB,sBAACD;oBAAIC,WAAU;;sCACX,sBAACO;;gCAAE;gCAAe,IAAIC,KAAKxB,WAAWyB,WAAW,EAAEtB,cAAc;;;sCACjE,sBAACoB;;gCAAE;gCAAsBhB,kBAAkBJ,cAAc;;;sCACzD,sBAACoB;;gCAAE;gCAA+BtB,eAAeY;;;;;8BAErD,qBAACE;oBAAIC,WAAU;8BACX,cAAA,sBAACU;wBAAMV,WAAU;;0CACb,qBAACW;gCAAMX,WAAU;0CACb,cAAA,sBAACY;;sDACG,qBAACC;4CAAGb,WAAU;sDAAY;;sDAC1B,qBAACa;4CAAGb,WAAU;sDAAY;;sDAC1B,qBAACa;4CAAGb,WAAU;sDAAY;;sDAC1B,qBAACa;4CAAGb,WAAU;sDAAY;;sDAC1B,qBAACa;4CAAGb,WAAU;sDAAuB;;sDACrC,qBAACa;4CAAGb,WAAU;sDAAuB;;sDACrC,qBAACa;4CAAGb,WAAU;sDAAuB;;;;;0CAG7C,sBAACc;;oCACI9B,WAAWQ,OAAO,CAACuB,GAAG,CAAC,CAACpB,MAAMqB,sBAC3B,sBAACJ;4CAAiDZ,WAAU;;8DACxD,qBAACiB;oDAAGjB,WAAU;8DAAuCL,KAAKuB,WAAW;;8DACrE,qBAACD;oDAAGjB,WAAU;8DAAaL,KAAKwB,GAAG,IAAI;;8DACvC,qBAACF;oDAAGjB,WAAU;8DAAaL,KAAKyB,QAAQ;;8DACxC,qBAACH;oDAAGjB,WAAU;8DAAaL,KAAK0B,QAAQ;;8DACxC,qBAACJ;oDAAGjB,WAAU;8DAAwBL,KAAKC,QAAQ,CAACT,cAAc;;8DAClE,qBAAC8B;oDAAGjB,WAAU;8DAAwBf,eAAeU,KAAK2B,KAAK;;8DAC/D,qBAACL;oDAAGjB,WAAU;8DAAwBf,eAAeU,KAAKG,UAAU;;;2CAP/D,CAAC,EAAEH,KAAKwB,GAAG,CAAC,CAAC,EAAExB,KAAKyB,QAAQ,CAAC,CAAC,EAAEJ,MAAM,CAAC;oCAUnDhC,WAAWQ,OAAO,CAAC+B,MAAM,KAAK,mBAC3B,qBAACX;kDACG,cAAA,qBAACK;4CAAGO,SAAS;4CAAGxB,WAAU;sDAAiC;;;;;;;;8BAM/E,qBAACD;oBAAIC,WAAU;8BACX,cAAA,qBAACE,cAAM;wBAACC,SAAQ;wBAAUE,SAASvB;kCAAS;;;;;;AAKhE"
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "dd89a2d6078237fce3e6e33c2871bf0f66e96f99"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_5glgps56q = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_5glgps56q();
+cov_5glgps56q().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+/* istanbul ignore next */
+cov_5glgps56q().s[1]++;
+Object.defineProperty(exports, "default", {
+  enumerable: true,
+  get: function () {
+    /* istanbul ignore next */
+    cov_5glgps56q().f[0]++;
+    cov_5glgps56q().s[2]++;
+    return InventoryReportViewModal;
+  }
+});
+const _jsxruntime =
+/* istanbul ignore next */
+(cov_5glgps56q().s[3]++, require("react/jsx-runtime"));
+const _Button =
+/* istanbul ignore next */
+(cov_5glgps56q().s[4]++, require("../ui/Button"));
+const _lucidereact =
+/* istanbul ignore next */
+(cov_5glgps56q().s[5]++, require("lucide-react"));
+function InventoryReportViewModal({
+  isOpen,
+  onClose,
+  reportName,
+  reportData
+}) {
+  /* istanbul ignore next */
+  cov_5glgps56q().f[1]++;
+  cov_5glgps56q().s[6]++;
+  if (
+  /* istanbul ignore next */
+  (cov_5glgps56q().b[1][0]++, !isOpen) ||
+  /* istanbul ignore next */
+  (cov_5glgps56q().b[1][1]++, !reportData)) {
+    /* istanbul ignore next */
+    cov_5glgps56q().b[0][0]++;
+    cov_5glgps56q().s[7]++;
+    return null;
+  } else
+  /* istanbul ignore next */
+  {
+    cov_5glgps56q().b[0][1]++;
+  }
+  cov_5glgps56q().s[8]++;
+  const formatCurrency = amount => {
+    /* istanbul ignore next */
+    cov_5glgps56q().f[2]++;
+    cov_5glgps56q().s[9]++;
+    return amount.toLocaleString(undefined, {
+      style: "currency",
+      currency: "LKR"
+    });
+  };
+  const overallTotalItems =
+  /* istanbul ignore next */
+  (cov_5glgps56q().s[10]++, reportData.details.reduce((sum, item) => {
+    /* istanbul ignore next */
+    cov_5glgps56q().f[3]++;
+    cov_5glgps56q().s[11]++;
+    return sum + item.quantity;
+  }, 0));
+  const overallTotalValue =
+  /* istanbul ignore next */
+  (cov_5glgps56q().s[12]++, reportData.details.reduce((sum, item) => {
+    /* istanbul ignore next */
+    cov_5glgps56q().f[4]++;
+    cov_5glgps56q().s[13]++;
+    return sum + item.totalValue;
+  }, 0));
+  /* istanbul ignore next */
+  cov_5glgps56q().s[14]++;
+  return /*#__PURE__*/(0, _jsxruntime.jsx)("div", {
+    className: "fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4",
+    children: /*#__PURE__*/(0, _jsxruntime.jsxs)("div", {
+      className: "bg-white rounded-lg shadow-xl p-6 w-full max-w-6xl max-h-[90vh] flex flex-col",
+      children: [/*#__PURE__*/(0, _jsxruntime.jsxs)("div", {
+        className: "flex justify-between items-center mb-4",
+        children: [/*#__PURE__*/(0, _jsxruntime.jsx)("h2", {
+          className: "text-xl font-semibold text-gray-800",
+          children:
+          /* istanbul ignore next */
+          (cov_5glgps56q().b[2][0]++, reportName) ||
+          /* istanbul ignore next */
+          (cov_5glgps56q().b[2][1]++, "Inventory Status Details")
+        }), /*#__PURE__*/(0, _jsxruntime.jsx)(_Button.Button, {
+          variant: "ghost",
+          size: "sm",
+          onClick: onClose,
+          className: "p-1",
+          children: /*#__PURE__*/(0, _jsxruntime.jsx)(_lucidereact.X, {
+            className: "w-5 h-5"
+          })
+        })]
+      }), /*#__PURE__*/(0, _jsxruntime.jsxs)("div", {
+        className: "text-sm text-gray-600 mb-2",
+        children: [/*#__PURE__*/(0, _jsxruntime.jsxs)("p", {
+          children: ["Generated At: ", new Date(reportData.generatedAt).toLocaleString()]
+        }), /*#__PURE__*/(0, _jsxruntime.jsxs)("p", {
+          children: ["Overall Total Items: ", overallTotalItems.toLocaleString()]
+        }), /*#__PURE__*/(0, _jsxruntime.jsxs)("p", {
+          children: ["Overall Total Value (Retail): ", formatCurrency(overallTotalValue)]
+        })]
+      }), /*#__PURE__*/(0, _jsxruntime.jsx)("div", {
+        className: "overflow-y-auto flex-grow",
+        children: /*#__PURE__*/(0, _jsxruntime.jsxs)("table", {
+          className: "w-full text-sm text-left text-gray-500",
+          children: [/*#__PURE__*/(0, _jsxruntime.jsx)("thead", {
+            className: "text-xs text-gray-700 uppercase bg-gray-50 sticky top-0",
+            children: /*#__PURE__*/(0, _jsxruntime.jsxs)("tr", {
+              children: [/*#__PURE__*/(0, _jsxruntime.jsx)("th", {
+                className: "px-3 py-2",
+                children: "Product Name"
+              }), /*#__PURE__*/(0, _jsxruntime.jsx)("th", {
+                className: "px-3 py-2",
+                children: "SKU"
+              }), /*#__PURE__*/(0, _jsxruntime.jsx)("th", {
+                className: "px-3 py-2",
+                children: "Shop"
+              }), /*#__PURE__*/(0, _jsxruntime.jsx)("th", {
+                className: "px-3 py-2",
+                children: "Category"
+              }), /*#__PURE__*/(0, _jsxruntime.jsx)("th", {
+                className: "px-3 py-2 text-right",
+                children: "Quantity"
+              }), /*#__PURE__*/(0, _jsxruntime.jsx)("th", {
+                className: "px-3 py-2 text-right",
+                children: "Price (Retail)"
+              }), /*#__PURE__*/(0, _jsxruntime.jsx)("th", {
+                className: "px-3 py-2 text-right",
+                children: "Total Value (Retail)"
+              })]
+            })
+          }), /*#__PURE__*/(0, _jsxruntime.jsxs)("tbody", {
+            children: [reportData.details.map((item, index) => {
+              /* istanbul ignore next */
+              cov_5glgps56q().f[5]++;
+              cov_5glgps56q().s[15]++;
+              return /*#__PURE__*/(0, _jsxruntime.jsxs)("tr", {
+                className: "border-b hover:bg-gray-50",
+                children: [/*#__PURE__*/(0, _jsxruntime.jsx)("td", {
+                  className: "px-3 py-2 font-medium text-gray-900",
+                  children: item.productName
+                }), /*#__PURE__*/(0, _jsxruntime.jsx)("td", {
+                  className: "px-3 py-2",
+                  children:
+                  /* istanbul ignore next */
+                  (cov_5glgps56q().b[3][0]++, item.sku) ||
+                  /* istanbul ignore next */
+                  (cov_5glgps56q().b[3][1]++, "N/A")
+                }), /*#__PURE__*/(0, _jsxruntime.jsx)("td", {
+                  className: "px-3 py-2",
+                  children: item.shopName
+                }), /*#__PURE__*/(0, _jsxruntime.jsx)("td", {
+                  className: "px-3 py-2",
+                  children: item.category
+                }), /*#__PURE__*/(0, _jsxruntime.jsx)("td", {
+                  className: "px-3 py-2 text-right",
+                  children: item.quantity.toLocaleString()
+                }), /*#__PURE__*/(0, _jsxruntime.jsx)("td", {
+                  className: "px-3 py-2 text-right",
+                  children: formatCurrency(item.price)
+                }), /*#__PURE__*/(0, _jsxruntime.jsx)("td", {
+                  className: "px-3 py-2 text-right",
+                  children: formatCurrency(item.totalValue)
+                })]
+              }, `${item.sku}-${item.shopName}-${index}`);
+            }),
+            /* istanbul ignore next */
+            (cov_5glgps56q().b[4][0]++, reportData.details.length === 0) &&
+            /* istanbul ignore next */
+            (cov_5glgps56q().b[4][1]++, /*#__PURE__*/(0, _jsxruntime.jsx)("tr", {
+              children: /*#__PURE__*/(0, _jsxruntime.jsx)("td", {
+                colSpan: 7,
+                className: "text-center py-4 text-gray-500",
+                children: "No inventory items found."
+              })
+            }))]
+          })]
+        })
+      }), /*#__PURE__*/(0, _jsxruntime.jsx)("div", {
+        className: "mt-6 text-right",
+        children: /*#__PURE__*/(0, _jsxruntime.jsx)(_Button.Button, {
+          variant: "outline",
+          onClick: onClose,
+          children: "Close"
+        })
+      })]
+    })
+  });
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfNWdsZ3BzNTZxIiwiYWN0dWFsQ292ZXJhZ2UiLCJzIiwiSW52ZW50b3J5UmVwb3J0Vmlld01vZGFsIiwiaXNPcGVuIiwib25DbG9zZSIsInJlcG9ydE5hbWUiLCJyZXBvcnREYXRhIiwiZiIsImIiLCJmb3JtYXRDdXJyZW5jeSIsImFtb3VudCIsInRvTG9jYWxlU3RyaW5nIiwidW5kZWZpbmVkIiwic3R5bGUiLCJjdXJyZW5jeSIsIm92ZXJhbGxUb3RhbEl0ZW1zIiwiZGV0YWlscyIsInJlZHVjZSIsInN1bSIsIml0ZW0iLCJxdWFudGl0eSIsIm92ZXJhbGxUb3RhbFZhbHVlIiwidG90YWxWYWx1ZSIsIl9qc3hydW50aW1lIiwianN4IiwiY2xhc3NOYW1lIiwianN4cyIsIl9CdXR0b24iLCJCdXR0b24iLCJ2YXJpYW50Iiwic2l6ZSIsIm9uQ2xpY2siLCJfbHVjaWRlcmVhY3QiLCJYIiwiRGF0ZSIsImdlbmVyYXRlZEF0IiwibWFwIiwiaW5kZXgiLCJwcm9kdWN0TmFtZSIsInNrdSIsInNob3BOYW1lIiwiY2F0ZWdvcnkiLCJwcmljZSIsImxlbmd0aCIsImNvbFNwYW4iXSwic291cmNlcyI6WyIvVXNlcnMvc2FjaGluL0RvY3VtZW50cy9tZC1zcG9ydHMtL3NyYy9jb21wb25lbnRzL3JlcG9ydHMvSW52ZW50b3J5UmVwb3J0Vmlld01vZGFsLnRzeCJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyBCdXR0b24gfSBmcm9tICdAL2NvbXBvbmVudHMvdWkvQnV0dG9uJztcbmltcG9ydCB7IFggfSBmcm9tICdsdWNpZGUtcmVhY3QnO1xuXG5pbnRlcmZhY2UgSW52ZW50b3J5SXRlbURldGFpbCB7XG4gICAgcHJvZHVjdE5hbWU6IHN0cmluZztcbiAgICBza3U6IHN0cmluZyB8IG51bGw7XG4gICAgYmFyY29kZTogc3RyaW5nIHwgbnVsbDtcbiAgICBjYXRlZ29yeTogc3RyaW5nO1xuICAgIHNob3BOYW1lOiBzdHJpbmc7XG4gICAgcXVhbnRpdHk6IG51bWJlcjtcbiAgICBwcmljZTogbnVtYmVyOyAvLyBSZXRhaWwgcHJpY2UgZnJvbSBQcm9kdWN0LnByaWNlXG4gICAgdG90YWxWYWx1ZTogbnVtYmVyOyAvLyBxdWFudGl0eSAqIHByaWNlXG4gICAgLy8gd2VpZ2h0ZWRBdmVyYWdlQ29zdD86IG51bWJlcjsgLy8gQ291bGQgYmUgYWRkZWQgbGF0ZXJcbiAgICAvLyB0b3RhbFdBQ1ZhbHVlPzogbnVtYmVyOyAvLyBDb3VsZCBiZSBhZGRlZCBsYXRlclxufVxuXG5pbnRlcmZhY2UgSW52ZW50b3J5UmVwb3J0RGF0YSB7XG4gICAgZGV0YWlsczogSW52ZW50b3J5SXRlbURldGFpbFtdO1xuICAgIGdlbmVyYXRlZEF0OiBzdHJpbmc7XG4gICAgLy8gQWRkIHN1bW1hcnkgZmllbGRzIGlmIGFueSBhcmUgY2FsY3VsYXRlZCBpbiBBUEksIGUuZy4sIHRvdGFsX2l0ZW1zLCBncmFuZF90b3RhbF92YWx1ZVxufVxuXG5pbnRlcmZhY2UgSW52ZW50b3J5UmVwb3J0Vmlld01vZGFsUHJvcHMge1xuICAgIGlzT3BlbjogYm9vbGVhbjtcbiAgICBvbkNsb3NlOiAoKSA9PiB2b2lkO1xuICAgIHJlcG9ydE5hbWU/OiBzdHJpbmc7XG4gICAgcmVwb3J0RGF0YTogSW52ZW50b3J5UmVwb3J0RGF0YSB8IG51bGw7XG59XG5cbmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIEludmVudG9yeVJlcG9ydFZpZXdNb2RhbCh7XG4gICAgaXNPcGVuLFxuICAgIG9uQ2xvc2UsXG4gICAgcmVwb3J0TmFtZSxcbiAgICByZXBvcnREYXRhLFxufTogSW52ZW50b3J5UmVwb3J0Vmlld01vZGFsUHJvcHMpIHtcbiAgICBpZiAoIWlzT3BlbiB8fCAhcmVwb3J0RGF0YSkgcmV0dXJuIG51bGw7XG5cbiAgICBjb25zdCBmb3JtYXRDdXJyZW5jeSA9IChhbW91bnQ6IG51bWJlcikgPT4ge1xuICAgICAgICByZXR1cm4gYW1vdW50LnRvTG9jYWxlU3RyaW5nKHVuZGVmaW5lZCwgeyBzdHlsZTogJ2N1cnJlbmN5JywgY3VycmVuY3k6ICdMS1InIH0pO1xuICAgIH07XG5cbiAgICBjb25zdCBvdmVyYWxsVG90YWxJdGVtcyA9IHJlcG9ydERhdGEuZGV0YWlscy5yZWR1Y2UoKHN1bSwgaXRlbSkgPT4gc3VtICsgaXRlbS5xdWFudGl0eSwgMCk7XG4gICAgY29uc3Qgb3ZlcmFsbFRvdGFsVmFsdWUgPSByZXBvcnREYXRhLmRldGFpbHMucmVkdWNlKChzdW0sIGl0ZW0pID0+IHN1bSArIGl0ZW0udG90YWxWYWx1ZSwgMCk7XG5cblxuICAgIHJldHVybiAoXG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZml4ZWQgaW5zZXQtMCBiZy1ibGFjayBiZy1vcGFjaXR5LTUwIHotNTAgZmxleCBqdXN0aWZ5LWNlbnRlciBpdGVtcy1jZW50ZXIgcC00XCI+XG4gICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImJnLXdoaXRlIHJvdW5kZWQtbGcgc2hhZG93LXhsIHAtNiB3LWZ1bGwgbWF4LXctNnhsIG1heC1oLVs5MHZoXSBmbGV4IGZsZXgtY29sXCI+XG4gICAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJmbGV4IGp1c3RpZnktYmV0d2VlbiBpdGVtcy1jZW50ZXIgbWItNFwiPlxuICAgICAgICAgICAgICAgICAgICA8aDIgY2xhc3NOYW1lPVwidGV4dC14bCBmb250LXNlbWlib2xkIHRleHQtZ3JheS04MDBcIj57cmVwb3J0TmFtZSB8fCAnSW52ZW50b3J5IFN0YXR1cyBEZXRhaWxzJ308L2gyPlxuICAgICAgICAgICAgICAgICAgICA8QnV0dG9uIHZhcmlhbnQ9XCJnaG9zdFwiIHNpemU9XCJzbVwiIG9uQ2xpY2s9e29uQ2xvc2V9IGNsYXNzTmFtZT1cInAtMVwiPlxuICAgICAgICAgICAgICAgICAgICAgICAgPFggY2xhc3NOYW1lPVwidy01IGgtNVwiIC8+XG4gICAgICAgICAgICAgICAgICAgIDwvQnV0dG9uPlxuICAgICAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwidGV4dC1zbSB0ZXh0LWdyYXktNjAwIG1iLTJcIj5cbiAgICAgICAgICAgICAgICAgICAgPHA+R2VuZXJhdGVkIEF0OiB7bmV3IERhdGUocmVwb3J0RGF0YS5nZW5lcmF0ZWRBdCkudG9Mb2NhbGVTdHJpbmcoKX08L3A+XG4gICAgICAgICAgICAgICAgICAgIDxwPk92ZXJhbGwgVG90YWwgSXRlbXM6IHtvdmVyYWxsVG90YWxJdGVtcy50b0xvY2FsZVN0cmluZygpfTwvcD5cbiAgICAgICAgICAgICAgICAgICAgPHA+T3ZlcmFsbCBUb3RhbCBWYWx1ZSAoUmV0YWlsKToge2Zvcm1hdEN1cnJlbmN5KG92ZXJhbGxUb3RhbFZhbHVlKX08L3A+XG4gICAgICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJvdmVyZmxvdy15LWF1dG8gZmxleC1ncm93XCI+XG4gICAgICAgICAgICAgICAgICAgIDx0YWJsZSBjbGFzc05hbWU9XCJ3LWZ1bGwgdGV4dC1zbSB0ZXh0LWxlZnQgdGV4dC1ncmF5LTUwMFwiPlxuICAgICAgICAgICAgICAgICAgICAgICAgPHRoZWFkIGNsYXNzTmFtZT1cInRleHQteHMgdGV4dC1ncmF5LTcwMCB1cHBlcmNhc2UgYmctZ3JheS01MCBzdGlja3kgdG9wLTBcIj5cbiAgICAgICAgICAgICAgICAgICAgICAgICAgICA8dHI+XG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDx0aCBjbGFzc05hbWU9XCJweC0zIHB5LTJcIj5Qcm9kdWN0IE5hbWU8L3RoPlxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8dGggY2xhc3NOYW1lPVwicHgtMyBweS0yXCI+U0tVPC90aD5cbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPHRoIGNsYXNzTmFtZT1cInB4LTMgcHktMlwiPlNob3A8L3RoPlxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8dGggY2xhc3NOYW1lPVwicHgtMyBweS0yXCI+Q2F0ZWdvcnk8L3RoPlxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8dGggY2xhc3NOYW1lPVwicHgtMyBweS0yIHRleHQtcmlnaHRcIj5RdWFudGl0eTwvdGg+XG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDx0aCBjbGFzc05hbWU9XCJweC0zIHB5LTIgdGV4dC1yaWdodFwiPlByaWNlIChSZXRhaWwpPC90aD5cbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPHRoIGNsYXNzTmFtZT1cInB4LTMgcHktMiB0ZXh0LXJpZ2h0XCI+VG90YWwgVmFsdWUgKFJldGFpbCk8L3RoPlxuICAgICAgICAgICAgICAgICAgICAgICAgICAgIDwvdHI+XG4gICAgICAgICAgICAgICAgICAgICAgICA8L3RoZWFkPlxuICAgICAgICAgICAgICAgICAgICAgICAgPHRib2R5PlxuICAgICAgICAgICAgICAgICAgICAgICAgICAgIHtyZXBvcnREYXRhLmRldGFpbHMubWFwKChpdGVtLCBpbmRleCkgPT4gKFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8dHIga2V5PXtgJHtpdGVtLnNrdX0tJHtpdGVtLnNob3BOYW1lfS0ke2luZGV4fWB9IGNsYXNzTmFtZT1cImJvcmRlci1iIGhvdmVyOmJnLWdyYXktNTBcIj5cbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDx0ZCBjbGFzc05hbWU9XCJweC0zIHB5LTIgZm9udC1tZWRpdW0gdGV4dC1ncmF5LTkwMFwiPntpdGVtLnByb2R1Y3ROYW1lfTwvdGQ+XG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8dGQgY2xhc3NOYW1lPVwicHgtMyBweS0yXCI+e2l0ZW0uc2t1IHx8ICdOL0EnfTwvdGQ+XG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8dGQgY2xhc3NOYW1lPVwicHgtMyBweS0yXCI+e2l0ZW0uc2hvcE5hbWV9PC90ZD5cbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDx0ZCBjbGFzc05hbWU9XCJweC0zIHB5LTJcIj57aXRlbS5jYXRlZ29yeX08L3RkPlxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPHRkIGNsYXNzTmFtZT1cInB4LTMgcHktMiB0ZXh0LXJpZ2h0XCI+e2l0ZW0ucXVhbnRpdHkudG9Mb2NhbGVTdHJpbmcoKX08L3RkPlxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPHRkIGNsYXNzTmFtZT1cInB4LTMgcHktMiB0ZXh0LXJpZ2h0XCI+e2Zvcm1hdEN1cnJlbmN5KGl0ZW0ucHJpY2UpfTwvdGQ+XG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8dGQgY2xhc3NOYW1lPVwicHgtMyBweS0yIHRleHQtcmlnaHRcIj57Zm9ybWF0Q3VycmVuY3koaXRlbS50b3RhbFZhbHVlKX08L3RkPlxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8L3RyPlxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICkpfVxuICAgICAgICAgICAgICAgICAgICAgICAgICAgIHtyZXBvcnREYXRhLmRldGFpbHMubGVuZ3RoID09PSAwICYmIChcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPHRyPlxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPHRkIGNvbFNwYW49ezd9IGNsYXNzTmFtZT1cInRleHQtY2VudGVyIHB5LTQgdGV4dC1ncmF5LTUwMFwiPk5vIGludmVudG9yeSBpdGVtcyBmb3VuZC48L3RkPlxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8L3RyPlxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICl9XG4gICAgICAgICAgICAgICAgICAgICAgICA8L3Rib2R5PlxuICAgICAgICAgICAgICAgICAgICA8L3RhYmxlPlxuICAgICAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwibXQtNiB0ZXh0LXJpZ2h0XCI+XG4gICAgICAgICAgICAgICAgICAgIDxCdXR0b24gdmFyaWFudD1cIm91dGxpbmVcIiBvbkNsaWNrPXtvbkNsb3NlfT5DbG9zZTwvQnV0dG9uPlxuICAgICAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgIDwvZGl2PlxuICAgICk7XG59ICJdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7O0lBcUNVO0lBQUFBLGFBQUEsWUFBQUEsQ0FBQTtNQUFBLE9BQUFDLGNBQUE7SUFBQTtFQUFBO0VBQUEsT0FBQUEsY0FBQTtBQUFBO0FBQUFELGFBQUE7QUFBQUEsYUFBQSxHQUFBRSxDQUFBOzs7Ozs7K0JBUlY7Ozs7OztXQUF3QkMsd0JBQUE7Ozs7Ozs7O2lDQTdCRDs7O2lDQUNMO0FBNEJILFNBQVNBLHlCQUF5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

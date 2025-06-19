@@ -171,7 +171,7 @@ export default function PurchaseListClientOptimized({
   enableVirtualization = false,
   enableInfiniteScroll = false,
 }: PurchaseListClientOptimizedProps) {
-  const router = useRouter();
+  const _router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const listRef = useRef<any>(null);

@@ -56,7 +56,7 @@ export const useInventory = (filters?: any) => {
 };
 
 // Alias for optimized version
-export const useOptimizedInventory = (shopId?: number, filters?: any) => {
+export const useOptimizedInventory = (_shopId?: number, _filters?: any) => {
   // Return placeholder implementation
   return {
     data: [],
@@ -151,7 +151,7 @@ export const usePurchaseInvoices = (filters?: any) => {
 };
 
 // Optimized Purchase Invoices Hooks
-export const usePurchaseInvoicesOptimized = (shopId?: number, filters?: any) => {
+export const usePurchaseInvoicesOptimized = (_shopId?: number, _filters?: any) => {
   // Return placeholder implementation
   return {
     data: [],
@@ -162,7 +162,7 @@ export const usePurchaseInvoicesOptimized = (shopId?: number, filters?: any) => 
   };
 };
 
-export const usePurchaseInvoicesInfinite = (shopId?: number, filters?: any) => {
+export const usePurchaseInvoicesInfinite = (_shopId?: number, _filters?: any) => {
   // Return placeholder implementation
   return {
     data: { pages: [], pageParams: [] },
@@ -175,7 +175,7 @@ export const usePurchaseInvoicesInfinite = (shopId?: number, filters?: any) => {
   };
 };
 
-export const usePurchaseSearchSuggestions = (query: string) => {
+export const usePurchaseSearchSuggestions = (_query: string) => {
   // Return placeholder implementation
   return {
     data: [],

@@ -1,5 +1,6 @@
 module.exports = {
   extends: 'next/core-web-vitals',
+  plugins: ['@typescript-eslint'],
   rules: {
     '@typescript-eslint/no-explicit-any': 'off',
     '@typescript-eslint/no-unused-vars': ['error', { 
@@ -13,4 +14,4 @@ module.exports = {
     'import/no-anonymous-default-export': 'off',
     '@next/next/no-assign-module-variable': 'off'
   }
-}; 
+};

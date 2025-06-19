@@ -115,7 +115,7 @@ class TransferPerformanceMonitor {
   /**
    * Check for performance alerts
    */
-  private checkPerformanceAlerts(operationType: string, duration: number, success: boolean) {
+  private checkPerformanceAlerts(operationType: string, _duration: number, _success: boolean) {
     const recentMetrics = this.getRecentMetrics(5 * 60 * 1000); // Last 5 minutes
     const operationMetrics = recentMetrics.filter(m => m.operationType === operationType);
 

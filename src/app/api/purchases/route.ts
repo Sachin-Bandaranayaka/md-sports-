@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Extract items and distributions from the request
-        const { items, distributions, totalAmount, paidAmount, date, dueDate, notes, ...rest } = body;
+        const { items, distributions, totalAmount, paidAmount, date, dueDate, notes: _notes, ..._rest } = body;
 
         // Only include fields that exist in the Prisma schema
         const invoiceData: any = {

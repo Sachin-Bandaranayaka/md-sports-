@@ -53,8 +53,8 @@ class AuthPerformanceTester {
 
             this.printResults();
 
-        } catch (error) {
-            console.error('❌ Test failed:', error);
+        } catch (_error) {
+            console.error('❌ Test failed:', _error);
         }
     }
 
@@ -82,7 +82,7 @@ class AuthPerformanceTester {
             } else {
                 throw new Error('Login failed');
             }
-        } catch (error) {
+        } catch {
             const endTime = performance.now();
             const duration = endTime - startTime;
 
@@ -121,7 +121,7 @@ class AuthPerformanceTester {
             });
 
             console.log(`✅ ${testName}: ${duration.toFixed(2)}ms`);
-        } catch (error) {
+        } catch {
             const endTime = performance.now();
             const duration = endTime - startTime;
 
@@ -201,7 +201,7 @@ class AuthPerformanceTester {
             });
 
             console.log(`✅ Permission check: ${duration.toFixed(2)}ms`);
-        } catch (error) {
+        } catch {
             const endTime = performance.now();
             const duration = endTime - startTime;
 

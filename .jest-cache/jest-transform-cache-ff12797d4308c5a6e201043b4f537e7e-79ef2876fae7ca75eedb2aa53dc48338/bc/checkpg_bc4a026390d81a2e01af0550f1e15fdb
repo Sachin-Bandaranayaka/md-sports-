@@ -1,0 +1,363 @@
+ad0c2407f39988273954f5764425639b
+// Simple script to check if pg is installed correctly
+"use strict";
+
+/* istanbul ignore next */
+function cov_rofndncct() {
+  var path = "/Users/sachin/Documents/md-sports-/src/scripts/check-pg.js";
+  var hash = "61a81135f2a2623e85b89f9f06580a0ce649f6d3";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/Users/sachin/Documents/md-sports-/src/scripts/check-pg.js",
+    statementMap: {
+      "0": {
+        start: {
+          line: 3,
+          column: 0
+        },
+        end: {
+          line: 33,
+          column: 1
+        }
+      },
+      "1": {
+        start: {
+          line: 4,
+          column: 15
+        },
+        end: {
+          line: 4,
+          column: 28
+        }
+      },
+      "2": {
+        start: {
+          line: 5,
+          column: 4
+        },
+        end: {
+          line: 5,
+          column: 49
+        }
+      },
+      "3": {
+        start: {
+          line: 6,
+          column: 4
+        },
+        end: {
+          line: 6,
+          column: 43
+        }
+      },
+      "4": {
+        start: {
+          line: 9,
+          column: 19
+        },
+        end: {
+          line: 16,
+          column: 6
+        }
+      },
+      "5": {
+        start: {
+          line: 17,
+          column: 4
+        },
+        end: {
+          line: 17,
+          column: 50
+        }
+      },
+      "6": {
+        start: {
+          line: 19,
+          column: 4
+        },
+        end: {
+          line: 29,
+          column: 7
+        }
+      },
+      "7": {
+        start: {
+          line: 20,
+          column: 8
+        },
+        end: {
+          line: 20,
+          column: 60
+        }
+      },
+      "8": {
+        start: {
+          line: 21,
+          column: 8
+        },
+        end: {
+          line: 21,
+          column: 60
+        }
+      },
+      "9": {
+        start: {
+          line: 23,
+          column: 8
+        },
+        end: {
+          line: 23,
+          column: 51
+        }
+      },
+      "10": {
+        start: {
+          line: 24,
+          column: 8
+        },
+        end: {
+          line: 24,
+          column: 66
+        }
+      },
+      "11": {
+        start: {
+          line: 25,
+          column: 8
+        },
+        end: {
+          line: 25,
+          column: 21
+        }
+      },
+      "12": {
+        start: {
+          line: 27,
+          column: 8
+        },
+        end: {
+          line: 27,
+          column: 62
+        }
+      },
+      "13": {
+        start: {
+          line: 28,
+          column: 8
+        },
+        end: {
+          line: 28,
+          column: 24
+        }
+      },
+      "14": {
+        start: {
+          line: 31,
+          column: 4
+        },
+        end: {
+          line: 31,
+          column: 53
+        }
+      },
+      "15": {
+        start: {
+          line: 32,
+          column: 4
+        },
+        end: {
+          line: 32,
+          column: 20
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "(anonymous_0)",
+        decl: {
+          start: {
+            line: 19,
+            column: 26
+          },
+          end: {
+            line: 19,
+            column: 27
+          }
+        },
+        loc: {
+          start: {
+            line: 19,
+            column: 30
+          },
+          end: {
+            line: 22,
+            column: 5
+          }
+        },
+        line: 19
+      },
+      "1": {
+        name: "(anonymous_1)",
+        decl: {
+          start: {
+            line: 22,
+            column: 12
+          },
+          end: {
+            line: 22,
+            column: 13
+          }
+        },
+        loc: {
+          start: {
+            line: 22,
+            column: 22
+          },
+          end: {
+            line: 26,
+            column: 5
+          }
+        },
+        line: 22
+      },
+      "2": {
+        name: "(anonymous_2)",
+        decl: {
+          start: {
+            line: 26,
+            column: 13
+          },
+          end: {
+            line: 26,
+            column: 14
+          }
+        },
+        loc: {
+          start: {
+            line: 26,
+            column: 20
+          },
+          end: {
+            line: 29,
+            column: 5
+          }
+        },
+        line: 26
+      }
+    },
+    branchMap: {},
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0,
+      "9": 0,
+      "10": 0,
+      "11": 0,
+      "12": 0,
+      "13": 0,
+      "14": 0,
+      "15": 0
+    },
+    f: {
+      "0": 0,
+      "1": 0,
+      "2": 0
+    },
+    b: {},
+    inputSourceMap: {
+      version: 3,
+      sources: ["/Users/sachin/Documents/md-sports-/src/scripts/check-pg.js"],
+      sourcesContent: ["// Simple script to check if pg is installed correctly\ntry {\n    const pg = require('pg');\n    console.log('PG module loaded successfully');\n    console.log('PG version:', pg.version);\n    \n    // Try to create a client with proper credentials\n    // Note: Replace with actual credentials if needed\n    const client = new pg.Client({\n        host: 'localhost',\n        port: 5432,\n        database: 'mssport',\n        user: 'postgres',  // Replace with your actual database user\n        password: 'postgres',  // Replace with your actual database password\n        ssl: false\n    });\n    \n    console.log('PG client created successfully');\n    \n    // Try to connect\n    client.connect()\n        .then(() => {\n            console.log('Connected to PostgreSQL successfully');\n            return client.query('SELECT NOW() as current_time');\n        })\n        .then(result => {\n            console.log('Query executed successfully');\n            console.log('Current time:', result.rows[0].current_time);\n            client.end();\n        })\n        .catch(err => {\n            console.error('Error connecting to PostgreSQL:', err);\n            process.exit(1);\n        });\n} catch (error) {\n    console.error('Error loading pg module:', error);\n    process.exit(1);\n} "],
+      names: ["pg", "require", "console", "log", "version", "client", "Client", "host", "port", "database", "user", "password", "ssl", "connect", "then", "query", "result", "rows", "current_time", "end", "catch", "err", "error", "process", "exit"],
+      mappings: "AAAA,sDAAsD;;AACtD,IAAI;IACA,MAAMA,KAAKC,QAAQ;IACnBC,QAAQC,GAAG,CAAC;IACZD,QAAQC,GAAG,CAAC,eAAeH,GAAGI,OAAO;IAErC,iDAAiD;IACjD,kDAAkD;IAClD,MAAMC,SAAS,IAAIL,GAAGM,MAAM,CAAC;QACzBC,MAAM;QACNC,MAAM;QACNC,UAAU;QACVC,MAAM;QACNC,UAAU;QACVC,KAAK;IACT;IAEAV,QAAQC,GAAG,CAAC;IAEZ,iBAAiB;IACjBE,OAAOQ,OAAO,GACTC,IAAI,CAAC;QACFZ,QAAQC,GAAG,CAAC;QACZ,OAAOE,OAAOU,KAAK,CAAC;IACxB,GACCD,IAAI,CAACE,CAAAA;QACFd,QAAQC,GAAG,CAAC;QACZD,QAAQC,GAAG,CAAC,iBAAiBa,OAAOC,IAAI,CAAC,EAAE,CAACC,YAAY;QACxDb,OAAOc,GAAG;IACd,GACCC,KAAK,CAACC,CAAAA;QACHnB,QAAQoB,KAAK,CAAC,mCAAmCD;QACjDE,QAAQC,IAAI,CAAC;IACjB;AACR,EAAE,OAAOF,OAAO;IACZpB,QAAQoB,KAAK,CAAC,4BAA4BA;IAC1CC,QAAQC,IAAI,CAAC;AACjB"
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "61a81135f2a2623e85b89f9f06580a0ce649f6d3"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_rofndncct = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_rofndncct();
+cov_rofndncct().s[0]++;
+try {
+  const pg =
+  /* istanbul ignore next */
+  (cov_rofndncct().s[1]++, require("pg"));
+  /* istanbul ignore next */
+  cov_rofndncct().s[2]++;
+  console.log("PG module loaded successfully");
+  /* istanbul ignore next */
+  cov_rofndncct().s[3]++;
+  console.log("PG version:", pg.version);
+  // Try to create a client with proper credentials
+  // Note: Replace with actual credentials if needed
+  const client =
+  /* istanbul ignore next */
+  (cov_rofndncct().s[4]++, new pg.Client({
+    host: "localhost",
+    port: 5432,
+    database: "mssport",
+    user: "postgres",
+    password: "postgres",
+    ssl: false
+  }));
+  /* istanbul ignore next */
+  cov_rofndncct().s[5]++;
+  console.log("PG client created successfully");
+  // Try to connect
+  /* istanbul ignore next */
+  cov_rofndncct().s[6]++;
+  client.connect().then(() => {
+    /* istanbul ignore next */
+    cov_rofndncct().f[0]++;
+    cov_rofndncct().s[7]++;
+    console.log("Connected to PostgreSQL successfully");
+    /* istanbul ignore next */
+    cov_rofndncct().s[8]++;
+    return client.query("SELECT NOW() as current_time");
+  }).then(result => {
+    /* istanbul ignore next */
+    cov_rofndncct().f[1]++;
+    cov_rofndncct().s[9]++;
+    console.log("Query executed successfully");
+    /* istanbul ignore next */
+    cov_rofndncct().s[10]++;
+    console.log("Current time:", result.rows[0].current_time);
+    /* istanbul ignore next */
+    cov_rofndncct().s[11]++;
+    client.end();
+  }).catch(err => {
+    /* istanbul ignore next */
+    cov_rofndncct().f[2]++;
+    cov_rofndncct().s[12]++;
+    console.error("Error connecting to PostgreSQL:", err);
+    /* istanbul ignore next */
+    cov_rofndncct().s[13]++;
+    process.exit(1);
+  });
+} catch (error) {
+  /* istanbul ignore next */
+  cov_rofndncct().s[14]++;
+  console.error("Error loading pg module:", error);
+  /* istanbul ignore next */
+  cov_rofndncct().s[15]++;
+  process.exit(1);
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3Zfcm9mbmRuY2N0IiwiYWN0dWFsQ292ZXJhZ2UiLCJzIiwicGciLCJyZXF1aXJlIiwiY29uc29sZSIsImxvZyIsInZlcnNpb24iLCJjbGllbnQiLCJDbGllbnQiLCJob3N0IiwicG9ydCIsImRhdGFiYXNlIiwidXNlciIsInBhc3N3b3JkIiwic3NsIiwiY29ubmVjdCIsInRoZW4iLCJmIiwicXVlcnkiLCJyZXN1bHQiLCJyb3dzIiwiY3VycmVudF90aW1lIiwiZW5kIiwiY2F0Y2giLCJlcnIiLCJlcnJvciIsInByb2Nlc3MiLCJleGl0Il0sInNvdXJjZXMiOlsiL1VzZXJzL3NhY2hpbi9Eb2N1bWVudHMvbWQtc3BvcnRzLS9zcmMvc2NyaXB0cy9jaGVjay1wZy5qcyJdLCJzb3VyY2VzQ29udGVudCI6WyIvLyBTaW1wbGUgc2NyaXB0IHRvIGNoZWNrIGlmIHBnIGlzIGluc3RhbGxlZCBjb3JyZWN0bHlcbnRyeSB7XG4gICAgY29uc3QgcGcgPSByZXF1aXJlKCdwZycpO1xuICAgIGNvbnNvbGUubG9nKCdQRyBtb2R1bGUgbG9hZGVkIHN1Y2Nlc3NmdWxseScpO1xuICAgIGNvbnNvbGUubG9nKCdQRyB2ZXJzaW9uOicsIHBnLnZlcnNpb24pO1xuICAgIFxuICAgIC8vIFRyeSB0byBjcmVhdGUgYSBjbGllbnQgd2l0aCBwcm9wZXIgY3JlZGVudGlhbHNcbiAgICAvLyBOb3RlOiBSZXBsYWNlIHdpdGggYWN0dWFsIGNyZWRlbnRpYWxzIGlmIG5lZWRlZFxuICAgIGNvbnN0IGNsaWVudCA9IG5ldyBwZy5DbGllbnQoe1xuICAgICAgICBob3N0OiAnbG9jYWxob3N0JyxcbiAgICAgICAgcG9ydDogNTQzMixcbiAgICAgICAgZGF0YWJhc2U6ICdtc3Nwb3J0JyxcbiAgICAgICAgdXNlcjogJ3Bvc3RncmVzJywgIC8vIFJlcGxhY2Ugd2l0aCB5b3VyIGFjdHVhbCBkYXRhYmFzZSB1c2VyXG4gICAgICAgIHBhc3N3b3JkOiAncG9zdGdyZXMnLCAgLy8gUmVwbGFjZSB3aXRoIHlvdXIgYWN0dWFsIGRhdGFiYXNlIHBhc3N3b3JkXG4gICAgICAgIHNzbDogZmFsc2VcbiAgICB9KTtcbiAgICBcbiAgICBjb25zb2xlLmxvZygnUEcgY2xpZW50IGNyZWF0ZWQgc3VjY2Vzc2Z1bGx5Jyk7XG4gICAgXG4gICAgLy8gVHJ5IHRvIGNvbm5lY3RcbiAgICBjbGllbnQuY29ubmVjdCgpXG4gICAgICAgIC50aGVuKCgpID0+IHtcbiAgICAgICAgICAgIGNvbnNvbGUubG9nKCdDb25uZWN0ZWQgdG8gUG9zdGdyZVNRTCBzdWNjZXNzZnVsbHknKTtcbiAgICAgICAgICAgIHJldHVybiBjbGllbnQucXVlcnkoJ1NFTEVDVCBOT1coKSBhcyBjdXJyZW50X3RpbWUnKTtcbiAgICAgICAgfSlcbiAgICAgICAgLnRoZW4ocmVzdWx0ID0+IHtcbiAgICAgICAgICAgIGNvbnNvbGUubG9nKCdRdWVyeSBleGVjdXRlZCBzdWNjZXNzZnVsbHknKTtcbiAgICAgICAgICAgIGNvbnNvbGUubG9nKCdDdXJyZW50IHRpbWU6JywgcmVzdWx0LnJvd3NbMF0uY3VycmVudF90aW1lKTtcbiAgICAgICAgICAgIGNsaWVudC5lbmQoKTtcbiAgICAgICAgfSlcbiAgICAgICAgLmNhdGNoKGVyciA9PiB7XG4gICAgICAgICAgICBjb25zb2xlLmVycm9yKCdFcnJvciBjb25uZWN0aW5nIHRvIFBvc3RncmVTUUw6JywgZXJyKTtcbiAgICAgICAgICAgIHByb2Nlc3MuZXhpdCgxKTtcbiAgICAgICAgfSk7XG59IGNhdGNoIChlcnJvcikge1xuICAgIGNvbnNvbGUuZXJyb3IoJ0Vycm9yIGxvYWRpbmcgcGcgbW9kdWxlOicsIGVycm9yKTtcbiAgICBwcm9jZXNzLmV4aXQoMSk7XG59ICJdLCJtYXBwaW5ncyI6IkFBQUE7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7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

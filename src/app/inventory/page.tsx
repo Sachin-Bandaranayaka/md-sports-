@@ -1,4 +1,4 @@
-import { Suspense } from 'react
+import { Suspense } from 'react';
 import { headers, cookies } from 'next/headers';
 import MainLayout from '@/components/layout/MainLayout';
 import InventoryClientWrapper from '@/components/inventory/InventoryClientWrapper';

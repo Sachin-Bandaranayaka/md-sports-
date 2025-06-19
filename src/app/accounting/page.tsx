@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Search, Plus, Edit, Trash, X, ArrowUp, ArrowDown, Filter, Calendar, RefreshCw, TrendingUp, TrendingDown, ArrowLeftRight } from 'lucide-react';
+import { Search, Plus, Edit, Trash, X, ArrowUp, ArrowDown, Filter, Calendar, RefreshCw, TrendingUp, TrendingDown, ArrowLeftRight, User } from 'lucide-react';
 import { Transaction, Account } from '@/types';
 import { authGet, authPost, authDelete, authPatch } from '@/utils/api';
 // Removed framer-motion animations
@@ -228,15 +228,26 @@ function AccountingContent() {
                     </div>
                     <div className="flex gap-3">
                         {activeTab === 'income-accounts' && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => router.push('/accounting/transfer')}
-                                className="flex items-center shadow-md"
-                            >
-                                <ArrowLeftRight className="w-4 h-4 mr-2" />
-                                Transfer Funds
-                            </Button>
+                            <>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => router.push('/accounting/transfer')}
+                                    className="flex items-center shadow-md"
+                                >
+                                    <ArrowLeftRight className="w-4 h-4 mr-2" />
+                                    Transfer Funds
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => router.push('/accounting/withdraw')}
+                                    className="flex items-center shadow-md bg-red-50 text-red-600 hover:bg-red-100"
+                                >
+                                    <User className="w-4 h-4 mr-2" />
+                                    Personal Withdrawal
+                                </Button>
+                            </>
                         )}
                         <Button
                             variant="primary"

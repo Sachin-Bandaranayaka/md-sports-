@@ -3,8 +3,7 @@
  * Uses Vercel KV (Redis) for serverless environments with fallback to in-memory cache
  */
 
-import { kv } from '@vercel/kv';
-import { cacheService } from './cache';
+
 
 // Cache configuration
 const CACHE_CONFIG = {
@@ -106,7 +105,7 @@ class VercelKVCache {
                 // This will be available when @vercel/kv is installed
                 const { kv } = require('@vercel/kv');
                 this.kv = kv;
-            } catch (error) {
+            } catch {
                 console.warn('Vercel KV not available, falling back to memory cache');
                 this.kv = null;
             }

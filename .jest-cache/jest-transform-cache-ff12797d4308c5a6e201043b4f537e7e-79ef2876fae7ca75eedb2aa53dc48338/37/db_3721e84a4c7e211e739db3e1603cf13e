@@ -1,0 +1,28 @@
+e184c958eb95249d85c3493307050fc8
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+function _export(target, all) {
+    for(var name in all)Object.defineProperty(target, name, {
+        enumerable: true,
+        get: all[name]
+    });
+}
+_export(exports, {
+    db: function() {
+        return db;
+    },
+    // Export default as db
+    default: function() {
+        return _default;
+    },
+    prisma: function() {
+        return _prisma.prisma;
+    }
+});
+const _prisma = require("./prisma");
+const db = _prisma.prisma;
+const _default = db;
+
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIi9Vc2Vycy9zYWNoaW4vRG9jdW1lbnRzL21kLXNwb3J0cy0vc3JjL2xpYi9kYi50cyJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyBwcmlzbWEgfSBmcm9tICcuL3ByaXNtYSc7XG5cbi8vIEV4cG9ydCBwcmlzbWEgY2xpZW50IGFzIGRiIGZvciBjb25zaXN0ZW5jeSB3aXRoIGltcG9ydCBwYXR0ZXJuc1xuZXhwb3J0IGNvbnN0IGRiID0gcHJpc21hO1xuXG4vLyBSZS1leHBvcnQgcHJpc21hIGZvciBiYWNrd2FyZCBjb21wYXRpYmlsaXR5XG5leHBvcnQgeyBwcmlzbWEgfTtcblxuLy8gRXhwb3J0IGRlZmF1bHQgYXMgZGJcbmV4cG9ydCBkZWZhdWx0IGRiOyJdLCJuYW1lcyI6WyJkYiIsInByaXNtYSJdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7SUFHYUEsRUFBRTtlQUFGQTs7SUFLYix1QkFBdUI7SUFDdkIsT0FBa0I7ZUFBbEI7O0lBSFNDLE1BQU07ZUFBTkEsY0FBTTs7O3dCQU5RO0FBR2hCLE1BQU1ELEtBQUtDLGNBQU07TUFNeEIsV0FBZUQifQ==

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from './useAuth';
 
@@ -23,7 +23,7 @@ const routePermissions: Record<string, string> = {
 
 export function usePermission() {
     const { user } = useAuth();
-    const router = useRouter();
+    const _router = useRouter();
     const pathname = usePathname();
 
     const hasPermission = (permission: string): boolean => {

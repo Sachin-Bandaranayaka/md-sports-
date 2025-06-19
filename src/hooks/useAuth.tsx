@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
 
@@ -167,7 +167,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
         };
         validateAuth();
-    }, []); // Validate auth only on initial mount
+    }, [logout]); // Include logout in dependencies
 
     const login = async (email: string, password: string): Promise<boolean> => {
         setIsLoading(true);
@@ -196,7 +196,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return false;
     };
 
-    const logout = async (): Promise<void> => {
+    const logout = useCallback(async (): Promise<void> => {
         setIsLoading(true);
         setUser(null);
         setAccessToken(null);
@@ -212,7 +212,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         router.push('/login'); // Redirect to login page
         setIsLoading(false);
-    };
+    }, [router]);
 
     // Check if user has a specific permission
     const hasPermission = (permission: string): boolean => {
@@ -262,4 +262,4 @@ export const useAuth = () => {
 };
 
 // Export the axios instance for reuse
-export { api }; 
+export { api };

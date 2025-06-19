@@ -1,0 +1,336 @@
+e1c2f946febc25c16bc7d2d4f0c8bc92
+/**
+ * This is a development utility to simplify testing
+ * Do NOT include this in production code!
+ * 
+ * Usage in browser console:
+ * - Run setDevToken() to set a development token
+ * - Run clearDevToken() to clear the token
+ */ // Set a development token for testing
+"use strict";
+
+/* istanbul ignore next */
+function cov_2b3ec5r79x() {
+  var path = "/Users/sachin/Documents/md-sports-/src/utils/setDevToken.js";
+  var hash = "bf5ca1789dac06254e83f2a273e71b02d706381a";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/Users/sachin/Documents/md-sports-/src/utils/setDevToken.js",
+    statementMap: {
+      "0": {
+        start: {
+          line: 11,
+          column: 4
+        },
+        end: {
+          line: 11,
+          column: 53
+        }
+      },
+      "1": {
+        start: {
+          line: 12,
+          column: 4
+        },
+        end: {
+          line: 12,
+          column: 51
+        }
+      },
+      "2": {
+        start: {
+          line: 13,
+          column: 4
+        },
+        end: {
+          line: 13,
+          column: 44
+        }
+      },
+      "3": {
+        start: {
+          line: 14,
+          column: 4
+        },
+        end: {
+          line: 14,
+          column: 83
+        }
+      },
+      "4": {
+        start: {
+          line: 15,
+          column: 4
+        },
+        end: {
+          line: 15,
+          column: 88
+        }
+      },
+      "5": {
+        start: {
+          line: 16,
+          column: 4
+        },
+        end: {
+          line: 16,
+          column: 27
+        }
+      },
+      "6": {
+        start: {
+          line: 20,
+          column: 4
+        },
+        end: {
+          line: 20,
+          column: 43
+        }
+      },
+      "7": {
+        start: {
+          line: 21,
+          column: 4
+        },
+        end: {
+          line: 21,
+          column: 41
+        }
+      },
+      "8": {
+        start: {
+          line: 22,
+          column: 4
+        },
+        end: {
+          line: 22,
+          column: 36
+        }
+      },
+      "9": {
+        start: {
+          line: 23,
+          column: 4
+        },
+        end: {
+          line: 23,
+          column: 27
+        }
+      },
+      "10": {
+        start: {
+          line: 26,
+          column: 0
+        },
+        end: {
+          line: 26,
+          column: 33
+        }
+      },
+      "11": {
+        start: {
+          line: 27,
+          column: 0
+        },
+        end: {
+          line: 27,
+          column: 37
+        }
+      },
+      "12": {
+        start: {
+          line: 28,
+          column: 0
+        },
+        end: {
+          line: 28,
+          column: 54
+        }
+      },
+      "13": {
+        start: {
+          line: 29,
+          column: 0
+        },
+        end: {
+          line: 29,
+          column: 22
+        }
+      },
+      "14": {
+        start: {
+          line: 30,
+          column: 0
+        },
+        end: {
+          line: 30,
+          column: 64
+        }
+      },
+      "15": {
+        start: {
+          line: 31,
+          column: 0
+        },
+        end: {
+          line: 31,
+          column: 58
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "setDevToken",
+        decl: {
+          start: {
+            line: 10,
+            column: 9
+          },
+          end: {
+            line: 10,
+            column: 20
+          }
+        },
+        loc: {
+          start: {
+            line: 10,
+            column: 23
+          },
+          end: {
+            line: 17,
+            column: 1
+          }
+        },
+        line: 10
+      },
+      "1": {
+        name: "clearDevToken",
+        decl: {
+          start: {
+            line: 19,
+            column: 9
+          },
+          end: {
+            line: 19,
+            column: 22
+          }
+        },
+        loc: {
+          start: {
+            line: 19,
+            column: 25
+          },
+          end: {
+            line: 24,
+            column: 1
+          }
+        },
+        line: 19
+      }
+    },
+    branchMap: {},
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0,
+      "9": 0,
+      "10": 0,
+      "11": 0,
+      "12": 0,
+      "13": 0,
+      "14": 0,
+      "15": 0
+    },
+    f: {
+      "0": 0,
+      "1": 0
+    },
+    b: {},
+    inputSourceMap: {
+      version: 3,
+      sources: ["/Users/sachin/Documents/md-sports-/src/utils/setDevToken.js"],
+      sourcesContent: ["/**\n * This is a development utility to simplify testing\n * Do NOT include this in production code!\n * \n * Usage in browser console:\n * - Run setDevToken() to set a development token\n * - Run clearDevToken() to clear the token\n */\n\n// Set a development token for testing\nfunction setDevToken() {\n    localStorage.setItem('accessToken', 'dev-token');\n    localStorage.setItem('authToken', 'dev-token');\n    console.log('\u2705 Development token set!');\n    console.log('\u26A0\uFE0F Warning: This bypasses authentication. For development only!');\n    console.log('To use: Reload the page and the dev token will be used for requests.');\n    return 'Dev token set';\n}\n\n// Clear the development token\nfunction clearDevToken() {\n    localStorage.removeItem('accessToken');\n    localStorage.removeItem('authToken');\n    console.log('\u2705 Token cleared!');\n    return 'Token cleared';\n}\n\n// Make these functions available globally\nwindow.setDevToken = setDevToken;\nwindow.clearDevToken = clearDevToken;\n\nconsole.log('\uD83D\uDD27 Development tools loaded!');\nconsole.log('Usage:');\nconsole.log('  - Run setDevToken() to set a development token');\nconsole.log('  - Run clearDevToken() to clear the token'); "],
+      names: ["setDevToken", "localStorage", "setItem", "console", "log", "clearDevToken", "removeItem", "window"],
+      mappings: "AAAA;;;;;;;CAOC,GAED,sCAAsC;;AACtC,SAASA;IACLC,aAAaC,OAAO,CAAC,eAAe;IACpCD,aAAaC,OAAO,CAAC,aAAa;IAClCC,QAAQC,GAAG,CAAC;IACZD,QAAQC,GAAG,CAAC;IACZD,QAAQC,GAAG,CAAC;IACZ,OAAO;AACX;AAEA,8BAA8B;AAC9B,SAASC;IACLJ,aAAaK,UAAU,CAAC;IACxBL,aAAaK,UAAU,CAAC;IACxBH,QAAQC,GAAG,CAAC;IACZ,OAAO;AACX;AAEA,0CAA0C;AAC1CG,OAAOP,WAAW,GAAGA;AACrBO,OAAOF,aAAa,GAAGA;AAEvBF,QAAQC,GAAG,CAAC;AACZD,QAAQC,GAAG,CAAC;AACZD,QAAQC,GAAG,CAAC;AACZD,QAAQC,GAAG,CAAC"
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "bf5ca1789dac06254e83f2a273e71b02d706381a"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_2b3ec5r79x = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_2b3ec5r79x();
+function setDevToken() {
+  /* istanbul ignore next */
+  cov_2b3ec5r79x().f[0]++;
+  cov_2b3ec5r79x().s[0]++;
+  localStorage.setItem("accessToken", "dev-token");
+  /* istanbul ignore next */
+  cov_2b3ec5r79x().s[1]++;
+  localStorage.setItem("authToken", "dev-token");
+  /* istanbul ignore next */
+  cov_2b3ec5r79x().s[2]++;
+  console.log("✅ Development token set!");
+  /* istanbul ignore next */
+  cov_2b3ec5r79x().s[3]++;
+  console.log("⚠️ Warning: This bypasses authentication. For development only!");
+  /* istanbul ignore next */
+  cov_2b3ec5r79x().s[4]++;
+  console.log("To use: Reload the page and the dev token will be used for requests.");
+  /* istanbul ignore next */
+  cov_2b3ec5r79x().s[5]++;
+  return "Dev token set";
+}
+// Clear the development token
+function clearDevToken() {
+  /* istanbul ignore next */
+  cov_2b3ec5r79x().f[1]++;
+  cov_2b3ec5r79x().s[6]++;
+  localStorage.removeItem("accessToken");
+  /* istanbul ignore next */
+  cov_2b3ec5r79x().s[7]++;
+  localStorage.removeItem("authToken");
+  /* istanbul ignore next */
+  cov_2b3ec5r79x().s[8]++;
+  console.log("✅ Token cleared!");
+  /* istanbul ignore next */
+  cov_2b3ec5r79x().s[9]++;
+  return "Token cleared";
+}
+// Make these functions available globally
+/* istanbul ignore next */
+cov_2b3ec5r79x().s[10]++;
+window.setDevToken = setDevToken;
+/* istanbul ignore next */
+cov_2b3ec5r79x().s[11]++;
+window.clearDevToken = clearDevToken;
+/* istanbul ignore next */
+cov_2b3ec5r79x().s[12]++;
+console.log("\uD83D\uDD27 Development tools loaded!");
+/* istanbul ignore next */
+cov_2b3ec5r79x().s[13]++;
+console.log("Usage:");
+/* istanbul ignore next */
+cov_2b3ec5r79x().s[14]++;
+console.log("  - Run setDevToken() to set a development token");
+/* istanbul ignore next */
+cov_2b3ec5r79x().s[15]++;
+console.log("  - Run clearDevToken() to clear the token");
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfMmIzZWM1cjc5eCIsImFjdHVhbENvdmVyYWdlIiwic2V0RGV2VG9rZW4iLCJmIiwicyIsImxvY2FsU3RvcmFnZSIsInNldEl0ZW0iLCJjb25zb2xlIiwibG9nIiwiY2xlYXJEZXZUb2tlbiIsInJlbW92ZUl0ZW0iLCJ3aW5kb3ciXSwic291cmNlcyI6WyIvVXNlcnMvc2FjaGluL0RvY3VtZW50cy9tZC1zcG9ydHMtL3NyYy91dGlscy9zZXREZXZUb2tlbi5qcyJdLCJzb3VyY2VzQ29udGVudCI6WyIvKipcbiAqIFRoaXMgaXMgYSBkZXZlbG9wbWVudCB1dGlsaXR5IHRvIHNpbXBsaWZ5IHRlc3RpbmdcbiAqIERvIE5PVCBpbmNsdWRlIHRoaXMgaW4gcHJvZHVjdGlvbiBjb2RlIVxuICogXG4gKiBVc2FnZSBpbiBicm93c2VyIGNvbnNvbGU6XG4gKiAtIFJ1biBzZXREZXZUb2tlbigpIHRvIHNldCBhIGRldmVsb3BtZW50IHRva2VuXG4gKiAtIFJ1biBjbGVhckRldlRva2VuKCkgdG8gY2xlYXIgdGhlIHRva2VuXG4gKi9cblxuLy8gU2V0IGEgZGV2ZWxvcG1lbnQgdG9rZW4gZm9yIHRlc3RpbmdcbmZ1bmN0aW9uIHNldERldlRva2VuKCkge1xuICAgIGxvY2FsU3RvcmFnZS5zZXRJdGVtKCdhY2Nlc3NUb2tlbicsICdkZXYtdG9rZW4nKTtcbiAgICBsb2NhbFN0b3JhZ2Uuc2V0SXRlbSgnYXV0aFRva2VuJywgJ2Rldi10b2tlbicpO1xuICAgIGNvbnNvbGUubG9nKCfinIUgRGV2ZWxvcG1lbnQgdG9rZW4gc2V0IScpO1xuICAgIGNvbnNvbGUubG9nKCfimqDvuI8gV2FybmluZzogVGhpcyBieXBhc3NlcyBhdXRoZW50aWNhdGlvbi4gRm9yIGRldmVsb3BtZW50IG9ubHkhJyk7XG4gICAgY29uc29sZS5sb2coJ1RvIHVzZTogUmVsb2FkIHRoZSBwYWdlIGFuZCB0aGUgZGV2IHRva2VuIHdpbGwgYmUgdXNlZCBmb3IgcmVxdWVzdHMuJyk7XG4gICAgcmV0dXJuICdEZXYgdG9rZW4gc2V0Jztcbn1cblxuLy8gQ2xlYXIgdGhlIGRldmVsb3BtZW50IHRva2VuXG5mdW5jdGlvbiBjbGVhckRldlRva2VuKCkge1xuICAgIGxvY2FsU3RvcmFnZS5yZW1vdmVJdGVtKCdhY2Nlc3NUb2tlbicpO1xuICAgIGxvY2FsU3RvcmFnZS5yZW1vdmVJdGVtKCdhdXRoVG9rZW4nKTtcbiAgICBjb25zb2xlLmxvZygn4pyFIFRva2VuIGNsZWFyZWQhJyk7XG4gICAgcmV0dXJuICdUb2tlbiBjbGVhcmVkJztcbn1cblxuLy8gTWFrZSB0aGVzZSBmdW5jdGlvbnMgYXZhaWxhYmxlIGdsb2JhbGx5XG53aW5kb3cuc2V0RGV2VG9rZW4gPSBzZXREZXZUb2tlbjtcbndpbmRvdy5jbGVhckRldlRva2VuID0gY2xlYXJEZXZUb2tlbjtcblxuY29uc29sZS5sb2coJ/CflKcgRGV2ZWxvcG1lbnQgdG9vbHMgbG9hZGVkIScpO1xuY29uc29sZS5sb2coJ1VzYWdlOicpO1xuY29uc29sZS5sb2coJyAgLSBSdW4gc2V0RGV2VG9rZW4oKSB0byBzZXQgYSBkZXZlbG9wbWVudCB0b2tlbicpO1xuY29uc29sZS5sb2coJyAgLSBSdW4gY2xlYXJEZXZUb2tlbigpIHRvIGNsZWFyIHRoZSB0b2tlbicpOyAiXSwibWFwcGluZ3MiOiJBQUFBOzs7Ozs7O0dBQUEsQ0FTQTs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7SUFPVztJQUFBQSxjQUFBLFlBQUFBLENBQUE7TUFBQSxPQUFBQyxjQUFBO0lBQUE7RUFBQTtFQUFBLE9BQUFBLGNBQUE7QUFBQTtBQUFBRCxjQUFBO0FBTlgsU0FBU0UsWUFBQTtFQUFBO0VBQUFGLGNBQUEsR0FBQUcsQ0FBQTtFQUFBSCxjQUFBLEdBQUFJLENBQUE7RUFDTEMsWUFBQSxDQUFhQyxPQUFPLENBQUMsZUFBZTtFQUFBO0VBQUFOLGNBQUEsR0FBQUksQ0FBQTtFQUNwQ0MsWUFBQSxDQUFhQyxPQUFPLENBQUMsYUFBYTtFQUFBO0VBQUFOLGNBQUEsR0FBQUksQ0FBQTtFQUNsQ0csT0FBQSxDQUFRQyxHQUFHLENBQUM7RUFBQTtFQUFBUixjQUFBLEdBQUFJLENBQUE7RUFDWkcsT0FBQSxDQUFRQyxHQUFHLENBQUM7RUFBQTtFQUFBUixjQUFBLEdBQUFJLENBQUE7RUFDWkcsT0FBQSxDQUFRQyxHQUFHLENBQUM7RUFBQTtFQUFBUixjQUFBLEdBQUFJLENBQUE7RUFDWixPQUFPO0FBQ1g7QUFFQTtBQUNBLFNBQVNLLGNBQUE7RUFBQTtFQUFBVCxjQUFBLEdBQUFHLENBQUE7RUFBQUgsY0FBQSxHQUFBSSxDQUFBO0VBQ0xDLFlBQUEsQ0FBYUssVUFBVSxDQUFDO0VBQUE7RUFBQVYsY0FBQSxHQUFBSSxDQUFBO0VBQ3hCQyxZQUFBLENBQWFLLFVBQVUsQ0FBQztFQUFBO0VBQUFWLGNBQUEsR0FBQUksQ0FBQTtFQUN4QkcsT0FBQSxDQUFRQyxHQUFHLENBQUM7RUFBQTtFQUFBUixjQUFBLEdBQUFJLENBQUE7RUFDWixPQUFPO0FBQ1g7QUFFQTtBQUFBO0FBQUFKLGNBQUEsR0FBQUksQ0FBQTtBQUNBTyxNQUFBLENBQU9ULFdBQVcsR0FBR0EsV0FBQTtBQUFBO0FBQUFGLGNBQUEsR0FBQUksQ0FBQTtBQUNyQk8sTUFBQSxDQUFPRixhQUFhLEdBQUdBLGFBQUE7QUFBQTtBQUFBVCxjQUFBLEdBQUFJLENBQUE7QUFFdkJHLE9BQUEsQ0FBUUMsR0FBRyxDQUFDO0FBQUE7QUFBQVIsY0FBQSxHQUFBSSxDQUFBO0FBQ1pHLE9BQUEsQ0FBUUMsR0FBRyxDQUFDO0FBQUE7QUFBQVIsY0FBQSxHQUFBSSxDQUFBO0FBQ1pHLE9BQUEsQ0FBUUMsR0FBRyxDQUFDO0FBQUE7QUFBQVIsY0FBQSxHQUFBSSxDQUFBO0FBQ1pHLE9BQUEsQ0FBUUMsR0FBRyxDQUFDIiwiaWdub3JlTGlzdCI6W119

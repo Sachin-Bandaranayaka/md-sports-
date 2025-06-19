@@ -1,0 +1,586 @@
+79f8ef65d8fa489eae71472260057fbe
+"use strict";
+
+/* istanbul ignore next */
+function cov_1r0p31bphc() {
+  var path = "/Users/sachin/Documents/md-sports-/src/lib/models/Customer.ts";
+  var hash = "564a27ad512d9189ed0f7931c32ff3f9c84af497";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/Users/sachin/Documents/md-sports-/src/lib/models/Customer.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 2,
+          column: 0
+        },
+        end: {
+          line: 4,
+          column: 3
+        }
+      },
+      "1": {
+        start: {
+          line: 5,
+          column: 0
+        },
+        end: {
+          line: 10,
+          column: 3
+        }
+      },
+      "2": {
+        start: {
+          line: 8,
+          column: 8
+        },
+        end: {
+          line: 8,
+          column: 24
+        }
+      },
+      "3": {
+        start: {
+          line: 11,
+          column: 19
+        },
+        end: {
+          line: 11,
+          column: 39
+        }
+      },
+      "4": {
+        start: {
+          line: 12,
+          column: 26
+        },
+        end: {
+          line: 12,
+          column: 68
+        }
+      },
+      "5": {
+        start: {
+          line: 14,
+          column: 4
+        },
+        end: {
+          line: 16,
+          column: 6
+        }
+      },
+      "6": {
+        start: {
+          line: 21,
+          column: 24
+        },
+        end: {
+          line: 21,
+          column: 52
+        }
+      },
+      "7": {
+        start: {
+          line: 22,
+          column: 24
+        },
+        end: {
+          line: 22,
+          column: 52
+        }
+      },
+      "8": {
+        start: {
+          line: 24,
+          column: 25
+        },
+        end: {
+          line: 28,
+          column: 10
+        }
+      },
+      "9": {
+        start: {
+          line: 29,
+          column: 30
+        },
+        end: {
+          line: 29,
+          column: 92
+        }
+      },
+      "10": {
+        start: {
+          line: 29,
+          column: 62
+        },
+        end: {
+          line: 29,
+          column: 88
+        }
+      },
+      "11": {
+        start: {
+          line: 31,
+          column: 25
+        },
+        end: {
+          line: 40,
+          column: 10
+        }
+      },
+      "12": {
+        start: {
+          line: 41,
+          column: 26
+        },
+        end: {
+          line: 41,
+          column: 89
+        }
+      },
+      "13": {
+        start: {
+          line: 41,
+          column: 58
+        },
+        end: {
+          line: 41,
+          column: 85
+        }
+      },
+      "14": {
+        start: {
+          line: 43,
+          column: 8
+        },
+        end: {
+          line: 43,
+          column: 41
+        }
+      },
+      "15": {
+        start: {
+          line: 46,
+          column: 0
+        },
+        end: {
+          line: 114,
+          column: 3
+        }
+      },
+      "16": {
+        start: {
+          line: 115,
+          column: 17
+        },
+        end: {
+          line: 115,
+          column: 25
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "(anonymous_0)",
+        decl: {
+          start: {
+            line: 7,
+            column: 9
+          },
+          end: {
+            line: 7,
+            column: 10
+          }
+        },
+        loc: {
+          start: {
+            line: 7,
+            column: 20
+          },
+          end: {
+            line: 9,
+            column: 5
+          }
+        },
+        line: 7
+      },
+      "1": {
+        name: "_interop_require_default",
+        decl: {
+          start: {
+            line: 13,
+            column: 9
+          },
+          end: {
+            line: 13,
+            column: 33
+          }
+        },
+        loc: {
+          start: {
+            line: 13,
+            column: 39
+          },
+          end: {
+            line: 17,
+            column: 1
+          }
+        },
+        line: 13
+      },
+      "2": {
+        name: "(anonymous_2)",
+        decl: {
+          start: {
+            line: 20,
+            column: 4
+          },
+          end: {
+            line: 20,
+            column: 5
+          }
+        },
+        loc: {
+          start: {
+            line: 20,
+            column: 30
+          },
+          end: {
+            line: 44,
+            column: 5
+          }
+        },
+        line: 20
+      },
+      "3": {
+        name: "(anonymous_3)",
+        decl: {
+          start: {
+            line: 29,
+            column: 46
+          },
+          end: {
+            line: 29,
+            column: 47
+          }
+        },
+        loc: {
+          start: {
+            line: 29,
+            column: 62
+          },
+          end: {
+            line: 29,
+            column: 88
+          }
+        },
+        line: 29
+      },
+      "4": {
+        name: "(anonymous_4)",
+        decl: {
+          start: {
+            line: 41,
+            column: 42
+          },
+          end: {
+            line: 41,
+            column: 43
+          }
+        },
+        loc: {
+          start: {
+            line: 41,
+            column: 58
+          },
+          end: {
+            line: 41,
+            column: 85
+          }
+        },
+        line: 41
+      }
+    },
+    branchMap: {
+      "0": {
+        loc: {
+          start: {
+            line: 14,
+            column: 11
+          },
+          end: {
+            line: 16,
+            column: 5
+          }
+        },
+        type: "cond-expr",
+        locations: [{
+          start: {
+            line: 14,
+            column: 35
+          },
+          end: {
+            line: 14,
+            column: 38
+          }
+        }, {
+          start: {
+            line: 14,
+            column: 41
+          },
+          end: {
+            line: 16,
+            column: 5
+          }
+        }],
+        line: 14
+      },
+      "1": {
+        loc: {
+          start: {
+            line: 14,
+            column: 11
+          },
+          end: {
+            line: 14,
+            column: 32
+          }
+        },
+        type: "binary-expr",
+        locations: [{
+          start: {
+            line: 14,
+            column: 11
+          },
+          end: {
+            line: 14,
+            column: 14
+          }
+        }, {
+          start: {
+            line: 14,
+            column: 18
+          },
+          end: {
+            line: 14,
+            column: 32
+          }
+        }],
+        line: 14
+      }
+    },
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0,
+      "9": 0,
+      "10": 0,
+      "11": 0,
+      "12": 0,
+      "13": 0,
+      "14": 0,
+      "15": 0,
+      "16": 0
+    },
+    f: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0
+    },
+    b: {
+      "0": [0, 0],
+      "1": [0, 0]
+    },
+    inputSourceMap: {
+      version: 3,
+      sources: ["/Users/sachin/Documents/md-sports-/src/lib/models/Customer.ts"],
+      sourcesContent: ["import { Model, DataTypes, Optional } from 'sequelize';\nimport sequelize from '../db';\n\n// Define attributes interface\ninterface CustomerAttributes {\n    id: number;\n    name: string;\n    email?: string;\n    phone?: string;\n    address?: string;\n    type: 'wholesale' | 'retail';\n    creditLimit?: number;\n    creditPeriod?: number;\n    isActive: boolean;\n    createdAt?: Date;\n    updatedAt?: Date;\n}\n\n// Define creation attributes (making id optional as it has a default)\ninterface CustomerCreationAttributes extends Optional<CustomerAttributes, 'id' | 'createdAt' | 'updatedAt' | 'email' | 'phone' | 'address' | 'creditLimit' | 'creditPeriod'> { }\n\nclass Customer extends Model<CustomerAttributes, CustomerCreationAttributes> implements CustomerAttributes {\n    public id!: number;\n    public name!: string;\n    public email!: string;\n    public phone!: string;\n    public address!: string;\n    public type!: 'wholesale' | 'retail';\n    public creditLimit!: number;\n    public creditPeriod!: number;\n    public isActive!: boolean;\n    public readonly createdAt!: Date;\n    public readonly updatedAt!: Date;\n\n    // Custom instance methods\n    public async getCurrentBalance(): Promise<number> {\n        const Invoice = sequelize.model('invoice');\n        const Payment = sequelize.model('payment');\n\n        // Calculate total invoice amount\n        const invoices = await Invoice.findAll({\n            where: { customer_id: this.id }\n        });\n\n        const totalInvoiced = invoices.reduce((sum, invoice) =>\n            sum + (invoice.get('total') as number), 0);\n\n        // Calculate total payments\n        const payments = await Payment.findAll({\n            include: [{\n                model: Invoice,\n                where: { customer_id: this.id }\n            }]\n        });\n\n        const totalPaid = payments.reduce((sum, payment) =>\n            sum + (payment.get('amount') as number), 0);\n\n        // Return balance (invoiced - paid)\n        return totalInvoiced - totalPaid;\n    }\n}\n\nCustomer.init({\n    id: {\n        type: DataTypes.INTEGER,\n        primaryKey: true,\n        autoIncrement: true\n    },\n    name: {\n        type: DataTypes.STRING(100),\n        allowNull: false,\n        validate: {\n            notEmpty: true\n        }\n    },\n    email: {\n        type: DataTypes.STRING(100),\n        allowNull: true,\n        unique: true,\n        validate: {\n            isEmail: true\n        }\n    },\n    phone: {\n        type: DataTypes.STRING(20),\n        allowNull: true\n    },\n    address: {\n        type: DataTypes.TEXT,\n        allowNull: true\n    },\n    type: {\n        type: DataTypes.STRING(10),\n        allowNull: false,\n        defaultValue: 'retail',\n        validate: {\n            isIn: [['wholesale', 'retail']]\n        }\n    },\n    creditLimit: {\n        type: DataTypes.DECIMAL(10, 2),\n        allowNull: true,\n        defaultValue: 0.00,\n        validate: {\n            min: 0\n        }\n    },\n    creditPeriod: {\n        type: DataTypes.INTEGER,\n        allowNull: true,\n        validate: {\n            min: 0\n        }\n    },\n    isActive: {\n        type: DataTypes.BOOLEAN,\n        allowNull: false,\n        defaultValue: true\n    }\n}, {\n    sequelize,\n    modelName: 'customer',\n    tableName: 'customers',\n    timestamps: true,\n    underscored: true\n});\n\nexport default Customer; "],
+      names: ["Customer", "Model", "getCurrentBalance", "Invoice", "sequelize", "model", "Payment", "invoices", "findAll", "where", "customer_id", "id", "totalInvoiced", "reduce", "sum", "invoice", "get", "payments", "include", "totalPaid", "payment", "init", "type", "DataTypes", "INTEGER", "primaryKey", "autoIncrement", "name", "STRING", "allowNull", "validate", "notEmpty", "email", "unique", "isEmail", "phone", "address", "TEXT", "defaultValue", "isIn", "creditLimit", "DECIMAL", "min", "creditPeriod", "isActive", "BOOLEAN", "modelName", "tableName", "timestamps", "underscored"],
+      mappings: ";;;;+BAgIA;;;eAAA;;;2BAhI2C;2DACrB;;;;;;AAoBtB,MAAMA,iBAAiBC,gBAAK;IAaxB,0BAA0B;IAC1B,MAAaC,oBAAqC;QAC9C,MAAMC,UAAUC,WAAS,CAACC,KAAK,CAAC;QAChC,MAAMC,UAAUF,WAAS,CAACC,KAAK,CAAC;QAEhC,iCAAiC;QACjC,MAAME,WAAW,MAAMJ,QAAQK,OAAO,CAAC;YACnCC,OAAO;gBAAEC,aAAa,IAAI,CAACC,EAAE;YAAC;QAClC;QAEA,MAAMC,gBAAgBL,SAASM,MAAM,CAAC,CAACC,KAAKC,UACxCD,MAAOC,QAAQC,GAAG,CAAC,UAAqB;QAE5C,2BAA2B;QAC3B,MAAMC,WAAW,MAAMX,QAAQE,OAAO,CAAC;YACnCU,SAAS;gBAAC;oBACNb,OAAOF;oBACPM,OAAO;wBAAEC,aAAa,IAAI,CAACC,EAAE;oBAAC;gBAClC;aAAE;QACN;QAEA,MAAMQ,YAAYF,SAASJ,MAAM,CAAC,CAACC,KAAKM,UACpCN,MAAOM,QAAQJ,GAAG,CAAC,WAAsB;QAE7C,mCAAmC;QACnC,OAAOJ,gBAAgBO;IAC3B;AACJ;AAEAnB,SAASqB,IAAI,CAAC;IACVV,IAAI;QACAW,MAAMC,oBAAS,CAACC,OAAO;QACvBC,YAAY;QACZC,eAAe;IACnB;IACAC,MAAM;QACFL,MAAMC,oBAAS,CAACK,MAAM,CAAC;QACvBC,WAAW;QACXC,UAAU;YACNC,UAAU;QACd;IACJ;IACAC,OAAO;QACHV,MAAMC,oBAAS,CAACK,MAAM,CAAC;QACvBC,WAAW;QACXI,QAAQ;QACRH,UAAU;YACNI,SAAS;QACb;IACJ;IACAC,OAAO;QACHb,MAAMC,oBAAS,CAACK,MAAM,CAAC;QACvBC,WAAW;IACf;IACAO,SAAS;QACLd,MAAMC,oBAAS,CAACc,IAAI;QACpBR,WAAW;IACf;IACAP,MAAM;QACFA,MAAMC,oBAAS,CAACK,MAAM,CAAC;QACvBC,WAAW;QACXS,cAAc;QACdR,UAAU;YACNS,MAAM;gBAAC;oBAAC;oBAAa;iBAAS;aAAC;QACnC;IACJ;IACAC,aAAa;QACTlB,MAAMC,oBAAS,CAACkB,OAAO,CAAC,IAAI;QAC5BZ,WAAW;QACXS,cAAc;QACdR,UAAU;YACNY,KAAK;QACT;IACJ;IACAC,cAAc;QACVrB,MAAMC,oBAAS,CAACC,OAAO;QACvBK,WAAW;QACXC,UAAU;YACNY,KAAK;QACT;IACJ;IACAE,UAAU;QACNtB,MAAMC,oBAAS,CAACsB,OAAO;QACvBhB,WAAW;QACXS,cAAc;IAClB;AACJ,GAAG;IACClC,WAAAA,WAAS;IACT0C,WAAW;IACXC,WAAW;IACXC,YAAY;IACZC,aAAa;AACjB;MAEA,WAAejD"
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "564a27ad512d9189ed0f7931c32ff3f9c84af497"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_1r0p31bphc = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_1r0p31bphc();
+cov_1r0p31bphc().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+/* istanbul ignore next */
+cov_1r0p31bphc().s[1]++;
+Object.defineProperty(exports, "default", {
+  enumerable: true,
+  get: function () {
+    /* istanbul ignore next */
+    cov_1r0p31bphc().f[0]++;
+    cov_1r0p31bphc().s[2]++;
+    return _default;
+  }
+});
+const _sequelize =
+/* istanbul ignore next */
+(cov_1r0p31bphc().s[3]++, require("sequelize"));
+const _db =
+/* istanbul ignore next */
+(/*#__PURE__*/cov_1r0p31bphc().s[4]++, _interop_require_default(require("../db")));
+function _interop_require_default(obj) {
+  /* istanbul ignore next */
+  cov_1r0p31bphc().f[1]++;
+  cov_1r0p31bphc().s[5]++;
+  return /* istanbul ignore next */(cov_1r0p31bphc().b[1][0]++, obj) &&
+  /* istanbul ignore next */
+  (cov_1r0p31bphc().b[1][1]++, obj.__esModule) ?
+  /* istanbul ignore next */
+  (cov_1r0p31bphc().b[0][0]++, obj) :
+  /* istanbul ignore next */
+  (cov_1r0p31bphc().b[0][1]++, {
+    default: obj
+  });
+}
+class Customer extends
+/* istanbul ignore next */
+(_sequelize.Model) {
+  // Custom instance methods
+  async getCurrentBalance() {
+    /* istanbul ignore next */
+    cov_1r0p31bphc().f[2]++;
+    const Invoice =
+    /* istanbul ignore next */
+    (cov_1r0p31bphc().s[6]++, _db.default.model("invoice"));
+    const Payment =
+    /* istanbul ignore next */
+    (cov_1r0p31bphc().s[7]++, _db.default.model("payment"));
+    // Calculate total invoice amount
+    const invoices =
+    /* istanbul ignore next */
+    (cov_1r0p31bphc().s[8]++, await Invoice.findAll({
+      where: {
+        customer_id: this.id
+      }
+    }));
+    const totalInvoiced =
+    /* istanbul ignore next */
+    (cov_1r0p31bphc().s[9]++, invoices.reduce((sum, invoice) => {
+      /* istanbul ignore next */
+      cov_1r0p31bphc().f[3]++;
+      cov_1r0p31bphc().s[10]++;
+      return sum + invoice.get("total");
+    }, 0));
+    // Calculate total payments
+    const payments =
+    /* istanbul ignore next */
+    (cov_1r0p31bphc().s[11]++, await Payment.findAll({
+      include: [{
+        model: Invoice,
+        where: {
+          customer_id: this.id
+        }
+      }]
+    }));
+    const totalPaid =
+    /* istanbul ignore next */
+    (cov_1r0p31bphc().s[12]++, payments.reduce((sum, payment) => {
+      /* istanbul ignore next */
+      cov_1r0p31bphc().f[4]++;
+      cov_1r0p31bphc().s[13]++;
+      return sum + payment.get("amount");
+    }, 0));
+    // Return balance (invoiced - paid)
+    /* istanbul ignore next */
+    cov_1r0p31bphc().s[14]++;
+    return totalInvoiced - totalPaid;
+  }
+}
+/* istanbul ignore next */
+cov_1r0p31bphc().s[15]++;
+Customer.init({
+  id: {
+    type: _sequelize.DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
+  name: {
+    type: _sequelize.DataTypes.STRING(100),
+    allowNull: false,
+    validate: {
+      notEmpty: true
+    }
+  },
+  email: {
+    type: _sequelize.DataTypes.STRING(100),
+    allowNull: true,
+    unique: true,
+    validate: {
+      isEmail: true
+    }
+  },
+  phone: {
+    type: _sequelize.DataTypes.STRING(20),
+    allowNull: true
+  },
+  address: {
+    type: _sequelize.DataTypes.TEXT,
+    allowNull: true
+  },
+  type: {
+    type: _sequelize.DataTypes.STRING(10),
+    allowNull: false,
+    defaultValue: "retail",
+    validate: {
+      isIn: [["wholesale", "retail"]]
+    }
+  },
+  creditLimit: {
+    type: _sequelize.DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0.00,
+    validate: {
+      min: 0
+    }
+  },
+  creditPeriod: {
+    type: _sequelize.DataTypes.INTEGER,
+    allowNull: true,
+    validate: {
+      min: 0
+    }
+  },
+  isActive: {
+    type: _sequelize.DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: true
+  }
+}, {
+  sequelize: _db.default,
+  modelName: "customer",
+  tableName: "customers",
+  timestamps: true,
+  underscored: true
+});
+const _default =
+/* istanbul ignore next */
+(cov_1r0p31bphc().s[16]++, Customer);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJfZGVmYXVsdCIsIkN1c3RvbWVyIiwiX3NlcXVlbGl6ZSIsIk1vZGVsIiwiZ2V0Q3VycmVudEJhbGFuY2UiLCJjb3ZfMXIwcDMxYnBoYyIsImYiLCJJbnZvaWNlIiwicyIsIl9kYiIsImRlZmF1bHQiLCJtb2RlbCIsIlBheW1lbnQiLCJpbnZvaWNlcyIsImZpbmRBbGwiLCJ3aGVyZSIsImN1c3RvbWVyX2lkIiwiaWQiLCJ0b3RhbEludm9pY2VkIiwicmVkdWNlIiwic3VtIiwiaW52b2ljZSIsImdldCIsInBheW1lbnRzIiwiaW5jbHVkZSIsInRvdGFsUGFpZCIsInBheW1lbnQiLCJpbml0IiwidHlwZSIsIkRhdGFUeXBlcyIsIklOVEVHRVIiLCJwcmltYXJ5S2V5IiwiYXV0b0luY3JlbWVudCIsIm5hbWUiLCJTVFJJTkciLCJhbGxvd051bGwiLCJ2YWxpZGF0ZSIsIm5vdEVtcHR5IiwiZW1haWwiLCJ1bmlxdWUiLCJpc0VtYWlsIiwicGhvbmUiLCJhZGRyZXNzIiwiVEVYVCIsImRlZmF1bHRWYWx1ZSIsImlzSW4iLCJjcmVkaXRMaW1pdCIsIkRFQ0lNQUwiLCJtaW4iLCJjcmVkaXRQZXJpb2QiLCJpc0FjdGl2ZSIsIkJPT0xFQU4iLCJzZXF1ZWxpemUiLCJtb2RlbE5hbWUiLCJ0YWJsZU5hbWUiLCJ0aW1lc3RhbXBzIiwidW5kZXJzY29yZWQiXSwic291cmNlcyI6WyIvVXNlcnMvc2FjaGluL0RvY3VtZW50cy9tZC1zcG9ydHMtL3NyYy9saWIvbW9kZWxzL0N1c3RvbWVyLnRzIl0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCB7IE1vZGVsLCBEYXRhVHlwZXMsIE9wdGlvbmFsIH0gZnJvbSAnc2VxdWVsaXplJztcbmltcG9ydCBzZXF1ZWxpemUgZnJvbSAnLi4vZGInO1xuXG4vLyBEZWZpbmUgYXR0cmlidXRlcyBpbnRlcmZhY2VcbmludGVyZmFjZSBDdXN0b21lckF0dHJpYnV0ZXMge1xuICAgIGlkOiBudW1iZXI7XG4gICAgbmFtZTogc3RyaW5nO1xuICAgIGVtYWlsPzogc3RyaW5nO1xuICAgIHBob25lPzogc3RyaW5nO1xuICAgIGFkZHJlc3M/OiBzdHJpbmc7XG4gICAgdHlwZTogJ3dob2xlc2FsZScgfCAncmV0YWlsJztcbiAgICBjcmVkaXRMaW1pdD86IG51bWJlcjtcbiAgICBjcmVkaXRQZXJpb2Q/OiBudW1iZXI7XG4gICAgaXNBY3RpdmU6IGJvb2xlYW47XG4gICAgY3JlYXRlZEF0PzogRGF0ZTtcbiAgICB1cGRhdGVkQXQ/OiBEYXRlO1xufVxuXG4vLyBEZWZpbmUgY3JlYXRpb24gYXR0cmlidXRlcyAobWFraW5nIGlkIG9wdGlvbmFsIGFzIGl0IGhhcyBhIGRlZmF1bHQpXG5pbnRlcmZhY2UgQ3VzdG9tZXJDcmVhdGlvbkF0dHJpYnV0ZXMgZXh0ZW5kcyBPcHRpb25hbDxDdXN0b21lckF0dHJpYnV0ZXMsICdpZCcgfCAnY3JlYXRlZEF0JyB8ICd1cGRhdGVkQXQnIHwgJ2VtYWlsJyB8ICdwaG9uZScgfCAnYWRkcmVzcycgfCAnY3JlZGl0TGltaXQnIHwgJ2NyZWRpdFBlcmlvZCc+IHsgfVxuXG5jbGFzcyBDdXN0b21lciBleHRlbmRzIE1vZGVsPEN1c3RvbWVyQXR0cmlidXRlcywgQ3VzdG9tZXJDcmVhdGlvbkF0dHJpYnV0ZXM+IGltcGxlbWVudHMgQ3VzdG9tZXJBdHRyaWJ1dGVzIHtcbiAgICBwdWJsaWMgaWQhOiBudW1iZXI7XG4gICAgcHVibGljIG5hbWUhOiBzdHJpbmc7XG4gICAgcHVibGljIGVtYWlsITogc3RyaW5nO1xuICAgIHB1YmxpYyBwaG9uZSE6IHN0cmluZztcbiAgICBwdWJsaWMgYWRkcmVzcyE6IHN0cmluZztcbiAgICBwdWJsaWMgdHlwZSE6ICd3aG9sZXNhbGUnIHwgJ3JldGFpbCc7XG4gICAgcHVibGljIGNyZWRpdExpbWl0ITogbnVtYmVyO1xuICAgIHB1YmxpYyBjcmVkaXRQZXJpb2QhOiBudW1iZXI7XG4gICAgcHVibGljIGlzQWN0aXZlITogYm9vbGVhbjtcbiAgICBwdWJsaWMgcmVhZG9ubHkgY3JlYXRlZEF0ITogRGF0ZTtcbiAgICBwdWJsaWMgcmVhZG9ubHkgdXBkYXRlZEF0ITogRGF0ZTtcblxuICAgIC8vIEN1c3RvbSBpbnN0YW5jZSBtZXRob2RzXG4gICAgcHVibGljIGFzeW5jIGdldEN1cnJlbnRCYWxhbmNlKCk6IFByb21pc2U8bnVtYmVyPiB7XG4gICAgICAgIGNvbnN0IEludm9pY2UgPSBzZXF1ZWxpemUubW9kZWwoJ2ludm9pY2UnKTtcbiAgICAgICAgY29uc3QgUGF5bWVudCA9IHNlcXVlbGl6ZS5tb2RlbCgncGF5bWVudCcpO1xuXG4gICAgICAgIC8vIENhbGN1bGF0ZSB0b3RhbCBpbnZvaWNlIGFtb3VudFxuICAgICAgICBjb25zdCBpbnZvaWNlcyA9IGF3YWl0IEludm9pY2UuZmluZEFsbCh7XG4gICAgICAgICAgICB3aGVyZTogeyBjdXN0b21lcl9pZDogdGhpcy5pZCB9XG4gICAgICAgIH0pO1xuXG4gICAgICAgIGNvbnN0IHRvdGFsSW52b2ljZWQgPSBpbnZvaWNlcy5yZWR1Y2UoKHN1bSwgaW52b2ljZSkgPT5cbiAgICAgICAgICAgIHN1bSArIChpbnZvaWNlLmdldCgndG90YWwnKSBhcyBudW1iZXIpLCAwKTtcblxuICAgICAgICAvLyBDYWxjdWxhdGUgdG90YWwgcGF5bWVudHNcbiAgICAgICAgY29uc3QgcGF5bWVudHMgPSBhd2FpdCBQYXltZW50LmZpbmRBbGwoe1xuICAgICAgICAgICAgaW5jbHVkZTogW3tcbiAgICAgICAgICAgICAgICBtb2RlbDogSW52b2ljZSxcbiAgICAgICAgICAgICAgICB3aGVyZTogeyBjdXN0b21lcl9pZDogdGhpcy5pZCB9XG4gICAgICAgICAgICB9XVxuICAgICAgICB9KTtcblxuICAgICAgICBjb25zdCB0b3RhbFBhaWQgPSBwYXltZW50cy5yZWR1Y2UoKHN1bSwgcGF5bWVudCkgPT5cbiAgICAgICAgICAgIHN1bSArIChwYXltZW50LmdldCgnYW1vdW50JykgYXMgbnVtYmVyKSwgMCk7XG5cbiAgICAgICAgLy8gUmV0dXJuIGJhbGFuY2UgKGludm9pY2VkIC0gcGFpZClcbiAgICAgICAgcmV0dXJuIHRvdGFsSW52b2ljZWQgLSB0b3RhbFBhaWQ7XG4gICAgfVxufVxuXG5DdXN0b21lci5pbml0KHtcbiAgICBpZDoge1xuICAgICAgICB0eXBlOiBEYXRhVHlwZXMuSU5URUdFUixcbiAgICAgICAgcHJpbWFyeUtleTogdHJ1ZSxcbiAgICAgICAgYXV0b0luY3JlbWVudDogdHJ1ZVxuICAgIH0sXG4gICAgbmFtZToge1xuICAgICAgICB0eXBlOiBEYXRhVHlwZXMuU1RSSU5HKDEwMCksXG4gICAgICAgIGFsbG93TnVsbDogZmFsc2UsXG4gICAgICAgIHZhbGlkYXRlOiB7XG4gICAgICAgICAgICBub3RFbXB0eTogdHJ1ZVxuICAgICAgICB9XG4gICAgfSxcbiAgICBlbWFpbDoge1xuICAgICAgICB0eXBlOiBEYXRhVHlwZXMuU1RSSU5HKDEwMCksXG4gICAgICAgIGFsbG93TnVsbDogdHJ1ZSxcbiAgICAgICAgdW5pcXVlOiB0cnVlLFxuICAgICAgICB2YWxpZGF0ZToge1xuICAgICAgICAgICAgaXNFbWFpbDogdHJ1ZVxuICAgICAgICB9XG4gICAgfSxcbiAgICBwaG9uZToge1xuICAgICAgICB0eXBlOiBEYXRhVHlwZXMuU1RSSU5HKDIwKSxcbiAgICAgICAgYWxsb3dOdWxsOiB0cnVlXG4gICAgfSxcbiAgICBhZGRyZXNzOiB7XG4gICAgICAgIHR5cGU6IERhdGFUeXBlcy5URVhULFxuICAgICAgICBhbGxvd051bGw6IHRydWVcbiAgICB9LFxuICAgIHR5cGU6IHtcbiAgICAgICAgdHlwZTogRGF0YVR5cGVzLlNUUklORygxMCksXG4gICAgICAgIGFsbG93TnVsbDogZmFsc2UsXG4gICAgICAgIGRlZmF1bHRWYWx1ZTogJ3JldGFpbCcsXG4gICAgICAgIHZhbGlkYXRlOiB7XG4gICAgICAgICAgICBpc0luOiBbWyd3aG9sZXNhbGUnLCAncmV0YWlsJ11dXG4gICAgICAgIH1cbiAgICB9LFxuICAgIGNyZWRpdExpbWl0OiB7XG4gICAgICAgIHR5cGU6IERhdGFUeXBlcy5ERUNJTUFMKDEwLCAyKSxcbiAgICAgICAgYWxsb3dOdWxsOiB0cnVlLFxuICAgICAgICBkZWZhdWx0VmFsdWU6IDAuMDAsXG4gICAgICAgIHZhbGlkYXRlOiB7XG4gICAgICAgICAgICBtaW46IDBcbiAgICAgICAgfVxuICAgIH0sXG4gICAgY3JlZGl0UGVyaW9kOiB7XG4gICAgICAgIHR5cGU6IERhdGFUeXBlcy5JTlRFR0VSLFxuICAgICAgICBhbGxvd051bGw6IHRydWUsXG4gICAgICAgIHZhbGlkYXRlOiB7XG4gICAgICAgICAgICBtaW46IDBcbiAgICAgICAgfVxuICAgIH0sXG4gICAgaXNBY3RpdmU6IHtcbiAgICAgICAgdHlwZTogRGF0YVR5cGVzLkJPT0xFQU4sXG4gICAgICAgIGFsbG93TnVsbDogZmFsc2UsXG4gICAgICAgIGRlZmF1bHRWYWx1ZTogdHJ1ZVxuICAgIH1cbn0sIHtcbiAgICBzZXF1ZWxpemUsXG4gICAgbW9kZWxOYW1lOiAnY3VzdG9tZXInLFxuICAgIHRhYmxlTmFtZTogJ2N1c3RvbWVycycsXG4gICAgdGltZXN0YW1wczogdHJ1ZSxcbiAgICB1bmRlcnNjb3JlZDogdHJ1ZVxufSk7XG5cbmV4cG9ydCBkZWZhdWx0IEN1c3RvbWVyOyAiXSwibWFwcGluZ3MiOiI7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7OzsrQkFnSUE7Ozs7OztXQUFBQSxRQUFBOzs7OztrQ0FoSTJDOzs7d0VBQ3JCOzs7Ozs7Ozs7Ozs7Ozs7QUFvQnRCLE1BQU1DLFFBQUE7QUFBQTtBQUFBLENBQWlCQyxVQUFBLENBQUFDLEtBQUs7RUFheEI7RUFDQSxNQUFhQyxrQkFBQSxFQUFxQztJQUFBO0lBQUFDLGNBQUEsR0FBQUMsQ0FBQTtJQUM5QyxNQUFNQyxPQUFBO0lBQUE7SUFBQSxDQUFBRixjQUFBLEdBQUFHLENBQUEsT0FBVUMsR0FBQSxDQUFBQyxPQUFTLENBQUNDLEtBQUssQ0FBQztJQUNoQyxNQUFNQyxPQUFBO0lBQUE7SUFBQSxDQUFBUCxjQUFBLEdBQUFHLENBQUEsT0FBVUMsR0FBQSxDQUFBQyxPQUFTLENBQUNDLEtBQUssQ0FBQztJQUVoQztJQUNBLE1BQU1FLFFBQUE7SUFBQTtJQUFBLENBQUFSLGNBQUEsR0FBQUcsQ0FBQSxPQUFXLE1BQU1ELE9BQUEsQ0FBUU8sT0FBTyxDQUFDO01BQ25DQyxLQUFBLEVBQU87UUFBRUMsV0FBQSxFQUFhLElBQUksQ0FBQ0M7TUFBRztJQUNsQztJQUVBLE1BQU1DLGFBQUE7SUFBQTtJQUFBLENBQUFiLGNBQUEsR0FBQUcsQ0FBQSxPQUFnQkssUUFBQSxDQUFTTSxNQUFNLENBQUMsQ0FBQ0MsR0FBQSxFQUFLQyxPQUFBLEtBQ3hDO01BQUE7TUFBQWhCLGNBQUEsR0FBQUMsQ0FBQTtNQUFBRCxjQUFBLEdBQUFHLENBQUE7TUFBQSxPQUFBWSxHQUFBLEdBQU9DLE9BQUEsQ0FBUUMsR0FBRyxDQUFDO0lBQUEsR0FBcUI7SUFFNUM7SUFDQSxNQUFNQyxRQUFBO0lBQUE7SUFBQSxDQUFBbEIsY0FBQSxHQUFBRyxDQUFBLFFBQVcsTUFBTUksT0FBQSxDQUFRRSxPQUFPLENBQUM7TUFDbkNVLE9BQUEsRUFBUyxDQUFDO1FBQ05iLEtBQUEsRUFBT0osT0FBQTtRQUNQUSxLQUFBLEVBQU87VUFBRUMsV0FBQSxFQUFhLElBQUksQ0FBQ0M7UUFBRztNQUNsQztJQUNKO0lBRUEsTUFBTVEsU0FBQTtJQUFBO0lBQUEsQ0FBQXBCLGNBQUEsR0FBQUcsQ0FBQSxRQUFZZSxRQUFBLENBQVNKLE1BQU0sQ0FBQyxDQUFDQyxHQUFBLEVBQUtNLE9BQUEsS0FDcEM7TUFBQTtNQUFBckIsY0FBQSxHQUFBQyxDQUFBO01BQUFELGNBQUEsR0FBQUcsQ0FBQTtNQUFBLE9BQUFZLEdBQUEsR0FBT00sT0FBQSxDQUFRSixHQUFHLENBQUM7SUFBQSxHQUFzQjtJQUU3QztJQUFBO0lBQUFqQixjQUFBLEdBQUFHLENBQUE7SUFDQSxPQUFPVSxhQUFBLEdBQWdCTyxTQUFBO0VBQzNCO0FBQ0o7QUFBQTtBQUFBcEIsY0FBQSxHQUFBRyxDQUFBO0FBRUFQLFFBQUEsQ0FBUzBCLElBQUksQ0FBQztFQUNWVixFQUFBLEVBQUk7SUFDQVcsSUFBQSxFQUFNMUIsVUFBQSxDQUFBMkIsU0FBUyxDQUFDQyxPQUFPO0lBQ3ZCQyxVQUFBLEVBQVk7SUFDWkMsYUFBQSxFQUFlO0VBQ25CO0VBQ0FDLElBQUEsRUFBTTtJQUNGTCxJQUFBLEVBQU0xQixVQUFBLENBQUEyQixTQUFTLENBQUNLLE1BQU0sQ0FBQztJQUN2QkMsU0FBQSxFQUFXO0lBQ1hDLFFBQUEsRUFBVTtNQUNOQyxRQUFBLEVBQVU7SUFDZDtFQUNKO0VBQ0FDLEtBQUEsRUFBTztJQUNIVixJQUFBLEVBQU0xQixVQUFBLENBQUEyQixTQUFTLENBQUNLLE1BQU0sQ0FBQztJQUN2QkMsU0FBQSxFQUFXO0lBQ1hJLE1BQUEsRUFBUTtJQUNSSCxRQUFBLEVBQVU7TUFDTkksT0FBQSxFQUFTO0lBQ2I7RUFDSjtFQUNBQyxLQUFBLEVBQU87SUFDSGIsSUFBQSxFQUFNMUIsVUFBQSxDQUFBMkIsU0FBUyxDQUFDSyxNQUFNLENBQUM7SUFDdkJDLFNBQUEsRUFBVztFQUNmO0VBQ0FPLE9BQUEsRUFBUztJQUNMZCxJQUFBLEVBQU0xQixVQUFBLENBQUEyQixTQUFTLENBQUNjLElBQUk7SUFDcEJSLFNBQUEsRUFBVztFQUNmO0VBQ0FQLElBQUEsRUFBTTtJQUNGQSxJQUFBLEVBQU0xQixVQUFBLENBQUEyQixTQUFTLENBQUNLLE1BQU0sQ0FBQztJQUN2QkMsU0FBQSxFQUFXO0lBQ1hTLFlBQUEsRUFBYztJQUNkUixRQUFBLEVBQVU7TUFDTlMsSUFBQSxFQUFNLENBQUMsQ0FBQyxhQUFhLFNBQVM7SUFDbEM7RUFDSjtFQUNBQyxXQUFBLEVBQWE7SUFDVGxCLElBQUEsRUFBTTFCLFVBQUEsQ0FBQTJCLFNBQVMsQ0FBQ2tCLE9BQU8sQ0FBQyxJQUFJO0lBQzVCWixTQUFBLEVBQVc7SUFDWFMsWUFBQSxFQUFjO0lBQ2RSLFFBQUEsRUFBVTtNQUNOWSxHQUFBLEVBQUs7SUFDVDtFQUNKO0VBQ0FDLFlBQUEsRUFBYztJQUNWckIsSUFBQSxFQUFNMUIsVUFBQSxDQUFBMkIsU0FBUyxDQUFDQyxPQUFPO0lBQ3ZCSyxTQUFBLEVBQVc7SUFDWEMsUUFBQSxFQUFVO01BQ05ZLEdBQUEsRUFBSztJQUNUO0VBQ0o7RUFDQUUsUUFBQSxFQUFVO0lBQ050QixJQUFBLEVBQU0xQixVQUFBLENBQUEyQixTQUFTLENBQUNzQixPQUFPO0lBQ3ZCaEIsU0FBQSxFQUFXO0lBQ1hTLFlBQUEsRUFBYztFQUNsQjtBQUNKLEdBQUc7RUFDQ1EsU0FBQSxFQUFBM0MsR0FBQSxDQUFBQyxPQUFTO0VBQ1QyQyxTQUFBLEVBQVc7RUFDWEMsU0FBQSxFQUFXO0VBQ1hDLFVBQUEsRUFBWTtFQUNaQyxXQUFBLEVBQWE7QUFDakI7TUFFQXhELFFBQUE7QUFBQTtBQUFBLENBQUFLLGNBQUEsR0FBQUcsQ0FBQSxRQUFlUCxRQUFBIiwiaWdub3JlTGlzdCI6W119

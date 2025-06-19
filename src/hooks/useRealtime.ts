@@ -3,7 +3,7 @@
  * Replaces Socket.IO with polling-based approach
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './useAuth';
 
 interface RealtimeUpdate {

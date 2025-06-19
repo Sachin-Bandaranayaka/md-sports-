@@ -1,0 +1,75 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# MD Sports Inventory Management - Pre-commit Hook
+# This hook runs quality checks before allowing commits
+
+echo "🔍 Running pre-commit quality checks..."
+
+# Run lint-staged for staged files
+npx lint-staged
+
+# Check if lint-staged passed
+if [ $? -ne 0 ]; then
+  echo "❌ Lint-staged checks failed. Please fix the issues and try again."
+  exit 1
+fi
+
+# Run type checking
+echo "🔧 Running TypeScript type checking..."
+npm run type-check
+
+if [ $? -ne 0 ]; then
+  echo "❌ TypeScript type checking failed. Please fix type errors and try again."
+  exit 1
+fi
+
+# Run critical tests
+echo "🧪 Running critical tests..."
+npm run test:critical
+
+if [ $? -ne 0 ]; then
+  echo "❌ Critical tests failed. Please fix failing tests and try again."
+  exit 1
+fi
+
+# Check for security vulnerabilities
+echo "🔒 Checking for security vulnerabilities..."
+npm audit --audit-level=high
+
+if [ $? -ne 0 ]; then
+  echo "⚠️  High-severity security vulnerabilities found. Please review and fix."
+  echo "   You can run 'npm audit fix' to automatically fix some issues."
+  # Don't exit here, just warn
+fi
+
+# Check for TODO/FIXME comments in staged files
+echo "📝 Checking for TODO/FIXME comments..."
+staged_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx|js|jsx)$')
+
+if [ -n "$staged_files" ]; then
+  todo_count=$(echo "$staged_files" | xargs grep -l "TODO\|FIXME" | wc -l)
+  if [ $todo_count -gt 0 ]; then
+    echo "⚠️  Found TODO/FIXME comments in staged files:"
+    echo "$staged_files" | xargs grep -n "TODO\|FIXME" || true
+    echo "   Consider addressing these before committing."
+  fi
+fi
+
+# Check commit message format (if available)
+if [ -f ".git/COMMIT_EDITMSG" ]; then
+  echo "📋 Validating commit message format..."
+  commit_msg=$(head -n 1 ".git/COMMIT_EDITMSG")
+  
+  # Check if commit message follows conventional commits format
+  if ! echo "$commit_msg" | grep -qE '^(feat|fix|docs|style|refactor|test|chore)(\(.+\))?: .{1,50}'; then
+    echo "⚠️  Commit message doesn't follow conventional commits format."
+    echo "   Expected: type(scope): description"
+    echo "   Examples: feat(auth): add login validation"
+    echo "            fix(api): resolve database connection issue"
+    echo "            docs: update README with setup instructions"
+  fi
+fi
+
+echo "✅ Pre-commit checks completed successfully!"
+echo "🚀 Ready to commit."

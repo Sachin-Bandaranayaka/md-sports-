@@ -1,0 +1,687 @@
+db9adc072c4bacb0a1611500b9fffdc7
+"use client";
+"use strict";
+
+/* istanbul ignore next */
+function cov_1o1j67ucjt() {
+  var path = "/Users/sachin/Documents/md-sports-/src/components/auth/PermissionGuard.tsx";
+  var hash = "c1a3a9f16f7900471d4117ee1ff294d1fa46d949";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/Users/sachin/Documents/md-sports-/src/components/auth/PermissionGuard.tsx",
+    statementMap: {
+      "0": {
+        start: {
+          line: 3,
+          column: 0
+        },
+        end: {
+          line: 5,
+          column: 3
+        }
+      },
+      "1": {
+        start: {
+          line: 6,
+          column: 0
+        },
+        end: {
+          line: 11,
+          column: 3
+        }
+      },
+      "2": {
+        start: {
+          line: 9,
+          column: 8
+        },
+        end: {
+          line: 9,
+          column: 31
+        }
+      },
+      "3": {
+        start: {
+          line: 12,
+          column: 20
+        },
+        end: {
+          line: 12,
+          column: 48
+        }
+      },
+      "4": {
+        start: {
+          line: 13,
+          column: 15
+        },
+        end: {
+          line: 13,
+          column: 31
+        }
+      },
+      "5": {
+        start: {
+          line: 14,
+          column: 20
+        },
+        end: {
+          line: 14,
+          column: 46
+        }
+      },
+      "6": {
+        start: {
+          line: 15,
+          column: 23
+        },
+        end: {
+          line: 15,
+          column: 59
+        }
+      },
+      "7": {
+        start: {
+          line: 16,
+          column: 17
+        },
+        end: {
+          line: 16,
+          column: 47
+        }
+      },
+      "8": {
+        start: {
+          line: 18,
+          column: 32
+        },
+        end: {
+          line: 18,
+          column: 55
+        }
+      },
+      "9": {
+        start: {
+          line: 19,
+          column: 37
+        },
+        end: {
+          line: 19,
+          column: 72
+        }
+      },
+      "10": {
+        start: {
+          line: 20,
+          column: 19
+        },
+        end: {
+          line: 20,
+          column: 47
+        }
+      },
+      "11": {
+        start: {
+          line: 21,
+          column: 4
+        },
+        end: {
+          line: 40,
+          column: 7
+        }
+      },
+      "12": {
+        start: {
+          line: 23,
+          column: 8
+        },
+        end: {
+          line: 23,
+          column: 30
+        }
+      },
+      "13": {
+        start: {
+          line: 23,
+          column: 23
+        },
+        end: {
+          line: 23,
+          column: 30
+        }
+      },
+      "14": {
+        start: {
+          line: 25,
+          column: 8
+        },
+        end: {
+          line: 28,
+          column: 9
+        }
+      },
+      "15": {
+        start: {
+          line: 26,
+          column: 12
+        },
+        end: {
+          line: 26,
+          column: 34
+        }
+      },
+      "16": {
+        start: {
+          line: 27,
+          column: 12
+        },
+        end: {
+          line: 27,
+          column: 19
+        }
+      },
+      "17": {
+        start: {
+          line: 30,
+          column: 26
+        },
+        end: {
+          line: 30,
+          column: 48
+        }
+      },
+      "18": {
+        start: {
+          line: 31,
+          column: 8
+        },
+        end: {
+          line: 34,
+          column: 9
+        }
+      },
+      "19": {
+        start: {
+          line: 32,
+          column: 12
+        },
+        end: {
+          line: 32,
+          column: 68
+        }
+      },
+      "20": {
+        start: {
+          line: 33,
+          column: 12
+        },
+        end: {
+          line: 33,
+          column: 38
+        }
+      },
+      "21": {
+        start: {
+          line: 42,
+          column: 4
+        },
+        end: {
+          line: 49,
+          column: 5
+        }
+      },
+      "22": {
+        start: {
+          line: 43,
+          column: 8
+        },
+        end: {
+          line: 48,
+          column: 11
+        }
+      },
+      "23": {
+        start: {
+          line: 51,
+          column: 4
+        },
+        end: {
+          line: 53,
+          column: 7
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "(anonymous_0)",
+        decl: {
+          start: {
+            line: 8,
+            column: 9
+          },
+          end: {
+            line: 8,
+            column: 10
+          }
+        },
+        loc: {
+          start: {
+            line: 8,
+            column: 20
+          },
+          end: {
+            line: 10,
+            column: 5
+          }
+        },
+        line: 8
+      },
+      "1": {
+        name: "PermissionGuard",
+        decl: {
+          start: {
+            line: 17,
+            column: 9
+          },
+          end: {
+            line: 17,
+            column: 24
+          }
+        },
+        loc: {
+          start: {
+            line: 17,
+            column: 39
+          },
+          end: {
+            line: 54,
+            column: 1
+          }
+        },
+        line: 17
+      },
+      "2": {
+        name: "(anonymous_2)",
+        decl: {
+          start: {
+            line: 21,
+            column: 26
+          },
+          end: {
+            line: 21,
+            column: 27
+          }
+        },
+        loc: {
+          start: {
+            line: 21,
+            column: 30
+          },
+          end: {
+            line: 35,
+            column: 5
+          }
+        },
+        line: 21
+      }
+    },
+    branchMap: {
+      "0": {
+        loc: {
+          start: {
+            line: 23,
+            column: 8
+          },
+          end: {
+            line: 23,
+            column: 30
+          }
+        },
+        type: "if",
+        locations: [{
+          start: {
+            line: 23,
+            column: 8
+          },
+          end: {
+            line: 23,
+            column: 30
+          }
+        }, {
+          start: {
+            line: undefined,
+            column: undefined
+          },
+          end: {
+            line: undefined,
+            column: undefined
+          }
+        }],
+        line: 23
+      },
+      "1": {
+        loc: {
+          start: {
+            line: 25,
+            column: 8
+          },
+          end: {
+            line: 28,
+            column: 9
+          }
+        },
+        type: "if",
+        locations: [{
+          start: {
+            line: 25,
+            column: 8
+          },
+          end: {
+            line: 28,
+            column: 9
+          }
+        }, {
+          start: {
+            line: undefined,
+            column: undefined
+          },
+          end: {
+            line: undefined,
+            column: undefined
+          }
+        }],
+        line: 25
+      },
+      "2": {
+        loc: {
+          start: {
+            line: 31,
+            column: 8
+          },
+          end: {
+            line: 34,
+            column: 9
+          }
+        },
+        type: "if",
+        locations: [{
+          start: {
+            line: 31,
+            column: 8
+          },
+          end: {
+            line: 34,
+            column: 9
+          }
+        }, {
+          start: {
+            line: undefined,
+            column: undefined
+          },
+          end: {
+            line: undefined,
+            column: undefined
+          }
+        }],
+        line: 31
+      },
+      "3": {
+        loc: {
+          start: {
+            line: 42,
+            column: 4
+          },
+          end: {
+            line: 49,
+            column: 5
+          }
+        },
+        type: "if",
+        locations: [{
+          start: {
+            line: 42,
+            column: 4
+          },
+          end: {
+            line: 49,
+            column: 5
+          }
+        }, {
+          start: {
+            line: undefined,
+            column: undefined
+          },
+          end: {
+            line: undefined,
+            column: undefined
+          }
+        }],
+        line: 42
+      },
+      "4": {
+        loc: {
+          start: {
+            line: 42,
+            column: 8
+          },
+          end: {
+            line: 42,
+            column: 26
+          }
+        },
+        type: "binary-expr",
+        locations: [{
+          start: {
+            line: 42,
+            column: 8
+          },
+          end: {
+            line: 42,
+            column: 17
+          }
+        }, {
+          start: {
+            line: 42,
+            column: 21
+          },
+          end: {
+            line: 42,
+            column: 26
+          }
+        }],
+        line: 42
+      }
+    },
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0,
+      "9": 0,
+      "10": 0,
+      "11": 0,
+      "12": 0,
+      "13": 0,
+      "14": 0,
+      "15": 0,
+      "16": 0,
+      "17": 0,
+      "18": 0,
+      "19": 0,
+      "20": 0,
+      "21": 0,
+      "22": 0,
+      "23": 0
+    },
+    f: {
+      "0": 0,
+      "1": 0,
+      "2": 0
+    },
+    b: {
+      "0": [0, 0],
+      "1": [0, 0],
+      "2": [0, 0],
+      "3": [0, 0],
+      "4": [0, 0]
+    },
+    inputSourceMap: {
+      version: 3,
+      sources: ["/Users/sachin/Documents/md-sports-/src/components/auth/PermissionGuard.tsx"],
+      sourcesContent: ["'use client';\n\nimport { ReactNode, useEffect } from 'react';\nimport { useRouter } from 'next/navigation';\nimport { usePermission } from '@/hooks/usePermission';\nimport { useAuth } from '@/hooks/useAuth';\n\ninterface PermissionGuardProps {\n    children: ReactNode;\n}\n\nexport default function PermissionGuard({ children }: PermissionGuardProps) {\n    const { user, isLoading } = useAuth();\n    const { checkRoutePermission } = usePermission();\n    const router = useRouter();\n\n    useEffect(() => {\n        // If authentication is still loading, do nothing\n        if (isLoading) return;\n\n        // Redirect to login if user is not authenticated\n        if (!user) {\n            router.push('/login');\n            return;\n        }\n\n        // Check permission for current route\n        const hasAccess = checkRoutePermission();\n        if (!hasAccess) {\n            console.warn('Access denied: Insufficient permissions');\n            router.push('/dashboard');\n        }\n    }, [user, isLoading, router, checkRoutePermission]);\n\n    // Show nothing while checking authentication or permissions\n    if (isLoading || !user) {\n        return (\n            <div className=\"flex items-center justify-center min-h-screen\">\n                <div className=\"animate-spin rounded-full h-12 w-12 border-b-2 border-primary\"></div>\n            </div>\n        );\n    }\n\n    // Render children if user has necessary permissions\n    return <>{children}</>;\n}"],
+      names: ["PermissionGuard", "children", "user", "isLoading", "useAuth", "checkRoutePermission", "usePermission", "router", "useRouter", "useEffect", "push", "hasAccess", "console", "warn", "div", "className"],
+      mappings: "AAAA;;;;;+BAWA;;;eAAwBA;;;;uBATa;4BACX;+BACI;yBACN;AAMT,SAASA,gBAAgB,EAAEC,QAAQ,EAAwB;IACtE,MAAM,EAAEC,IAAI,EAAEC,SAAS,EAAE,GAAGC,IAAAA,gBAAO;IACnC,MAAM,EAAEC,oBAAoB,EAAE,GAAGC,IAAAA,4BAAa;IAC9C,MAAMC,SAASC,IAAAA,qBAAS;IAExBC,IAAAA,gBAAS,EAAC;QACN,iDAAiD;QACjD,IAAIN,WAAW;QAEf,iDAAiD;QACjD,IAAI,CAACD,MAAM;YACPK,OAAOG,IAAI,CAAC;YACZ;QACJ;QAEA,qCAAqC;QACrC,MAAMC,YAAYN;QAClB,IAAI,CAACM,WAAW;YACZC,QAAQC,IAAI,CAAC;YACbN,OAAOG,IAAI,CAAC;QAChB;IACJ,GAAG;QAACR;QAAMC;QAAWI;QAAQF;KAAqB;IAElD,4DAA4D;IAC5D,IAAIF,aAAa,CAACD,MAAM;QACpB,qBACI,qBAACY;YAAIC,WAAU;sBACX,cAAA,qBAACD;gBAAIC,WAAU;;;IAG3B;IAEA,oDAAoD;IACpD,qBAAO;kBAAGd;;AACd"
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "c1a3a9f16f7900471d4117ee1ff294d1fa46d949"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_1o1j67ucjt = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_1o1j67ucjt();
+cov_1o1j67ucjt().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+/* istanbul ignore next */
+cov_1o1j67ucjt().s[1]++;
+Object.defineProperty(exports, "default", {
+  enumerable: true,
+  get: function () {
+    /* istanbul ignore next */
+    cov_1o1j67ucjt().f[0]++;
+    cov_1o1j67ucjt().s[2]++;
+    return PermissionGuard;
+  }
+});
+const _jsxruntime =
+/* istanbul ignore next */
+(cov_1o1j67ucjt().s[3]++, require("react/jsx-runtime"));
+const _react =
+/* istanbul ignore next */
+(cov_1o1j67ucjt().s[4]++, require("react"));
+const _navigation =
+/* istanbul ignore next */
+(cov_1o1j67ucjt().s[5]++, require("next/navigation"));
+const _usePermission =
+/* istanbul ignore next */
+(cov_1o1j67ucjt().s[6]++, require("../../hooks/usePermission"));
+const _useAuth =
+/* istanbul ignore next */
+(cov_1o1j67ucjt().s[7]++, require("../../hooks/useAuth"));
+function PermissionGuard({
+  children
+}) {
+  /* istanbul ignore next */
+  cov_1o1j67ucjt().f[1]++;
+  const {
+    user,
+    isLoading
+  } =
+  /* istanbul ignore next */
+  (cov_1o1j67ucjt().s[8]++, (0, _useAuth.useAuth)());
+  const {
+    checkRoutePermission
+  } =
+  /* istanbul ignore next */
+  (cov_1o1j67ucjt().s[9]++, (0, _usePermission.usePermission)());
+  const router =
+  /* istanbul ignore next */
+  (cov_1o1j67ucjt().s[10]++, (0, _navigation.useRouter)());
+  /* istanbul ignore next */
+  cov_1o1j67ucjt().s[11]++;
+  (0, _react.useEffect)(() => {
+    /* istanbul ignore next */
+    cov_1o1j67ucjt().f[2]++;
+    cov_1o1j67ucjt().s[12]++;
+    // If authentication is still loading, do nothing
+    if (isLoading) {
+      /* istanbul ignore next */
+      cov_1o1j67ucjt().b[0][0]++;
+      cov_1o1j67ucjt().s[13]++;
+      return;
+    } else
+    /* istanbul ignore next */
+    {
+      cov_1o1j67ucjt().b[0][1]++;
+    }
+    // Redirect to login if user is not authenticated
+    cov_1o1j67ucjt().s[14]++;
+    if (!user) {
+      /* istanbul ignore next */
+      cov_1o1j67ucjt().b[1][0]++;
+      cov_1o1j67ucjt().s[15]++;
+      router.push("/login");
+      /* istanbul ignore next */
+      cov_1o1j67ucjt().s[16]++;
+      return;
+    } else
+    /* istanbul ignore next */
+    {
+      cov_1o1j67ucjt().b[1][1]++;
+    }
+    // Check permission for current route
+    const hasAccess =
+    /* istanbul ignore next */
+    (cov_1o1j67ucjt().s[17]++, checkRoutePermission());
+    /* istanbul ignore next */
+    cov_1o1j67ucjt().s[18]++;
+    if (!hasAccess) {
+      /* istanbul ignore next */
+      cov_1o1j67ucjt().b[2][0]++;
+      cov_1o1j67ucjt().s[19]++;
+      console.warn("Access denied: Insufficient permissions");
+      /* istanbul ignore next */
+      cov_1o1j67ucjt().s[20]++;
+      router.push("/dashboard");
+    } else
+    /* istanbul ignore next */
+    {
+      cov_1o1j67ucjt().b[2][1]++;
+    }
+  }, [user, isLoading, router, checkRoutePermission]);
+  // Show nothing while checking authentication or permissions
+  /* istanbul ignore next */
+  cov_1o1j67ucjt().s[21]++;
+  if (
+  /* istanbul ignore next */
+  (cov_1o1j67ucjt().b[4][0]++, isLoading) ||
+  /* istanbul ignore next */
+  (cov_1o1j67ucjt().b[4][1]++, !user)) {
+    /* istanbul ignore next */
+    cov_1o1j67ucjt().b[3][0]++;
+    cov_1o1j67ucjt().s[22]++;
+    return /*#__PURE__*/(0, _jsxruntime.jsx)("div", {
+      className: "flex items-center justify-center min-h-screen",
+      children: /*#__PURE__*/(0, _jsxruntime.jsx)("div", {
+        className: "animate-spin rounded-full h-12 w-12 border-b-2 border-primary"
+      })
+    });
+  } else
+  /* istanbul ignore next */
+  {
+    cov_1o1j67ucjt().b[3][1]++;
+  }
+  // Render children if user has necessary permissions
+  cov_1o1j67ucjt().s[23]++;
+  return /*#__PURE__*/(0, _jsxruntime.jsx)(_jsxruntime.Fragment, {
+    children: children
+  });
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJQZXJtaXNzaW9uR3VhcmQiLCJjaGlsZHJlbiIsImNvdl8xbzFqNjd1Y2p0IiwiZiIsInVzZXIiLCJpc0xvYWRpbmciLCJzIiwiX3VzZUF1dGgiLCJ1c2VBdXRoIiwiY2hlY2tSb3V0ZVBlcm1pc3Npb24iLCJfdXNlUGVybWlzc2lvbiIsInVzZVBlcm1pc3Npb24iLCJyb3V0ZXIiLCJfbmF2aWdhdGlvbiIsInVzZVJvdXRlciIsIl9yZWFjdCIsInVzZUVmZmVjdCIsImIiLCJwdXNoIiwiaGFzQWNjZXNzIiwiY29uc29sZSIsIndhcm4iLCJfanN4cnVudGltZSIsImpzeCIsImNsYXNzTmFtZSIsIkZyYWdtZW50Il0sInNvdXJjZXMiOlsiL1VzZXJzL3NhY2hpbi9Eb2N1bWVudHMvbWQtc3BvcnRzLS9zcmMvY29tcG9uZW50cy9hdXRoL1Blcm1pc3Npb25HdWFyZC50c3giXSwic291cmNlc0NvbnRlbnQiOlsiJ3VzZSBjbGllbnQnO1xuXG5pbXBvcnQgeyBSZWFjdE5vZGUsIHVzZUVmZmVjdCB9IGZyb20gJ3JlYWN0JztcbmltcG9ydCB7IHVzZVJvdXRlciB9IGZyb20gJ25leHQvbmF2aWdhdGlvbic7XG5pbXBvcnQgeyB1c2VQZXJtaXNzaW9uIH0gZnJvbSAnQC9ob29rcy91c2VQZXJtaXNzaW9uJztcbmltcG9ydCB7IHVzZUF1dGggfSBmcm9tICdAL2hvb2tzL3VzZUF1dGgnO1xuXG5pbnRlcmZhY2UgUGVybWlzc2lvbkd1YXJkUHJvcHMge1xuICAgIGNoaWxkcmVuOiBSZWFjdE5vZGU7XG59XG5cbmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIFBlcm1pc3Npb25HdWFyZCh7IGNoaWxkcmVuIH06IFBlcm1pc3Npb25HdWFyZFByb3BzKSB7XG4gICAgY29uc3QgeyB1c2VyLCBpc0xvYWRpbmcgfSA9IHVzZUF1dGgoKTtcbiAgICBjb25zdCB7IGNoZWNrUm91dGVQZXJtaXNzaW9uIH0gPSB1c2VQZXJtaXNzaW9uKCk7XG4gICAgY29uc3Qgcm91dGVyID0gdXNlUm91dGVyKCk7XG5cbiAgICB1c2VFZmZlY3QoKCkgPT4ge1xuICAgICAgICAvLyBJZiBhdXRoZW50aWNhdGlvbiBpcyBzdGlsbCBsb2FkaW5nLCBkbyBub3RoaW5nXG4gICAgICAgIGlmIChpc0xvYWRpbmcpIHJldHVybjtcblxuICAgICAgICAvLyBSZWRpcmVjdCB0byBsb2dpbiBpZiB1c2VyIGlzIG5vdCBhdXRoZW50aWNhdGVkXG4gICAgICAgIGlmICghdXNlcikge1xuICAgICAgICAgICAgcm91dGVyLnB1c2goJy9sb2dpbicpO1xuICAgICAgICAgICAgcmV0dXJuO1xuICAgICAgICB9XG5cbiAgICAgICAgLy8gQ2hlY2sgcGVybWlzc2lvbiBmb3IgY3VycmVudCByb3V0ZVxuICAgICAgICBjb25zdCBoYXNBY2Nlc3MgPSBjaGVja1JvdXRlUGVybWlzc2lvbigpO1xuICAgICAgICBpZiAoIWhhc0FjY2Vzcykge1xuICAgICAgICAgICAgY29uc29sZS53YXJuKCdBY2Nlc3MgZGVuaWVkOiBJbnN1ZmZpY2llbnQgcGVybWlzc2lvbnMnKTtcbiAgICAgICAgICAgIHJvdXRlci5wdXNoKCcvZGFzaGJvYXJkJyk7XG4gICAgICAgIH1cbiAgICB9LCBbdXNlciwgaXNMb2FkaW5nLCByb3V0ZXIsIGNoZWNrUm91dGVQZXJtaXNzaW9uXSk7XG5cbiAgICAvLyBTaG93IG5vdGhpbmcgd2hpbGUgY2hlY2tpbmcgYXV0aGVudGljYXRpb24gb3IgcGVybWlzc2lvbnNcbiAgICBpZiAoaXNMb2FkaW5nIHx8ICF1c2VyKSB7XG4gICAgICAgIHJldHVybiAoXG4gICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImZsZXggaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyIG1pbi1oLXNjcmVlblwiPlxuICAgICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiYW5pbWF0ZS1zcGluIHJvdW5kZWQtZnVsbCBoLTEyIHctMTIgYm9yZGVyLWItMiBib3JkZXItcHJpbWFyeVwiPjwvZGl2PlxuICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICk7XG4gICAgfVxuXG4gICAgLy8gUmVuZGVyIGNoaWxkcmVuIGlmIHVzZXIgaGFzIG5lY2Vzc2FyeSBwZXJtaXNzaW9uc1xuICAgIHJldHVybiA8PntjaGlsZHJlbn08Lz47XG59Il0sIm1hcHBpbmdzIjoiQUFBQTs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7OzsrQkFXQTs7Ozs7O1dBQXdCQSxlQUFBOzs7Ozs7OztrQ0FUYTs7O2tDQUNYOzs7a0NBQ0k7OztrQ0FDTjtBQU1ULFNBQVNBLGdCQUFnQjtFQUFFQztBQUFRLENBQXdCO0VBQUE7RUFBQUMsY0FBQSxHQUFBQyxDQUFBO0VBQ3RFLE1BQU07SUFBRUMsSUFBSTtJQUFFQztFQUFTLENBQUU7RUFBQTtFQUFBLENBQUFILGNBQUEsR0FBQUksQ0FBQSxPQUFHLElBQUFDLFFBQUEsQ0FBQUMsT0FBTztFQUNuQyxNQUFNO0lBQUVDO0VBQW9CLENBQUU7RUFBQTtFQUFBLENBQUFQLGNBQUEsR0FBQUksQ0FBQSxPQUFHLElBQUFJLGNBQUEsQ0FBQUMsYUFBYTtFQUM5QyxNQUFNQyxNQUFBO0VBQUE7RUFBQSxDQUFBVixjQUFBLEdBQUFJLENBQUEsUUFBUyxJQUFBTyxXQUFBLENBQUFDLFNBQVM7RUFBQTtFQUFBWixjQUFBLEdBQUFJLENBQUE7RUFFeEIsSUFBQVMsTUFBQSxDQUFBQyxTQUFTLEVBQUM7SUFBQTtJQUFBZCxjQUFBLEdBQUFDLENBQUE7SUFBQUQsY0FBQSxHQUFBSSxDQUFBO0lBQ047SUFDQSxJQUFJRCxTQUFBLEVBQVc7TUFBQTtNQUFBSCxjQUFBLEdBQUFlLENBQUE7TUFBQWYsY0FBQSxHQUFBSSxDQUFBO01BQUE7SUFBQTtJQUFBO0lBQUE7TUFBQUosY0FBQSxHQUFBZSxDQUFBO0lBQUE7SUFFZjtJQUFBZixjQUFBLEdBQUFJLENBQUE7SUFDQSxJQUFJLENBQUNGLElBQUEsRUFBTTtNQUFBO01BQUFGLGNBQUEsR0FBQWUsQ0FBQTtNQUFBZixjQUFBLEdBQUFJLENBQUE7TUFDUE0sTUFBQSxDQUFPTSxJQUFJLENBQUM7TUFBQTtNQUFBaEIsY0FBQSxHQUFBSSxDQUFBO01BQ1o7SUFDSjtJQUFBO0lBQUE7TUFBQUosY0FBQSxHQUFBZSxDQUFBO0lBQUE7SUFFQTtJQUNBLE1BQU1FLFNBQUE7SUFBQTtJQUFBLENBQUFqQixjQUFBLEdBQUFJLENBQUEsUUFBWUcsb0JBQUE7SUFBQTtJQUFBUCxjQUFBLEdBQUFJLENBQUE7SUFDbEIsSUFBSSxDQUFDYSxTQUFBLEVBQVc7TUFBQTtNQUFBakIsY0FBQSxHQUFBZSxDQUFBO01BQUFmLGNBQUEsR0FBQUksQ0FBQTtNQUNaYyxPQUFBLENBQVFDLElBQUksQ0FBQztNQUFBO01BQUFuQixjQUFBLEdBQUFJLENBQUE7TUFDYk0sTUFBQSxDQUFPTSxJQUFJLENBQUM7SUFDaEI7SUFBQTtJQUFBO01BQUFoQixjQUFBLEdBQUFlLENBQUE7SUFBQTtFQUNKLEdBQUcsQ0FBQ2IsSUFBQSxFQUFNQyxTQUFBLEVBQVdPLE1BQUEsRUFBUUgsb0JBQUEsQ0FBcUI7RUFFbEQ7RUFBQTtFQUFBUCxjQUFBLEdBQUFJLENBQUE7RUFDQTtFQUFJO0VBQUEsQ0FBQUosY0FBQSxHQUFBZSxDQUFBLFVBQUFaLFNBQUE7RUFBQTtFQUFBLENBQUFILGNBQUEsR0FBQWUsQ0FBQSxVQUFhLENBQUNiLElBQUEsR0FBTTtJQUFBO0lBQUFGLGNBQUEsR0FBQWUsQ0FBQTtJQUFBZixjQUFBLEdBQUFJLENBQUE7SUFDcEIsb0JBQ0ksSUFBQWdCLFdBQUEsQ0FBQUMsR0FBQSxFQUFDO01BQUlDLFNBQUEsRUFBVTtnQkFDWCxpQkFBQUYsV0FBQSxDQUFBQyxHQUFBLEVBQUM7UUFBSUMsU0FBQSxFQUFVOzs7RUFHM0I7RUFBQTtFQUFBO0lBQUF0QixjQUFBLEdBQUFlLENBQUE7RUFBQTtFQUVBO0VBQUFmLGNBQUEsR0FBQUksQ0FBQTtFQUNBLG9CQUFPLElBQUFnQixXQUFBLENBQUFDLEdBQUEsRUFBQUQsV0FBQSxDQUFBRyxRQUFBO2NBQUd4Qjs7QUFDZCIsImlnbm9yZUxpc3QiOltdfQ==

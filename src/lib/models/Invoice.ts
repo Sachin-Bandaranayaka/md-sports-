@@ -21,7 +21,7 @@ class Invoice extends Model {
     // Custom instance methods
     public async addItem(productId: number, quantity: number, price: number): Promise<void> {
         const InvoiceItem = sequelize.model('invoice_item');
-        const item = await InvoiceItem.create({
+        const _item = await InvoiceItem.create({
             invoiceId: this.id,
             productId,
             quantity,
@@ -142,4 +142,4 @@ Invoice.init({
     timestamps: true
 });
 
-export default Invoice; 
+export default Invoice;

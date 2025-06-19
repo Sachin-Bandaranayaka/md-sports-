@@ -1,0 +1,357 @@
+17cb3f4063ef00dd29da7960790fc4e6
+"use client";
+"use strict";
+
+/* istanbul ignore next */
+function cov_2k0691mdnr() {
+  var path = "/Users/sachin/Documents/md-sports-/src/app/invoices/[id]/edit/page.tsx";
+  var hash = "a42f203867c31321c9efb69c583a369548573705";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/Users/sachin/Documents/md-sports-/src/app/invoices/[id]/edit/page.tsx",
+    statementMap: {
+      "0": {
+        start: {
+          line: 3,
+          column: 0
+        },
+        end: {
+          line: 5,
+          column: 3
+        }
+      },
+      "1": {
+        start: {
+          line: 6,
+          column: 0
+        },
+        end: {
+          line: 11,
+          column: 3
+        }
+      },
+      "2": {
+        start: {
+          line: 9,
+          column: 8
+        },
+        end: {
+          line: 9,
+          column: 35
+        }
+      },
+      "3": {
+        start: {
+          line: 12,
+          column: 20
+        },
+        end: {
+          line: 12,
+          column: 48
+        }
+      },
+      "4": {
+        start: {
+          line: 13,
+          column: 15
+        },
+        end: {
+          line: 13,
+          column: 31
+        }
+      },
+      "5": {
+        start: {
+          line: 14,
+          column: 20
+        },
+        end: {
+          line: 14,
+          column: 46
+        }
+      },
+      "6": {
+        start: {
+          line: 16,
+          column: 19
+        },
+        end: {
+          line: 16,
+          column: 47
+        }
+      },
+      "7": {
+        start: {
+          line: 17,
+          column: 19
+        },
+        end: {
+          line: 17,
+          column: 47
+        }
+      },
+      "8": {
+        start: {
+          line: 18,
+          column: 4
+        },
+        end: {
+          line: 26,
+          column: 7
+        }
+      },
+      "9": {
+        start: {
+          line: 20,
+          column: 8
+        },
+        end: {
+          line: 22,
+          column: 9
+        }
+      },
+      "10": {
+        start: {
+          line: 21,
+          column: 12
+        },
+        end: {
+          line: 21,
+          column: 58
+        }
+      },
+      "11": {
+        start: {
+          line: 27,
+          column: 4
+        },
+        end: {
+          line: 42,
+          column: 7
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "(anonymous_0)",
+        decl: {
+          start: {
+            line: 8,
+            column: 9
+          },
+          end: {
+            line: 8,
+            column: 10
+          }
+        },
+        loc: {
+          start: {
+            line: 8,
+            column: 20
+          },
+          end: {
+            line: 10,
+            column: 5
+          }
+        },
+        line: 8
+      },
+      "1": {
+        name: "InvoiceEditRedirect",
+        decl: {
+          start: {
+            line: 15,
+            column: 9
+          },
+          end: {
+            line: 15,
+            column: 28
+          }
+        },
+        loc: {
+          start: {
+            line: 15,
+            column: 31
+          },
+          end: {
+            line: 43,
+            column: 1
+          }
+        },
+        line: 15
+      },
+      "2": {
+        name: "(anonymous_2)",
+        decl: {
+          start: {
+            line: 18,
+            column: 26
+          },
+          end: {
+            line: 18,
+            column: 27
+          }
+        },
+        loc: {
+          start: {
+            line: 18,
+            column: 30
+          },
+          end: {
+            line: 23,
+            column: 5
+          }
+        },
+        line: 18
+      }
+    },
+    branchMap: {
+      "0": {
+        loc: {
+          start: {
+            line: 20,
+            column: 8
+          },
+          end: {
+            line: 22,
+            column: 9
+          }
+        },
+        type: "if",
+        locations: [{
+          start: {
+            line: 20,
+            column: 8
+          },
+          end: {
+            line: 22,
+            column: 9
+          }
+        }, {
+          start: {
+            line: undefined,
+            column: undefined
+          },
+          end: {
+            line: undefined,
+            column: undefined
+          }
+        }],
+        line: 20
+      }
+    },
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0,
+      "9": 0,
+      "10": 0,
+      "11": 0
+    },
+    f: {
+      "0": 0,
+      "1": 0,
+      "2": 0
+    },
+    b: {
+      "0": [0, 0]
+    },
+    inputSourceMap: {
+      version: 3,
+      sources: ["/Users/sachin/Documents/md-sports-/src/app/invoices/[id]/edit/page.tsx"],
+      sourcesContent: ["'use client';\n\nimport { useEffect } from 'react';\nimport { useRouter, useParams } from 'next/navigation';\n\nexport default function InvoiceEditRedirect() {\n    const router = useRouter();\n    const params = useParams();\n\n    useEffect(() => {\n        // Redirect to the correct URL format\n        if (params.id) {\n            router.replace(`/invoices/edit/${params.id}`);\n        }\n    }, [params.id, router]);\n\n    return (\n        <div className=\"flex items-center justify-center h-screen\">\n            <div className=\"text-center\">\n                <h2 className=\"text-xl font-semibold mb-2\">Redirecting...</h2>\n                <p className=\"text-gray-600\">Please wait while we redirect you to the invoice edit page.</p>\n            </div>\n        </div>\n    );\n} "],
+      names: ["InvoiceEditRedirect", "router", "useRouter", "params", "useParams", "useEffect", "id", "replace", "div", "className", "h2", "p"],
+      mappings: "AAAA;;;;;+BAKA;;;eAAwBA;;;;uBAHE;4BACW;AAEtB,SAASA;IACpB,MAAMC,SAASC,IAAAA,qBAAS;IACxB,MAAMC,SAASC,IAAAA,qBAAS;IAExBC,IAAAA,gBAAS,EAAC;QACN,qCAAqC;QACrC,IAAIF,OAAOG,EAAE,EAAE;YACXL,OAAOM,OAAO,CAAC,CAAC,eAAe,EAAEJ,OAAOG,EAAE,CAAC,CAAC;QAChD;IACJ,GAAG;QAACH,OAAOG,EAAE;QAAEL;KAAO;IAEtB,qBACI,qBAACO;QAAIC,WAAU;kBACX,cAAA,sBAACD;YAAIC,WAAU;;8BACX,qBAACC;oBAAGD,WAAU;8BAA6B;;8BAC3C,qBAACE;oBAAEF,WAAU;8BAAgB;;;;;AAI7C"
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "a42f203867c31321c9efb69c583a369548573705"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_2k0691mdnr = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_2k0691mdnr();
+cov_2k0691mdnr().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+/* istanbul ignore next */
+cov_2k0691mdnr().s[1]++;
+Object.defineProperty(exports, "default", {
+  enumerable: true,
+  get: function () {
+    /* istanbul ignore next */
+    cov_2k0691mdnr().f[0]++;
+    cov_2k0691mdnr().s[2]++;
+    return InvoiceEditRedirect;
+  }
+});
+const _jsxruntime =
+/* istanbul ignore next */
+(cov_2k0691mdnr().s[3]++, require("react/jsx-runtime"));
+const _react =
+/* istanbul ignore next */
+(cov_2k0691mdnr().s[4]++, require("react"));
+const _navigation =
+/* istanbul ignore next */
+(cov_2k0691mdnr().s[5]++, require("next/navigation"));
+function InvoiceEditRedirect() {
+  /* istanbul ignore next */
+  cov_2k0691mdnr().f[1]++;
+  const router =
+  /* istanbul ignore next */
+  (cov_2k0691mdnr().s[6]++, (0, _navigation.useRouter)());
+  const params =
+  /* istanbul ignore next */
+  (cov_2k0691mdnr().s[7]++, (0, _navigation.useParams)());
+  /* istanbul ignore next */
+  cov_2k0691mdnr().s[8]++;
+  (0, _react.useEffect)(() => {
+    /* istanbul ignore next */
+    cov_2k0691mdnr().f[2]++;
+    cov_2k0691mdnr().s[9]++;
+    // Redirect to the correct URL format
+    if (params.id) {
+      /* istanbul ignore next */
+      cov_2k0691mdnr().b[0][0]++;
+      cov_2k0691mdnr().s[10]++;
+      router.replace(`/invoices/edit/${params.id}`);
+    } else
+    /* istanbul ignore next */
+    {
+      cov_2k0691mdnr().b[0][1]++;
+    }
+  }, [params.id, router]);
+  /* istanbul ignore next */
+  cov_2k0691mdnr().s[11]++;
+  return /*#__PURE__*/(0, _jsxruntime.jsx)("div", {
+    className: "flex items-center justify-center h-screen",
+    children: /*#__PURE__*/(0, _jsxruntime.jsxs)("div", {
+      className: "text-center",
+      children: [/*#__PURE__*/(0, _jsxruntime.jsx)("h2", {
+        className: "text-xl font-semibold mb-2",
+        children: "Redirecting..."
+      }), /*#__PURE__*/(0, _jsxruntime.jsx)("p", {
+        className: "text-gray-600",
+        children: "Please wait while we redirect you to the invoice edit page."
+      })]
+    })
+  });
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfMmswNjkxbWRuciIsImFjdHVhbENvdmVyYWdlIiwicyIsIkludm9pY2VFZGl0UmVkaXJlY3QiLCJmIiwicm91dGVyIiwiX25hdmlnYXRpb24iLCJ1c2VSb3V0ZXIiLCJwYXJhbXMiLCJ1c2VQYXJhbXMiLCJfcmVhY3QiLCJ1c2VFZmZlY3QiLCJpZCIsImIiLCJyZXBsYWNlIiwiX2pzeHJ1bnRpbWUiLCJqc3giLCJjbGFzc05hbWUiLCJqc3hzIl0sInNvdXJjZXMiOlsiL1VzZXJzL3NhY2hpbi9Eb2N1bWVudHMvbWQtc3BvcnRzLS9zcmMvYXBwL2ludm9pY2VzL1tpZF0vZWRpdC9wYWdlLnRzeCJdLCJzb3VyY2VzQ29udGVudCI6WyIndXNlIGNsaWVudCc7XG5cbmltcG9ydCB7IHVzZUVmZmVjdCB9IGZyb20gJ3JlYWN0JztcbmltcG9ydCB7IHVzZVJvdXRlciwgdXNlUGFyYW1zIH0gZnJvbSAnbmV4dC9uYXZpZ2F0aW9uJztcblxuZXhwb3J0IGRlZmF1bHQgZnVuY3Rpb24gSW52b2ljZUVkaXRSZWRpcmVjdCgpIHtcbiAgICBjb25zdCByb3V0ZXIgPSB1c2VSb3V0ZXIoKTtcbiAgICBjb25zdCBwYXJhbXMgPSB1c2VQYXJhbXMoKTtcblxuICAgIHVzZUVmZmVjdCgoKSA9PiB7XG4gICAgICAgIC8vIFJlZGlyZWN0IHRvIHRoZSBjb3JyZWN0IFVSTCBmb3JtYXRcbiAgICAgICAgaWYgKHBhcmFtcy5pZCkge1xuICAgICAgICAgICAgcm91dGVyLnJlcGxhY2UoYC9pbnZvaWNlcy9lZGl0LyR7cGFyYW1zLmlkfWApO1xuICAgICAgICB9XG4gICAgfSwgW3BhcmFtcy5pZCwgcm91dGVyXSk7XG5cbiAgICByZXR1cm4gKFxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImZsZXggaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyIGgtc2NyZWVuXCI+XG4gICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cInRleHQtY2VudGVyXCI+XG4gICAgICAgICAgICAgICAgPGgyIGNsYXNzTmFtZT1cInRleHQteGwgZm9udC1zZW1pYm9sZCBtYi0yXCI+UmVkaXJlY3RpbmcuLi48L2gyPlxuICAgICAgICAgICAgICAgIDxwIGNsYXNzTmFtZT1cInRleHQtZ3JheS02MDBcIj5QbGVhc2Ugd2FpdCB3aGlsZSB3ZSByZWRpcmVjdCB5b3UgdG8gdGhlIGludm9pY2UgZWRpdCBwYWdlLjwvcD5cbiAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICA8L2Rpdj5cbiAgICApO1xufSAiXSwibWFwcGluZ3MiOiJBQUFBOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7O0lBTVU7SUFBQUEsY0FBQSxZQUFBQSxDQUFBO01BQUEsT0FBQUMsY0FBQTtJQUFBO0VBQUE7RUFBQSxPQUFBQSxjQUFBO0FBQUE7QUFBQUQsY0FBQTtBQUFBQSxjQUFBLEdBQUFFLENBQUE7Ozs7OzsrQkFEVjs7Ozs7O1dBQXdCQyxtQkFBQTs7Ozs7Ozs7a0NBSEU7OztrQ0FDVztBQUV0QixTQUFTQSxvQkFBQTtFQUFBO0VBQUFILGNBQUEsR0FBQUksQ0FBQTtFQUNwQixNQUFNQyxNQUFBO0VBQUE7RUFBQSxDQUFBTCxjQUFBLEdBQUFFLENBQUEsT0FBUyxJQUFBSSxXQUFBLENBQUFDLFNBQVM7RUFDeEIsTUFBTUMsTUFBQTtFQUFBO0VBQUEsQ0FBQVIsY0FBQSxHQUFBRSxDQUFBLE9BQVMsSUFBQUksV0FBQSxDQUFBRyxTQUFTO0VBQUE7RUFBQVQsY0FBQSxHQUFBRSxDQUFBO0VBRXhCLElBQUFRLE1BQUEsQ0FBQUMsU0FBUyxFQUFDO0lBQUE7SUFBQVgsY0FBQSxHQUFBSSxDQUFBO0lBQUFKLGNBQUEsR0FBQUUsQ0FBQTtJQUNOO0lBQ0EsSUFBSU0sTUFBQSxDQUFPSSxFQUFFLEVBQUU7TUFBQTtNQUFBWixjQUFBLEdBQUFhLENBQUE7TUFBQWIsY0FBQSxHQUFBRSxDQUFBO01BQ1hHLE1BQUEsQ0FBT1MsT0FBTyxDQUFDLGtCQUFrQk4sTUFBQSxDQUFPSSxFQUFFLEVBQUU7SUFDaEQ7SUFBQTtJQUFBO01BQUFaLGNBQUEsR0FBQWEsQ0FBQTtJQUFBO0VBQ0osR0FBRyxDQUFDTCxNQUFBLENBQU9JLEVBQUUsRUFBRVAsTUFBQSxDQUFPO0VBQUE7RUFBQUwsY0FBQSxHQUFBRSxDQUFBO0VBRXRCLG9CQUNJLElBQUFhLFdBQUEsQ0FBQUMsR0FBQSxFQUFDO0lBQUlDLFNBQUEsRUFBVTtjQUNYLGlCQUFBRixXQUFBLENBQUFHLElBQUEsRUFBQztNQUFJRCxTQUFBLEVBQVU7OEJBQ1gsSUFBQUYsV0FBQSxDQUFBQyxHQUFBLEVBQUM7UUFBR0MsU0FBQSxFQUFVO2tCQUE2Qjt1QkFDM0MsSUFBQUYsV0FBQSxDQUFBQyxHQUFBLEVBQUM7UUFBRUMsU0FBQSxFQUFVO2tCQUFnQjs7OztBQUk3QyIsImlnbm9yZUxpc3QiOltdfQ==
