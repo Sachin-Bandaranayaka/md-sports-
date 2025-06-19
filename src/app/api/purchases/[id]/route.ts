@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateTag, revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
-
-
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { getToken } from 'next-auth/jwt';
 import { cacheService } from '@/lib/cache';
@@ -373,6 +372,18 @@ export async function PUT(
             // Do not let cache invalidation error fail the main operation
         }
 
+        // Revalidate Next.js cached pages
+        try {
+            revalidateTag('purchase-invoices');
+            revalidateTag(`purchase-${purchaseId}`);
+            revalidatePath(`/purchases/${purchaseId}`);
+            revalidatePath(`/purchases/${purchaseId}/edit`);
+            revalidatePath('/purchases');
+            console.log('Next.js pages revalidated after purchase update.');
+        } catch (revalidateError) {
+            console.error('Error revalidating Next.js pages after purchase update:', revalidateError);
+        }
+
         return NextResponse.json({
             message: 'Purchase invoice updated successfully',
             data: result.fullUpdatedInvoice
@@ -554,6 +565,18 @@ export async function DELETE(
         } catch (cacheError) {
             console.error('Error invalidating caches after purchase deletion:', cacheError);
             // Do not let cache invalidation error fail the main operation
+        }
+
+        // Revalidate Next.js cached pages
+        try {
+            revalidateTag('purchase-invoices');
+            revalidateTag(`purchase-${purchaseId}`);
+            revalidatePath(`/purchases/${purchaseId}`);
+            revalidatePath(`/purchases/${purchaseId}/edit`);
+            revalidatePath('/purchases');
+            console.log('Next.js pages revalidated after purchase deletion.');
+        } catch (revalidateError) {
+            console.error('Error revalidating Next.js pages after purchase deletion:', revalidateError);
         }
 
         return NextResponse.json({ message: 'Purchase invoice deleted successfully' });

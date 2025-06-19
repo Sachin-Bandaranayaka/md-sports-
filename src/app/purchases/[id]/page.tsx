@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { headers } from 'next/headers';
 import MainLayout from '@/components/layout/MainLayout';
-import { PurchaseInvoice, PurchaseInvoiceItem } from '@/types';
+import { PurchaseInvoice } from '@/types';
 import { Loader2, AlertTriangle, ArrowLeft, Edit, Calendar, DollarSign, Package, Building2, FileText, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
@@ -14,9 +14,49 @@ function getBaseUrl() {
     return `${protocol}://${host}`;
 }
 
-async function fetchPurchaseInvoice(id: string, baseUrl: string): Promise<PurchaseInvoice & { items: PurchaseInvoiceItem[] } | null> {
+interface PurchaseInvoiceWithDetails {
+    id: number;
+    invoiceNumber: string;
+    supplierId: number;
+    total: number;
+    status: string;
+    createdAt: string;
+    updatedAt: string;
+    distributions?: any;
+    date?: string;
+    dueDate?: string;
+    subtotal?: number;
+    taxAmount?: number;
+    discount?: number;
+    notes?: string;
+    supplier?: {
+        id: number;
+        name: string;
+        contactPerson?: string;
+        email?: string;
+        phone?: string;
+        address?: string;
+    };
+    items: {
+        id: number;
+        productId: number;
+        quantity: number;
+        price: number;
+        total: number;
+        product?: {
+            id: number;
+            name: string;
+            sku?: string;
+        };
+    }[];
+}
+
+async function fetchPurchaseInvoice(id: string, baseUrl: string): Promise<PurchaseInvoiceWithDetails | null> {
     try {
-        const response = await fetch(`${baseUrl}/api/purchases/${id}`, { cache: 'no-store' });
+        const response = await fetch(`${baseUrl}/api/purchases/${id}`, { 
+            cache: 'no-store',
+            next: { tags: ['purchase-invoices', `purchase-${id}`] }
+        });
         if (!response.ok) {
             if (response.status === 404) return null;
             console.error(`Failed to fetch invoice ${id}: ${response.status} ${await response.text()}`);

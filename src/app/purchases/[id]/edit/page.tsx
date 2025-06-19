@@ -26,10 +26,16 @@ interface Shop {
 
 interface PurchaseInvoiceItem {
     id?: number;
-    productId: string;
+    productId: number;
     productName: string;
     quantity: number;
     price: number;
+    total: number;
+    product?: {
+        id: number;
+        name: string;
+        sku?: string;
+    };
 }
 import { Loader2, AlertTriangle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -42,9 +48,45 @@ function getBaseUrl() {
     return `${protocol}://${host}`;
 }
 
-async function fetchPurchaseInvoice(id: string, baseUrl: string): Promise<PurchaseInvoice & { items: PurchaseInvoiceItem[], distributions?: Array<Record<number, number>> } | null> {
+interface PurchaseInvoiceWithDetails {
+    id: number;
+    invoiceNumber: string;
+    supplierId: number;
+    total: number;
+    status: string;
+    createdAt: string;
+    updatedAt: string;
+    distributions?: any;
+    date?: string;
+    dueDate?: string;
+    supplier?: {
+        id: number;
+        name: string;
+        contactPerson?: string;
+        email?: string;
+        phone?: string;
+        address?: string;
+    };
+    items: {
+        id: number;
+        productId: number;
+        quantity: number;
+        price: number;
+        total: number;
+        product?: {
+            id: number;
+            name: string;
+            sku?: string;
+        };
+    }[];
+}
+
+async function fetchPurchaseInvoice(id: string, baseUrl: string): Promise<PurchaseInvoiceWithDetails | null> {
     try {
-        const response = await fetch(`${baseUrl}/api/purchases/${id}`, { cache: 'no-store' }); // No cache for specific invoice
+        const response = await fetch(`${baseUrl}/api/purchases/${id}`, { 
+            cache: 'no-store',
+            next: { tags: ['purchase-invoices', `purchase-${id}`] }
+        }); // No cache for specific invoice
         if (!response.ok) {
             if (response.status === 404) return null; // Not found
             console.error(`Failed to fetch invoice ${id}: ${response.status} ${await response.text()}`);

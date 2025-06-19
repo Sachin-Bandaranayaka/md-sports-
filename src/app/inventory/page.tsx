@@ -43,7 +43,10 @@ async function fetchCategories(baseUrl: string, headers?: HeadersInit) {
     try {
         const categoriesResponse = await fetch(`${baseUrl}/api/categories`, {
             headers,
-            next: { revalidate: 30 } // Revalidate every 30 seconds
+            next: { 
+                revalidate: 30, // Revalidate every 30 seconds
+                tags: ['categories'] // Add tags for revalidation
+            }
         });
         if (!categoriesResponse.ok) {
             console.error('Failed to fetch categories:', categoriesResponse.status, await categoriesResponse.text());
@@ -104,7 +107,10 @@ export default async function Inventory({
         `${baseUrl}/api/inventory/summary?${queryParams.toString()}`,
         {
             headers: requestHeaders,
-            next: { revalidate: 10 } // Revalidate every 10 seconds to match page revalidation time
+            next: { 
+                revalidate: 10, // Revalidate every 10 seconds to match page revalidation time
+                tags: ['inventory', 'products'] // Add tags for revalidation
+            }
         }
     );
 

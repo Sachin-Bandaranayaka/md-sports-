@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateTag, revalidatePath } from 'next/cache';
 import { PrismaClient } from '@prisma/client';
 import { getShopId } from '@/lib/utils/middleware';
 import { cacheService } from '@/lib/cache';
@@ -201,6 +202,12 @@ export async function POST(request: NextRequest) {
 
         // Invalidate inventory cache
         await cacheService.invalidateInventory();
+
+        // Revalidate Next.js cached pages
+        revalidateTag('products');
+        revalidateTag('inventory');
+        revalidatePath('/inventory');
+        revalidatePath('/products');
 
         // Emit WebSocket event for real-time updates using utility function
         // Real-time updates now handled by polling system

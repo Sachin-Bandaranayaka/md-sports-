@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateTag, revalidatePath } from 'next/cache';
 import { prisma, safeQuery } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
@@ -158,6 +159,13 @@ export async function PUT(
         // Invalidate inventory cache
         await cacheService.invalidateInventory();
 
+        // Revalidate Next.js cached pages
+        revalidateTag('products');
+        revalidateTag('inventory');
+        revalidateTag(`product-${id}`);
+        revalidatePath('/inventory');
+        revalidatePath('/products');
+
         // Real-time updates now handled by polling system
 
         return NextResponse.json({
@@ -262,6 +270,13 @@ export async function DELETE(
             // Invalidate product cache
             await cacheService.invalidatePattern('products:*');
             await cacheService.invalidateInventory();
+
+            // Revalidate Next.js cached pages
+            revalidateTag('products');
+            revalidateTag('inventory');
+            revalidateTag(`product-${id}`);
+            revalidatePath('/inventory');
+            revalidatePath('/products');
 
             // Real-time updates now handled by polling system
 
