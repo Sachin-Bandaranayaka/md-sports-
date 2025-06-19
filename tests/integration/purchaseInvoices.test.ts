@@ -5,7 +5,31 @@ import { PrismaClient } from '@prisma/client';
 import { POST as createPurchaseInvoice } from '@/app/api/purchases/route'; // Adjust if direct import isn't feasible
 import { PUT as updatePurchaseInvoice } from '@/app/api/purchases/[id]/route'; // Adjust
 import { DELETE as deletePurchaseInvoice } from '@/app/api/purchases/[id]/route'; // Adjust
-import { NextRequest } from 'next/server';
+// Mock NextRequest interface
+interface NextRequest {
+  method: string;
+  url: string;
+  headers: Headers;
+  json(): Promise<any>;
+  text(): Promise<string>;
+}
+
+// Helper function to create mock NextRequest
+const createMockNextRequest = (url: string, options: {
+  method?: string;
+  body?: any;
+  headers?: Record<string, string>;
+} = {}): NextRequest => {
+  const { method = 'GET', body, headers = {} } = options;
+  return {
+    method,
+    url,
+    headers: new Headers(headers),
+    json: async () => body ? (typeof body === 'string' ? JSON.parse(body) : body) : {},
+    text: async () => body ? (typeof body === 'string' ? body : JSON.stringify(body)) : '',
+  } as NextRequest;
+};
+
 import { createMocks } from 'node-mocks-http'; // Or any other way to mock NextRequest/Response
 
 const prisma = new PrismaClient();
@@ -117,9 +141,9 @@ describe('Purchase Invoice API Integration Tests', () => {
             };
 
             // 3. Construct a NextRequest instance
-            const req = new NextRequest('http://localhost/api/purchases', {
+            const req = createMockNextRequest('http://localhost/api/purchases', {
                 method: 'POST',
-                body: JSON.stringify(purchaseInvoicePayload),
+                body: purchaseInvoicePayload,
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -536,9 +560,9 @@ describe('Purchase Invoice API Integration Tests', () => {
                 totalAmount: initialPurchaseQuantity * initialPurchasePrice,
                 status: 'paid',
             };
-            const req = new NextRequest('http://localhost/api/purchases', {
+            const req = createMockNextRequest('http://localhost/api/purchases', {
                 method: 'POST',
-                body: JSON.stringify(initialInvoicePayload),
+                body: initialInvoicePayload,
                 headers: { 'Content-Type': 'application/json' },
             });
             const response = await createPurchaseInvoice(req);
@@ -668,9 +692,9 @@ describe('Purchase Invoice API Integration Tests', () => {
                 ],
             };
 
-            const req = new NextRequest(`http://localhost/api/purchases/${existingInvoiceId}`, {
+            const req = createMockNextRequest(`http://localhost/api/purchases/${existingInvoiceId}`, {
                 method: 'PUT',
-                body: JSON.stringify(updatePayload),
+                body: updatePayload,
                 headers: { 'Content-Type': 'application/json' },
             });
 
@@ -725,9 +749,9 @@ describe('Purchase Invoice API Integration Tests', () => {
                 // totalAmount will be recalculated by the API
             };
 
-            const req = new NextRequest(`http://localhost/api/purchases/${existingInvoiceId}`, {
+            const req = createMockNextRequest(`http://localhost/api/purchases/${existingInvoiceId}`, {
                 method: 'PUT',
-                body: JSON.stringify(updatePayload),
+                body: updatePayload,
                 headers: { 'Content-Type': 'application/json' },
             });
 
@@ -887,9 +911,9 @@ describe('Purchase Invoice API Integration Tests', () => {
                     { [createdShopId]: productToRemoveQuantity }
                 ],
             };
-            const addReq = new NextRequest(`http://localhost/api/purchases/${existingInvoiceId}`, {
+            const addReq = createMockNextRequest(`http://localhost/api/purchases/${existingInvoiceId}`, {
                 method: 'PUT',
-                body: JSON.stringify(addSecondItemPayload),
+                body: addSecondItemPayload,
                 headers: { 'Content-Type': 'application/json' },
             });
             await updatePurchaseInvoice(addReq, { params: { id: existingInvoiceId } });
@@ -913,7 +937,7 @@ describe('Purchase Invoice API Integration Tests', () => {
             };
 
             // 3. Simulate API call to remove the item
-            const removeReq = new NextRequest(`http://localhost/api/purchases/${existingInvoiceId}`, {
+            const removeReq = createMockNextRequest(`http://localhost/api/purchases/${existingInvoiceId}`, {
                 method: 'PUT',
                 body: JSON.stringify(updatePayloadToRemoveItem),
                 headers: { 'Content-Type': 'application/json' },
@@ -1002,9 +1026,9 @@ describe('Purchase Invoice API Integration Tests', () => {
                 totalAmount: deleteTestInitialQuantity * deleteTestInitialPrice,
                 status: 'paid',
             };
-            const req = new NextRequest('http://localhost/api/purchases', {
+            const req = createMockNextRequest('http://localhost/api/purchases', {
                 method: 'POST',
-                body: JSON.stringify(initialInvoicePayload),
+                body: initialInvoicePayload,
                 headers: { 'Content-Type': 'application/json' },
             });
             const response = await createPurchaseInvoice(req);
@@ -1023,7 +1047,7 @@ describe('Purchase Invoice API Integration Tests', () => {
 
         it('should delete a purchase invoice and correctly reverse stock and WACs for a single-item invoice with explicit distribution', async () => {
             // 1. Call the DELETE endpoint
-            const deleteReq = new NextRequest(`http://localhost/api/purchases/${invoiceToDeleteId}`, {
+            const deleteReq = createMockNextRequest(`http://localhost/api/purchases/${invoiceToDeleteId}`, {
                 method: 'DELETE',
             });
             const deleteResponse = await deletePurchaseInvoice(deleteReq, { params: { id: invoiceToDeleteId } });
@@ -1118,7 +1142,7 @@ describe('Purchase Invoice API Integration Tests', () => {
             };
 
             // Create the purchase invoice (this is where the failure was happening)
-            const createReq = new NextRequest('http://localhost/api/purchases', {
+            const createReq = createMockNextRequest('http://localhost/api/purchases', {
                 method: 'POST',
                 body: JSON.stringify(inferredShopInvoicePayload),
                 headers: { 'Content-Type': 'application/json' },
@@ -1139,7 +1163,7 @@ describe('Purchase Invoice API Integration Tests', () => {
             expect(productAfterCreate?.weightedAverageCost).toBeCloseTo(purchasePrice);
 
             // 2. Call the DELETE endpoint
-            const deleteReq = new NextRequest(`http://localhost/api/purchases/${invoiceIdForInferredDelete}`, {
+            const deleteReq = createMockNextRequest(`http://localhost/api/purchases/${invoiceIdForInferredDelete}`, {
                 method: 'DELETE',
             });
             const deleteResponse = await deletePurchaseInvoice(deleteReq, { params: { id: invoiceIdForInferredDelete } });
@@ -1204,9 +1228,9 @@ describe('Purchase Invoice API Integration Tests', () => {
                 status: 'paid',
             };
 
-            const createReq = new NextRequest('http://localhost/api/purchases', {
+            const createReq = createMockNextRequest('http://localhost/api/purchases', {
                 method: 'POST',
-                body: JSON.stringify(multiItemInvoicePayload),
+                body: multiItemInvoicePayload,
                 headers: { 'Content-Type': 'application/json' },
             });
             const createResponse = await createPurchaseInvoice(createReq);
@@ -1228,7 +1252,7 @@ describe('Purchase Invoice API Integration Tests', () => {
             expect(prodB_afterCreate?.weightedAverageCost).toBe(priceB);
 
             // 2. Call DELETE endpoint
-            const deleteReq = new NextRequest(`http://localhost/api/purchases/${multiItemInvoiceId}`, {
+            const deleteReq = createMockNextRequest(`http://localhost/api/purchases/${multiItemInvoiceId}`, {
                 method: 'DELETE',
             });
             const deleteResponse = await deletePurchaseInvoice(deleteReq, { params: { id: multiItemInvoiceId } });
@@ -1260,4 +1284,4 @@ describe('Purchase Invoice API Integration Tests', () => {
         }, 15000); // Timeout for safety
     });
 
-}); 
+});

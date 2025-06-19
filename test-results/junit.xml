@@ -1,163 +1,86 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="76" failures="0" errors="0" time="0.744">
-  <testsuite name="Prisma Utilities" errors="0" failures="0" skipped="0" timestamp="2025-06-19T11:03:52" time="0.26" tests="15">
-    <testcase classname="Prisma Utilities › PrismaClient Configuration" name="should export prisma client instance" time="0.001">
-    </testcase>
-    <testcase classname="Prisma Utilities › safeQuery function (isolated implementation)" name="should return result for successful operation" time="0.001">
-    </testcase>
-    <testcase classname="Prisma Utilities › safeQuery function (isolated implementation)" name="should return fallback and log error for failed operation" time="0.001">
-    </testcase>
-    <testcase classname="Prisma Utilities › safeQuery function (isolated implementation)" name="should handle database errors with fallback" time="0.002">
-    </testcase>
-    <testcase classname="Prisma Utilities › safeQuery function (isolated implementation)" name="should use default log message when none provided" time="0">
-    </testcase>
-    <testcase classname="Prisma Utilities › safeQuery function (isolated implementation)" name="should handle different fallback types" time="0">
-    </testcase>
-    <testcase classname="Prisma Utilities › safeQuery function (isolated implementation)" name="should handle async operations correctly" time="0.013">
-    </testcase>
-    <testcase classname="Prisma Utilities › safeQuery function (isolated implementation)" name="should preserve error objects in logs" time="0.001">
-    </testcase>
-    <testcase classname="Prisma Utilities › Database Operations with safeQuery" name="should safely execute user findMany operation" time="0">
-    </testcase>
-    <testcase classname="Prisma Utilities › Database Operations with safeQuery" name="should safely execute user create operation" time="0.001">
-    </testcase>
-    <testcase classname="Prisma Utilities › Database Operations with safeQuery" name="should safely execute shop operations" time="0">
-    </testcase>
-    <testcase classname="Prisma Utilities › Database Operations with safeQuery" name="should return fallback when operation fails" time="0.001">
-    </testcase>
-    <testcase classname="Prisma Utilities › Prisma Client Lifecycle" name="should handle connection operations" time="0">
-    </testcase>
-    <testcase classname="Prisma Utilities › Prisma Client Lifecycle" name="should handle disconnection operations" time="0">
-    </testcase>
-    <testcase classname="Prisma Utilities › Prisma Client Lifecycle" name="should handle connection errors" time="0.006">
-    </testcase>
-  </testsuite>
-  <testsuite name="Database Library" errors="0" failures="0" skipped="0" timestamp="2025-06-19T11:03:52" time="0.077" tests="11">
-    <testcase classname="Database Library › db export" name="should export db as the prisma client" time="0">
-    </testcase>
-    <testcase classname="Database Library › db export" name="should have user methods" time="0.001">
-    </testcase>
-    <testcase classname="Database Library › db export" name="should have shop methods" time="0">
-    </testcase>
-    <testcase classname="Database Library › db export" name="should have connection methods" time="0.001">
-    </testcase>
-    <testcase classname="Database Library › prisma export" name="should export prisma as the same client" time="0">
-    </testcase>
-    <testcase classname="Database Library › database operations" name="should allow user queries" time="0.003">
-    </testcase>
-    <testcase classname="Database Library › database operations" name="should allow shop queries" time="0.001">
-    </testcase>
-    <testcase classname="Database Library › database operations" name="should allow transactions" time="0">
-    </testcase>
-    <testcase classname="Database Library › database operations" name="should handle connection operations" time="0">
-    </testcase>
-    <testcase classname="Database Library › error handling" name="should propagate database errors" time="0.002">
-    </testcase>
-    <testcase classname="Database Library › error handling" name="should propagate transaction errors" time="0.001">
-    </testcase>
-  </testsuite>
-  <testsuite name="Auth Utility Functions (Isolated)" errors="0" failures="0" skipped="0" timestamp="2025-06-19T11:03:52" time="0.06" tests="23">
-    <testcase classname="Auth Utility Functions (Isolated) › extractToken (isolated implementation)" name="should extract token from valid authorization header" time="0.001">
-    </testcase>
-    <testcase classname="Auth Utility Functions (Isolated) › extractToken (isolated implementation)" name="should return null for missing authorization header" time="0">
-    </testcase>
-    <testcase classname="Auth Utility Functions (Isolated) › extractToken (isolated implementation)" name="should return null for invalid authorization header format" time="0">
-    </testcase>
-    <testcase classname="Auth Utility Functions (Isolated) › extractToken (isolated implementation)" name="should return null for empty authorization header" time="0">
-    </testcase>
-    <testcase classname="Auth Utility Functions (Isolated) › extractToken (isolated implementation)" name="should handle authorization header without Bearer prefix" time="0.001">
-    </testcase>
-    <testcase classname="Auth Utility Functions (Isolated) › getUserIdFromToken (isolated implementation)" name="should return null for missing token" time="0">
-    </testcase>
-    <testcase classname="Auth Utility Functions (Isolated) › getUserIdFromToken (isolated implementation)" name="should return 1 for dev-token" time="0">
-    </testcase>
-    <testcase classname="Auth Utility Functions (Isolated) › getUserIdFromToken (isolated implementation)" name="should return user ID from valid token" time="0">
-    </testcase>
-    <testcase classname="Auth Utility Functions (Isolated) › getUserIdFromToken (isolated implementation)" name="should return null for invalid token payload" time="0">
-    </testcase>
-    <testcase classname="Auth Utility Functions (Isolated) › getUserIdFromToken (isolated implementation)" name="should return null for token without sub claim" time="0.001">
-    </testcase>
-    <testcase classname="Auth Utility Functions (Isolated) › getUserIdFromToken (isolated implementation)" name="should handle verification errors" time="0">
-    </testcase>
-    <testcase classname="Auth Utility Functions (Isolated) › getShopIdFromToken (isolated implementation)" name="should return null for missing token" time="0">
-    </testcase>
-    <testcase classname="Auth Utility Functions (Isolated) › getShopIdFromToken (isolated implementation)" name="should return default shop ID for dev-token" time="0">
-    </testcase>
-    <testcase classname="Auth Utility Functions (Isolated) › getShopIdFromToken (isolated implementation)" name="should return shop ID from valid token" time="0">
-    </testcase>
-    <testcase classname="Auth Utility Functions (Isolated) › getShopIdFromToken (isolated implementation)" name="should return null for token without shopId" time="0.001">
-    </testcase>
-    <testcase classname="Auth Utility Functions (Isolated) › getShopIdFromToken (isolated implementation)" name="should convert numeric shopId to string" time="0">
-    </testcase>
-    <testcase classname="Auth Utility Functions (Isolated) › getShopIdFromToken (isolated implementation)" name="should handle verification errors" time="0">
-    </testcase>
-    <testcase classname="Auth Utility Functions (Isolated) › validateTokenPermission (isolated implementation)" name="should return invalid for missing token" time="0">
-    </testcase>
-    <testcase classname="Auth Utility Functions (Isolated) › validateTokenPermission (isolated implementation)" name="should grant permission for dev-token" time="0">
-    </testcase>
-    <testcase classname="Auth Utility Functions (Isolated) › validateTokenPermission (isolated implementation)" name="should grant permission from token payload" time="0.001">
-    </testcase>
-    <testcase classname="Auth Utility Functions (Isolated) › validateTokenPermission (isolated implementation)" name="should fallback to database when permission not in token" time="0">
-    </testcase>
-    <testcase classname="Auth Utility Functions (Isolated) › validateTokenPermission (isolated implementation)" name="should return invalid for user not found" time="0">
-    </testcase>
-    <testcase classname="Auth Utility Functions (Isolated) › validateTokenPermission (isolated implementation)" name="should handle database errors" time="0">
-    </testcase>
-  </testsuite>
-  <testsuite name="Validators" errors="0" failures="0" skipped="0" timestamp="2025-06-19T11:03:53" time="0.077" tests="27">
-    <testcase classname="Validators › loginSchema" name="should validate valid login data" time="0.001">
-    </testcase>
-    <testcase classname="Validators › loginSchema" name="should reject invalid email" time="0">
-    </testcase>
-    <testcase classname="Validators › loginSchema" name="should reject missing password" time="0">
-    </testcase>
-    <testcase classname="Validators › registerSchema" name="should validate valid registration data" time="0.001">
-    </testcase>
-    <testcase classname="Validators › registerSchema" name="should reject invalid email format" time="0">
-    </testcase>
-    <testcase classname="Validators › registerSchema" name="should reject short password" time="0.001">
-    </testcase>
-    <testcase classname="Validators › productSchema" name="should validate valid product data" time="0.001">
-    </testcase>
-    <testcase classname="Validators › productSchema" name="should reject negative price" time="0">
-    </testcase>
-    <testcase classname="Validators › productSchema" name="should reject missing required fields" time="0">
-    </testcase>
-    <testcase classname="Validators › categorySchema" name="should validate valid category data" time="0">
-    </testcase>
-    <testcase classname="Validators › categorySchema" name="should reject empty name" time="0">
-    </testcase>
-    <testcase classname="Validators › inventorySchema" name="should validate valid inventory data" time="0">
-    </testcase>
-    <testcase classname="Validators › inventorySchema" name="should reject invalid data" time="0.001">
-    </testcase>
-    <testcase classname="Validators › shopSchema" name="should validate valid shop data" time="0">
-    </testcase>
-    <testcase classname="Validators › shopSchema" name="should reject invalid email" time="0.001">
-    </testcase>
-    <testcase classname="Validators › customerSchema" name="should validate valid customer data" time="0">
-    </testcase>
-    <testcase classname="Validators › customerSchema" name="should reject invalid email" time="0">
-    </testcase>
-    <testcase classname="Validators › supplierSchema" name="should validate valid supplier data" time="0">
-    </testcase>
-    <testcase classname="Validators › supplierSchema" name="should reject invalid data" time="0">
-    </testcase>
-    <testcase classname="Validators › paginationSchema" name="should validate valid pagination data" time="0">
-    </testcase>
-    <testcase classname="Validators › paginationSchema" name="should reject negative page number" time="0">
-    </testcase>
-    <testcase classname="Validators › searchSchema" name="should validate valid search data" time="0">
-    </testcase>
-    <testcase classname="Validators › searchSchema" name="should handle empty query" time="0">
-    </testcase>
-    <testcase classname="Validators › idSchema" name="should validate valid ID" time="0">
-    </testcase>
-    <testcase classname="Validators › idSchema" name="should reject negative ID" time="0">
-    </testcase>
-    <testcase classname="Validators › validateInput utility" name="should validate input using provided schema" time="0">
-    </testcase>
-    <testcase classname="Validators › validateInput utility" name="should return error for invalid input" time="0.001">
+<testsuites name="jest tests" tests="14" failures="7" errors="0" time="44.887">
+  <testsuite name="Purchase Invoice API Integration Tests" errors="0" failures="7" skipped="0" timestamp="2025-06-19T11:32:14" time="44.832" tests="14">
+    <testcase classname="Purchase Invoice API Integration Tests › POST /api/purchases (Create Purchase Invoice)" name="should create a purchase invoice for a new product, update inventory, and set WAC" time="4.972">
+    </testcase>
+    <testcase classname="Purchase Invoice API Integration Tests › POST /api/purchases (Create Purchase Invoice)" name="should create a purchase for an existing product, update inventory, and recalculate WACs" time="0.694">
+      <failure>ReferenceError: NextRequest is not defined
+    at Object.&lt;anonymous&gt; (/Users/sachin/Documents/md-sports-/tests/integration/purchaseInvoices.test.ts:217:32)
+    at Promise.then.completed (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:316:40)
+    at _runTest (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:121:9)
+    at run (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/Users/sachin/Documents/md-sports-/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/Users/sachin/Documents/md-sports-/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="Purchase Invoice API Integration Tests › POST /api/purchases (Create Purchase Invoice)" name="should create a purchase with multiple items and update inventory/WAC for each" time="0.852">
+      <failure>ReferenceError: NextRequest is not defined
+    at Object.&lt;anonymous&gt; (/Users/sachin/Documents/md-sports-/tests/integration/purchaseInvoices.test.ts:332:25)</failure>
+    </testcase>
+    <testcase classname="Purchase Invoice API Integration Tests › POST /api/purchases (Create Purchase Invoice)" name="should distribute a single purchase item to multiple shops" time="1.065">
+      <failure>ReferenceError: NextRequest is not defined
+    at Object.&lt;anonymous&gt; (/Users/sachin/Documents/md-sports-/tests/integration/purchaseInvoices.test.ts:416:25)</failure>
+    </testcase>
+    <testcase classname="Purchase Invoice API Integration Tests › POST /api/purchases (Create Purchase Invoice)" name="should fail to create a purchase if a productId does not exist" time="0.693">
+      <failure>ReferenceError: NextRequest is not defined
+    at Object.&lt;anonymous&gt; (/Users/sachin/Documents/md-sports-/tests/integration/purchaseInvoices.test.ts:470:25)
+    at Promise.then.completed (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:316:40)
+    at _runTest (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:121:9)
+    at run (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/Users/sachin/Documents/md-sports-/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/Users/sachin/Documents/md-sports-/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="Purchase Invoice API Integration Tests › POST /api/purchases (Create Purchase Invoice)" name="should fail to create a purchase if a supplierId does not exist" time="0.79">
+      <failure>ReferenceError: NextRequest is not defined
+    at Object.&lt;anonymous&gt; (/Users/sachin/Documents/md-sports-/tests/integration/purchaseInvoices.test.ts:520:25)</failure>
+    </testcase>
+    <testcase classname="Purchase Invoice API Integration Tests › PUT /api/purchases/:id (Update Purchase Invoice)" name="should update item quantity (increase), recalculate stock and WACs" time="2.218">
+      <failure>ReferenceError: NextRequest is not defined
+    at Object.&lt;anonymous&gt; (/Users/sachin/Documents/md-sports-/tests/integration/purchaseInvoices.test.ts:615:25)
+    at Promise.then.completed (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:316:40)
+    at _runTest (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:121:9)
+    at run (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/Users/sachin/Documents/md-sports-/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/Users/sachin/Documents/md-sports-/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="Purchase Invoice API Integration Tests › PUT /api/purchases/:id (Update Purchase Invoice)" name="should update item quantity (decrease), recalculate stock and WACs" time="4.347">
+    </testcase>
+    <testcase classname="Purchase Invoice API Integration Tests › PUT /api/purchases/:id (Update Purchase Invoice)" name="should update item price, recalculate stock and WACs" time="4.161">
+    </testcase>
+    <testcase classname="Purchase Invoice API Integration Tests › PUT /api/purchases/:id (Update Purchase Invoice)" name="should add a new item to an existing invoice, update stock and WACs" time="2.111">
+      <failure>ReferenceError: NextRequest is not defined
+    at Object.&lt;anonymous&gt; (/Users/sachin/Documents/md-sports-/tests/integration/purchaseInvoices.test.ts:827:25)</failure>
+    </testcase>
+    <testcase classname="Purchase Invoice API Integration Tests › PUT /api/purchases/:id (Update Purchase Invoice)" name="should remove an item from an existing invoice, update stock and WACs" time="7.142">
+    </testcase>
+    <testcase classname="Purchase Invoice API Integration Tests › DELETE /api/purchases/:id (Delete Purchase Invoice)" name="should delete a purchase invoice and correctly reverse stock and WACs for a single-item invoice with explicit distribution" time="3.356">
+    </testcase>
+    <testcase classname="Purchase Invoice API Integration Tests › DELETE /api/purchases/:id (Delete Purchase Invoice)" name="should delete a purchase and reverse stock/WAC when product is in a single inferred shop" time="5.636">
+    </testcase>
+    <testcase classname="Purchase Invoice API Integration Tests › DELETE /api/purchases/:id (Delete Purchase Invoice)" name="should delete an invoice with multiple items, reversing stock/WAC for each" time="5.852">
     </testcase>
   </testsuite>
 </testsuites>

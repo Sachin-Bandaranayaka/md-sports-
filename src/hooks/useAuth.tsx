@@ -167,7 +167,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
         };
         validateAuth();
-    }, [logout]); // Include logout in dependencies
+    }, []); // Remove logout from dependencies as it's not used in this useEffect
 
     const login = async (email: string, password: string): Promise<boolean> => {
         setIsLoading(true);

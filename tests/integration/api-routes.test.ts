@@ -1,9 +1,46 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from '@jest/globals';
 import { createMocks } from 'node-mocks-http';
-import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+
+// Mock Next.js types for testing
+interface NextRequest {
+  method: string;
+  url: string;
+  headers: Headers;
+  json(): Promise<any>;
+  text(): Promise<string>;
+}
+
+interface NextResponse {
+  status: number;
+  json: any;
+}
+
+// Mock NextResponse constructor
+const NextResponse = {
+  json: (data: any, init?: { status?: number }) => ({
+    status: init?.status || 200,
+    json: async () => data,
+  }),
+};
+
+// Helper function to create mock NextRequest
+const createMockNextRequest = (url: string, options: {
+  method?: string;
+  body?: any;
+  headers?: Record<string, string>;
+} = {}): NextRequest => {
+  const { method = 'GET', body, headers = {} } = options;
+  return {
+    method,
+    url,
+    headers: new Headers(headers),
+    json: async () => body ? (typeof body === 'string' ? JSON.parse(body) : body) : {},
+    text: async () => body ? (typeof body === 'string' ? body : JSON.stringify(body)) : '',
+  } as NextRequest;
+};
 
 // Import API handlers (adjust paths as needed)
 // These would be the actual API route handlers
@@ -277,12 +314,12 @@ describe('API Routes Integration Tests', () => {
       jest.spyOn(bcrypt, 'compare').mockResolvedValue(true as never);
       jest.spyOn(jwt, 'sign').mockReturnValue('mock-token' as never);
 
-      const request = new NextRequest('http://localhost:3000/api/auth/login', {
+      const request = createMockNextRequest('http://localhost:3000/api/auth/login', {
         method: 'POST',
-        body: JSON.stringify({
+        body: {
           email: 'test@example.com',
           password: 'password123',
-        }),
+        },
         headers: {
           'Content-Type': 'application/json',
         },
@@ -309,12 +346,12 @@ describe('API Routes Integration Tests', () => {
 
     it('should return 400 for missing credentials', async () => {
       // Arrange
-      const request = new NextRequest('http://localhost:3000/api/auth/login', {
+      const request = createMockNextRequest('http://localhost:3000/api/auth/login', {
         method: 'POST',
-        body: JSON.stringify({
+        body: {
           email: 'test@example.com',
           // password missing
-        }),
+        },
         headers: {
           'Content-Type': 'application/json',
         },
@@ -333,12 +370,12 @@ describe('API Routes Integration Tests', () => {
       // Arrange
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
-      const request = new NextRequest('http://localhost:3000/api/auth/login', {
+      const request = createMockNextRequest('http://localhost:3000/api/auth/login', {
         method: 'POST',
-        body: JSON.stringify({
+        body: {
           email: 'nonexistent@example.com',
           password: 'password123',
-        }),
+        },
         headers: {
           'Content-Type': 'application/json',
         },
@@ -358,12 +395,12 @@ describe('API Routes Integration Tests', () => {
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
       jest.spyOn(bcrypt, 'compare').mockResolvedValue(false as never);
 
-      const request = new NextRequest('http://localhost:3000/api/auth/login', {
+      const request = createMockNextRequest('http://localhost:3000/api/auth/login', {
         method: 'POST',
-        body: JSON.stringify({
+        body: {
           email: 'test@example.com',
           password: 'wrongpassword',
-        }),
+        },
         headers: {
           'Content-Type': 'application/json',
         },
@@ -405,7 +442,7 @@ describe('API Routes Integration Tests', () => {
       // Arrange
       mockPrisma.product.findMany.mockResolvedValue(mockProducts);
 
-      const request = new NextRequest(
+      const request = createMockNextRequest(
         'http://localhost:3000/api/products?shopId=shop-1&page=1&limit=10'
       );
 
@@ -425,7 +462,7 @@ describe('API Routes Integration Tests', () => {
 
     it('should return 400 for missing shop ID', async () => {
       // Arrange
-      const request = new NextRequest('http://localhost:3000/api/products');
+      const request = createMockNextRequest('http://localhost:3000/api/products');
 
       // Act
       const response = await productsHandler.GET!(request);
@@ -441,7 +478,7 @@ describe('API Routes Integration Tests', () => {
       const filteredProducts = [mockProducts[0]];
       mockPrisma.product.findMany.mockResolvedValue(filteredProducts);
 
-      const request = new NextRequest(
+      const request = createMockNextRequest(
         'http://localhost:3000/api/products?shopId=shop-1&search=Product%201'
       );
 
@@ -490,15 +527,15 @@ describe('API Routes Integration Tests', () => {
       mockPrisma.product.findUnique.mockResolvedValue(null); // SKU doesn't exist
       mockPrisma.product.create.mockResolvedValue(mockProduct);
 
-      const request = new NextRequest('http://localhost:3000/api/products', {
+      const request = createMockNextRequest('http://localhost:3000/api/products', {
         method: 'POST',
-        body: JSON.stringify({
+        body: {
           name: 'New Product',
           description: 'New Description',
           price: 150,
           sku: 'SKU003',
           shopId: 'shop-1',
-        }),
+        },
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${validToken}`,
@@ -525,14 +562,14 @@ describe('API Routes Integration Tests', () => {
 
     it('should return 401 for missing authorization', async () => {
       // Arrange
-      const request = new NextRequest('http://localhost:3000/api/products', {
+      const request = createMockNextRequest('http://localhost:3000/api/products', {
         method: 'POST',
-        body: JSON.stringify({
+        body: {
           name: 'New Product',
           price: 150,
           sku: 'SKU003',
           shopId: 'shop-1',
-        }),
+        },
         headers: {
           'Content-Type': 'application/json',
         },
@@ -549,14 +586,14 @@ describe('API Routes Integration Tests', () => {
 
     it('should return 400 for invalid price', async () => {
       // Arrange
-      const request = new NextRequest('http://localhost:3000/api/products', {
+      const request = createMockNextRequest('http://localhost:3000/api/products', {
         method: 'POST',
-        body: JSON.stringify({
+        body: {
           name: 'New Product',
           price: -10, // Invalid price
           sku: 'SKU003',
           shopId: 'shop-1',
-        }),
+        },
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${validToken}`,
@@ -576,14 +613,14 @@ describe('API Routes Integration Tests', () => {
       // Arrange
       mockPrisma.product.findUnique.mockResolvedValue(mockProduct); // SKU exists
 
-      const request = new NextRequest('http://localhost:3000/api/products', {
+      const request = createMockNextRequest('http://localhost:3000/api/products', {
         method: 'POST',
-        body: JSON.stringify({
+        body: {
           name: 'New Product',
           price: 150,
           sku: 'SKU003',
           shopId: 'shop-1',
-        }),
+        },
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${validToken}`,
@@ -615,7 +652,7 @@ describe('API Routes Integration Tests', () => {
       jest.spyOn(jwt, 'verify').mockReturnValue({ userId: 1 } as never);
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
 
-      const request = new NextRequest('http://localhost:3000/api/user', {
+      const request = createMockNextRequest('http://localhost:3000/api/user', {
         headers: {
           'Authorization': 'Bearer valid-token',
         },
@@ -647,7 +684,7 @@ describe('API Routes Integration Tests', () => {
         throw new Error('Invalid token');
       });
 
-      const request = new NextRequest('http://localhost:3000/api/user', {
+      const request = createMockNextRequest('http://localhost:3000/api/user', {
         headers: {
           'Authorization': 'Bearer invalid-token',
         },
@@ -667,7 +704,7 @@ describe('API Routes Integration Tests', () => {
       jest.spyOn(jwt, 'verify').mockReturnValue({ userId: 999 } as never);
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
-      const request = new NextRequest('http://localhost:3000/api/user', {
+      const request = createMockNextRequest('http://localhost:3000/api/user', {
         headers: {
           'Authorization': 'Bearer valid-token',
         },
@@ -688,12 +725,12 @@ describe('API Routes Integration Tests', () => {
       // Arrange
       mockPrisma.user.findUnique.mockRejectedValue(new Error('Database connection failed'));
 
-      const request = new NextRequest('http://localhost:3000/api/auth/login', {
+      const request = createMockNextRequest('http://localhost:3000/api/auth/login', {
         method: 'POST',
-        body: JSON.stringify({
+        body: {
           email: 'test@example.com',
           password: 'password123',
-        }),
+        },
         headers: {
           'Content-Type': 'application/json',
         },
@@ -705,7 +742,7 @@ describe('API Routes Integration Tests', () => {
 
     it('should handle malformed JSON requests', async () => {
       // Arrange
-      const request = new NextRequest('http://localhost:3000/api/auth/login', {
+      const request = createMockNextRequest('http://localhost:3000/api/auth/login', {
         method: 'POST',
         body: 'invalid json',
         headers: {
@@ -734,12 +771,12 @@ describe('API Routes Integration Tests', () => {
       jest.spyOn(jwt, 'sign').mockReturnValue('mock-token' as never);
 
       const requests = Array.from({ length: 5 }, () => 
-        new NextRequest('http://localhost:3000/api/auth/login', {
+        createMockNextRequest('http://localhost:3000/api/auth/login', {
           method: 'POST',
-          body: JSON.stringify({
+          body: {
             email: 'test@example.com',
             password: 'password123',
-          }),
+          },
           headers: {
             'Content-Type': 'application/json',
           },
