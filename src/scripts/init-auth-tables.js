@@ -187,6 +187,16 @@ async function initAuthTables() {
         module: 'inventory'
       },
       {
+        name: 'sales:view',
+        description: 'View sales data and transactions',
+        module: 'sales'
+      },
+      {
+        name: 'sales:manage',
+        description: 'Full sales management access',
+        module: 'sales'
+      },
+      {
         name: 'invoice:create',
         description: 'Create new invoices',
         module: 'invoice'
@@ -255,4 +265,4 @@ async function initAuthTables() {
   }
 }
 
-initAuthTables(); 
+initAuthTables();

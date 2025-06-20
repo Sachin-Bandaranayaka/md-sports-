@@ -11,6 +11,7 @@
 export function hasPermission(permissions: string[], requiredPermission: string): boolean {
     return permissions.includes('*') || 
            permissions.includes('admin:all') || 
+           permissions.includes('ALL') || 
            permissions.includes(requiredPermission);
 }
 
@@ -23,6 +24,7 @@ export function hasPermission(permissions: string[], requiredPermission: string)
 export function hasAnyPermission(permissions: string[], requiredPermissions: string[]): boolean {
     return permissions.includes('*') || 
            permissions.includes('admin:all') || 
+           permissions.includes('ALL') || 
            requiredPermissions.some(permission => permissions.includes(permission));
 }
 
@@ -35,6 +37,7 @@ export function hasAnyPermission(permissions: string[], requiredPermissions: str
 export function hasAllPermissions(permissions: string[], requiredPermissions: string[]): boolean {
     return permissions.includes('*') || 
            permissions.includes('admin:all') || 
+           permissions.includes('ALL') || 
            requiredPermissions.every(permission => permissions.includes(permission));
 }
 
@@ -46,6 +49,7 @@ export function hasAllPermissions(permissions: string[], requiredPermissions: st
 export function isAdmin(permissions: string[]): boolean {
     return permissions.includes('*') || 
            permissions.includes('admin:all') || 
+           permissions.includes('ALL') || 
            permissions.includes('shop:manage') || 
            permissions.includes('user:manage');
 }

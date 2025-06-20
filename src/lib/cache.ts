@@ -271,12 +271,12 @@ class CacheManager implements CacheService {
     }
 
     // Authentication cache invalidation methods
-    async invalidateUserSession(userId: number): Promise<void> {
+    async invalidateUserSession(userId: string): Promise<void> {
         const userSessionKey = this.generateKey(CACHE_CONFIG.KEYS.USER_SESSION, { userId });
         await this.del(userSessionKey);
     }
 
-    async invalidateUserPermissions(userId: number): Promise<void> {
+    async invalidateUserPermissions(userId: string): Promise<void> {
         const userPermissionsKey = this.generateKey(CACHE_CONFIG.KEYS.USER_PERMISSIONS, { userId });
         await this.del(userPermissionsKey);
     }
@@ -293,7 +293,7 @@ class CacheManager implements CacheService {
         await this.del(tokenKey);
     }
 
-    async invalidateAllUserAuth(userId: number): Promise<void> {
+    async invalidateAllUserAuth(userId: string): Promise<void> {
         await Promise.all([
             this.invalidateUserSession(userId),
             this.invalidateUserPermissions(userId),

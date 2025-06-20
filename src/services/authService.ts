@@ -86,16 +86,27 @@ export const authenticateUser = async (email: string, password: string) => {
         if (user.role?.permissions) {
             permissions = user.role.permissions.map(p => p.name);
         } else if (user.permissions && Array.isArray(user.permissions)) {
-            // Convert permission IDs to names
-            const permissionRecords = await prisma.permission.findMany({
-                where: {
-                    id: {
-                        in: user.permissions.map(id => parseInt(id.toString()))
-                    }
-                },
-                select: { name: true }
-            });
-            permissions = permissionRecords.map(p => p.name);
+            // Handle special case for "ALL" permissions
+            if (user.permissions.includes('ALL')) {
+                permissions = ['ALL'];
+            } else {
+                // Convert permission IDs to names, filtering out invalid values
+                const validPermissionIds = user.permissions
+                    .map(id => parseInt(id.toString()))
+                    .filter(id => !isNaN(id));
+                
+                if (validPermissionIds.length > 0) {
+                    const permissionRecords = await prisma.permission.findMany({
+                        where: {
+                            id: {
+                                in: validPermissionIds
+                            }
+                        },
+                        select: { name: true }
+                    });
+                    permissions = permissionRecords.map(p => p.name);
+                }
+            }
         }
 
         // Generate JWT token
@@ -158,20 +169,28 @@ export const generateToken = (payload: TokenPayload) => {
  * Verify a JWT token with caching
  */
 export const verifyToken = async (token: string) => {
-    const tokenKey = cacheService.generateKey(CACHE_CONFIG.KEYS.TOKEN_VALIDATION, { token: token.substring(0, 20) });
+    // Validate token input
+    if (!token || token.trim() === '') {
+        throw new Error('jwt must be provided');
+    }
 
     try {
-        // Check cache first for token validation result
-        const cachedResult = await cacheService.get(tokenKey);
-        if (cachedResult) {
-            return cachedResult as TokenPayload;
-        }
-
-        // Verify token
+        // Verify token first
         const payload = jwt.verify(token, JWT_SECRET) as TokenPayload;
 
-        // Cache the valid token payload (shorter TTL for security)
-        await cacheService.set(tokenKey, payload, CACHE_CONFIG.TTL.TOKEN_VALIDATION);
+        // Only generate cache key for valid tokens (ensure token is long enough for substring)
+        if (token.length >= 20) {
+            const tokenKey = cacheService.generateKey(CACHE_CONFIG.KEYS.TOKEN_VALIDATION, { token: token.substring(0, 20) });
+            
+            // Check cache first for token validation result
+            const cachedResult = await cacheService.get(tokenKey);
+            if (cachedResult) {
+                return cachedResult as TokenPayload;
+            }
+
+            // Cache the valid token payload (shorter TTL for security)
+            await cacheService.set(tokenKey, payload, CACHE_CONFIG.TTL.TOKEN_VALIDATION);
+        }
 
         return payload;
     } catch (error) {
@@ -251,7 +270,7 @@ export const getUserFromDecodedPayload = async (payload: TokenPayload | null) =>
         return null;
     }
 
-    const userId = Number(payload.sub);
+    const userId = payload.sub;
     const cacheKey = cacheService.generateKey(CACHE_CONFIG.KEYS.USER_SESSION, { userId });
 
     try {

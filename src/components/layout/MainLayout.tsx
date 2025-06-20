@@ -63,7 +63,7 @@ const navItems: NavItem[] = [
     { icon: Calculator, href: '/accounting', label: 'Accounting', requiredPermission: 'accounting:view' },
     { icon: BarChart2, href: '/reports', label: 'Reports', requiredPermission: 'report:view' },
     { icon: History, href: '/audit-trail', label: 'Audit Trail', requiredPermission: 'audit:view' },
-    { icon: Settings, href: '/settings', label: 'Settings', requiredPermission: 'settings:view' },
+    { icon: Settings, href: '/settings', label: 'Settings' },
 ];
 
 interface MainLayoutProps {
@@ -122,8 +122,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
             return false; // No permissions available
         }
 
-        // Check for admin permissions first (*, admin:all)
-        const isAdminUser = user.permissions.includes('*') || user.permissions.includes('admin:all');
+        // Check for admin permissions first (*, admin:all, ALL)
+        const isAdminUser = user.permissions.includes('*') || user.permissions.includes('admin:all') || user.permissions.includes('ALL');
         const hasSpecificPerm = user.permissions.includes(requiredPermission);
         const hasPerm = isAdminUser || hasSpecificPerm;
         
@@ -134,13 +134,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
     // Filter navigation items based on user permissions
     const getAuthorizedNavItems = () => {
         return navItems.map(item => {
-            // ---- START TEST ----
-            if (item.href === '/settings') {
-                console.log("[MainLayout] TEST: Forcing Settings to be included");
-                return item; // Always include settings for this test
-            }
-            // ---- END TEST ----
-
             const itemAccess = hasPermission(item.requiredPermission);
 
             // Handle items with children

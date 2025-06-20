@@ -5,7 +5,7 @@ class Invoice extends Model {
     public id!: number;
     public shopId!: number;
     public customerId!: number;
-    public userId!: number;
+    public userId!: string;
     public invoiceNumber!: string;
     public date!: Date;
     public subtotal!: number;
@@ -87,7 +87,7 @@ Invoice.init({
         allowNull: false
     },
     userId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.STRING,
         allowNull: false,
         comment: 'User who created the invoice'
     },

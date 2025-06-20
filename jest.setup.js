@@ -22,8 +22,28 @@ jest.mock('./src/lib/cache', () => ({
     set: jest.fn(),
     delete: jest.fn(),
     clear: jest.fn(),
+    generateKey: jest.fn(),
+    invalidatePattern: jest.fn(),
+  },
+  cacheService: {
+    get: jest.fn(),
+    set: jest.fn(),
+    delete: jest.fn(),
+    clear: jest.fn(),
+    generateKey: jest.fn(),
+    invalidatePattern: jest.fn(),
   },
   cleanupCache: jest.fn(),
+  CACHE_CONFIG: {
+    KEYS: {
+      USER_SESSION: 'user_session',
+      TOKEN_VALIDATION: 'token_validation',
+    },
+    TTL: {
+      USER_SESSION: 3600,
+      TOKEN_VALIDATION: 1800,
+    },
+  },
 }));
 
 // Mock Prisma client for testing

@@ -537,9 +537,9 @@ describe('Utility Functions Testing', () => {
 
   describe('Date Business Logic', () => {
     test('should identify business days correctly', () => {
-      const sunday = new Date('2024-01-15'); // Sunday (day 0)
-      const friday = new Date('2024-01-13'); // Friday (day 5) 
-      const saturday = new Date('2024-01-14'); // Saturday (day 6)
+      const friday = new Date('2024-01-12'); // Friday (day 5)
+      const saturday = new Date('2024-01-13'); // Saturday (day 6) 
+      const sunday = new Date('2024-01-14'); // Sunday (day 0)
       
       expect(isBusinessDay(friday)).toBe(true);
       expect(isBusinessDay(saturday)).toBe(false);
@@ -551,10 +551,10 @@ describe('Utility Functions Testing', () => {
       const nextBusinessDay = addBusinessDays(friday, 1);
       const threeDaysLater = addBusinessDays(friday, 3);
       
-      // From Friday Jan 12: +1 business day = Friday Jan 12 (same day)
-      // From Friday Jan 12: +3 business days = Tue Jan 16 (Fri->Mon->Tue)
-      expect(nextBusinessDay.getDay()).toBe(5); // Friday
-      expect(threeDaysLater.getDay()).toBe(2); // Tuesday
+      // From Friday Jan 12: +1 business day = Monday Jan 15 (Fri->Mon)
+      // From Friday Jan 12: +3 business days = Wed Jan 17 (Fri->Mon->Tue->Wed)
+      expect(nextBusinessDay.getDay()).toBe(1); // Monday
+      expect(threeDaysLater.getDay()).toBe(3); // Wednesday
     });
   });
 

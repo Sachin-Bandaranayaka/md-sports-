@@ -18,7 +18,7 @@ const routePermissions: Record<string, string> = {
     '/invoices': 'invoice:view',
     '/accounting': 'accounting:view',
     '/reports': 'report:view',
-    '/settings': 'settings:view',
+    '/settings': 'settings:manage',
 };
 
 export function usePermission() {
@@ -31,7 +31,7 @@ export function usePermission() {
         if (!user?.permissions || !user.permissions.length) return false;
         
         // Check for admin permissions first
-        if (user.permissions.includes('*') || user.permissions.includes('admin:all')) {
+        if (user.permissions.includes('*') || user.permissions.includes('admin:all') || user.permissions.includes('ALL')) {
             return true;
         }
         

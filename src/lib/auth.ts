@@ -94,11 +94,11 @@ export const validateTokenPermission = async (req: NextRequest, permission: stri
             return { isValid: false, message: 'Invalid authentication token' };
         }
 
-        const userId = Number(payload.sub);
+        const userId = payload.sub as string;
 
         // Check if permission is in the token payload directly
         if (payload.permissions && Array.isArray(payload.permissions)) {
-            const hasPermission = payload.permissions.includes(permission);
+            const hasPermission = payload.permissions.includes(permission) || payload.permissions.includes('ALL');
             console.log(`Permission check from token for "${permission}": ${hasPermission ? 'GRANTED' : 'DENIED'}`);
             
             if (hasPermission) {
@@ -123,7 +123,7 @@ export const validateTokenPermission = async (req: NextRequest, permission: stri
 
         // Check if user has the required permission
         console.log(`User ${userId} permissions:`, user.permissions);
-        const hasPermission = user.permissions.includes(permission);
+        const hasPermission = user.permissions.includes(permission) || user.permissions.includes('ALL');
         console.log(`Permission check result for "${permission}": ${hasPermission ? 'GRANTED' : 'DENIED'}`);
 
         return {
@@ -139,7 +139,7 @@ export const validateTokenPermission = async (req: NextRequest, permission: stri
 /**
  * Get user ID from token
  */
-export const getUserIdFromToken = async (req: NextRequest): Promise<number | null> => {
+export const getUserIdFromToken = async (req: NextRequest): Promise<string | null> => {
     const token = extractToken(req);
 
     if (!token) {
@@ -148,7 +148,7 @@ export const getUserIdFromToken = async (req: NextRequest): Promise<number | nul
 
     // Special case for development token
     if (token === 'dev-token') {
-        return 1; // Development user ID
+        return '1'; // Development user ID
     }
 
     const payload = await verifyToken(token);
@@ -157,7 +157,7 @@ export const getUserIdFromToken = async (req: NextRequest): Promise<number | nul
         return null;
     }
 
-    return Number(payload.sub);
+    return payload.sub as string;
 };
 
 /**

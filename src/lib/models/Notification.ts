@@ -5,7 +5,7 @@ class Notification extends Model {
     public id!: number;
     public type!: string;
     public message!: string;
-    public targetUserId!: number;
+    public targetUserId!: string;
     public isRead!: boolean;
     public link!: string;
     public readonly createdAt!: Date;
@@ -32,7 +32,7 @@ Notification.init({
         allowNull: false
     },
     targetUserId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.STRING,
         allowNull: false,
         comment: 'User who should receive this notification'
     },
@@ -54,4 +54,4 @@ Notification.init({
     updatedAt: false
 });
 
-export default Notification; 
+export default Notification;

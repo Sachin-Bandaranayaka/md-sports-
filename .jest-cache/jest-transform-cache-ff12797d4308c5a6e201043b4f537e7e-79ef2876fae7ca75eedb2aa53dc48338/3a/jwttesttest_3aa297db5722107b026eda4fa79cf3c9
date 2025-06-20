@@ -1,0 +1,33 @@
+6bd25872de4ecb6225f54dfd511a2a5a
+// Simple test to verify JWT mocking works
+"use strict";
+jest.mock("jsonwebtoken", ()=>({
+        verify: jest.fn(),
+        sign: jest.fn()
+    }));
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+const _jsonwebtoken = /*#__PURE__*/ _interop_require_default(require("jsonwebtoken"));
+function _interop_require_default(obj) {
+    return obj && obj.__esModule ? obj : {
+        default: obj
+    };
+}
+const mockJwt = _jsonwebtoken.default;
+describe("JWT Mock Test", ()=>{
+    test("should use mocked jwt.verify", ()=>{
+        mockJwt.verify.mockReturnValue({
+            sub: 1,
+            username: "test"
+        });
+        const result = _jsonwebtoken.default.verify("test-token", "secret");
+        expect(result).toEqual({
+            sub: 1,
+            username: "test"
+        });
+        expect(mockJwt.verify).toHaveBeenCalledWith("test-token", "secret");
+    });
+});
+
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIi9Vc2Vycy9zYWNoaW4vRG9jdW1lbnRzL21kLXNwb3J0cy0vdGVzdHMvdW5pdC9qd3QtdGVzdC50ZXN0LnRzIl0sInNvdXJjZXNDb250ZW50IjpbIi8vIFNpbXBsZSB0ZXN0IHRvIHZlcmlmeSBKV1QgbW9ja2luZyB3b3Jrc1xuamVzdC5tb2NrKCdqc29ud2VidG9rZW4nLCAoKSA9PiAoe1xuICB2ZXJpZnk6IGplc3QuZm4oKSxcbiAgc2lnbjogamVzdC5mbigpLFxufSkpO1xuXG5pbXBvcnQgand0IGZyb20gJ2pzb253ZWJ0b2tlbic7XG5cbmNvbnN0IG1vY2tKd3QgPSBqd3QgYXMgamVzdC5Nb2NrZWQ8dHlwZW9mIGp3dD47XG5cbmRlc2NyaWJlKCdKV1QgTW9jayBUZXN0JywgKCkgPT4ge1xuICB0ZXN0KCdzaG91bGQgdXNlIG1vY2tlZCBqd3QudmVyaWZ5JywgKCkgPT4ge1xuICAgIG1vY2tKd3QudmVyaWZ5Lm1vY2tSZXR1cm5WYWx1ZSh7IHN1YjogMSwgdXNlcm5hbWU6ICd0ZXN0JyB9KTtcbiAgICBcbiAgICBjb25zdCByZXN1bHQgPSBqd3QudmVyaWZ5KCd0ZXN0LXRva2VuJywgJ3NlY3JldCcpO1xuICAgIFxuICAgIGV4cGVjdChyZXN1bHQpLnRvRXF1YWwoeyBzdWI6IDEsIHVzZXJuYW1lOiAndGVzdCcgfSk7XG4gICAgZXhwZWN0KG1vY2tKd3QudmVyaWZ5KS50b0hhdmVCZWVuQ2FsbGVkV2l0aCgndGVzdC10b2tlbicsICdzZWNyZXQnKTtcbiAgfSk7XG59KTsiXSwibmFtZXMiOlsiamVzdCIsIm1vY2siLCJ2ZXJpZnkiLCJmbiIsInNpZ24iLCJtb2NrSnd0Iiwiand0IiwiZGVzY3JpYmUiLCJ0ZXN0IiwibW9ja1JldHVyblZhbHVlIiwic3ViIiwidXNlcm5hbWUiLCJyZXN1bHQiLCJleHBlY3QiLCJ0b0VxdWFsIiwidG9IYXZlQmVlbkNhbGxlZFdpdGgiXSwibWFwcGluZ3MiOiJBQUFBLDBDQUEwQzs7QUFDMUNBLEtBQUtDLElBQUksQ0FBQyxnQkFBZ0IsSUFBTyxDQUFBO1FBQy9CQyxRQUFRRixLQUFLRyxFQUFFO1FBQ2ZDLE1BQU1KLEtBQUtHLEVBQUU7SUFDZixDQUFBOzs7O3FFQUVnQjs7Ozs7O0FBRWhCLE1BQU1FLFVBQVVDLHFCQUFHO0FBRW5CQyxTQUFTLGlCQUFpQjtJQUN4QkMsS0FBSyxnQ0FBZ0M7UUFDbkNILFFBQVFILE1BQU0sQ0FBQ08sZUFBZSxDQUFDO1lBQUVDLEtBQUs7WUFBR0MsVUFBVTtRQUFPO1FBRTFELE1BQU1DLFNBQVNOLHFCQUFHLENBQUNKLE1BQU0sQ0FBQyxjQUFjO1FBRXhDVyxPQUFPRCxRQUFRRSxPQUFPLENBQUM7WUFBRUosS0FBSztZQUFHQyxVQUFVO1FBQU87UUFDbERFLE9BQU9SLFFBQVFILE1BQU0sRUFBRWEsb0JBQW9CLENBQUMsY0FBYztJQUM1RDtBQUNGIn0=

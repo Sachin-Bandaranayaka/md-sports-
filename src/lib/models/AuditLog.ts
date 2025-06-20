@@ -3,7 +3,7 @@ import sequelize from '../db';
 
 class AuditLog extends Model {
     public id!: number;
-    public userId!: number;
+    public userId!: string;
     public action!: string;
     public module!: string;
     public details!: string;
@@ -18,7 +18,7 @@ AuditLog.init({
         primaryKey: true
     },
     userId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.STRING,
         allowNull: false
     },
     action: {
@@ -49,4 +49,4 @@ AuditLog.init({
     timestamps: false
 });
 
-export default AuditLog; 
+export default AuditLog;

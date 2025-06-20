@@ -163,8 +163,8 @@ describe('Utility Functions Tests', () => {
         });
 
         const testDate = new Date('2024-01-15');
-        expect(mockFormatDate(testDate)).toBe('01/14/2024');
-        expect(mockFormatDate('2024-12-25')).toBe('12/24/2024');
+        expect(mockFormatDate(testDate)).toBe('01/15/2024');
+        expect(mockFormatDate('2024-12-25')).toBe('12/25/2024');
       });
 
       it('should format dates with different formats', () => {
@@ -182,9 +182,9 @@ describe('Utility Functions Tests', () => {
         });
 
         const testDate = new Date('2024-01-15');
-        expect(mockFormatDate(testDate, 'yyyy-MM-dd')).toBe('2024-01-14');
-        expect(mockFormatDate(testDate, 'dd/MM/yyyy')).toBe('14/01/2024');
-        expect(mockFormatDate(testDate, 'MMM dd, yyyy')).toBe('Jan 14, 2024');
+        expect(mockFormatDate(testDate, 'yyyy-MM-dd')).toBe('2024-01-15');
+        expect(mockFormatDate(testDate, 'dd/MM/yyyy')).toBe('15/01/2024');
+        expect(mockFormatDate(testDate, 'MMM dd, yyyy')).toBe('Jan 15, 2024');
       });
 
       it('should handle invalid dates', () => {

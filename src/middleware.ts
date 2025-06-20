@@ -256,7 +256,7 @@ export async function middleware(request: NextRequest) {
         const csrfTokenFromHeader = request.headers.get('X-CSRF-Token');
 
         // Skip CSRF check for login and initial auth routes
-        const isAuthRoute = ['/api/auth/login', '/api/auth/register'].some(
+        const isAuthRoute = ['/api/auth/login', '/api/auth/register', '/api/auth/refresh'].some(
             route => pathname.startsWith(route)
         );
 

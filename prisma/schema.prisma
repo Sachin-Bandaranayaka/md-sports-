@@ -9,11 +9,11 @@ datasource db {
 }
 
 model User {
-  id                    Int                 @id @default(autoincrement())
+  id                    String              @id
   name                  String
   email                 String              @unique
   password              String
-  roleId                Int?
+  roleId                String?
   phone                 String?
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
@@ -21,6 +21,7 @@ model User {
   shopId                String?
   roleName              String?
   permissions           String[]            @default([])
+  allowedAccounts       String[]            @default([])
   inventoryTransferFrom InventoryTransfer[] @relation("FromUser")
   inventoryTransferTo   InventoryTransfer[] @relation("ToUser")
   notifications         Notification[]
@@ -33,7 +34,7 @@ model User {
 
 model RefreshToken {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    Int
+  userId    String
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
@@ -46,7 +47,7 @@ model RefreshToken {
 }
 
 model Role {
-  id          Int          @id @default(autoincrement())
+  id          String       @id
   name        String       @unique
   description String?
   createdAt   DateTime     @default(now())
@@ -76,7 +77,7 @@ model Shop {
   is_active        Boolean            @default(true)
   opening_time     DateTime?          @db.Time
   closing_time     DateTime?          @db.Time
-  manager_id       Int?               @unique
+  manager_id       String?            @unique
   opening_date     DateTime?          @db.Date
   status           String             @default("open")
   address_line1    String?
@@ -146,8 +147,8 @@ model InventoryTransfer {
   id            Int            @id @default(autoincrement())
   fromShopId    String
   toShopId      String
-  fromUserId    Int
-  toUserId      Int
+  fromUserId    String
+  toUserId      String
   status        String
   notes         String?
   createdAt     DateTime       @default(now())
@@ -225,7 +226,7 @@ model Invoice {
   dueDate       DateTime?     @db.Date
   notes         String?
   shopId        String?
-  createdBy     Int?
+  createdBy     String?
   customer      Customer?     @relation(fields: [customerId], references: [id])
   shop          Shop?         @relation(fields: [shopId], references: [id])
   createdByUser User?         @relation(fields: [createdBy], references: [id])
@@ -286,7 +287,7 @@ model Receipt {
   chequeNumber      String?
   transactionId     String?
   notes             String?
-  confirmedBy       Int?
+  confirmedBy       String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   payment           Payment  @relation(fields: [paymentId], references: [id])
@@ -348,7 +349,7 @@ model PurchaseInvoiceItem {
 
 model Notification {
   id        Int      @id @default(autoincrement())
-  userId    Int
+  userId    String
   title     String
   message   String
   isRead    Boolean  @default(false)
@@ -359,7 +360,7 @@ model Notification {
 
 model AuditLog {
   id        Int      @id @default(autoincrement())
-  userId    Int?
+  userId    String?
   action    String
   entity    String
   entityId  Int?

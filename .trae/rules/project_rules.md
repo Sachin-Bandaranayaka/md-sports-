@@ -1,0 +1,1 @@
+1. use neon MCP in any case that you want to interact with the database

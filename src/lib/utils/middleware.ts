@@ -124,7 +124,7 @@ export const requirePermission = (permission: string) => {
 /**
  * Get user ID from token
  */
-export async function getUserId(req: NextRequest): Promise<number | null> {
+export async function getUserId(req: NextRequest): Promise<string | null> {
     const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return null;
@@ -134,7 +134,7 @@ export async function getUserId(req: NextRequest): Promise<number | null> {
 
     // Special case for development token
     if (token === 'dev-token') {
-        return 1; // Development user ID
+        return '1'; // Development user ID
     }
 
     try {

@@ -72,7 +72,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     try {
                         console.log('Access Token expired or invalid, attempting to refresh via /api/auth/refresh...');
                         // Send an empty object or no body. Relies on httpOnly refreshToken cookie.
-                        const refreshResponse = await axios.post('/api/auth/refresh', {}, {
+                        // Use api instance to ensure CSRF token is included
+                        const refreshResponse = await api.post('/api/auth/refresh', {}, {
                             withCredentials: true
                         });
 

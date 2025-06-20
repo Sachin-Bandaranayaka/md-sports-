@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Store, TrendingUp, CreditCard, AlertTriangle, Loader2, DollarSign } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { hasAnyPermission } from '@/lib/utils/permissions';
 
 // Interface for shop-wise metrics data
 interface ShopMetrics {
@@ -102,9 +103,9 @@ export default function ShopWiseMetrics({ startDate, endDate, refreshTrigger }: 
         fetchShopWiseMetrics();
     }, [startDate, endDate, refreshTrigger]);
 
-    // Check permissions
-    const hasInventoryPermission = user?.permissions?.includes('inventory:view') || false;
-    const hasSalesPermission = user?.permissions?.includes('sales:view') || false;
+    // Check permissions using centralized permission utility
+    const hasInventoryPermission = user?.permissions ? hasAnyPermission(user.permissions, ['inventory:view', 'inventory:manage']) : false;
+    const hasSalesPermission = user?.permissions ? hasAnyPermission(user.permissions, ['sales:view', 'sales:manage']) : false;
 
     if (!hasInventoryPermission && !hasSalesPermission) {
         return (
