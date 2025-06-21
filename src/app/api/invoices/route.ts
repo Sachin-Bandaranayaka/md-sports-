@@ -35,8 +35,10 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
                 where: { id: userId },
                 select: {
                     id: true,
-                    roleName: true,
-                    permissions: true
+                    shopId: true,
+                    role: {
+                        select: { name: true }
+                    }
                 }
             });
 
@@ -50,7 +52,7 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
                 isAdmin: context.isAdmin,
                 userShopId: context.userShopId,
                 userId: user.id,
-                userRole: user.roleName
+                userRole: user.role?.name
             });
 
             const searchParams = request.nextUrl.searchParams;
@@ -70,7 +72,7 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
                 status,
                 paymentMethod,
                 search: searchQuery,
-                shopId,
+                shopId: isAdmin ? shopId : context.shopId, // Use context's shopId for non-admins
                 userId: isAdmin ? 'admin' : user.id // Admin sees all, others see user-specific
             });
 
@@ -86,14 +88,9 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
             // Build optimized where clause with shop filtering
             let whereClause: any = ShopAccessControl.buildShopFilter(context);
 
-            // Shop filtering is already handled by ShopAccessControl.buildShopFilter(context)
-            // Non-admin users will only see invoices from their assigned shop
-            console.log(`User ${user.id} (${user.roleName}) - shop filtering applied: ${JSON.stringify(ShopAccessControl.buildShopFilter(context))}`);
-            if (!isAdmin) {
-                console.log(`Non-admin user ${user.id} (${user.roleName}) - restricted to shop: ${context.shopId}`);
-            } else {
-                console.log(`Admin user ${user.id} (${user.roleName}) - can view all shops`);
-            }
+            // Shop filtering is now primarily handled by the middleware.
+            // We only allow overriding it with a query parameter if the user is an admin.
+            console.log(`User ${user.id} (${user.role?.name}) - shop filtering applied: ${JSON.stringify(whereClause)}`);
 
             if (status) {
                 whereClause.status = status;
@@ -101,8 +98,14 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
             if (paymentMethod) {
                 whereClause.paymentMethod = paymentMethod;
             }
-            if (shopId && shopId !== 'all') {
+            
+            // Allow admin to filter by a specific shopId from query params
+            if (isAdmin && shopId && shopId !== 'all') {
                 whereClause.shopId = shopId;
+            } else if (shopId && shopId !== 'all' && !isAdmin && shopId !== context.shopId) {
+                // If a non-admin tries to access a shop they are not assigned to, deny access.
+                // This is an additional layer of security.
+                return NextResponse.json({ error: 'Access denied: You can only view invoices for your assigned shop.' }, { status: 403 });
             }
 
             console.log('Invoices where clause:', JSON.stringify(whereClause, null, 2));
@@ -445,7 +448,7 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
                 console.log('No shopId provided, skipping shop access validation');
             }
 
-            const inventoryUpdatesForEvent: Array<{ productId: number, shopId: number, newQuantity: number, oldQuantity: number }> = [];
+            const inventoryUpdatesForEvent: Array<{ productId: number, shopId: string, newQuantity: number, oldQuantity: number }> = [];
 
             const invoice = await measureAsync('invoice-transaction', () =>
                 prisma.$transaction(
@@ -557,7 +560,7 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
                                     shopId: invoiceDetails.shopId
                                 },
                                 orderBy: { updatedAt: 'asc' },
-                                select: { id: true, productId: true, quantity: true, updatedAt: true }
+                                select: { id: true, productId: true, quantity: true, updatedAt: true, shopId: true }
                             });
                             
                             // Group inventory items by product ID

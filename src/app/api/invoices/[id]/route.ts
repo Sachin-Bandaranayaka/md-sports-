@@ -1,15 +1,42 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { smsService } from '@/services/smsService';
-
-
+import { validateTokenPermission, getUserIdFromToken } from '@/lib/auth';
 import { cacheService } from '@/lib/cache';
 
 export async function GET(
-    request: Request,
+    request: NextRequest,
     { params }: { params: { id: string } }
 ) {
     try {
+        // Validate token and permissions
+        const authResult = await validateTokenPermission(request, 'sales:view');
+        if (!authResult.isValid) {
+            return NextResponse.json({ error: authResult.message }, { status: 401 });
+        }
+
+        // Get user ID from token
+        const userId = await getUserIdFromToken(request);
+        if (!userId) {
+            return NextResponse.json({ error: 'User not found' }, { status: 401 });
+        }
+
+        // Get user details to check role and shop access
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                shopId: true,
+                role: {
+                    select: { name: true }
+                }
+            }
+        });
+
+        if (!user) {
+            return NextResponse.json({ error: 'User not found' }, { status: 401 });
+        }
+
         if (!params?.id || isNaN(Number(params.id))) {
             return NextResponse.json(
                 { error: 'Invalid invoice ID' },
@@ -19,9 +46,17 @@ export async function GET(
 
         const invoiceId = Number(params.id);
 
+        // Build where clause with shop filtering
+        let whereClause: any = { id: invoiceId };
+        
+        // For shop staff, restrict to their assigned shop only
+        if (user.role?.name === 'Shop Staff' && user.shopId) {
+            whereClause.shopId = user.shopId;
+        }
+
         // Fetch invoice with all related data
         const invoice = await prisma.invoice.findUnique({
-            where: { id: invoiceId },
+            where: whereClause,
             include: {
                 customer: true,
                 shop: {
@@ -80,10 +115,38 @@ export async function GET(
 }
 
 export async function PUT(
-    request: Request,
+    request: NextRequest,
     { params }: { params: { id: string } }
 ) {
     try {
+        // Validate token and permissions
+        const authResult = await validateTokenPermission(request, 'sales:edit');
+        if (!authResult.isValid) {
+            return NextResponse.json({ error: authResult.message }, { status: 401 });
+        }
+
+        // Get user ID from token
+        const userId = await getUserIdFromToken(request);
+        if (!userId) {
+            return NextResponse.json({ error: 'User not found' }, { status: 401 });
+        }
+
+        // Get user details to check role and shop access
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                shopId: true,
+                role: {
+                    select: { name: true }
+                }
+            }
+        });
+
+        if (!user) {
+            return NextResponse.json({ error: 'User not found' }, { status: 401 });
+        }
+
         if (!params?.id || isNaN(Number(params.id))) {
             return NextResponse.json(
                 { error: 'Invalid invoice ID' },
@@ -92,6 +155,24 @@ export async function PUT(
         }
 
         const invoiceId = Number(params.id);
+        
+        // First, check if the invoice exists and user has access to it
+        let whereClause: any = { id: invoiceId };
+        if (user.role?.name === 'Shop Staff' && user.shopId) {
+            whereClause.shopId = user.shopId;
+        }
+        
+        const existingInvoice = await prisma.invoice.findUnique({
+            where: whereClause,
+            select: { id: true, shopId: true, customerId: true, invoiceNumber: true }
+        });
+        
+        if (!existingInvoice) {
+            return NextResponse.json(
+                { error: 'Invoice not found or access denied' },
+                { status: 404 }
+            );
+        }
         const requestData = await request.json();
         console.log('Invoice update request data:', { invoiceId, ...requestData });
         const { sendSms, ...invoiceData } = requestData;
@@ -170,7 +251,7 @@ export async function PUT(
                     ]);
 
                     console.log('Invoice update - Inventory changes (based on diff):');
-                    for (const productId of allProductIds) {
+                    for (const productId of Array.from(allProductIds)) {
                         const oldQuantity = oldItemsMap.get(productId) || 0;
                         const newQuantity = newItemsMap.get(productId) || 0;
                         const quantityChange = newQuantity - oldQuantity;
@@ -243,7 +324,7 @@ export async function PUT(
                         const productCostMap = new Map(inventoryItems.map(item => [item.productId, item.shopSpecificCost || 0]));
                         
                         // For products not found in inventory, fallback to global weighted average
-                        const missingProductIds = productIdsForNewItems.filter(id => !productCostMap.has(id));
+                        const missingProductIds = productIdsForNewItems.filter((id: number) => !productCostMap.has(id));
                         if (missingProductIds.length > 0) {
                             const fallbackProducts = await tx.product.findMany({
                                 where: { id: { in: missingProductIds } },
@@ -336,15 +417,15 @@ export async function PUT(
                 await smsService.init();
                 if (smsService.isConfigured()) {
                     // Send SMS notification asynchronously
-                    smsService.sendInvoiceUpdateNotification(updatedInvoice.id)
-                        .then(result => {
+                    smsService.sendInvoiceNotification(updatedInvoice.id)
+                        .then((result: any) => {
                             if (result.status >= 200 && result.status < 300) {
                                 console.log('SMS update notification sent successfully');
                             } else {
                                 console.warn('Failed to send SMS update notification:', result.message);
                             }
                         })
-                        .catch(error => {
+                        .catch((error: any) => {
                             console.error('Error sending SMS update notification:', error);
                         });
                 }
@@ -408,7 +489,7 @@ export async function DELETE(
                     // Add item quantity back to inventory
                     // Similar to PUT, we need to determine the shopId if possible.
                     // If the invoice had a shopId, we assume items are returned to that shop's inventory.
-                    let targetShopId: number | undefined = invoiceToDelete.shopId || undefined;
+                    let targetShopId: string | undefined = invoiceToDelete.shopId || undefined;
 
                     // If no shopId on invoice, this becomes a general increment for the product.
                     // For more precise shop-specific return, the original shop source of item would be needed.

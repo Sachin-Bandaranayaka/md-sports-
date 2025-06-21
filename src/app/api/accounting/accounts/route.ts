@@ -5,15 +5,6 @@ import { validateTokenPermission, getUserIdFromToken } from '@/lib/auth';
 // GET: Fetch all accounts or a single account by ID
 export async function GET(request: NextRequest) {
     try {
-        // Validate authentication
-        const authResult = await validateTokenPermission(request, 'accounting:view');
-        if (!authResult.isValid) {
-            return NextResponse.json({
-                success: false,
-                message: 'Unauthorized access'
-            }, { status: 401 });
-        }
-
         // Get user information for permission filtering
         const userId = await getUserIdFromToken(request);
         if (!userId) {

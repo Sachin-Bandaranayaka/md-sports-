@@ -41,12 +41,11 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-    { icon: Home, href: '/dashboard', label: 'Dashboard', requiredPermission: 'view_dashboard' },
+    { icon: Home, href: '/dashboard', label: 'Dashboard', requiredPermission: 'dashboard:view' },
     { 
         icon: Package, 
         href: '/inventory', 
-        label: 'Inventory', 
-        requiredPermission: 'inventory:view',
+        label: 'Inventory',
         children: [
             { icon: Package, href: '/inventory', label: 'All Products', requiredPermission: 'inventory:view' },
             { icon: TruckIcon, href: '/inventory/transfers', label: 'Transfers', requiredPermission: 'inventory:transfer' },
@@ -138,22 +137,29 @@ export default function MainLayout({ children }: MainLayoutProps) {
     // Filter navigation items based on user permissions
     const getAuthorizedNavItems = (): NavItem[] => {
         return navItems.map(item => {
-            const itemAccess = checkUserPermission(item.requiredPermission);
-
             // Handle items with children
             if (item.children) {
                 const authorizedChildren = item.children.filter(child =>
                     checkUserPermission(child.requiredPermission)
                 );
-                // Only show parent if there are accessible children AND parent itself is accessible
-                if (authorizedChildren.length > 0 && itemAccess) {
+
+                // If a parent item has a specific permission, it must be met.
+                // If it doesn't, it should be shown if any of its children are visible.
+                const parentHasAccess = item.requiredPermission ? checkUserPermission(item.requiredPermission) : true;
+
+                if (authorizedChildren.length > 0 && parentHasAccess) {
+                    // If the parent's requiredPermission is generic (like 'inventory:view')
+                    // and the user has access to children, we show the parent.
+                    // This logic is simplified by just checking if there are children.
                     return { ...item, children: authorizedChildren };
                 }
-                return null; // Don't include parent if it's not accessible or no children are
+                return null;
             }
 
+            // For items without children
+            const itemAccess = checkUserPermission(item.requiredPermission);
             return itemAccess ? item : null;
-        }).filter((item): item is NavItem => item !== null); // Filter out null values with type guard
+        }).filter((item): item is NavItem => item !== null);
     };
 
     const authorizedNavItems = getAuthorizedNavItems();

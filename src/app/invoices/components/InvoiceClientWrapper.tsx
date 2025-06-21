@@ -102,7 +102,7 @@ export default function InvoiceClientWrapper({
     const router = useRouter();
     const searchParams = useSearchParams();
     const { accessToken } = useAuth();
-    const { canEditInvoices } = usePermission();
+    const { hasPermission } = usePermission();
 
     const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
     const [totalPages, setTotalPages] = useState<number>(initialTotalPages);
@@ -523,7 +523,7 @@ export default function InvoiceClientWrapper({
             <div className="mb-6">
                 <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                     <h1 className="text-3xl font-bold text-gray-800">Manage Invoices</h1>
-                    {canEditInvoices() && (
+                    {hasPermission('invoice:manage') && (
                         <Button variant="primary" onClick={() => setIsCreateModalOpen(true)} className="flex items-center">
                             <Plus size={18} className="mr-2" /> Create New Invoice
                         </Button>
@@ -710,7 +710,7 @@ export default function InvoiceClientWrapper({
                                 <span className="text-sm text-gray-600">
                                     {selectedInvoices.size} invoice(s) selected
                                 </span>
-                                {canEditInvoices() && (
+                                {hasPermission('invoice:manage') && (
                                     <Button 
                                         variant="outline" 
                                         size="sm" 
@@ -838,12 +838,12 @@ export default function InvoiceClientWrapper({
                                                     {loading ? <Loader2 className="animate-spin h-3 w-3" /> : <CheckCircle size={12} className="text-green-600" />}
                                                 </Button>
                                             )}
-                                            {canEditInvoices() && (
+                                            {hasPermission('invoice:manage') && (
                                                 <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleEditInvoice(invoice.id)} title="Edit Invoice" disabled={loading}>
                                                     {loading ? <Loader2 className="animate-spin h-3 w-3" /> : <Edit size={12} className="text-yellow-600" />}
                                                 </Button>
                                             )}
-                                            {canEditInvoices() && (
+                                            {hasPermission('invoice:manage') && (
                                                 <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleDeleteInvoice(invoice.id)} title="Delete Invoice" disabled={loading}>
                                                     {loading ? <Loader2 className="animate-spin h-3 w-3" /> : <Trash2 size={12} className="text-red-600" />}
                                                 </Button>

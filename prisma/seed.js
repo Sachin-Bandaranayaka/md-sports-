@@ -1,11 +1,43 @@
-import { PrismaClient } from '@prisma/client';
-import * as bcrypt from 'bcryptjs';
-
-const prisma = new PrismaClient();
-
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+const client_1 = require("@prisma/client");
+const bcrypt = __importStar(require("bcryptjs"));
+const prisma = new client_1.PrismaClient();
 async function main() {
     console.log('Starting database seeding...');
-
     // Create permissions
     const permissions = [
         { name: 'user:view', description: 'View users' },
@@ -38,7 +70,6 @@ async function main() {
         { name: 'quotation:create', description: 'Create quotations' },
         { name: 'quotation:view', description: 'View quotations' },
     ];
-
     console.log('Creating permissions...');
     for (const permission of permissions) {
         await prisma.permission.upsert({
@@ -47,7 +78,6 @@ async function main() {
             create: permission,
         });
     }
-
     // Create admin role
     console.log('Creating admin role...');
     const adminRole = await prisma.role.upsert({
@@ -61,7 +91,6 @@ async function main() {
             description: 'Administrator with full access',
         },
     });
-
     // Create Shop Staff role
     console.log('Creating Shop Staff role...');
     const shopStaffRole = await prisma.role.upsert({
@@ -75,7 +104,6 @@ async function main() {
             description: 'Shop operations staff with limited access',
         },
     });
-
     // Associate all permissions with admin role
     console.log('Associating permissions with admin role...');
     const allPermissions = await prisma.permission.findMany();
@@ -87,7 +115,6 @@ async function main() {
             },
         },
     });
-
     // Associate Shop Staff permissions
     console.log('Associating permissions with Shop Staff role...');
     const shopStaffPermissionNames = [
@@ -104,7 +131,6 @@ async function main() {
         'inventory:transfer',
         'shop:assigned_only'
     ];
-    
     const shopStaffPermissions = await prisma.permission.findMany({
         where: {
             name: {
@@ -112,7 +138,6 @@ async function main() {
             }
         }
     });
-    
     await prisma.role.update({
         where: { id: shopStaffRole.id },
         data: {
@@ -121,14 +146,11 @@ async function main() {
             },
         },
     });
-
     // Create admin user
     console.log('Creating admin user...');
     const hashedPassword = await bcrypt.hash('admin123', 10);
-    
     // Get permission names for direct assignment
     const permissionNames = allPermissions.map(p => p.name);
-
     await prisma.user.upsert({
         where: { email: 'admin@mssports.lk' },
         update: {
@@ -148,7 +170,6 @@ async function main() {
             isActive: true,
         },
     });
-
     // Also create the user with the typo in email that was attempted in the logs
     await prisma.user.upsert({
         where: { email: 'admin@mssport.lk' },
@@ -169,15 +190,13 @@ async function main() {
             isActive: true,
         },
     });
-
     console.log('Database seeding completed successfully!');
 }
-
 main()
     .catch((e) => {
-        console.error('Error during database seeding:', e);
-        process.exit(1);
-    })
+    console.error('Error during database seeding:', e);
+    process.exit(1);
+})
     .finally(async () => {
-        await prisma.$disconnect();
-    });
+    await prisma.$disconnect();
+});

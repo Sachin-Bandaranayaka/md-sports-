@@ -4,6 +4,7 @@ import { requirePermission } from '@/lib/utils/middleware';
 import { permissionService } from '@/lib/services/PermissionService';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
+import { z } from 'zod';
 
 // GET: List all users
 export async function GET(req: NextRequest) {
@@ -120,94 +121,62 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Hash the password
-        const hashedPassword = await bcrypt.hash(userData.password, 12);
+        // If a role template is selected, find its permissions
+        if (userData.roleTemplate) {
+            console.log(`Role template "${userData.roleTemplate}" selected. Fetching permissions...`);
+
+            const roleWithPermissions = await prisma.role.findUnique({
+                where: { name: userData.roleTemplate },
+                include: { permissions: true }
+            });
+
+            if (roleWithPermissions) {
+                const permissionNames = roleWithPermissions.permissions.map((p: { name: string }) => p.name);
+                console.log(`Permissions for role "${userData.roleTemplate}":`, permissionNames);
+                userData.permissions = permissionNames;
+                userData.roleId = roleWithPermissions.id;
+                userData.roleName = roleWithPermissions.name;
+            } else {
+                console.warn(`Role "${userData.roleTemplate}" not found in the database.`);
+            }
+        }
+        
+        const hashedPassword = await bcrypt.hash(userData.password, 10);
 
         // Ensure shop:assigned_only permission exists if needed
-        let shopAssignedPermissionId = null;
+        let shopAssignedPermissionId: string | null = null;
         if (userData.permissions.includes('shop:assigned_only')) {
-            const shopAssignedPermission = await prisma.permission.upsert({
+            const permission = await prisma.permission.upsert({
                 where: { name: 'shop:assigned_only' },
                 update: {},
                 create: {
                     name: 'shop:assigned_only',
-                    description: 'Restricts user access to only their assigned shop'
-                }
+                    description: 'Restricts user access to only their assigned shop',
+                },
             });
-            shopAssignedPermissionId = shopAssignedPermission.id.toString();
-            
-            // Replace the string 'shop:assigned_only' with the actual permission ID
-            userData.permissions = userData.permissions.map(p => 
-                p === 'shop:assigned_only' ? shopAssignedPermissionId : p
-            );
-        }
-
-        // Determine role based on permissions
-        let roleId = null;
-        let roleName = null;
-        
-        // Check if user has admin permissions
-        if (permissionService.hasPermission({ permissions: userData.permissions }, 'ALL') || 
-            permissionService.hasPermission({ permissions: userData.permissions }, 'admin:all')) {
-            const adminRole = await prisma.role.findUnique({
-                where: { name: 'Admin' }
-            });
-            if (adminRole) {
-                roleId = adminRole.id;
-                roleName = 'Admin';
-            }
-        }
-        // Check if user has shop staff permissions (check for the permission ID)
-        else if (shopAssignedPermissionId && userData.permissions.includes(shopAssignedPermissionId)) {
-            const shopStaffRole = await prisma.role.findUnique({
-                where: { name: 'Shop Staff' }
-            });
-            if (shopStaffRole) {
-                roleId = shopStaffRole.id;
-                roleName = 'Shop Staff';
-            }
+            shopAssignedPermissionId = permission.id.toString();
         }
 
         // Prepare user data
-        const userData_final = {
-            id: randomUUID(), // Generate UUID manually
-            name: userData.name,
-            email: userData.email,
-            password: hashedPassword,
-            roleId: roleId,
-            roleName: roleName,
-            shopId: shopId,
-            permissions: userData.permissions || [],
-            allowedAccounts: userData.allowedAccounts || [],
-            isActive: true
-        };
-
-        console.log('Final user data to be saved:', userData_final); // Log the final data
-
-        // Create the user
-        const user = await prisma.user.create({
-            data: userData_final,
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                shopId: true,
-                permissions: true,
-                createdAt: true,
-                shop: {
-                    select: {
-                        id: true,
-                        name: true
-                    }
-                }
-            }
+        const newUser = await prisma.user.create({
+            data: {
+                id: randomUUID(),
+                name: userData.name,
+                email: userData.email,
+                password: hashedPassword,
+                roleId: userData.roleId,
+                roleName: userData.roleName,
+                shopId: shopId,
+                permissions: userData.permissions,
+                allowedAccounts: userData.allowedAccounts || [],
+                isActive: true
+            },
         });
 
-        // Return success response
         return NextResponse.json({
             success: true,
             message: 'User created successfully',
-            data: user
+            data: newUser
         });
     } catch (error) {
         console.error('Error creating user:', error);

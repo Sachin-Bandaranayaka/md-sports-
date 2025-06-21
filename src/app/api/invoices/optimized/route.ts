@@ -243,20 +243,38 @@ export async function GET(request: NextRequest) {
         };
 
         // Get user's shop access
-        const userShops = await prisma.userShop.findMany({
-            where: { userId: payload.sub as string },
-            select: { shopId: true }
+        const user = await prisma.user.findUnique({
+            where: { id: payload.sub as string },
+            select: { 
+                shopId: true, 
+                role: {
+                    select: { name: true }
+                }
+            }
         });
 
-        const shopIds = userShops.map(us => us.shopId);
+        if (!user) {
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+
+        const userShopId = user.shopId;
         const shopId = searchParams.get('shopId');
 
-        if (shopId && !shopIds.includes(shopId)) {
-            return NextResponse.json({ error: 'Access denied to this shop' }, { status: 403 });
+        // Determine effective shop ID for filtering
+        let effectiveShopId;
+        if (user.role?.name === 'Shop Staff' && userShopId) {
+            if (shopId && shopId !== userShopId) {
+                return NextResponse.json({ error: 'Access denied to this shop' }, { status: 403 });
+            }
+            // Force shop staff to only see their shop's data
+            effectiveShopId = userShopId;
+        } else {
+            // For other roles (admin, etc.), allow access to requested shop or all shops
+            effectiveShopId = shopId;
         }
 
         // Build cache key
-        const cacheKey = `invoices:${JSON.stringify({ ...filters, shopIds: shopId ? [shopId] : shopIds })}`;
+        const cacheKey = `invoices:${JSON.stringify({ ...filters, shopId: effectiveShopId })}`;
 
         // Try cache first
         const cachedResult = await cache.get(cacheKey);
@@ -269,10 +287,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Build query conditions
-        const where = buildWhereClause(filters, shopId);
-        if (!shopId) {
-            where.shopId = { in: shopIds };
-        }
+        const where = buildWhereClause(filters, effectiveShopId);
 
         // Handle cursor-based pagination
         if (filters.cursor) {
@@ -340,7 +355,7 @@ export async function GET(request: NextRequest) {
             // Only count if we need pagination info
             filters.cursor ? Promise.resolve(0) : prisma.invoice.count({ where }),
             // Only fetch statistics if requested
-            filters.includeStatistics ? getStatistics(shopId) : Promise.resolve(null)
+            filters.includeStatistics ? getStatistics(effectiveShopId) : Promise.resolve(null)
         ]);
 
         // Check if there are more results

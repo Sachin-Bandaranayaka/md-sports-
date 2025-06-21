@@ -95,6 +95,7 @@ model Shop {
   Product          Product[]
   manager          User?              @relation(fields: [manager_id], references: [id])
   Invoice          Invoice[]
+  quotations       Quotation[]
 }
 
 model Product {
@@ -297,12 +298,14 @@ model Receipt {
 model Quotation {
   id              Int             @id @default(autoincrement())
   quotationNumber String          @unique
-  customerId      Int
+  customerId      Int?
   total           Float
   validUntil      DateTime?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
-  customer        Customer        @relation(fields: [customerId], references: [id])
+  shopId          String?
+  customer        Customer?       @relation(fields: [customerId], references: [id])
+  shop            Shop?           @relation(fields: [shopId], references: [id])
   items           QuotationItem[]
 }
 

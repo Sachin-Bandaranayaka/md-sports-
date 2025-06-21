@@ -34,7 +34,7 @@ const roleTemplates: RoleTemplate[] = [
         description: 'Shop operations including sales, customer management, quotations, and shop distribution access for assigned shop only',
         icon: Users,
         permissions: [
-            'view_dashboard',
+            'dashboard:view',
             'sales:view',
             'sales:manage',
             'invoice:create',
@@ -230,55 +230,82 @@ export default function AddUserPage() {
         setSelectedTemplate(templateId);
         const template = roleTemplates.find(t => t.id === templateId);
         if (template) {
-            // Map template permission names to actual database permission IDs
+            // Create a map from permission names to IDs
             const permissionNameToId: Record<string, string> = {};
+            
+            // First, get the actual permission names from the API response
+            // The API returns permissions with their original names (e.g., "sales:view")
+            // We need to map these to the transformed permission objects
             availablePermissions.forEach(p => {
-                // Extract the actual permission name from the database
-                const dbPermissions = [
-                    'inventory:view', 'sales:view', 'user:manage', 'settings:manage', 
-                    'dashboard:view', 'admin:all', 'inventory:transfer', 'shop:manage',
-                    'customer:view', 'invoice:create', 'quotation:create', 'purchase:view',
-                    'supplier:view', 'payment:view', 'receipt:view', 'accounting:view',
-                    'report:view', 'audit:view', 'category:view', 'product:view',
-                    'shop:distribution:view'
+                // The permission name in the database is stored in the API response
+                // We need to reverse-engineer it from the module and transformed name
+                const module = p.module.toLowerCase();
+                
+                // Try to reconstruct the original permission name
+                // This is a bit hacky, but we need to work with the current structure
+                const possibleNames = [
+                    `${module}:view`,
+                    `${module}:create`, 
+                    `${module}:update`,
+                    `${module}:delete`,
+                    `${module}:manage`,
+                    `${module}:transfer`,
+                    `${module}:distribution:view`,
+                    `${module}:assigned_only`,
+                    `${module}:all`
                 ];
                 
-                // Find matching permission name
-                const matchingPermission = dbPermissions.find(dbPerm => {
-                    const [module, action] = dbPerm.split(':');
-                    return p.module.toLowerCase() === module && 
-                           p.name.toLowerCase().includes(action);
-                });
-                
-                if (matchingPermission) {
-                    permissionNameToId[matchingPermission] = p.id;
-                }
-            });
-            
-            // Map template permissions to IDs
-            const templatePermissionIds: string[] = [];
-            
-            template.permissions.forEach(templatePerm => {
-                if (templatePerm === 'view_dashboard') {
-                    const dashboardId = permissionNameToId['dashboard:view'];
-                    if (dashboardId) templatePermissionIds.push(dashboardId);
-                } else if (templatePerm === 'sales:manage') {
-                    // For sales:manage, add both sales:view and any sales management permissions
-                    const salesViewId = permissionNameToId['sales:view'];
-                    if (salesViewId) templatePermissionIds.push(salesViewId);
-                } else if (templatePerm === 'shop:assigned_only') {
-                    // This permission might not exist yet, we'll handle it in the backend
-                    // For now, we'll include it as a special case
-                    templatePermissionIds.push('shop:assigned_only');
-                } else {
-                    const permissionId = permissionNameToId[templatePerm];
-                    if (permissionId) {
-                        templatePermissionIds.push(permissionId);
+                // Check if any of these match what we're looking for
+                possibleNames.forEach(possibleName => {
+                    // This is imperfect, but we'll match based on the module and action
+                    const [, action] = possibleName.split(':');
+                    if (p.name.toLowerCase().includes(action) || possibleName === 'admin:all') {
+                        permissionNameToId[possibleName] = p.id;
                     }
-                }
+                });
             });
             
-            setUserForm(prev => ({ ...prev, permissions: templatePermissionIds }));
+            // For debugging - let's also try a direct approach
+            // We'll fetch the permissions again to get the raw data
+            fetch('/api/permissions', {
+                headers: { 'Authorization': 'Bearer dev-token' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Create proper mapping from raw permission names to IDs
+                    const rawPermissionMap: Record<string, string> = {};
+                    data.data.forEach((perm: any) => {
+                        rawPermissionMap[perm.name] = perm.id.toString();
+                    });
+                    
+                    // Map template permissions to actual permission IDs
+                    const templatePermissionIds: string[] = [];
+                    
+                    template.permissions.forEach(templatePerm => {
+                        if (templatePerm === 'shop:assigned_only') {
+                            // This permission might not exist yet, we'll handle it in the backend
+                            templatePermissionIds.push('shop:assigned_only');
+                        } else {
+                            const permissionId = rawPermissionMap[templatePerm];
+                            if (permissionId) {
+                                templatePermissionIds.push(permissionId);
+                            } else {
+                                console.warn(`Permission not found: ${templatePerm}`);
+                            }
+                        }
+                    });
+                    
+                    console.log('Template permissions:', template.permissions);
+                    console.log('Mapped permission IDs:', templatePermissionIds);
+                    console.log('Available raw permissions:', rawPermissionMap);
+                    
+                    setUserForm(prev => ({ ...prev, permissions: templatePermissionIds }));
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching raw permissions:', error);
+            });
         }
     };
 

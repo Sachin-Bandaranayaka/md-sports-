@@ -1,74 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { verifyToken, extractToken } from '@/lib/auth';
 import { hasPermission } from '@/lib/utils/permissions';
+import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
+
+type QuotationWhereInput = Prisma.QuotationWhereInput;
 
 // GET /api/quotations - Get all quotations
 export async function GET(request: NextRequest) {
     try {
-        // Check authentication
+        const { searchParams } = new URL(request.url);
+
+        // Build context for shop access control
         const token = extractToken(request);
         if (!token) {
-            return NextResponse.json({ error: 'Unauthorized - No token provided' }, { status: 401 });
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+        const decodedToken = await verifyToken(token);
+        if (!decodedToken) {
+            return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
         }
 
-        const payload = await verifyToken(token);
-        if (!payload || !payload.sub) {
-            return NextResponse.json({ error: 'Unauthorized - Invalid token' }, { status: 401 });
-        }
+        const permissions = Array.isArray(decodedToken.permissions) ? decodedToken.permissions : [];
+        const isAdmin = hasPermission(permissions, 'admin:all');
+        const shopIdFromUrl = searchParams.get('shopId');
 
-        // Get user details
-        const user = await prisma.user.findUnique({
-            where: { id: payload.sub as string },
-            select: { permissions: true, shopId: true }
-        });
+        const context = {
+            shopId: isAdmin && shopIdFromUrl ? shopIdFromUrl : decodedToken.shopId as string,
+            isFiltered: !isAdmin || (isAdmin && !!shopIdFromUrl)
+        };
+        
+        // Build the where clause
+        const whereClause: any = ShopAccessControl.buildShopFilter(context);
 
-        if (!user) {
-            return NextResponse.json({ error: 'User not found' }, { status: 404 });
-        }
-
-        // Check permissions
-        if (!hasPermission(user.permissions, 'sales:view')) {
-            return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
-        }
-
-        const { searchParams } = new URL(request.url);
+        // Add other filters
         const search = searchParams.get('search') || '';
-        const status = searchParams.get('status');
         const customerId = searchParams.get('customerId');
         const startDate = searchParams.get('startDate');
         const endDate = searchParams.get('endDate');
-        const shopId = searchParams.get('shopId');
-
-        // Build the where clause for Prisma
-        const whereClause: any = {};
-
-        // Apply shop filtering based on user permissions
-        const isAdmin = hasPermission(user.permissions, 'admin:all') || hasPermission(user.permissions, '*');
-        if (!isAdmin) {
-            // Non-admin users can only see quotations from their assigned shop
-            if (user.shopId) {
-                whereClause.shopId = user.shopId;
-            } else {
-                // User has no shop assigned, return empty result
-                return NextResponse.json([]);
-            }
-        } else if (shopId) {
-            // Admin users can filter by specific shop if requested
-            whereClause.shopId = parseInt(shopId);
-        }
 
         if (search) {
-            whereClause.quotationNumber = {
-                contains: search,
-                mode: 'insensitive'
-            };
+            whereClause.OR = [
+                { quotationNumber: { contains: search, mode: 'insensitive' } },
+                { customer: { name: { contains: search, mode: 'insensitive' } } },
+            ];
         }
-
-        // Note: status field is not available in Quotation model
-        // if (status) {
-        //     whereClause.status = status;
-        // }
 
         if (customerId) {
             whereClause.customerId = parseInt(customerId);
@@ -77,53 +54,29 @@ export async function GET(request: NextRequest) {
         if (startDate && endDate) {
             whereClause.createdAt = {
                 gte: new Date(startDate),
-                lte: new Date(endDate)
-            };
-        } else if (startDate) {
-            whereClause.createdAt = {
-                gte: new Date(startDate)
-            };
-        } else if (endDate) {
-            whereClause.createdAt = {
-                lte: new Date(endDate)
+                lte: new Date(endDate),
             };
         }
 
         const quotations = await prisma.quotation.findMany({
             where: whereClause,
             include: {
-                customer: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                        phone: true
-                    }
-                },
+                customer: true,
                 items: {
                     include: {
-                        product: {
-                            select: {
-                                id: true,
-                                name: true,
-                                sku: true
-                            }
-                        }
-                    }
-                }
+                        product: true,
+                    },
+                },
             },
             orderBy: {
-                createdAt: 'desc'
-            }
+                createdAt: 'desc',
+            },
         });
 
         return NextResponse.json(quotations);
     } catch (error) {
-        console.error('Error fetching quotations:', error);
-        return NextResponse.json(
-            { error: 'Failed to fetch quotations' },
-            { status: 500 }
-        );
+        console.error('Failed to fetch quotations:', error);
+        return NextResponse.json({ error: 'Failed to fetch quotations' }, { status: 500 });
     }
 }
 

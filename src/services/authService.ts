@@ -54,7 +54,14 @@ export const authenticateUser = async (email: string, password: string) => {
                     email: email,
                     isActive: true
                 },
-                include: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    password: true,
+                    roleId: true,
+                    shopId: true,
+                    permissions: true,
                     role: {
                         include: {
                             permissions: {
@@ -86,45 +93,35 @@ export const authenticateUser = async (email: string, password: string) => {
             };
         }
 
-        // Get permissions from role (handle case where user has no role)
-        let permissions: string[] = [];
-        if (user.role?.permissions) {
-            permissions = user.role.permissions.map((p: { name: string }) => p.name);
-        } else if (user.permissions && Array.isArray(user.permissions)) {
-            // Handle special case for "ALL" permissions
-            if (user.permissions.includes('ALL') || checkPermission(user.permissions, 'ALL')) {
-                permissions = ['ALL'];
+        // Get permissions from both the user's direct permissions and their role
+        let directPermissions: string[] = [];
+        let rolePermissions: string[] = [];
+
+        if (user.permissions && Array.isArray(user.permissions)) {
+            // Separate string permissions from numeric-string IDs
+            const permissionNames = user.permissions.filter((p: string) => isNaN(parseInt(p)));
+            const permissionIds = user.permissions.filter((p: string) => !isNaN(parseInt(p))).map((id: string) => parseInt(id));
+
+            if (permissionIds.length > 0) {
+                const fetchedPermissions = await prisma.permission.findMany({
+                    where: { id: { in: permissionIds } },
+                    select: { name: true }
+                });
+                directPermissions = [...permissionNames, ...fetchedPermissions.map(p => p.name)];
             } else {
-                // Check if permissions are stored as IDs (numbers) or names (strings)
-                const firstPermission = user.permissions[0];
-                if (typeof firstPermission === 'number' || (typeof firstPermission === 'string' && !isNaN(parseInt(firstPermission)))) {
-                    // Convert permission IDs to names, filtering out invalid values
-                    const validPermissionIds = user.permissions
-                        .map((id: any) => parseInt(id.toString()))
-                        .filter((id: number) => !isNaN(id));
-                    
-                    if (validPermissionIds.length > 0) {
-                        const permissionRecords = await safeQuery(
-                            () => prisma.permission.findMany({
-                                where: {
-                                    id: {
-                                        in: validPermissionIds
-                                    }
-                                },
-                                select: { name: true }
-                            }),
-                            [],
-                            'Failed to find permissions during authentication'
-                        );
-                        permissions = (permissionRecords as any[]).map((p: any) => p.name);
-                    }
-                } else {
-                    // Permissions are already stored as names
-                    permissions = user.permissions;
-                }
+                directPermissions = permissionNames;
             }
         }
 
+        if (user.role?.permissions) {
+            rolePermissions = user.role.permissions.map((p: { name: string }) => p.name);
+        }
+
+        // Merge and deduplicate permissions
+        const allPermissions = Array.from(new Set([...directPermissions, ...rolePermissions]));
+
+        console.log('Final user permissions being returned:', allPermissions);
+        
         // Generate JWT token
         const token = generateToken({
             sub: user.id,
@@ -132,7 +129,7 @@ export const authenticateUser = async (email: string, password: string) => {
             email: user.email,
             roleId: user.roleId,
             shopId: user.shopId,
-            permissions
+            permissions: allPermissions,
         });
 
         const userSession = {
@@ -143,7 +140,7 @@ export const authenticateUser = async (email: string, password: string) => {
             roleId: user.roleId,
             roleName: user.role?.name || user.roleName || null,
             shopId: user.shopId,
-            permissions,
+            permissions: allPermissions,
             role: user.role
         };
 
@@ -162,7 +159,7 @@ export const authenticateUser = async (email: string, password: string) => {
                 roleId: user.roleId,
                 roleName: user.role?.name || user.roleName || null,
                 shopId: user.shopId,
-                permissions
+                permissions: allPermissions,
             }
         };
     } catch (error) {
