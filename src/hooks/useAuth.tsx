@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
+import { hasPermission as checkPermission } from '@/lib/utils/permissions';
 
 // Types
 interface User {
@@ -14,6 +15,7 @@ interface User {
     roleName: string;
     shopId?: number;
     permissions: string[];
+    allowedAccounts?: string[];
 }
 
 interface AuthContextType {
@@ -44,6 +46,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [accessToken, setAccessToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
+
+    // Define logout function first to avoid hoisting issues
+    const logout = useCallback(async (): Promise<void> => {
+        setIsLoading(true);
+        setUser(null);
+        setAccessToken(null);
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('authToken');
+        try {
+            // Call the backend to invalidate the refresh token and clear cookies
+            await api.post('/api/auth/logout');
+            console.log('Logout successful, server-side session cleared.');
+        } catch (error) {
+            console.error('Logout API call failed:', error);
+            // Still clear client-side, even if server call fails
+        }
+        router.push('/login'); // Redirect to login page
+        setIsLoading(false);
+    }, [router]);
 
     // Setup axios interceptors for token refresh
     useEffect(() => {
@@ -123,7 +144,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             api.interceptors.request.eject(requestInterceptor);
             api.interceptors.response.eject(responseInterceptor);
         };
-    }, [accessToken]); // Added accessToken to dependency array
+    }, [accessToken, logout]); // Added accessToken and logout to dependency array
 
     useEffect(() => {
         const validateAuth = async () => {
@@ -202,7 +223,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
         };
         validateAuth();
-    }, []); // Remove logout from dependencies as it's not used in this useEffect
+    }, []); // Empty dependency array as no dependencies are used in this useEffect
 
     const login = async (email: string, password: string): Promise<boolean> => {
         setIsLoading(true);
@@ -231,31 +252,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return false;
     };
 
-    const logout = useCallback(async (): Promise<void> => {
-        setIsLoading(true);
-        setUser(null);
-        setAccessToken(null);
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('authToken');
-        try {
-            // Call the backend to invalidate the refresh token and clear cookies
-            await api.post('/api/auth/logout');
-            console.log('Logout successful, server-side session cleared.');
-        } catch (error) {
-            console.error('Logout API call failed:', error);
-            // Still clear client-side, even if server call fails
-        }
-        router.push('/login'); // Redirect to login page
-        setIsLoading(false);
-    }, [router]);
+
 
     // Check if user has a specific permission
     const hasPermission = (permission: string): boolean => {
         if (!user || !user.permissions) return false;
-        return user.permissions.includes('*') || 
-               user.permissions.includes('admin:all') || 
-               user.permissions.includes('ALL') || 
-               user.permissions.includes(permission);
+        return checkPermission(user.permissions, permission);
     };
 
     // Get all user permissions

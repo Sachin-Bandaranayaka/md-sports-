@@ -213,7 +213,7 @@ export default function PurchaseListClientOptimized({
       params.delete('action');
       router.replace(`${pathname}?${params.toString()}`);
     }
-  }, [urlStatus, urlAction, searchParams, pathname, router]);
+  }, [urlStatus, urlAction, searchParams, pathname]);
 
   // Memoized filters object
   const filters = useMemo(() => ({
@@ -289,7 +289,7 @@ export default function PurchaseListClientOptimized({
       router.replace(`${pathname}?${params.toString()}`);
       setCurrentPage(1);
     }, 300),
-    [router, pathname, searchParams]
+    [pathname, searchParams]
   );
 
   // Handle search input change
@@ -308,7 +308,7 @@ export default function PurchaseListClientOptimized({
     params.set('page', currentPage.toString());
 
     router.replace(`${pathname}?${params.toString()}`);
-  }, [statusFilter, supplierFilter, startDateFilter, endDateFilter, currentPage, router, pathname, searchParams]);
+  }, [statusFilter, supplierFilter, startDateFilter, endDateFilter, currentPage, pathname, searchParams]);
 
   // Infinite scroll setup
   useEffect(() => {
@@ -342,7 +342,7 @@ export default function PurchaseListClientOptimized({
         await refetch();
       }
       toast.success('Data refreshed successfully');
-    } catch (error) {
+    } catch {
       toast.error('Failed to refresh data');
     } finally {
       setIsRefreshing(false);
@@ -351,11 +351,11 @@ export default function PurchaseListClientOptimized({
 
   const handleEdit = useCallback((id: string) => {
     router.push(`/purchases/${id}/edit`);
-  }, [router]);
+  }, []);
 
   const handleView = useCallback((id: string) => {
     router.push(`/purchases/${id}`);
-  }, [router]);
+  }, []);
 
   const handleDelete = useCallback(async (id: string) => {
     if (!confirm('Are you sure you want to delete this purchase invoice?')) return;
@@ -363,7 +363,7 @@ export default function PurchaseListClientOptimized({
     try {
       await deleteInvoiceMutation.mutateAsync(id);
       toast.success('Purchase invoice deleted successfully');
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete purchase invoice');
     }
   }, [deleteInvoiceMutation]);
@@ -376,7 +376,7 @@ export default function PurchaseListClientOptimized({
     setEndDateFilter('');
     setCurrentPage(1);
     router.replace(pathname);
-  }, [router, pathname]);
+  }, [pathname]);
 
   // Export functionality
   const handleExport = useCallback(async () => {
@@ -401,7 +401,7 @@ export default function PurchaseListClientOptimized({
       document.body.removeChild(a);
 
       toast.success('Export completed successfully');
-    } catch (error) {
+    } catch {
       toast.error('Failed to export data');
     }
   }, [searchTerm, statusFilter, supplierFilter, startDateFilter, endDateFilter]);

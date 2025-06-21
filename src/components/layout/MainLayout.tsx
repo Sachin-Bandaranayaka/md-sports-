@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { QueryProvider } from '@/context/QueryProvider';
+import { hasPermission } from '@/lib/utils/permissions';
 import {
     Home,
     Package,
@@ -103,7 +104,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
     };
 
     // Check if user has the required permission for a menu item
-    const hasPermission = (requiredPermission?: string): boolean => {
+    const checkUserPermission = (requiredPermission?: string): boolean => {
         if (!requiredPermission) return true; // No permission required
 
         // --- Start of new logging ---
@@ -117,29 +118,32 @@ export default function MainLayout({ children }: MainLayoutProps) {
         );
         // --- End of new logging ---
 
-        if (!user?.permissions) {
-            console.log('[MainLayout] User has no permissions array or user is null.');
-            return false; // No permissions available
+        if (!user) {
+            console.log('[MainLayout] User is null or undefined.');
+            return false;
+        }
+        
+        if (!user.permissions || !Array.isArray(user.permissions)) {
+            console.log('[MainLayout] User permissions is not an array:', user.permissions);
+            return false; // No permissions available or invalid permissions
         }
 
-        // Check for admin permissions first (*, admin:all, ALL)
-        const isAdminUser = user.permissions.includes('*') || user.permissions.includes('admin:all') || user.permissions.includes('ALL');
-        const hasSpecificPerm = user.permissions.includes(requiredPermission);
-        const hasPerm = isAdminUser || hasSpecificPerm;
+        // Use standardized permission checking from imported utility
+        const hasPerm = hasPermission(user.permissions, requiredPermission);
         
-        console.log('[MainLayout] Permission check result for ', requiredPermission, ':', hasPerm, '(isAdmin:', isAdminUser, ', hasSpecific:', hasSpecificPerm, ')');
+        console.log('[MainLayout] Permission check result for ', requiredPermission, ':', hasPerm);
         return hasPerm;
     };
 
     // Filter navigation items based on user permissions
-    const getAuthorizedNavItems = () => {
+    const getAuthorizedNavItems = (): NavItem[] => {
         return navItems.map(item => {
-            const itemAccess = hasPermission(item.requiredPermission);
+            const itemAccess = checkUserPermission(item.requiredPermission);
 
             // Handle items with children
             if (item.children) {
                 const authorizedChildren = item.children.filter(child =>
-                    hasPermission(child.requiredPermission)
+                    checkUserPermission(child.requiredPermission)
                 );
                 // Only show parent if there are accessible children AND parent itself is accessible
                 if (authorizedChildren.length > 0 && itemAccess) {
@@ -149,7 +153,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
             }
 
             return itemAccess ? item : null;
-        }).filter(Boolean as any); // Filter out null values
+        }).filter((item): item is NavItem => item !== null); // Filter out null values with type guard
     };
 
     const authorizedNavItems = getAuthorizedNavItems();
@@ -192,7 +196,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
                                     // Filter children based on permissions
                                     const authorizedChildren = item.children?.filter(child =>
-                                        hasPermission(child.requiredPermission)
+                                        checkUserPermission(child.requiredPermission)
                                     ) || [];
 
                                     return (

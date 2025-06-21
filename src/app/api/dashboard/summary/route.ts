@@ -3,6 +3,7 @@ import { prisma, safeQuery } from '@/lib/prisma';
 import { cacheService } from '@/lib/cache';
 import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
 import { validateTokenPermission, getUserIdFromToken } from '@/lib/auth';
+import { permissionService } from '@/lib/services/PermissionService';
 
 // Extracted function to fetch dashboard summary data
 export async function fetchSummaryData(shopId?: string | null, periodDays?: number, startDate?: Date, endDate?: Date, userId?: string | null) {
@@ -258,7 +259,8 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
 
         // Check if user is admin or has admin permissions
         const isAdmin = user.roleName === 'Admin' || user.roleName === 'Super Admin' || 
-                       (user.permissions && user.permissions.includes('admin:all'));
+                       await permissionService.hasPermission(user, 'admin:all') || 
+                       await permissionService.hasPermission(user, 'ALL');
 
         // Check cache first with shop context, period, and user context
         const userContext = isAdmin ? 'admin' : userId;

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { formatCurrency } from '@/utils/formatters';
-import { SalesQuotation, QuotationItem } from '@/types';
+import { SalesQuotation } from '@/types';
 
 interface QuotationTemplateProps {
     quotation: SalesQuotation;

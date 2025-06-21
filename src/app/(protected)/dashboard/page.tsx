@@ -163,11 +163,11 @@ export default function DashboardPage() {
     // Get user's accessible modules
     const getAccessibleModules = () => {
         const modules = [];
-        if (hasPermission('inventory')) modules.push('Inventory');
-        if (hasPermission('sales')) modules.push('Sales');
-        if (hasPermission('accounting')) modules.push('Accounting');
-        if (hasPermission('reports')) modules.push('Reports');
-        if (hasPermission('user')) modules.push('User Management');
+        if (hasPermission('inventory:view')) modules.push('Inventory');
+        if (hasPermission('sales:view')) modules.push('Sales');
+        if (hasPermission('accounting:view')) modules.push('Accounting');
+        if (hasPermission('reports:view')) modules.push('Reports');
+        if (hasPermission('users:view')) modules.push('User Management');
         return modules;
     };
 

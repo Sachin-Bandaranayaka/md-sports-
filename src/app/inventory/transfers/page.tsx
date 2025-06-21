@@ -354,7 +354,7 @@ export default function TransfersPage() {
                                                         View
                                                     </Button>
                                                     {/* Edit button - only for pending transfers */}
-                                                    {transfer.status === 'pending' && user && user.permissions.includes('inventory:transfer') && (
+                                                    {transfer.status === 'pending' && user && hasPermission(user, 'inventory:transfer') && (
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
@@ -365,7 +365,7 @@ export default function TransfersPage() {
                                                         </Button>
                                                     )}
                                                     {/* Delete button - only for pending transfers */}
-                                                    {transfer.status === 'pending' && user && user.permissions.includes('inventory:transfer') && (
+                                                    {transfer.status === 'pending' && user && hasPermission(user, 'inventory:transfer') && (
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
@@ -389,7 +389,7 @@ export default function TransfersPage() {
                                                     </div>
                                                     <p className="text-gray-700 font-medium mb-1">No transfers found</p>
                                                     <p className="text-sm text-gray-500">Create your first inventory transfer to move products between shops</p>
-                                                    {user && user.permissions.includes('inventory:transfer') && (
+                                                    {user && hasPermission(user, 'inventory:transfer') && (
                                                         <Button
                                                             variant="primary"
                                                             size="sm"

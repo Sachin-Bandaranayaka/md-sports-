@@ -18,8 +18,9 @@ export const getCsrfToken = (): string | undefined => {
  * Enhanced fetch function that automatically adds authentication token
  */
 export const authFetch = async (url: string, options: RequestInit = {}) => {
-    // Get token from localStorage
-    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+    // Get token from localStorage (check both accessToken and authToken for compatibility)
+    const token = typeof window !== 'undefined' ? 
+        (localStorage.getItem('accessToken') || localStorage.getItem('authToken')) : null;
 
     if (!token) {
         console.warn('No auth token found for request to:', url);
@@ -132,8 +133,8 @@ export const setupFetchInterceptor = () => {
                 // Cast headers to any to allow string indexing
                 const headers = options.headers as any;
 
-                // Add authentication header if token exists
-                const token = localStorage.getItem('authToken');
+                // Add authentication header if token exists (check both accessToken and authToken for compatibility)
+                const token = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
                 if (token && !headers['Authorization']) {
                     headers['Authorization'] = `Bearer ${token}`;
                 }
@@ -153,4 +154,4 @@ export const setupFetchInterceptor = () => {
 
         console.log('Fetch interceptor set up successfully');
     }
-}; 
+};

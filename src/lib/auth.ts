@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 // import jwt from 'jsonwebtoken'; replaced
 import * as jose from 'jose';
 import prisma from '@/lib/prisma';
+import { hasPermission as checkPermission } from '@/lib/utils/permissions';
 import CredentialsProvider from 'next-auth/providers/credentials';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-key-for-development';
@@ -18,7 +19,7 @@ export const authOptions = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' }
       },
-      async authorize(credentials) {
+      async authorize(_credentials) {
         // This is a placeholder - the actual authentication is handled by custom API routes
         // NextAuth.js requires a provider to be configured even if we're using custom auth
         return null;
@@ -114,7 +115,7 @@ export const validateTokenPermission = async (req: NextRequest, permission: stri
 
         // Check if permission is in the token payload directly
         if (payload.permissions && Array.isArray(payload.permissions)) {
-            const hasPermission = payload.permissions.includes(permission) || payload.permissions.includes('ALL');
+            const hasPermission = checkPermission(payload.permissions, permission);
             console.log(`Permission check from token for "${permission}": ${hasPermission ? 'GRANTED' : 'DENIED'}`);
             
             if (hasPermission) {
@@ -139,7 +140,7 @@ export const validateTokenPermission = async (req: NextRequest, permission: stri
 
         // Check if user has the required permission
         console.log(`User ${userId} permissions:`, user.permissions);
-        const hasPermission = user.permissions.includes(permission) || user.permissions.includes('ALL');
+        const hasPermission = checkPermission(user.permissions, permission);
         console.log(`Permission check result for "${permission}": ${hasPermission ? 'GRANTED' : 'DENIED'}`);
 
         return {
@@ -164,7 +165,7 @@ export const getUserIdFromToken = async (req: NextRequest): Promise<string | nul
 
     // Special case for development token
     if (token === 'dev-token') {
-        return '1'; // Development user ID
+        return '4447d3a9-595b-483e-b55a-38f0f6160121'; // Admin user ID for development
     }
 
     const payload = await verifyToken(token);

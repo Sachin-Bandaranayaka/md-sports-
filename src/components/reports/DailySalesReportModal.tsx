@@ -1,10 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Download, Calendar, TrendingUp, Users, Package, DollarSign } from 'lucide-react';
+import { X, Download, TrendingUp, Users, Package, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
+
+// Extend jsPDF type to include autoTable
+declare module 'jspdf' {
+    interface jsPDF {
+        autoTable: (options: any) => jsPDF;
+    }
+}
 import * as XLSX from 'xlsx';
 
 interface DailySalesReportModalProps {
@@ -72,7 +79,7 @@ const DailySalesReportModal: React.FC<DailySalesReportModalProps> = ({
             tableRows.push(row);
         });
         
-        (doc as any).autoTable({
+        autoTable(doc, {
             head: [tableColumn],
             body: tableRows,
             startY: 105,

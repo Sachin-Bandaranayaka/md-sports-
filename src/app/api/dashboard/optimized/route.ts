@@ -20,6 +20,7 @@ import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
 import { validateTokenPermission, getUserIdFromToken } from '@/lib/auth';
 import { PerformanceMonitor } from '@/lib/performance';
 import { prisma } from '@/lib/prisma';
+import { permissionService } from '@/lib/services/PermissionService';
 
 // Vercel serverless optimizations
 export const runtime = 'nodejs';
@@ -210,7 +211,8 @@ async function fetchOptimizedDashboardData(
 
             // Check if user is admin or has admin permissions
             const isAdmin = user.roleName === 'Admin' || user.roleName === 'Super Admin' || 
-                           (user.permissions && user.permissions.includes('admin:all'));
+                           await permissionService.hasPermission(user, 'admin:all') || 
+                           await permissionService.hasPermission(user, 'ALL');
 
             // Determine user filtering
             let filterUserId: string | null = null;

@@ -3,44 +3,114 @@
 
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from './useAuth';
+import { PERMISSIONS, Permission } from '@/lib/constants/permissions';
+import { permissionService } from '@/lib/services/PermissionService';
 
-// Map routes to required permissions
-const routePermissions: Record<string, string> = {
-    '/dashboard': 'view_dashboard',  // Require dashboard permission
-    '/inventory': 'inventory:view',  // Full inventory access (blocked for shop staff)
-    '/inventory/transfers': 'inventory:transfer',
-    '/inventory/distribution': 'shop:distribution:view',  // Shop distribution access
-    '/suppliers': 'supplier:view',
-    '/purchases': 'purchase:view',
-    '/quotations': 'quotation:view',
-    '/shops': 'shop:view',
-    '/customers': 'customer:view',
-    '/invoices': 'sales:view',  // Changed from invoice:view to sales:view
-    '/accounting': 'accounting:view',
-    '/reports': 'report:view',
-    '/settings': 'settings:manage',
+// Define route permissions mapping using constants
+const routePermissions: Record<string, Permission> = {
+    '/dashboard': PERMISSIONS.SALES_VIEW, // Dashboard requires at least sales view
+    '/inventory': PERMISSIONS.INVENTORY_VIEW,
+    '/sales': PERMISSIONS.SALES_VIEW,
+    '/quotations': PERMISSIONS.QUOTATIONS_VIEW,
+    '/reports': PERMISSIONS.REPORTS_VIEW,
+    '/settings': PERMISSIONS.SETTINGS_VIEW,
+    '/users': PERMISSIONS.USERS_VIEW,
 };
+
+interface PermissionContext {
+    shopId?: string;
+    userId?: string;
+    resourceId?: string;
+}
 
 export function usePermission() {
     const { user } = useAuth();
     const _router = useRouter();
     const pathname = usePathname();
 
-    const hasPermission = (permission: string): boolean => {
-        if (!permission) return true; // No permission required
-        if (!user?.permissions || !user.permissions.length) return false;
-        
-        // Check for admin permissions first
-        if (user.permissions.includes('*') || user.permissions.includes('admin:all') || user.permissions.includes('ALL')) {
-            return true;
-        }
-        
-        return user.permissions.includes(permission);
+    const hasPermission = (
+        requiredPermission: Permission | string,
+        context?: PermissionContext
+    ): boolean => {
+        return permissionService.hasPermission(user, requiredPermission, context);
+    };
+
+    const hasAnyPermission = (
+        requiredPermissions: (Permission | string)[],
+        context?: PermissionContext
+    ): boolean => {
+        return permissionService.hasAnyPermission(user, requiredPermissions, context);
+    };
+
+    const hasAllPermissions = (
+        requiredPermissions: (Permission | string)[],
+        context?: PermissionContext
+    ): boolean => {
+        return permissionService.hasAllPermissions(user, requiredPermissions, context);
+    };
+
+    const isAdmin = (): boolean => {
+        return permissionService.isAdmin(user);
+    };
+
+    const hasShopAccess = (shopId: string, permission: Permission | string): boolean => {
+        return permissionService.hasShopAccess(user, shopId, permission);
+    };
+
+    const getAccessibleShopIds = (): string[] => {
+        return permissionService.getAccessibleShopIds(user);
     };
 
     // Check if user can edit/delete invoices
     const canEditInvoices = (): boolean => {
-        return hasPermission('sales:manage') || hasPermission('admin:all') || hasPermission('ALL') || hasPermission('*');
+        if (!user) return false;
+        
+        // Shop staff cannot edit/delete invoices
+        if (permissionService.hasPermission(user, PERMISSIONS.SHOP_ASSIGNED_ONLY)) {
+            return false;
+        }
+        
+        return hasPermission(PERMISSIONS.SALES_EDIT);
+    };
+
+    const canDeleteInvoices = (): boolean => {
+        if (!user) return false;
+        
+        // Shop staff cannot edit/delete invoices
+        if (permissionService.hasPermission(user, PERMISSIONS.SHOP_ASSIGNED_ONLY)) {
+            return false;
+        }
+        
+        return hasPermission(PERMISSIONS.SALES_DELETE);
+    };
+
+    const canManageUsers = (): boolean => {
+        return hasAnyPermission([
+            PERMISSIONS.USERS_CREATE,
+            PERMISSIONS.USERS_EDIT,
+            PERMISSIONS.USERS_DELETE
+        ]);
+    };
+
+    const canManageInventory = (): boolean => {
+        return hasAnyPermission([
+            PERMISSIONS.INVENTORY_CREATE,
+            PERMISSIONS.INVENTORY_EDIT,
+            PERMISSIONS.INVENTORY_DELETE,
+            PERMISSIONS.INVENTORY_MANAGE
+        ]);
+    };
+
+    const canViewReports = (): boolean => {
+        return hasPermission(PERMISSIONS.REPORTS_VIEW);
+    };
+
+    const canAccessRoute = (route: string): boolean => {
+        const requiredPermission = routePermissions[route];
+        if (!requiredPermission) {
+            return true; // No specific permission required
+        }
+        return hasPermission(requiredPermission);
     };
 
     // Check if user can view quotations
@@ -122,14 +192,30 @@ export function usePermission() {
     };
 
     return {
+        // Core permission functions
         hasPermission,
-        checkRoutePermission,
+        hasAnyPermission,
+        hasAllPermissions,
+        isAdmin,
+        hasShopAccess,
+        getAccessibleShopIds,
+        
+        // Specific business logic functions
         canEditInvoices,
+        canDeleteInvoices,
+        canManageUsers,
+        canManageInventory,
+        canViewReports,
+        canAccessRoute,
+        checkRoutePermission,
         canViewQuotations,
         canCreateQuotations,
         canEditQuotations,
         canViewCosts,
         canRecordPaymentToAccount,
-        getAllowedAccountIds
+        getAllowedAccountIds,
+        
+        // Legacy support
+        routePermissions,
     };
 }

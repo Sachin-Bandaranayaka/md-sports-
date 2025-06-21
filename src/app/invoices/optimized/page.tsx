@@ -215,7 +215,7 @@ function InvoicePageContent() {
     });
 
     // Modal handlers
-    const handleCreateInvoice = useCallback(() => {
+    const handleOpenCreateModal = useCallback(() => {
         setIsCreateModalOpen(true);
     }, []);
 
@@ -356,7 +356,7 @@ function InvoicePageContent() {
                         Refresh
                     </Button>
                     {canEditInvoices() && (
-                        <Button onClick={handleCreateInvoice} disabled={isCreating}>
+                        <Button onClick={handleOpenCreateModal} disabled={isCreating}>
                             <Plus className="h-4 w-4 mr-2" />
                             New Invoice
                         </Button>

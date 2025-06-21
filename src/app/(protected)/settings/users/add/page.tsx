@@ -35,6 +35,8 @@ const roleTemplates: RoleTemplate[] = [
         icon: Users,
         permissions: [
             'view_dashboard',
+            'sales:view',
+            'sales:manage',
             'invoice:create',
             'invoice:view',
             'customer:create',
@@ -228,16 +230,53 @@ export default function AddUserPage() {
         setSelectedTemplate(templateId);
         const template = roleTemplates.find(t => t.id === templateId);
         if (template) {
-            // Find permission IDs that match the template permission names
-            const templatePermissionIds = availablePermissions
-                .filter(p => {
-                    const permissionName = p.name.toLowerCase().replace(/\s+/g, ':');
-                    return template.permissions.some(tp => 
-                        permissionName.includes(tp.split(':')[0]) && 
-                        permissionName.includes(tp.split(':')[1])
-                    );
-                })
-                .map(p => p.id);
+            // Map template permission names to actual database permission IDs
+            const permissionNameToId: Record<string, string> = {};
+            availablePermissions.forEach(p => {
+                // Extract the actual permission name from the database
+                const dbPermissions = [
+                    'inventory:view', 'sales:view', 'user:manage', 'settings:manage', 
+                    'dashboard:view', 'admin:all', 'inventory:transfer', 'shop:manage',
+                    'customer:view', 'invoice:create', 'quotation:create', 'purchase:view',
+                    'supplier:view', 'payment:view', 'receipt:view', 'accounting:view',
+                    'report:view', 'audit:view', 'category:view', 'product:view',
+                    'shop:distribution:view'
+                ];
+                
+                // Find matching permission name
+                const matchingPermission = dbPermissions.find(dbPerm => {
+                    const [module, action] = dbPerm.split(':');
+                    return p.module.toLowerCase() === module && 
+                           p.name.toLowerCase().includes(action);
+                });
+                
+                if (matchingPermission) {
+                    permissionNameToId[matchingPermission] = p.id;
+                }
+            });
+            
+            // Map template permissions to IDs
+            const templatePermissionIds: string[] = [];
+            
+            template.permissions.forEach(templatePerm => {
+                if (templatePerm === 'view_dashboard') {
+                    const dashboardId = permissionNameToId['dashboard:view'];
+                    if (dashboardId) templatePermissionIds.push(dashboardId);
+                } else if (templatePerm === 'sales:manage') {
+                    // For sales:manage, add both sales:view and any sales management permissions
+                    const salesViewId = permissionNameToId['sales:view'];
+                    if (salesViewId) templatePermissionIds.push(salesViewId);
+                } else if (templatePerm === 'shop:assigned_only') {
+                    // This permission might not exist yet, we'll handle it in the backend
+                    // For now, we'll include it as a special case
+                    templatePermissionIds.push('shop:assigned_only');
+                } else {
+                    const permissionId = permissionNameToId[templatePerm];
+                    if (permissionId) {
+                        templatePermissionIds.push(permissionId);
+                    }
+                }
+            });
             
             setUserForm(prev => ({ ...prev, permissions: templatePermissionIds }));
         }

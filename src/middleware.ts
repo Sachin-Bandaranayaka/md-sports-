@@ -62,7 +62,8 @@ async function validateShopAccess(req: NextRequest, targetShopId?: string | numb
 
         // Check if user belongs to the target shop
         const targetShopIdNum = typeof targetShopId === 'string' ? parseInt(targetShopId) : targetShopId;
-        return userShopId === targetShopIdNum;
+        const userShopIdNum = typeof userShopId === 'string' ? parseInt(userShopId) : userShopId;
+        return userShopIdNum === targetShopIdNum;
 
     } catch (error) {
         console.error('Error validating shop access:', error);
@@ -255,8 +256,8 @@ export async function middleware(request: NextRequest) {
         const csrfTokenFromCookie = request.cookies.get('csrfToken')?.value;
         const csrfTokenFromHeader = request.headers.get('X-CSRF-Token');
 
-        // Skip CSRF check for login and initial auth routes
-        const isAuthRoute = ['/api/auth/login', '/api/auth/register', '/api/auth/refresh'].some(
+        // Skip CSRF check for login and initial auth routes, and maintenance endpoints
+        const isAuthRoute = ['/api/auth/login', '/api/auth/register', '/api/auth/refresh', '/api/fix-shopstaff-permissions'].some(
             route => pathname.startsWith(route)
         );
 

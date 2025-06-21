@@ -166,7 +166,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
                             {addressObj.contactPerson && <div>Contact: {addressObj.contactPerson}</div>}
                         </>
                     );
-                } catch (e) {
+                } catch {
                     return <div>{invoice.customer.address}</div>;
                 }
             } else {

@@ -1,5 +1,6 @@
 import { chromium, FullConfig } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
+import { randomUUID } from 'crypto';
 
 const prisma = new PrismaClient();
 
@@ -42,6 +43,7 @@ async function globalSetup(config: FullConfig) {
   // Create test data
   const testUser = await prisma.user.create({
     data: {
+      id: randomUUID(),
       name: 'Test User',
       email: 'test@example.com',
       password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password

@@ -1,55 +1,110 @@
 /**
- * Centralized permission checking utilities
+ * Permission utility functions
+ * 
+ * @deprecated Use PermissionService instead for better performance and consistency
  */
 
+import { PERMISSIONS, Permission, isValidPermission } from '@/lib/constants/permissions';
+import { permissionService } from '@/lib/services/PermissionService';
+import { AuthenticatedUser } from '@/types/auth';
+
 /**
- * Check if user has admin permissions or specific permission
- * @param permissions - Array of user permissions
- * @param requiredPermission - The specific permission required
- * @returns boolean indicating if user has permission
+ * @deprecated Use permissionService.hasPermission() instead
  */
-export function hasPermission(permissions: string[], requiredPermission: string): boolean {
-    return permissions.includes('*') || 
-           permissions.includes('admin:all') || 
-           permissions.includes('ALL') || 
-           permissions.includes(requiredPermission);
+export function hasPermission(userPermissions: string[], requiredPermission: string): boolean {
+  // Add defensive type checking
+  if (!userPermissions || !Array.isArray(userPermissions) || userPermissions.length === 0) {
+    console.error('hasPermission: userPermissions is not a valid array:', {
+      type: typeof userPermissions,
+      value: userPermissions,
+      requiredPermission,
+      stack: new Error().stack
+    });
+    return false;
+  }
+
+  // Check if requiredPermission is defined
+  if (!requiredPermission) {
+    return false;
+  }
+
+  // Validate permission format
+  if (!isValidPermission(requiredPermission)) {
+    console.warn(`Invalid permission format: ${requiredPermission}`);
+    return false;
+  }
+
+  // Check for wildcard permissions
+  if (userPermissions.includes(PERMISSIONS.WILDCARD) || 
+      userPermissions.includes(PERMISSIONS.ADMIN_ALL) || 
+      userPermissions.includes(PERMISSIONS.LEGACY_ALL)) {
+    return true;
+  }
+
+  // Check for exact permission match
+  if (userPermissions.includes(requiredPermission)) {
+    return true;
+  }
+
+  // Check for module-level permissions (e.g., 'sales:manage' includes 'sales:view')
+  if (requiredPermission && requiredPermission.includes(':')) {
+    const [module, action] = requiredPermission.split(':');
+    if (action && userPermissions.includes(`${module}:manage`)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
- * Check if user has any of the specified permissions or admin permissions
- * @param permissions - Array of user permissions
- * @param requiredPermissions - Array of permissions, user needs at least one
- * @returns boolean indicating if user has any of the required permissions
+ * @deprecated Use permissionService.hasAnyPermission() instead
  */
-export function hasAnyPermission(permissions: string[], requiredPermissions: string[]): boolean {
-    return permissions.includes('*') || 
-           permissions.includes('admin:all') || 
-           permissions.includes('ALL') || 
-           requiredPermissions.some(permission => permissions.includes(permission));
+export function hasAnyPermission(userPermissions: string[], requiredPermissions: string[]): boolean {
+  return requiredPermissions.some(permission => hasPermission(userPermissions, permission));
 }
 
 /**
- * Check if user has all of the specified permissions or admin permissions
- * @param permissions - Array of user permissions
- * @param requiredPermissions - Array of permissions, user needs all of them
- * @returns boolean indicating if user has all required permissions
+ * @deprecated Use permissionService.hasAllPermissions() instead
  */
-export function hasAllPermissions(permissions: string[], requiredPermissions: string[]): boolean {
-    return permissions.includes('*') || 
-           permissions.includes('admin:all') || 
-           permissions.includes('ALL') || 
-           requiredPermissions.every(permission => permissions.includes(permission));
+export function hasAllPermissions(userPermissions: string[], requiredPermissions: string[]): boolean {
+  return requiredPermissions.every(permission => hasPermission(userPermissions, permission));
 }
 
 /**
- * Check if user is an admin (has admin:all, *, or specific admin permissions)
- * @param permissions - Array of user permissions
- * @returns boolean indicating if user is an admin
+ * @deprecated Use permissionService.isAdmin() instead
  */
-export function isAdmin(permissions: string[]): boolean {
-    return permissions.includes('*') || 
-           permissions.includes('admin:all') || 
-           permissions.includes('ALL') || 
-           permissions.includes('shop:manage') || 
-           permissions.includes('user:manage');
+export function isAdmin(userPermissions: string[]): boolean {
+  return hasAnyPermission(userPermissions, [PERMISSIONS.WILDCARD, PERMISSIONS.ADMIN_ALL, PERMISSIONS.LEGACY_ALL]);
+}
+
+// New utility functions using PermissionService
+
+/**
+ * Check if user has permission using the new PermissionService
+ */
+export function checkUserPermission(
+  user: AuthenticatedUser | null,
+  permission: Permission | string,
+  context?: { shopId?: string; userId?: string; resourceId?: string }
+): boolean {
+  return permissionService.hasPermission(user, permission, context);
+}
+
+/**
+ * Check if user has shop access
+ */
+export function checkShopAccess(
+  user: AuthenticatedUser | null,
+  shopId: string,
+  permission: Permission | string
+): boolean {
+  return permissionService.hasShopAccess(user, shopId, permission);
+}
+
+/**
+ * Check if user is admin
+ */
+export function checkIsAdmin(user: AuthenticatedUser | null): boolean {
+  return permissionService.isAdmin(user);
 }

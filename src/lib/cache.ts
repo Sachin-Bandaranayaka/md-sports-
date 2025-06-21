@@ -105,7 +105,7 @@ class RedisCache {
     private isConnected = false;
 
     constructor() {
-        const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+        const _redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 
         this.redis = new Redis({
             host: process.env.REDIS_HOST || 'localhost',

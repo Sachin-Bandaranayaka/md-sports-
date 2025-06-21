@@ -1,31 +1,80 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
+import { validateTokenPermission, getUserIdFromToken } from '@/lib/auth';
 
 // GET: Fetch all accounts or a single account by ID
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
     try {
+        // Validate authentication
+        const authResult = await validateTokenPermission(request, 'accounting:view');
+        if (!authResult.isValid) {
+            return NextResponse.json({
+                success: false,
+                message: 'Unauthorized access'
+            }, { status: 401 });
+        }
+
+        // Get user information for permission filtering
+        const userId = await getUserIdFromToken(request);
+        if (!userId) {
+            return NextResponse.json({
+                success: false,
+                message: 'User not found'
+            }, { status: 401 });
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                allowedAccounts: true,
+                roleName: true
+            }
+        });
+
+        if (!user) {
+            return NextResponse.json({
+                success: false,
+                message: 'User not found'
+            }, { status: 401 });
+        }
+
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');
 
+        // Check if user is admin
+        const adminPermission = await validateTokenPermission(request, 'admin:all');
+        const isAdmin = adminPermission.isValid;
+
         if (id) {
             // Fetch a single account by ID with relationships
-        const account = await prisma.account.findUnique({
-            where: { id: parseInt(id, 10) },
-            include: {
-                parent: true,
-                subAccounts: {
-                    orderBy: {
-                        name: 'asc'
+            const account = await prisma.account.findUnique({
+                where: { id: parseInt(id, 10) },
+                include: {
+                    parent: true,
+                    subAccounts: {
+                        orderBy: {
+                            name: 'asc'
+                        }
                     }
                 }
-            }
-        });
+            });
 
             if (!account) {
                 return NextResponse.json({
                     success: false,
                     message: 'Account not found'
                 }, { status: 404 });
+            }
+
+            // Check if non-admin user has access to this specific account
+            if (!isAdmin && user.allowedAccounts && user.allowedAccounts.length > 0) {
+                if (!user.allowedAccounts.includes(account.id.toString())) {
+                    return NextResponse.json({
+                        success: false,
+                        message: 'Access denied to this account'
+                    }, { status: 403 });
+                }
             }
 
             return NextResponse.json({
@@ -35,7 +84,7 @@ export async function GET(request: Request) {
         }
 
         // Fetch all accounts with parent and sub-account relationships
-        const accounts = await prisma.account.findMany({
+        let accounts = await prisma.account.findMany({
             include: {
                 parent: true,
                 subAccounts: {
@@ -48,6 +97,15 @@ export async function GET(request: Request) {
                 name: 'asc'
             }
         });
+
+        // Filter accounts for non-admin users based on allowedAccounts
+        if (!isAdmin && user.allowedAccounts && user.allowedAccounts.length > 0) {
+            const allowedAccountIds = user.allowedAccounts.map(id => parseInt(id, 10));
+            accounts = accounts.filter(account => allowedAccountIds.includes(account.id));
+            console.log(`Non-admin user ${user.id} - filtered accounts to allowed ones: ${allowedAccountIds.join(', ')}`);
+        } else if (isAdmin) {
+            console.log(`Admin user ${user.id} - showing all accounts`);
+        }
 
         return NextResponse.json({
             success: true,

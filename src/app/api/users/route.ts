@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requirePermission } from '@/lib/utils/middleware';
+import { permissionService } from '@/lib/services/PermissionService';
 import bcrypt from 'bcryptjs';
+import { randomUUID } from 'crypto';
 
 // GET: List all users
 export async function GET(req: NextRequest) {
@@ -121,12 +123,32 @@ export async function POST(req: NextRequest) {
         // Hash the password
         const hashedPassword = await bcrypt.hash(userData.password, 12);
 
+        // Ensure shop:assigned_only permission exists if needed
+        let shopAssignedPermissionId = null;
+        if (userData.permissions.includes('shop:assigned_only')) {
+            const shopAssignedPermission = await prisma.permission.upsert({
+                where: { name: 'shop:assigned_only' },
+                update: {},
+                create: {
+                    name: 'shop:assigned_only',
+                    description: 'Restricts user access to only their assigned shop'
+                }
+            });
+            shopAssignedPermissionId = shopAssignedPermission.id.toString();
+            
+            // Replace the string 'shop:assigned_only' with the actual permission ID
+            userData.permissions = userData.permissions.map(p => 
+                p === 'shop:assigned_only' ? shopAssignedPermissionId : p
+            );
+        }
+
         // Determine role based on permissions
         let roleId = null;
         let roleName = null;
         
         // Check if user has admin permissions
-        if (userData.permissions.includes('admin:all')) {
+        if (permissionService.hasPermission({ permissions: userData.permissions }, 'ALL') || 
+            permissionService.hasPermission({ permissions: userData.permissions }, 'admin:all')) {
             const adminRole = await prisma.role.findUnique({
                 where: { name: 'Admin' }
             });
@@ -135,8 +157,8 @@ export async function POST(req: NextRequest) {
                 roleName = 'Admin';
             }
         }
-        // Check if user has shop staff permissions
-        else if (userData.permissions.includes('shop:assigned_only')) {
+        // Check if user has shop staff permissions (check for the permission ID)
+        else if (shopAssignedPermissionId && userData.permissions.includes(shopAssignedPermissionId)) {
             const shopStaffRole = await prisma.role.findUnique({
                 where: { name: 'Shop Staff' }
             });
@@ -148,6 +170,7 @@ export async function POST(req: NextRequest) {
 
         // Prepare user data
         const userData_final = {
+            id: randomUUID(), // Generate UUID manually
             name: userData.name,
             email: userData.email,
             password: hashedPassword,

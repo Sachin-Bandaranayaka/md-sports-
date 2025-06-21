@@ -27,10 +27,11 @@ export async function GET(
     }
 
     // Check if user has any inventory view permission
+    const hasAllPermissions = user.permissions?.includes('ALL');
     const hasBasicView = user.permissions?.includes('inventory:view:basic');
     const hasFullView = user.permissions?.includes('inventory:view');
     
-    if (!hasBasicView && !hasFullView) {
+    if (!hasAllPermissions && !hasBasicView && !hasFullView) {
         return NextResponse.json({
             success: false,
             message: 'Permission denied: inventory view access required'
@@ -38,7 +39,7 @@ export async function GET(
     }
 
     // Determine if costs should be included
-    const includeCosts = hasFullView && !hasBasicView;
+    const includeCosts = hasAllPermissions || (hasFullView && !hasBasicView);
 
     try {
         // Get the shop ID safely

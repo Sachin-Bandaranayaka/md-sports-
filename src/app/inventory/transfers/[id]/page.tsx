@@ -9,6 +9,7 @@ import { Loader2, ArrowLeft, Check, X, AlertCircle, ArrowLeftRight, Package } fr
 import { formatDate } from '@/utils/formatters';
 import { useAuth } from '@/hooks/useAuth';
 import { authFetch } from '@/utils/api';
+import { hasPermission } from '@/lib/utils/permissions';
 
 interface TransferItem {
     id: number;
@@ -46,7 +47,7 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
     const [showTransferAnimation, setShowTransferAnimation] = useState(false);
 
     // Check if user has transfer permission
-    const hasTransferPermission = user?.permissions.includes('inventory:transfer') || false;
+    const hasTransferPermission = user ? hasPermission(user, 'inventory:transfer') : false;
 
     useEffect(() => {
         const fetchTransfer = async () => {

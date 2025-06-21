@@ -3,6 +3,7 @@ import { prisma, safeQuery } from '@/lib/prisma';
 import { cacheService } from '@/lib/cache';
 import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
 import { validateTokenPermission, getUserIdFromToken } from '@/lib/auth';
+import { permissionService } from '@/lib/services/PermissionService';
 
 // Filtered version of fetchSalesData with date range and shop support
 export async function fetchSalesDataFiltered(startDate?: string | null, endDate?: string | null, shopId?: number | null, userId?: string | null) {
@@ -148,7 +149,8 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
 
         // Check if user is admin or has admin permissions
         const isAdmin = user.roleName === 'Admin' || user.roleName === 'Super Admin' || 
-                       (user.permissions && user.permissions.includes('admin:all'));
+                       await permissionService.hasPermission(user, 'admin:all') || 
+                       await permissionService.hasPermission(user, 'ALL');
 
         // Determine user filtering
         let filterUserId: string | null = null;

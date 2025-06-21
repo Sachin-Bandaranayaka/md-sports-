@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { Package, Truck, CreditCard, AlertTriangle, Tag, TrendingUp, TrendingDown } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermission } from '@/hooks/usePermission';
+import { PERMISSIONS, Permission } from '@/lib/constants/permissions';
 
 // Types for our data
 interface SummaryItem {
@@ -11,12 +13,12 @@ interface SummaryItem {
     icon: string;
     trend: string;
     trendUp: boolean;
-    requiredPermission?: string;
+    requiredPermission?: Permission | string;
 }
 
 // Dummy data for backup with permissions
 const dummySummaryData: SummaryItem[] = [
-    { title: 'Pending Transfers', value: '12', icon: 'Truck', trend: '+2', trendUp: true, requiredPermission: 'inventory:view' },
+    { title: 'Pending Transfers', value: '12', icon: 'Truck', trend: '+2', trendUp: true, requiredPermission: PERMISSIONS.INVENTORY_VIEW },
 ];
 
 interface DashboardMetricsProps {
@@ -26,6 +28,7 @@ interface DashboardMetricsProps {
 
 export default function DashboardMetrics({ summaryData, isLoading = false }: DashboardMetricsProps) {
     const { user } = useAuth();
+    const { hasPermission } = usePermission();
 
     // Map icon names to components
     const iconMap: Record<string, React.ElementType> = {
@@ -37,11 +40,10 @@ export default function DashboardMetrics({ summaryData, isLoading = false }: Das
         'TrendingUp': TrendingUp
     };
 
-    // Check if user has the required permission
-    const hasPermission = (requiredPermission?: string): boolean => {
+    // Check if user has the required permission using the new service
+    const checkPermission = (requiredPermission?: Permission | string): boolean => {
         if (!requiredPermission) return true; // No permission required
-        if (!user?.permissions || !user.permissions.length) return false;
-        return user.permissions.includes(requiredPermission);
+        return hasPermission(requiredPermission);
     };
 
     // Use provided data or fallback to dummy data
@@ -49,7 +51,7 @@ export default function DashboardMetrics({ summaryData, isLoading = false }: Das
 
     // Filter metrics based on user permissions
     const getAuthorizedMetrics = () => {
-        return displayData.filter(item => hasPermission(item.requiredPermission));
+        return displayData.filter(item => checkPermission(item.requiredPermission));
     };
 
     const authorizedMetrics = getAuthorizedMetrics();

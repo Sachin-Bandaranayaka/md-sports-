@@ -1,4 +1,3 @@
-import { NextRequest } from 'next/server';
 import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
 import prisma, { safeQuery } from '@/lib/prisma';
@@ -90,31 +89,38 @@ export const authenticateUser = async (email: string, password: string) => {
         // Get permissions from role (handle case where user has no role)
         let permissions: string[] = [];
         if (user.role?.permissions) {
-            permissions = user.role.permissions.map(p => p.name);
+            permissions = user.role.permissions.map((p: { name: string }) => p.name);
         } else if (user.permissions && Array.isArray(user.permissions)) {
             // Handle special case for "ALL" permissions
-            if (user.permissions.includes('ALL')) {
+            if (user.permissions.includes('ALL') || checkPermission(user.permissions, 'ALL')) {
                 permissions = ['ALL'];
             } else {
-                // Convert permission IDs to names, filtering out invalid values
-                const validPermissionIds = user.permissions
-                    .map(id => parseInt(id.toString()))
-                    .filter(id => !isNaN(id));
-                
-                if (validPermissionIds.length > 0) {
-                    const permissionRecords = await safeQuery(
-                        () => prisma.permission.findMany({
-                            where: {
-                                id: {
-                                    in: validPermissionIds
-                                }
-                            },
-                            select: { name: true }
-                        }),
-                        [],
-                        'Failed to find permissions during authentication'
-                    );
-                    permissions = (permissionRecords as any[]).map((p: any) => p.name);
+                // Check if permissions are stored as IDs (numbers) or names (strings)
+                const firstPermission = user.permissions[0];
+                if (typeof firstPermission === 'number' || (typeof firstPermission === 'string' && !isNaN(parseInt(firstPermission)))) {
+                    // Convert permission IDs to names, filtering out invalid values
+                    const validPermissionIds = user.permissions
+                        .map((id: any) => parseInt(id.toString()))
+                        .filter((id: number) => !isNaN(id));
+                    
+                    if (validPermissionIds.length > 0) {
+                        const permissionRecords = await safeQuery(
+                            () => prisma.permission.findMany({
+                                where: {
+                                    id: {
+                                        in: validPermissionIds
+                                    }
+                                },
+                                select: { name: true }
+                            }),
+                            [],
+                            'Failed to find permissions during authentication'
+                        );
+                        permissions = (permissionRecords as any[]).map((p: any) => p.name);
+                    }
+                } else {
+                    // Permissions are already stored as names
+                    permissions = user.permissions;
                 }
             }
         }
@@ -255,7 +261,50 @@ export const hasPermission = async (tokenPayload: TokenPayload, permission: stri
         ) as any;
 
         if (user) {
-            const permissions = user.role.permissions.map((p: any) => p.name);
+            // Combine role permissions and direct user permissions
+            const rolePermissions = user.role?.permissions?.map((p: any) => p.name) || [];
+            const directPermissions = user.permissions || [];
+            
+            // Convert permission IDs to names if needed
+            let convertedDirectPermissions: string[] = [];
+            if (directPermissions.length > 0) {
+                const firstPermission = directPermissions[0];
+                if (typeof firstPermission === 'number' || (typeof firstPermission === 'string' && !isNaN(parseInt(firstPermission)))) {
+                    // Permissions are stored as IDs, need to convert to names
+                    const permissionIds = directPermissions
+                        .map((id: any) => parseInt(id.toString()))
+                        .filter((id: number) => !isNaN(id));
+                    
+                    if (permissionIds.length > 0) {
+                        try {
+                            const permissionRecords = await safeQuery(
+                                () => prisma.permission.findMany({
+                                    where: {
+                                        id: {
+                                            in: permissionIds
+                                        }
+                                    },
+                                    select: { name: true }
+                                }),
+                                [],
+                                'Failed to find permissions by IDs'
+                            );
+                            convertedDirectPermissions = (permissionRecords as any[]).map((p: any) => p.name);
+                        } catch (error) {
+                            console.error('Error converting permission IDs to names:', error);
+                            convertedDirectPermissions = [];
+                        }
+                    }
+                } else {
+                    // Permissions are already stored as names
+                    convertedDirectPermissions = directPermissions;
+                }
+            }
+            
+            // Combine all permissions and remove duplicates
+            const allPermissions = [...rolePermissions, ...convertedDirectPermissions];
+            const permissions = Array.from(new Set(allPermissions));
+            
             // Cache permissions for future checks
             await cacheService.set(permissionsCacheKey, permissions, CACHE_CONFIG.TTL.USER_PERMISSIONS);
             return checkPermission(permissions, permission);
@@ -327,10 +376,55 @@ export const getUserFromDecodedPayload = async (payload: TokenPayload | null) =>
             return null;
         }
 
+        // Combine role permissions and direct user permissions
+        const rolePermissions = user.role?.permissions?.map((p: any) => p.name) || [];
+        const directPermissions = user.permissions || [];
+        
+        // Convert permission IDs to names if needed
+        let convertedDirectPermissions: string[] = [];
+        if (Array.isArray(directPermissions) && directPermissions.length > 0) {
+            // Check if permissions are stored as IDs (numbers) or names (strings)
+            const firstPermission = directPermissions[0];
+            if (typeof firstPermission === 'number' || (typeof firstPermission === 'string' && !isNaN(parseInt(firstPermission)))) {
+                // Permissions are stored as IDs, need to convert to names
+                const permissionIds = directPermissions
+                    .map((id: any) => parseInt(id.toString()))
+                    .filter((id: number) => !isNaN(id));
+                
+                if (permissionIds.length > 0) {
+                    try {
+                        const permissionRecords = await safeQuery(
+                            () => prisma.permission.findMany({
+                                where: {
+                                    id: {
+                                        in: permissionIds
+                                    }
+                                },
+                                select: { name: true }
+                            }),
+                            [],
+                            'Failed to find permissions by IDs'
+                        );
+                        convertedDirectPermissions = (permissionRecords as any[]).map((p: any) => p.name);
+                    } catch (error) {
+                        console.error('Error converting permission IDs to names:', error);
+                        convertedDirectPermissions = [];
+                    }
+                }
+            } else {
+                // Permissions are already stored as names
+                convertedDirectPermissions = directPermissions;
+            }
+        }
+        
+        // Combine all permissions and remove duplicates
+        const allPermissions = [...rolePermissions, ...convertedDirectPermissions];
+        const permissions = Array.from(new Set(allPermissions));
+
         const userWithPermissions = {
             ...user,
-            roleName: user.role.name,
-            permissions: user.role.permissions.map((p: any) => p.name)
+            roleName: user.role?.name || user.roleName || 'Admin',
+            permissions: permissions
         };
 
         // Cache the user session

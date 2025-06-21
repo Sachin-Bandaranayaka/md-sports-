@@ -6,6 +6,7 @@ import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
 import { createServer } from 'http';
 import express from 'express';
+import { randomUUID } from 'crypto';
 
 // Create a proper test database instance
 const testPrisma = new PrismaClient({
@@ -90,6 +91,7 @@ describe('Purchase Invoices Integration Tests', () => {
       // Create test user
       testUser = await prisma.user.create({
         data: {
+          id: randomUUID(),
           email: 'test@example.com',
           password: 'hashed-password',
           role: 'ADMIN',

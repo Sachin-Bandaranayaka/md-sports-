@@ -2,9 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/utils/middleware';
 import { prisma, safeQuery } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
+import { permissionService } from '@/lib/services/PermissionService';
 import { transferCacheService } from '@/lib/transferCache';
 import { trackTransferOperation } from '@/lib/transferPerformanceMonitor';
 import { deduplicateRequest } from '@/lib/request-deduplication';
+
+// Type definition for transfer items
+interface TransferItem {
+    productId: string;
+    quantity: string;
+}
 
 // Default fallback data for transfers
 const defaultTransfersData = [
@@ -17,14 +24,43 @@ const defaultTransfersData = [
 export async function GET(req: NextRequest) {
     const operation = trackTransferOperation('list');
 
-    console.log('GET /api/inventory/transfers - Checking permission: inventory:view');
-    // Check for inventory:view permission
-    const permissionError = await requirePermission('inventory:view')(req);
+    console.log('GET /api/inventory/transfers - Checking permission: inventory:transfer');
+    // Check for inventory:transfer permission (shop staff should have this)
+    const permissionError = await requirePermission('inventory:transfer')(req);
     if (permissionError) {
-        console.error('Permission denied for inventory:view:', permissionError.status);
+        console.error('Permission denied for inventory:transfer:', permissionError.status);
         operation.end(false, 'unauthorized');
         return permissionError;
     }
+
+    // Get user context for shop filtering
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        operation.end(false, 'unauthorized');
+        return NextResponse.json({
+            success: false,
+            message: 'Authentication required'
+        }, { status: 401 });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const decodedToken = await verifyToken(token);
+
+    if (!decodedToken) {
+        operation.end(false, 'unauthorized');
+        return NextResponse.json({
+            success: false,
+            message: 'Invalid token'
+        }, { status: 401 });
+    }
+
+    const userShopId = decodedToken.shopId;
+    const userPermissions = Array.isArray(decodedToken.permissions) ? decodedToken.permissions : [];
+    const isAdmin = permissionService.hasPermission({ permissions: userPermissions }, 'admin:all') || 
+                    permissionService.hasPermission({ permissions: userPermissions }, 'shop:manage') || 
+                    token === 'dev-token';
+    
+    console.log('User shop filtering - shopId:', userShopId, 'isAdmin:', isAdmin);
 
     try {
         console.log('Executing query to fetch transfers...');
@@ -54,7 +90,24 @@ export async function GET(req: NextRequest) {
             async () => {
                 const transfers = await safeQuery(
                     async () => {
+                        // Build where clause for shop filtering
+                        let whereClause: any = {};
+                        
+                        // If user is not admin and has a specific shop, filter transfers
+                        if (!isAdmin && userShopId) {
+                            whereClause = {
+                                OR: [
+                                    { fromShopId: userShopId },
+                                    { toShopId: userShopId }
+                                ]
+                            };
+                            console.log('Applying shop filter for shopId:', userShopId);
+                        } else {
+                            console.log('No shop filtering applied - admin user or no shop assigned');
+                        }
+                        
                         const result = await prisma.inventoryTransfer.findMany({
+                            where: whereClause,
                             select: {
                                 id: true,
                                 status: true,
@@ -179,7 +232,7 @@ export async function POST(req: NextRequest) {
             }, { status: 401 });
         }
 
-        const userId = Number(decodedToken.sub);
+        const userId = decodedToken.sub;
         console.log('Creating transfer for user ID:', userId);
 
         // Validate request data
@@ -205,7 +258,7 @@ export async function POST(req: NextRequest) {
                                 toUserId: userId, // Using the same user for both as we don't have separate users in the UI yet
                                 status: 'pending',
                                 transferItems: {
-                                    create: items.map(item => ({
+                                    create: items.map((item: TransferItem) => ({
                                         productId: parseInt(item.productId),
                                         quantity: parseInt(item.quantity)
                                     }))
