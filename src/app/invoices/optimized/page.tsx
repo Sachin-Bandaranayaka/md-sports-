@@ -18,6 +18,7 @@ import InvoiceCreateModal from '@/components/invoices/InvoiceCreateModal';
 import InvoiceEditModal from '@/components/invoices/InvoiceEditModal';
 import InvoiceViewModal from '@/components/invoices/InvoiceViewModal';
 import { cn } from '@/lib/utils';
+import { usePermission } from '@/hooks/usePermission';
 
 // Types
 interface Invoice {
@@ -59,7 +60,7 @@ const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
             staleTime: 30000, // 30 seconds
-            cacheTime: 300000, // 5 minutes
+            gcTime: 300000, // 5 minutes (renamed from cacheTime)
             refetchOnWindowFocus: false,
             refetchOnReconnect: true,
             retry: (failureCount, error: any) => {
@@ -79,6 +80,7 @@ const queryClient = new QueryClient({
 // Main invoice page component
 function InvoicePageContent() {
     const router = useRouter();
+    const { canEditInvoices } = usePermission();
     
     // Modal states
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -88,36 +90,78 @@ function InvoicePageContent() {
     const [viewMode, setViewMode] = useState<'list' | 'infinite'>('list');
     const [showDetailedStats, setShowDetailedStats] = useState(false);
 
-    // Initialize the optimized hook with default filters
-    const {
-        invoices,
-        statistics,
-        filters,
-        selectedInvoices,
-        isLoading,
-        isLoadingStatistics,
-        isFetchingNextPage,
-        error,
-        hasNextPage,
-        fetchNextPage,
-        updateFilters,
-        refetch,
-        refetchInfinite,
-        createInvoice,
-        updateInvoice,
-        deleteInvoice,
-        recordPayment,
-        bulkUpdate,
-        toggleInvoiceSelection,
-        selectAllInvoices,
-        clearSelection,
-        isCreating,
-        isUpdating,
-        isDeleting,
-        isBulkUpdating
-    } = useInvoicesOptimized({
-        sortBy: 'createdAt_desc'
+    // Initialize the basic invoice query
+    const [filters, setFilters] = useState({
+        page: 1,
+        limit: 20,
+        search: '',
+        customer: '',
+        status: ''
     });
+    const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
+    
+    const {
+        data: invoicesData,
+        isLoading,
+        error,
+        refetch
+    } = useInvoicesOptimized(filters);
+    
+    const invoices = invoicesData?.data || [];
+    const statistics = invoicesData?.statistics || null;
+    
+    // Handle filter updates
+    const updateFilters = useCallback((newFilters: any) => {
+        setFilters(prev => ({ ...prev, ...newFilters }));
+    }, []);
+    
+    // Handle invoice selection
+    const toggleInvoiceSelection = useCallback((invoiceId: string) => {
+        setSelectedInvoices(prev => 
+            prev.includes(invoiceId) 
+                ? prev.filter(id => id !== invoiceId)
+                : [...prev, invoiceId]
+        );
+    }, []);
+    
+    const selectAllInvoices = useCallback(() => {
+        setSelectedInvoices(invoices.map((inv: Invoice) => inv.id.toString()));
+    }, [invoices]);
+    
+    const clearSelection = useCallback(() => {
+        setSelectedInvoices([]);
+    }, []);
+    
+    // Placeholder functions for missing functionality
+    const handleCreateInvoice = useCallback(async (data: any) => {
+        // TODO: Implement create invoice API call
+        console.log('Create invoice:', data);
+        refetch();
+    }, [refetch]);
+    
+    const handleUpdateInvoice = useCallback(async (id: string, data: any) => {
+        // TODO: Implement update invoice API call
+        console.log('Update invoice:', id, data);
+        refetch();
+    }, [refetch]);
+    
+    const handleDeleteInvoice = useCallback(async (id: string) => {
+        // TODO: Implement delete invoice API call
+        console.log('Delete invoice:', id);
+        refetch();
+    }, [refetch]);
+    
+    const handleBulkDelete = useCallback(async (ids: string[]) => {
+        // TODO: Implement bulk delete API call
+        console.log('Bulk delete invoices:', ids);
+        setSelectedInvoices([]);
+        refetch();
+    }, [refetch]);
+    
+    // Initialize with default filters
+    const defaultFilters = useMemo(() => ({
+        sortBy: 'createdAt_desc'
+    }), []);
 
     // Fetch customers data
     const { data: customers = [], isLoading: isLoadingCustomers } = useQuery({
@@ -133,7 +177,7 @@ function InvoicePageContent() {
             return Array.isArray(data) ? data : (data.success ? data.data : data.customers || []);
         },
         staleTime: 300000, // 5 minutes
-        cacheTime: 600000, // 10 minutes
+        gcTime: 600000, // 10 minutes
     });
 
     // Fetch products data
@@ -150,7 +194,7 @@ function InvoicePageContent() {
             return data.success ? data.data : [];
         },
         staleTime: 300000, // 5 minutes
-        cacheTime: 600000, // 10 minutes
+        gcTime: 600000, // 10 minutes
     });
 
     // Fetch shops data
@@ -167,7 +211,7 @@ function InvoicePageContent() {
             return data.success ? data.data : [];
         },
         staleTime: 300000, // 5 minutes
-        cacheTime: 600000, // 10 minutes
+        gcTime: 600000, // 10 minutes
     });
 
     // Modal handlers
@@ -184,15 +228,15 @@ function InvoicePageContent() {
         setIsEditModalOpen(true);
     }, []);
 
-    const handleDeleteInvoice = useCallback(async (invoiceId: string | number) => {
+    const handleDeleteInvoiceAction = useCallback(async (invoiceId: string | number) => {
         if (window.confirm('Are you sure you want to delete this invoice?')) {
             try {
-                await deleteInvoice(invoiceId);
+                await handleDeleteInvoice(invoiceId.toString());
             } catch (error) {
                 console.error('Failed to delete invoice:', error);
             }
         }
-    }, [deleteInvoice]);
+    }, [handleDeleteInvoice]);
 
     const handleRecordPayment = useCallback(async (invoiceId: string | number) => {
         try {
@@ -203,25 +247,21 @@ function InvoicePageContent() {
     }, [recordPayment]);
 
     // Bulk operations
-    const handleBulkDelete = useCallback(async () => {
-        if (selectedInvoices.size === 0) return;
+    const handleBulkDeleteAction = useCallback(async () => {
+        if (selectedInvoices.length === 0) return;
 
         const confirmed = window.confirm(
-            `Are you sure you want to delete ${selectedInvoices.size} invoice(s)?`
+            `Are you sure you want to delete ${selectedInvoices.length} invoice(s)?`
         );
 
         if (confirmed) {
             try {
-                await bulkUpdate({
-                    invoiceIds: Array.from(selectedInvoices),
-                    operation: 'delete',
-                    data: {}
-                });
+                await handleBulkDelete(selectedInvoices);
             } catch (error) {
                 console.error('Failed to delete invoices:', error);
             }
         }
-    }, [selectedInvoices, bulkUpdate]);
+    }, [selectedInvoices, handleBulkDelete]);
 
     const handleExport = useCallback(() => {
         // Implementation for exporting invoices
@@ -315,10 +355,12 @@ function InvoicePageContent() {
                         <RefreshCw className={cn('h-4 w-4 mr-2', isLoading && 'animate-spin')} />
                         Refresh
                     </Button>
-                    <Button onClick={handleCreateInvoice} disabled={isCreating}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        New Invoice
-                    </Button>
+                    {canEditInvoices() && (
+                        <Button onClick={handleCreateInvoice} disabled={isCreating}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            New Invoice
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -358,8 +400,8 @@ function InvoicePageContent() {
                         onFiltersChange={updateFilters}
                         customers={customers}
                         shops={shops}
-                        selectedCount={selectedInvoices.size}
-                        onBulkDelete={handleBulkDelete}
+                        selectedCount={selectedInvoices.length}
+                        onBulkDelete={canEditInvoices() ? handleBulkDeleteAction : undefined}
                         onExport={handleExport}
                         isLoading={isLoading}
                     />
@@ -373,8 +415,8 @@ function InvoicePageContent() {
                             onSelectAll={selectAllInvoices}
                             onClearSelection={clearSelection}
                             onView={handleViewInvoice}
-                            onEdit={handleEditInvoice}
-                            onDelete={handleDeleteInvoice}
+                            onEdit={canEditInvoices() ? handleEditInvoice : undefined}
+                            onDelete={canEditInvoices() ? handleDeleteInvoiceAction : undefined}
                             onRecordPayment={handleRecordPayment}
                             isLoading={isLoading}
                             height={600}
@@ -407,10 +449,10 @@ function InvoicePageContent() {
             <InvoiceCreateModal
                 isOpen={isCreateModalOpen}
                 onClose={handleCloseModals}
-                onSuccess={handleInvoiceCreated}
+                onSave={handleCreateInvoice}
                 customers={customers}
-                products={products}
-                shops={shops}
+                            products={products}
+                            shops={shops}
                 isLoading={isLoadingCustomers || isLoadingProducts || isLoadingShops}
             />
 
@@ -420,7 +462,7 @@ function InvoicePageContent() {
                         isOpen={isEditModalOpen}
                         onClose={handleCloseModals}
                         onSuccess={handleInvoiceUpdated}
-                        invoice={selectedInvoice}
+                        initialData={selectedInvoice}
                     />
 
                     <InvoiceViewModal

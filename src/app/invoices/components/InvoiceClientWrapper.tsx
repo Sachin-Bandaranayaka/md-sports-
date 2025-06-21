@@ -7,6 +7,7 @@ import { Search, Plus, Filter, FileText, Download, Eye, CheckCircle, Trash2, Edi
 import { InvoiceCreateModal, InvoiceEditModal, InvoiceViewModal } from '@/components/invoices';
 import type { InvoiceData } from '@/components/invoices';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermission } from '@/hooks/usePermission';
 import {
     Popover,
     PopoverContent,
@@ -101,6 +102,7 @@ export default function InvoiceClientWrapper({
     const router = useRouter();
     const searchParams = useSearchParams();
     const { accessToken } = useAuth();
+    const { canEditInvoices } = usePermission();
 
     const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
     const [totalPages, setTotalPages] = useState<number>(initialTotalPages);
@@ -108,9 +110,11 @@ export default function InvoiceClientWrapper({
     const [statistics, setStatistics] = useState(initialStatistics);
     const [loading, setLoading] = useState<boolean>(false); // For client-side actions like payment, delete
     const [error, setError] = useState<string | null>(null);
-    const [customers, setCustomers] = useState<{ id: number; name: string }[]>([]);
+    const [customers, setCustomers] = useState<{ id: number; name: string; customerType: 'wholesale' | 'retail' }[]>([]);
     const [products, setProducts] = useState<{ id: number; name: string; price: number }[]>([]);
-    const [shopsState, setShopsState] = useState<{ id: number; name: string; location: string }[]>(shops);
+    const [shopsState, setShopsState] = useState<{ id: string; name: string; location: string }[]>(
+        shops.map(shop => ({ ...shop, id: shop.id.toString() }))
+    );
 
     // Modal states
     const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
@@ -221,7 +225,12 @@ export default function InvoiceClientWrapper({
                 const customersResponse = await fetch('/api/customers');
                 if (customersResponse.ok) {
                     const customersData = await customersResponse.json();
-                    setCustomers(customersData);
+                    // Add default customerType if not present
+                    const customersWithType = customersData.map((customer: any) => ({
+                        ...customer,
+                        customerType: customer.customerType || 'retail' as 'wholesale' | 'retail'
+                    }));
+                    setCustomers(customersWithType);
                 }
 
                 // Fetch products
@@ -514,9 +523,11 @@ export default function InvoiceClientWrapper({
             <div className="mb-6">
                 <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                     <h1 className="text-3xl font-bold text-gray-800">Manage Invoices</h1>
-                    <Button variant="primary" onClick={() => setIsCreateModalOpen(true)} className="flex items-center">
-                        <Plus size={18} className="mr-2" /> Create New Invoice
-                    </Button>
+                    {canEditInvoices() && (
+                        <Button variant="primary" onClick={() => setIsCreateModalOpen(true)} className="flex items-center">
+                            <Plus size={18} className="mr-2" /> Create New Invoice
+                        </Button>
+                    )}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
                     <div className="bg-white p-4 shadow rounded-lg">
@@ -699,16 +710,18 @@ export default function InvoiceClientWrapper({
                                 <span className="text-sm text-gray-600">
                                     {selectedInvoices.size} invoice(s) selected
                                 </span>
-                                <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    onClick={handleBulkDelete} 
-                                    disabled={loading}
-                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                >
-                                    <Trash2 size={16} className="mr-1" />
-                                    Delete Selected
-                                </Button>
+                                {canEditInvoices() && (
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        onClick={handleBulkDelete} 
+                                        disabled={loading}
+                                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    >
+                                        <Trash2 size={16} className="mr-1" />
+                                        Delete Selected
+                                    </Button>
+                                )}
                                 <Button 
                                     variant="ghost" 
                                     size="sm" 
@@ -825,12 +838,16 @@ export default function InvoiceClientWrapper({
                                                     {loading ? <Loader2 className="animate-spin h-3 w-3" /> : <CheckCircle size={12} className="text-green-600" />}
                                                 </Button>
                                             )}
-                                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleEditInvoice(invoice.id)} title="Edit Invoice" disabled={loading}>
-                                                {loading ? <Loader2 className="animate-spin h-3 w-3" /> : <Edit size={12} className="text-yellow-600" />}
-                                            </Button>
-                                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleDeleteInvoice(invoice.id)} title="Delete Invoice" disabled={loading}>
-                                                {loading ? <Loader2 className="animate-spin h-3 w-3" /> : <Trash2 size={12} className="text-red-600" />}
-                                            </Button>
+                                            {canEditInvoices() && (
+                                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleEditInvoice(invoice.id)} title="Edit Invoice" disabled={loading}>
+                                                    {loading ? <Loader2 className="animate-spin h-3 w-3" /> : <Edit size={12} className="text-yellow-600" />}
+                                                </Button>
+                                            )}
+                                            {canEditInvoices() && (
+                                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleDeleteInvoice(invoice.id)} title="Delete Invoice" disabled={loading}>
+                                                    {loading ? <Loader2 className="animate-spin h-3 w-3" /> : <Trash2 size={12} className="text-red-600" />}
+                                                </Button>
+                                            )}
                                         </div>
                                     </td>
                                     <td className="px-3 py-2 whitespace-nowrap text-xs font-medium text-indigo-600 hover:text-indigo-800 cursor-pointer" onClick={() => router.push(`/invoices/${invoice.id}`)}>{invoice.invoiceNumber}</td>
@@ -967,7 +984,7 @@ export default function InvoiceClientWrapper({
                                             return (
                                                 <Button
                                                     key={page}
-                                                    variant={currentPage === page ? "default" : "outline"}
+                                                    variant={currentPage === page ? "primary" : "outline"}
                                                     size="sm"
                                                     onClick={() => handlePageChange(page)}
                                                     disabled={loading}
@@ -1034,7 +1051,7 @@ export default function InvoiceClientWrapper({
                 onSave={handleCreateSuccess}
                 customers={customers}
                 products={products}
-                shops={shops}
+                shops={shopsState}
                 isLoading={loading}
             />
 
@@ -1044,7 +1061,6 @@ export default function InvoiceClientWrapper({
                 onSave={handleEditSuccess}
                 customers={customers}
                 products={products}
-                shops={shops}
                 initialData={selectedInvoice}
                 isLoading={loading}
             />

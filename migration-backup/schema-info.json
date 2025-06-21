@@ -1,0 +1,3438 @@
+{
+  "tables": [
+    {
+      "table_name": "Account",
+      "column_name": "id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('\"Account_id_seq\"'::regclass)"
+    },
+    {
+      "table_name": "Account",
+      "column_name": "name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Account",
+      "column_name": "type",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Account",
+      "column_name": "balance",
+      "data_type": "numeric",
+      "is_nullable": "NO",
+      "column_default": "0"
+    },
+    {
+      "table_name": "Account",
+      "column_name": "description",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Account",
+      "column_name": "isActive",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "true"
+    },
+    {
+      "table_name": "Account",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "Account",
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "Account",
+      "column_name": "parentId",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "AuditLog",
+      "column_name": "id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('\"AuditLog_id_seq\"'::regclass)"
+    },
+    {
+      "table_name": "AuditLog",
+      "column_name": "userId",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "AuditLog",
+      "column_name": "action",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "AuditLog",
+      "column_name": "entity",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "AuditLog",
+      "column_name": "entityId",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "AuditLog",
+      "column_name": "details",
+      "data_type": "jsonb",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "AuditLog",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "Category",
+      "column_name": "id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('\"Category_id_seq\"'::regclass)"
+    },
+    {
+      "table_name": "Category",
+      "column_name": "name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Category",
+      "column_name": "description",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Category",
+      "column_name": "parentId",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Category",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "Category",
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Customer",
+      "column_name": "id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('\"Customer_id_seq\"'::regclass)"
+    },
+    {
+      "table_name": "Customer",
+      "column_name": "name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Customer",
+      "column_name": "email",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Customer",
+      "column_name": "phone",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Customer",
+      "column_name": "address",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Customer",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "Customer",
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Customer",
+      "column_name": "city",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Customer",
+      "column_name": "contactPerson",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Customer",
+      "column_name": "contactPersonPhone",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Customer",
+      "column_name": "creditLimit",
+      "data_type": "double precision",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Customer",
+      "column_name": "creditPeriod",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Customer",
+      "column_name": "customerType",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Customer",
+      "column_name": "notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Customer",
+      "column_name": "postalCode",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Customer",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Customer",
+      "column_name": "taxId",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "InventoryItem",
+      "column_name": "id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('\"InventoryItem_id_seq\"'::regclass)"
+    },
+    {
+      "table_name": "InventoryItem",
+      "column_name": "productId",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "InventoryItem",
+      "column_name": "quantity",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "InventoryItem",
+      "column_name": "shopId",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "InventoryItem",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "InventoryItem",
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "InventoryItem",
+      "column_name": "shopspecificcost",
+      "data_type": "double precision",
+      "is_nullable": "YES",
+      "column_default": "0"
+    },
+    {
+      "table_name": "InventoryTransfer",
+      "column_name": "id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('\"InventoryTransfer_id_seq\"'::regclass)"
+    },
+    {
+      "table_name": "InventoryTransfer",
+      "column_name": "fromShopId",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "InventoryTransfer",
+      "column_name": "toShopId",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "InventoryTransfer",
+      "column_name": "fromUserId",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "InventoryTransfer",
+      "column_name": "toUserId",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "InventoryTransfer",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "InventoryTransfer",
+      "column_name": "notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "InventoryTransfer",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "InventoryTransfer",
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Invoice",
+      "column_name": "id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('\"Invoice_id_seq\"'::regclass)"
+    },
+    {
+      "table_name": "Invoice",
+      "column_name": "invoiceNumber",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Invoice",
+      "column_name": "customerId",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Invoice",
+      "column_name": "total",
+      "data_type": "double precision",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Invoice",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Invoice",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "Invoice",
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Invoice",
+      "column_name": "dueDate",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Invoice",
+      "column_name": "invoiceDate",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Invoice",
+      "column_name": "notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Invoice",
+      "column_name": "paymentMethod",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": "'Cash'::text"
+    },
+    {
+      "table_name": "Invoice",
+      "column_name": "profitMargin",
+      "data_type": "double precision",
+      "is_nullable": "YES",
+      "column_default": "0"
+    },
+    {
+      "table_name": "Invoice",
+      "column_name": "shopId",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Invoice",
+      "column_name": "totalProfit",
+      "data_type": "double precision",
+      "is_nullable": "YES",
+      "column_default": "0"
+    },
+    {
+      "table_name": "Invoice",
+      "column_name": "createdBy",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "InvoiceItem",
+      "column_name": "id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('\"InvoiceItem_id_seq\"'::regclass)"
+    },
+    {
+      "table_name": "InvoiceItem",
+      "column_name": "invoiceId",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "InvoiceItem",
+      "column_name": "productId",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "InvoiceItem",
+      "column_name": "quantity",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "InvoiceItem",
+      "column_name": "price",
+      "data_type": "double precision",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "InvoiceItem",
+      "column_name": "total",
+      "data_type": "double precision",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "InvoiceItem",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "InvoiceItem",
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "InvoiceItem",
+      "column_name": "costPrice",
+      "data_type": "double precision",
+      "is_nullable": "YES",
+      "column_default": "0"
+    },
+    {
+      "table_name": "InvoiceItem",
+      "column_name": "profit",
+      "data_type": "double precision",
+      "is_nullable": "YES",
+      "column_default": "0"
+    },
+    {
+      "table_name": "Notification",
+      "column_name": "id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('\"Notification_id_seq\"'::regclass)"
+    },
+    {
+      "table_name": "Notification",
+      "column_name": "userId",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Notification",
+      "column_name": "title",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Notification",
+      "column_name": "message",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Notification",
+      "column_name": "isRead",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table_name": "Notification",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "Notification",
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Payment",
+      "column_name": "id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('\"Payment_id_seq\"'::regclass)"
+    },
+    {
+      "table_name": "Payment",
+      "column_name": "invoiceId",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Payment",
+      "column_name": "customerId",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Payment",
+      "column_name": "amount",
+      "data_type": "double precision",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Payment",
+      "column_name": "paymentMethod",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Payment",
+      "column_name": "referenceNumber",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Payment",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "Payment",
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Payment",
+      "column_name": "accountId",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Permission",
+      "column_name": "id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('\"Permission_id_seq\"'::regclass)"
+    },
+    {
+      "table_name": "Permission",
+      "column_name": "name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Permission",
+      "column_name": "description",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Permission",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "Permission",
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Product",
+      "column_name": "id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('\"Product_id_seq\"'::regclass)"
+    },
+    {
+      "table_name": "Product",
+      "column_name": "name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Product",
+      "column_name": "description",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Product",
+      "column_name": "price",
+      "data_type": "double precision",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Product",
+      "column_name": "sku",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Product",
+      "column_name": "barcode",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Product",
+      "column_name": "categoryId",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Product",
+      "column_name": "shopId",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Product",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "Product",
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Product",
+      "column_name": "weightedaveragecost",
+      "data_type": "double precision",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Product",
+      "column_name": "min_stock_level",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": "10"
+    },
+    {
+      "table_name": "PurchaseInvoice",
+      "column_name": "id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('\"PurchaseInvoice_id_seq\"'::regclass)"
+    },
+    {
+      "table_name": "PurchaseInvoice",
+      "column_name": "invoiceNumber",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "PurchaseInvoice",
+      "column_name": "supplierId",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "PurchaseInvoice",
+      "column_name": "total",
+      "data_type": "double precision",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "PurchaseInvoice",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "PurchaseInvoice",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "PurchaseInvoice",
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "PurchaseInvoice",
+      "column_name": "date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "PurchaseInvoice",
+      "column_name": "distributions",
+      "data_type": "jsonb",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "PurchaseInvoice",
+      "column_name": "dueDate",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "PurchaseInvoiceItem",
+      "column_name": "id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('\"PurchaseInvoiceItem_id_seq\"'::regclass)"
+    },
+    {
+      "table_name": "PurchaseInvoiceItem",
+      "column_name": "purchaseInvoiceId",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "PurchaseInvoiceItem",
+      "column_name": "productId",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "PurchaseInvoiceItem",
+      "column_name": "quantity",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "PurchaseInvoiceItem",
+      "column_name": "price",
+      "data_type": "double precision",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "PurchaseInvoiceItem",
+      "column_name": "total",
+      "data_type": "double precision",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "PurchaseInvoiceItem",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "PurchaseInvoiceItem",
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Quotation",
+      "column_name": "id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('\"Quotation_id_seq\"'::regclass)"
+    },
+    {
+      "table_name": "Quotation",
+      "column_name": "quotationNumber",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Quotation",
+      "column_name": "customerId",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Quotation",
+      "column_name": "total",
+      "data_type": "double precision",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Quotation",
+      "column_name": "validUntil",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Quotation",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "Quotation",
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "QuotationItem",
+      "column_name": "id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('\"QuotationItem_id_seq\"'::regclass)"
+    },
+    {
+      "table_name": "QuotationItem",
+      "column_name": "quotationId",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "QuotationItem",
+      "column_name": "productId",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "QuotationItem",
+      "column_name": "quantity",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "QuotationItem",
+      "column_name": "price",
+      "data_type": "double precision",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "QuotationItem",
+      "column_name": "total",
+      "data_type": "double precision",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "QuotationItem",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "QuotationItem",
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Receipt",
+      "column_name": "id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('\"Receipt_id_seq\"'::regclass)"
+    },
+    {
+      "table_name": "Receipt",
+      "column_name": "paymentId",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Receipt",
+      "column_name": "receiptNumber",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Receipt",
+      "column_name": "receiptDate",
+      "data_type": "date",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Receipt",
+      "column_name": "bankName",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Receipt",
+      "column_name": "accountNumber",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Receipt",
+      "column_name": "chequeNumber",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Receipt",
+      "column_name": "transactionId",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Receipt",
+      "column_name": "notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Receipt",
+      "column_name": "confirmedBy",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Receipt",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "Receipt",
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "RefreshToken",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "RefreshToken",
+      "column_name": "userId",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "RefreshToken",
+      "column_name": "token",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "RefreshToken",
+      "column_name": "expiresAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "RefreshToken",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "RefreshToken",
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "RefreshToken",
+      "column_name": "isRevoked",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table_name": "Role",
+      "column_name": "id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Role",
+      "column_name": "name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Role",
+      "column_name": "description",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Role",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "Role",
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Shop",
+      "column_name": "id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Shop",
+      "column_name": "name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Shop",
+      "column_name": "location",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Shop",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "Shop",
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Shop",
+      "column_name": "address_line1",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Shop",
+      "column_name": "address_line2",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Shop",
+      "column_name": "city",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Shop",
+      "column_name": "closing_time",
+      "data_type": "time without time zone",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Shop",
+      "column_name": "contact_person",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Shop",
+      "column_name": "country",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": "'Malaysia'::text"
+    },
+    {
+      "table_name": "Shop",
+      "column_name": "email",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Shop",
+      "column_name": "is_active",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "true"
+    },
+    {
+      "table_name": "Shop",
+      "column_name": "latitude",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Shop",
+      "column_name": "longitude",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Shop",
+      "column_name": "manager_id",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Shop",
+      "column_name": "opening_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Shop",
+      "column_name": "opening_time",
+      "data_type": "time without time zone",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Shop",
+      "column_name": "phone",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Shop",
+      "column_name": "postal_code",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Shop",
+      "column_name": "state",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Shop",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": "'open'::text"
+    },
+    {
+      "table_name": "Shop",
+      "column_name": "tax_rate",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "column_default": "0"
+    },
+    {
+      "table_name": "Supplier",
+      "column_name": "id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('\"Supplier_id_seq\"'::regclass)"
+    },
+    {
+      "table_name": "Supplier",
+      "column_name": "name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Supplier",
+      "column_name": "email",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Supplier",
+      "column_name": "phone",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Supplier",
+      "column_name": "address",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Supplier",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "Supplier",
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Supplier",
+      "column_name": "city",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Supplier",
+      "column_name": "contactPerson",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Supplier",
+      "column_name": "notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Supplier",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": "'active'::text"
+    },
+    {
+      "table_name": "SystemSettings",
+      "column_name": "id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('\"SystemSettings_id_seq\"'::regclass)"
+    },
+    {
+      "table_name": "SystemSettings",
+      "column_name": "key",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "SystemSettings",
+      "column_name": "value",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "SystemSettings",
+      "column_name": "description",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "SystemSettings",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "SystemSettings",
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "Transaction",
+      "column_name": "id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('\"Transaction_id_seq\"'::regclass)"
+    },
+    {
+      "table_name": "Transaction",
+      "column_name": "date",
+      "data_type": "date",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Transaction",
+      "column_name": "description",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Transaction",
+      "column_name": "accountId",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Transaction",
+      "column_name": "toAccountId",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Transaction",
+      "column_name": "type",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Transaction",
+      "column_name": "amount",
+      "data_type": "numeric",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Transaction",
+      "column_name": "reference",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "Transaction",
+      "column_name": "category",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "Transaction",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "Transaction",
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "TransferItem",
+      "column_name": "id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "nextval('\"TransferItem_id_seq\"'::regclass)"
+    },
+    {
+      "table_name": "TransferItem",
+      "column_name": "transferId",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "TransferItem",
+      "column_name": "productId",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "TransferItem",
+      "column_name": "quantity",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "TransferItem",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "TransferItem",
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "User",
+      "column_name": "id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "User",
+      "column_name": "name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "User",
+      "column_name": "email",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "User",
+      "column_name": "password",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "User",
+      "column_name": "roleId",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "User",
+      "column_name": "phone",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "User",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "table_name": "User",
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "User",
+      "column_name": "isActive",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "true"
+    },
+    {
+      "table_name": "User",
+      "column_name": "shopId",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "User",
+      "column_name": "permissions",
+      "data_type": "ARRAY",
+      "is_nullable": "YES",
+      "column_default": "ARRAY[]::text[]"
+    },
+    {
+      "table_name": "User",
+      "column_name": "roleName",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "User",
+      "column_name": "allowedAccounts",
+      "data_type": "ARRAY",
+      "is_nullable": "YES",
+      "column_default": "ARRAY[]::text[]"
+    },
+    {
+      "table_name": "_PermissionToRole",
+      "column_name": "A",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "_PermissionToRole",
+      "column_name": "B",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    }
+  ],
+  "constraints": [
+    {
+      "table_name": "Account",
+      "constraint_name": "2200_16908_1_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Account",
+      "constraint_name": "2200_16908_2_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Account",
+      "constraint_name": "2200_16908_3_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Account",
+      "constraint_name": "2200_16908_4_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Account",
+      "constraint_name": "2200_16908_6_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Account",
+      "constraint_name": "2200_16908_7_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Account",
+      "constraint_name": "2200_16908_8_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Account",
+      "constraint_name": "Account_parentId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "parentId",
+      "foreign_table_name": "Account",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Account",
+      "constraint_name": "Account_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "id",
+      "foreign_table_name": "Account",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "AuditLog",
+      "constraint_name": "2200_16671_1_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "AuditLog",
+      "constraint_name": "2200_16671_3_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "AuditLog",
+      "constraint_name": "2200_16671_4_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "AuditLog",
+      "constraint_name": "2200_16671_7_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "AuditLog",
+      "constraint_name": "AuditLog_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "id",
+      "foreign_table_name": "AuditLog",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Category",
+      "constraint_name": "2200_16540_1_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Category",
+      "constraint_name": "2200_16540_2_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Category",
+      "constraint_name": "2200_16540_5_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Category",
+      "constraint_name": "2200_16540_6_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Category",
+      "constraint_name": "Category_parentId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "parentId",
+      "foreign_table_name": "Category",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Category",
+      "constraint_name": "Category_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "id",
+      "foreign_table_name": "Category",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Customer",
+      "constraint_name": "2200_16576_1_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Customer",
+      "constraint_name": "2200_16576_2_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Customer",
+      "constraint_name": "2200_16576_6_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Customer",
+      "constraint_name": "2200_16576_7_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Customer",
+      "constraint_name": "Customer_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "id",
+      "foreign_table_name": "Customer",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "InventoryItem",
+      "constraint_name": "2200_16550_1_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "InventoryItem",
+      "constraint_name": "2200_16550_2_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "InventoryItem",
+      "constraint_name": "2200_16550_3_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "InventoryItem",
+      "constraint_name": "2200_16550_4_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "InventoryItem",
+      "constraint_name": "2200_16550_5_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "InventoryItem",
+      "constraint_name": "2200_16550_6_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "InventoryItem",
+      "constraint_name": "InventoryItem_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "id",
+      "foreign_table_name": "InventoryItem",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "InventoryItem",
+      "constraint_name": "InventoryItem_productId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "productId",
+      "foreign_table_name": "Product",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "InventoryItem",
+      "constraint_name": "InventoryItem_shopId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "shopId",
+      "foreign_table_name": "Shop",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "InventoryTransfer",
+      "constraint_name": "2200_16558_1_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "InventoryTransfer",
+      "constraint_name": "2200_16558_2_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "InventoryTransfer",
+      "constraint_name": "2200_16558_3_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "InventoryTransfer",
+      "constraint_name": "2200_16558_4_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "InventoryTransfer",
+      "constraint_name": "2200_16558_5_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "InventoryTransfer",
+      "constraint_name": "2200_16558_6_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "InventoryTransfer",
+      "constraint_name": "2200_16558_8_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "InventoryTransfer",
+      "constraint_name": "2200_16558_9_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "InventoryTransfer",
+      "constraint_name": "InventoryTransfer_fromShopId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "fromShopId",
+      "foreign_table_name": "Shop",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "InventoryTransfer",
+      "constraint_name": "InventoryTransfer_fromUserId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "fromUserId",
+      "foreign_table_name": "User",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "InventoryTransfer",
+      "constraint_name": "InventoryTransfer_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "id",
+      "foreign_table_name": "InventoryTransfer",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "InventoryTransfer",
+      "constraint_name": "InventoryTransfer_toShopId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "toShopId",
+      "foreign_table_name": "Shop",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "InventoryTransfer",
+      "constraint_name": "InventoryTransfer_toUserId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "toUserId",
+      "foreign_table_name": "User",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Invoice",
+      "constraint_name": "2200_16596_1_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Invoice",
+      "constraint_name": "2200_16596_2_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Invoice",
+      "constraint_name": "2200_16596_4_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Invoice",
+      "constraint_name": "2200_16596_5_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Invoice",
+      "constraint_name": "2200_16596_6_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Invoice",
+      "constraint_name": "2200_16596_7_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Invoice",
+      "constraint_name": "Invoice_createdBy_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "createdBy",
+      "foreign_table_name": "User",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Invoice",
+      "constraint_name": "Invoice_customerId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "customerId",
+      "foreign_table_name": "Customer",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Invoice",
+      "constraint_name": "Invoice_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "id",
+      "foreign_table_name": "Invoice",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Invoice",
+      "constraint_name": "Invoice_shopId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "shopId",
+      "foreign_table_name": "Shop",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "InvoiceItem",
+      "constraint_name": "2200_16606_1_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "InvoiceItem",
+      "constraint_name": "2200_16606_2_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "InvoiceItem",
+      "constraint_name": "2200_16606_3_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "InvoiceItem",
+      "constraint_name": "2200_16606_4_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "InvoiceItem",
+      "constraint_name": "2200_16606_5_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "InvoiceItem",
+      "constraint_name": "2200_16606_6_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "InvoiceItem",
+      "constraint_name": "2200_16606_7_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "InvoiceItem",
+      "constraint_name": "2200_16606_8_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "InvoiceItem",
+      "constraint_name": "InvoiceItem_invoiceId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "invoiceId",
+      "foreign_table_name": "Invoice",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "InvoiceItem",
+      "constraint_name": "InvoiceItem_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "id",
+      "foreign_table_name": "InvoiceItem",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "InvoiceItem",
+      "constraint_name": "InvoiceItem_productId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "productId",
+      "foreign_table_name": "Product",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Notification",
+      "constraint_name": "2200_16660_1_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Notification",
+      "constraint_name": "2200_16660_2_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Notification",
+      "constraint_name": "2200_16660_3_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Notification",
+      "constraint_name": "2200_16660_4_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Notification",
+      "constraint_name": "2200_16660_5_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Notification",
+      "constraint_name": "2200_16660_6_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Notification",
+      "constraint_name": "2200_16660_7_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Notification",
+      "constraint_name": "Notification_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "id",
+      "foreign_table_name": "Notification",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Notification",
+      "constraint_name": "Notification_userId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "userId",
+      "foreign_table_name": "User",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Payment",
+      "constraint_name": "2200_16614_1_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Payment",
+      "constraint_name": "2200_16614_2_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Payment",
+      "constraint_name": "2200_16614_4_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Payment",
+      "constraint_name": "2200_16614_5_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Payment",
+      "constraint_name": "2200_16614_7_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Payment",
+      "constraint_name": "2200_16614_8_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Payment",
+      "constraint_name": "Payment_accountId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "accountId",
+      "foreign_table_name": "Account",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Payment",
+      "constraint_name": "Payment_customerId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "customerId",
+      "foreign_table_name": "Customer",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Payment",
+      "constraint_name": "Payment_invoiceId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "invoiceId",
+      "foreign_table_name": "Invoice",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Payment",
+      "constraint_name": "Payment_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "id",
+      "foreign_table_name": "Payment",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Permission",
+      "constraint_name": "2200_16510_1_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Permission",
+      "constraint_name": "2200_16510_2_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Permission",
+      "constraint_name": "2200_16510_4_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Permission",
+      "constraint_name": "2200_16510_5_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Permission",
+      "constraint_name": "Permission_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "id",
+      "foreign_table_name": "Permission",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Product",
+      "constraint_name": "2200_16530_10_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Product",
+      "constraint_name": "2200_16530_11_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Product",
+      "constraint_name": "2200_16530_1_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Product",
+      "constraint_name": "2200_16530_2_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Product",
+      "constraint_name": "2200_16530_4_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Product",
+      "constraint_name": "Product_categoryId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "categoryId",
+      "foreign_table_name": "Category",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Product",
+      "constraint_name": "Product_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "id",
+      "foreign_table_name": "Product",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Product",
+      "constraint_name": "Product_shopId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "shopId",
+      "foreign_table_name": "Shop",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "PurchaseInvoice",
+      "constraint_name": "2200_16642_1_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "PurchaseInvoice",
+      "constraint_name": "2200_16642_2_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "PurchaseInvoice",
+      "constraint_name": "2200_16642_3_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "PurchaseInvoice",
+      "constraint_name": "2200_16642_4_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "PurchaseInvoice",
+      "constraint_name": "2200_16642_5_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "PurchaseInvoice",
+      "constraint_name": "2200_16642_6_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "PurchaseInvoice",
+      "constraint_name": "2200_16642_7_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "PurchaseInvoice",
+      "constraint_name": "PurchaseInvoice_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "id",
+      "foreign_table_name": "PurchaseInvoice",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "PurchaseInvoice",
+      "constraint_name": "PurchaseInvoice_supplierId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "supplierId",
+      "foreign_table_name": "Supplier",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "PurchaseInvoiceItem",
+      "constraint_name": "2200_16652_1_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "PurchaseInvoiceItem",
+      "constraint_name": "2200_16652_2_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "PurchaseInvoiceItem",
+      "constraint_name": "2200_16652_3_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "PurchaseInvoiceItem",
+      "constraint_name": "2200_16652_4_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "PurchaseInvoiceItem",
+      "constraint_name": "2200_16652_5_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "PurchaseInvoiceItem",
+      "constraint_name": "2200_16652_6_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "PurchaseInvoiceItem",
+      "constraint_name": "2200_16652_7_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "PurchaseInvoiceItem",
+      "constraint_name": "2200_16652_8_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "PurchaseInvoiceItem",
+      "constraint_name": "PurchaseInvoiceItem_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "id",
+      "foreign_table_name": "PurchaseInvoiceItem",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "PurchaseInvoiceItem",
+      "constraint_name": "PurchaseInvoiceItem_productId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "productId",
+      "foreign_table_name": "Product",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "PurchaseInvoiceItem",
+      "constraint_name": "PurchaseInvoiceItem_purchaseInvoiceId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "purchaseInvoiceId",
+      "foreign_table_name": "PurchaseInvoice",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Quotation",
+      "constraint_name": "2200_16624_1_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Quotation",
+      "constraint_name": "2200_16624_2_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Quotation",
+      "constraint_name": "2200_16624_3_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Quotation",
+      "constraint_name": "2200_16624_4_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Quotation",
+      "constraint_name": "2200_16624_7_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Quotation",
+      "constraint_name": "2200_16624_8_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Quotation",
+      "constraint_name": "Quotation_customerId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "customerId",
+      "foreign_table_name": "Customer",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Quotation",
+      "constraint_name": "Quotation_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "id",
+      "foreign_table_name": "Quotation",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "QuotationItem",
+      "constraint_name": "2200_16634_1_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "QuotationItem",
+      "constraint_name": "2200_16634_2_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "QuotationItem",
+      "constraint_name": "2200_16634_3_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "QuotationItem",
+      "constraint_name": "2200_16634_4_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "QuotationItem",
+      "constraint_name": "2200_16634_5_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "QuotationItem",
+      "constraint_name": "2200_16634_6_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "QuotationItem",
+      "constraint_name": "2200_16634_7_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "QuotationItem",
+      "constraint_name": "2200_16634_8_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "QuotationItem",
+      "constraint_name": "QuotationItem_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "id",
+      "foreign_table_name": "QuotationItem",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "QuotationItem",
+      "constraint_name": "QuotationItem_productId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "productId",
+      "foreign_table_name": "Product",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "QuotationItem",
+      "constraint_name": "QuotationItem_quotationId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "quotationId",
+      "foreign_table_name": "Quotation",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Receipt",
+      "constraint_name": "2200_16887_11_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Receipt",
+      "constraint_name": "2200_16887_12_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Receipt",
+      "constraint_name": "2200_16887_1_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Receipt",
+      "constraint_name": "2200_16887_2_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Receipt",
+      "constraint_name": "2200_16887_3_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Receipt",
+      "constraint_name": "2200_16887_4_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Receipt",
+      "constraint_name": "Receipt_confirmedBy_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "confirmedBy",
+      "foreign_table_name": "User",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Receipt",
+      "constraint_name": "Receipt_paymentId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "paymentId",
+      "foreign_table_name": "Payment",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Receipt",
+      "constraint_name": "Receipt_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "id",
+      "foreign_table_name": "Receipt",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "RefreshToken",
+      "constraint_name": "2200_16876_1_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "RefreshToken",
+      "constraint_name": "2200_16876_2_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "RefreshToken",
+      "constraint_name": "2200_16876_3_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "RefreshToken",
+      "constraint_name": "2200_16876_4_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "RefreshToken",
+      "constraint_name": "2200_16876_5_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "RefreshToken",
+      "constraint_name": "2200_16876_6_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "RefreshToken",
+      "constraint_name": "2200_16876_7_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "RefreshToken",
+      "constraint_name": "RefreshToken_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "id",
+      "foreign_table_name": "RefreshToken",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "RefreshToken",
+      "constraint_name": "RefreshToken_userId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "userId",
+      "foreign_table_name": "User",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Role",
+      "constraint_name": "2200_16500_1_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Role",
+      "constraint_name": "2200_16500_2_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Role",
+      "constraint_name": "2200_16500_4_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Role",
+      "constraint_name": "2200_16500_5_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Role",
+      "constraint_name": "Role_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "id",
+      "foreign_table_name": "Role",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Shop",
+      "constraint_name": "2200_16520_13_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Shop",
+      "constraint_name": "2200_16520_1_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Shop",
+      "constraint_name": "2200_16520_22_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Shop",
+      "constraint_name": "2200_16520_2_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Shop",
+      "constraint_name": "2200_16520_3_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Shop",
+      "constraint_name": "2200_16520_4_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Shop",
+      "constraint_name": "2200_16520_5_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Shop",
+      "constraint_name": "Shop_manager_id_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "manager_id",
+      "foreign_table_name": "User",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Shop",
+      "constraint_name": "Shop_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "id",
+      "foreign_table_name": "Shop",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Supplier",
+      "constraint_name": "2200_16586_11_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Supplier",
+      "constraint_name": "2200_16586_1_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Supplier",
+      "constraint_name": "2200_16586_2_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Supplier",
+      "constraint_name": "2200_16586_6_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Supplier",
+      "constraint_name": "2200_16586_7_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Supplier",
+      "constraint_name": "Supplier_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "id",
+      "foreign_table_name": "Supplier",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "SystemSettings",
+      "constraint_name": "2200_16897_1_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "SystemSettings",
+      "constraint_name": "2200_16897_2_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "SystemSettings",
+      "constraint_name": "2200_16897_3_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "SystemSettings",
+      "constraint_name": "2200_16897_5_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "SystemSettings",
+      "constraint_name": "2200_16897_6_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "SystemSettings",
+      "constraint_name": "SystemSettings_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "id",
+      "foreign_table_name": "SystemSettings",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Transaction",
+      "constraint_name": "2200_16921_10_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Transaction",
+      "constraint_name": "2200_16921_11_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Transaction",
+      "constraint_name": "2200_16921_1_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Transaction",
+      "constraint_name": "2200_16921_2_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Transaction",
+      "constraint_name": "2200_16921_3_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Transaction",
+      "constraint_name": "2200_16921_4_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Transaction",
+      "constraint_name": "2200_16921_6_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Transaction",
+      "constraint_name": "2200_16921_7_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Transaction",
+      "constraint_name": "2200_16921_9_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "Transaction",
+      "constraint_name": "Transaction_accountId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "accountId",
+      "foreign_table_name": "Account",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Transaction",
+      "constraint_name": "Transaction_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "id",
+      "foreign_table_name": "Transaction",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "Transaction",
+      "constraint_name": "Transaction_toAccountId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "toAccountId",
+      "foreign_table_name": "Account",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "TransferItem",
+      "constraint_name": "2200_16568_1_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "TransferItem",
+      "constraint_name": "2200_16568_2_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "TransferItem",
+      "constraint_name": "2200_16568_3_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "TransferItem",
+      "constraint_name": "2200_16568_4_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "TransferItem",
+      "constraint_name": "2200_16568_5_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "TransferItem",
+      "constraint_name": "2200_16568_6_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "TransferItem",
+      "constraint_name": "TransferItem_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "id",
+      "foreign_table_name": "TransferItem",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "TransferItem",
+      "constraint_name": "TransferItem_productId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "productId",
+      "foreign_table_name": "Product",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "TransferItem",
+      "constraint_name": "TransferItem_transferId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "transferId",
+      "foreign_table_name": "InventoryTransfer",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "User",
+      "constraint_name": "2200_16489_1_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "User",
+      "constraint_name": "2200_16489_2_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "User",
+      "constraint_name": "2200_16489_3_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "User",
+      "constraint_name": "2200_16489_4_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "User",
+      "constraint_name": "2200_16489_7_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "User",
+      "constraint_name": "2200_16489_8_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "User",
+      "constraint_name": "2200_16489_9_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "User",
+      "constraint_name": "User_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "id",
+      "foreign_table_name": "User",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "User",
+      "constraint_name": "User_roleId_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "roleId",
+      "foreign_table_name": "Role",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "_PermissionToRole",
+      "constraint_name": "2200_16680_1_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "_PermissionToRole",
+      "constraint_name": "2200_16680_2_not_null",
+      "constraint_type": "CHECK",
+      "column_name": null,
+      "foreign_table_name": null,
+      "foreign_column_name": null
+    },
+    {
+      "table_name": "_PermissionToRole",
+      "constraint_name": "_PermissionToRole_A_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "A",
+      "foreign_table_name": "Permission",
+      "foreign_column_name": "id"
+    },
+    {
+      "table_name": "_PermissionToRole",
+      "constraint_name": "_PermissionToRole_B_fkey",
+      "constraint_type": "FOREIGN KEY",
+      "column_name": "B",
+      "foreign_table_name": "Role",
+      "foreign_column_name": "id"
+    }
+  ],
+  "exportedAt": "2025-06-20T19:01:48.945Z",
+  "source": "NeonDB via Prisma"
+}

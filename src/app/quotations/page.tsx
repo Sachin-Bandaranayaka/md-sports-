@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Search, Plus, Edit, Trash, FileText, ExternalLink } from 'lucide-react';
 import { SalesQuotation } from '@/types';
 import { useRouter } from 'next/navigation';
+import { usePermission } from '@/hooks/usePermission';
 
 const getExpiryCountdown = (expiryDate?: string): string => {
     if (!expiryDate) {
@@ -34,10 +35,25 @@ const getExpiryCountdown = (expiryDate?: string): string => {
 
 export default function Quotations() {
     const router = useRouter();
+    const { canViewQuotations, canCreateQuotations, canEditQuotations } = usePermission();
     const [quotations, setQuotations] = useState<SalesQuotation[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+
+    // Check if user has permission to view quotations
+    if (!canViewQuotations()) {
+        return (
+            <MainLayout>
+                <div className="p-6">
+                    <div className="text-center py-12">
+                        <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
+                        <p className="text-gray-600">You don't have permission to view quotations.</p>
+                    </div>
+                </div>
+            </MainLayout>
+        );
+    }
 
     // Fetch quotations from API
     useEffect(() => {
@@ -157,10 +173,12 @@ export default function Quotations() {
                         <p className="text-black">Manage your sales quotations and customer proposals</p>
                     </div>
                     <div className="flex gap-3">
-                        <Button variant="primary" size="sm" onClick={handleAddQuotation}>
-                            <Plus className="w-4 h-4 mr-2" />
-                            New Quotation
-                        </Button>
+                        {canCreateQuotations() && (
+                            <Button variant="primary" size="sm" onClick={handleAddQuotation}>
+                                <Plus className="w-4 h-4 mr-2" />
+                                New Quotation
+                            </Button>
+                        )}
                     </div>
                 </div>
 
@@ -211,7 +229,7 @@ export default function Quotations() {
                                 <p className="mt-1 text-black">
                                     {searchTerm ? 'Try adjusting your search term' : 'Create your first quotation to get started'}
                                 </p>
-                                {!searchTerm && (
+                                {!searchTerm && canCreateQuotations() && (
                                     <div className="mt-6">
                                         <Button variant="primary" size="sm" onClick={handleAddQuotation}>
                                             <Plus className="w-4 h-4 mr-2" />
@@ -297,20 +315,24 @@ export default function Quotations() {
                                                         >
                                                             <ExternalLink className="w-4 h-4" />
                                                         </button>
-                                                        <button
-                                                            onClick={() => handleEditQuotation(quotation)}
-                                                            className="text-indigo-600 hover:text-indigo-900"
-                                                            title="Edit"
-                                                        >
-                                                            <Edit className="w-4 h-4" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDeleteQuotation(quotation.id)}
-                                                            className="text-red-600 hover:text-red-900"
-                                                            title="Delete"
-                                                        >
-                                                            <Trash className="w-4 h-4" />
-                                                        </button>
+                                                        {canEditQuotations() && (
+                                                            <button
+                                                                onClick={() => handleEditQuotation(quotation)}
+                                                                className="text-indigo-600 hover:text-indigo-900"
+                                                                title="Edit"
+                                                            >
+                                                                <Edit className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                        {canEditQuotations() && (
+                                                             <button
+                                                                 onClick={() => handleDeleteQuotation(quotation.id)}
+                                                                 className="text-red-600 hover:text-red-900"
+                                                                 title="Delete"
+                                                             >
+                                                                 <Trash className="w-4 h-4" />
+                                                             </button>
+                                                         )}
                                                     </div>
                                                 </td>
                                             </tr>

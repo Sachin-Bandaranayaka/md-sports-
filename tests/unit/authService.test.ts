@@ -43,9 +43,32 @@ const mockBcrypt = {
 };
 
 // Mock modules
+jest.mock('../../src/lib/prisma', () => ({
+  __esModule: true,
+  default: mockPrisma,
+}));
+
+// Also mock the alias path in case it's used elsewhere
 jest.mock('@/lib/prisma', () => ({
   __esModule: true,
   default: mockPrisma,
+}));
+
+// Mock cache service for both relative and alias paths
+jest.mock('../../src/lib/cache', () => ({
+  __esModule: true,
+  cacheService: mockCacheService,
+  cache: mockCacheService,
+  CACHE_CONFIG: {
+    KEYS: {
+      USER_SESSION: 'user_session',
+      TOKEN_VALIDATION: 'token_validation',
+    },
+    TTL: {
+      USER_SESSION: 3600,
+      TOKEN_VALIDATION: 1800,
+    },
+  },
 }));
 
 jest.mock('@/lib/cache', () => ({
@@ -90,8 +113,8 @@ jest.mock('jsonwebtoken', () => mockJwt);
 
 // Import after mocking
 import { authenticateUser, generateToken, verifyToken, parseTimeStringToSeconds, getUserFromDecodedPayload, getUserFromToken } from '@/services/authService';
-import * as jwt from 'jsonwebtoken';
 import { cacheService } from '@/lib/cache';
+import * as jwt from 'jsonwebtoken';
 
 // Spy on the imported jwt to ensure our mocks work
 const jwtVerifySpy = jest.spyOn(jwt, 'verify');
@@ -266,24 +289,24 @@ describe('AuthService', () => {
   });
 
   describe('generateToken', () => {
-    const mockPayload = {
-      sub: 1,
-      username: 'testuser',
-      email: 'test@example.com',
-      roleId: 1,
-      shopId: 1,
-      permissions: ['read_products', 'write_products']
-    };
 
     test('should generate JWT token', () => {
+      const payload = {
+        sub: 1,
+        username: 'testuser',
+        email: 'test@example.com',
+        roleId: 1,
+        shopId: 1,
+        permissions: ['read_products', 'write_products']
+      };
       const mockToken = 'mock-jwt-token';
       mockJwt.sign.mockReturnValue(mockToken);
 
-      const result = generateToken(mockPayload);
+      const result = generateToken(payload);
 
       expect(result).toBe(mockToken);
       expect(mockJwt.sign).toHaveBeenCalledWith(
-          mockPayload,
+          payload,
           'test-secret-key',
           { expiresIn: '12h' }
         );
@@ -381,6 +404,10 @@ describe('AuthService', () => {
         email: 'test@example.com',
         roleId: 1
       };
+
+      // Test if the function is imported correctly
+      process.stderr.write(`Function type: ${typeof getUserFromDecodedPayload}\n`);
+      process.stderr.write(`Function name: ${getUserFromDecodedPayload.name}\n`);
       
       const cachedUser = {
         ...mockUser,
@@ -397,17 +424,58 @@ describe('AuthService', () => {
     });
 
     test('should return user from database and cache it', async () => {
+      // Temporarily restore console.log for debugging
+      const originalConsoleLog = console.log;
+      console.log = originalConsoleLog;
+      
       const payload = {
         sub: 1,
         username: 'testuser',
         email: 'test@example.com',
         roleId: 1
       };
-      
-      mockCacheService.get.mockResolvedValue(null); // Not in cache
-      mockUserFindFirst.mockResolvedValue(mockUser);
 
-      const result = await getUserFromDecodedPayload(payload);
+      // Clear any previous mock calls
+      mockUserFindFirst.mockClear();
+      
+      // Reset and configure the global cache service mocks
+      jest.clearAllMocks();
+      
+      // Configure the cache service to return null (not in cache)
+      (cacheService.get as jest.MockedFunction<any>).mockResolvedValue(null);
+      (cacheService.generateKey as jest.MockedFunction<any>).mockReturnValue('test-cache-key');
+      (cacheService.set as jest.MockedFunction<any>).mockResolvedValue(undefined);
+      
+      // Mock the findFirst call to return the user when called with the correct parameters
+      mockUserFindFirst.mockImplementation(async (query) => {
+        console.log('Mock findFirst called with:', JSON.stringify(query, null, 2));
+        return mockUser;
+      });
+      
+      // Add some debugging to the mock to see if it's called
+      let mockCallCount = 0;
+      mockUserFindFirst.mockImplementation(async (query) => {
+        mockCallCount++;
+        process.stdout.write(`Mock findFirst called ${mockCallCount} times with: ${JSON.stringify(query, null, 2)}\n`);
+        return mockUser;
+      });
+      
+      let result;
+      let caughtError = null;
+      try {
+        process.stdout.write(`Calling getUserFromDecodedPayload with payload: ${JSON.stringify(payload)}\n`);
+        result = await getUserFromDecodedPayload(payload);
+        process.stdout.write(`getUserFromDecodedPayload returned: ${JSON.stringify(result)}\n`);
+      } catch (error) {
+        process.stdout.write(`getUserFromDecodedPayload threw error: ${error}\n`);
+        caughtError = error;
+        throw error;
+      }
+      
+      // If result is null, let's check what happened
+      if (result === null) {
+        throw new Error(`getUserFromDecodedPayload returned null. Mock calls: ${mockCallCount}, Prisma mock calls: ${mockUserFindFirst.mock.calls.length}, Error: ${caughtError?.message || 'none'}`);
+      }
 
       expect(result).toEqual({
         ...mockUser,
@@ -473,6 +541,9 @@ describe('AuthService', () => {
       mockJwt.verify.mockReturnValue(mockPayload);
       jwtVerifySpy.mockReturnValue(mockPayload as any);
       
+      // Mock the findFirst call to return the user
+      mockUserFindFirst.mockResolvedValue(mockUser);
+      
       // Set up spies to return expected values
       cacheServiceGenerateKeySpy.mockReturnValue('test-cache-key');
       cacheServiceGetSpy.mockResolvedValue(null);
@@ -480,7 +551,6 @@ describe('AuthService', () => {
       
       // Reset cache mock to ensure it always returns null (cache miss)
        mockCacheService.get.mockResolvedValue(null);
-      mockUserFindFirst.mockResolvedValue(mockUser);
 
       // Test verifyToken separately first
        const verifyResult = await verifyToken('valid-token');

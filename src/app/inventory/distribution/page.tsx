@@ -52,7 +52,7 @@ export default function InventoryDistribution() {
     const [selectedShopForSort, setSelectedShopForSort] = useState<number | null>(null);
     
     // Check if user can view cost data
-    const canViewCosts = hasPermission('shop:view_costs') || hasPermission('admin:all');
+    const canViewCosts = hasPermission('shop:view_costs');
     const [error, setError] = useState<string | null>(null);
     const [showFilterPanel, setShowFilterPanel] = useState(false);
     const [viewMode, setViewMode] = useState<'product' | 'shop'>('product');

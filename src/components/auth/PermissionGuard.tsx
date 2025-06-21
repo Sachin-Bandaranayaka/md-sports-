@@ -11,7 +11,7 @@ interface PermissionGuardProps {
 
 export default function PermissionGuard({ children }: PermissionGuardProps) {
     const { user, isLoading } = useAuth();
-    const { checkRoutePermission } = usePermission();
+    const { checkRoutePermission, hasPermission } = usePermission();
     const router = useRouter();
 
     useEffect(() => {
@@ -28,7 +28,12 @@ export default function PermissionGuard({ children }: PermissionGuardProps) {
         const hasAccess = checkRoutePermission();
         if (!hasAccess) {
             console.warn('Access denied: Insufficient permissions');
-            router.push('/dashboard');
+            // If user doesn't have dashboard access, redirect to sales invoices
+            if (!hasPermission('view_dashboard')) {
+                router.push('/invoices');
+            } else {
+                router.push('/dashboard');
+            }
         }
     }, [user, isLoading, router, checkRoutePermission]);
 

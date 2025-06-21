@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { verifyToken, extractToken } from '@/lib/auth';
 import { cache } from '@/lib/cache';
 import { cache as vercelCache } from '@/lib/cache-vercel';
 import { performance } from '@/lib/performance';
@@ -220,9 +219,14 @@ export async function GET(request: NextRequest) {
     const startTime = performance.now();
 
     try {
-        const session = await getServerSession(authOptions);
-        if (!session?.user?.id) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        const token = extractToken(request);
+        if (!token) {
+            return NextResponse.json({ error: 'Unauthorized - No token provided' }, { status: 401 });
+        }
+
+        const payload = await verifyToken(token);
+        if (!payload || !payload.sub) {
+            return NextResponse.json({ error: 'Unauthorized - Invalid token' }, { status: 401 });
         }
 
         const { searchParams } = new URL(request.url);
@@ -240,7 +244,7 @@ export async function GET(request: NextRequest) {
 
         // Get user's shop access
         const userShops = await prisma.userShop.findMany({
-            where: { userId: session.user.id },
+            where: { userId: payload.sub as string },
             select: { shopId: true }
         });
 
@@ -395,9 +399,14 @@ export async function GET(request: NextRequest) {
 // Bulk operations endpoint
 export async function PATCH(request: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
-        if (!session?.user?.id) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        const token = extractToken(request);
+        if (!token) {
+            return NextResponse.json({ error: 'Unauthorized - No token provided' }, { status: 401 });
+        }
+
+        const payload = await verifyToken(token);
+        if (!payload || !payload.sub) {
+            return NextResponse.json({ error: 'Unauthorized - Invalid token' }, { status: 401 });
         }
 
         const body = await request.json();
@@ -409,7 +418,7 @@ export async function PATCH(request: NextRequest) {
 
         // Verify user has access to these invoices
         const userShops = await prisma.userShop.findMany({
-            where: { userId: session.user.id },
+            where: { userId: payload.sub as string },
             select: { shopId: true }
         });
         const shopIds = userShops.map(us => us.shopId);

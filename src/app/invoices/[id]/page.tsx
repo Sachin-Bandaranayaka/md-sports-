@@ -9,6 +9,7 @@ import { useReactToPrint } from 'react-to-print';
 import { formatCurrency } from '@/utils/formatters';
 import { generateInvoicePDF } from '@/utils/pdfGenerator';
 import InvoiceTemplate from '@/components/templates/InvoiceTemplate';
+import { usePermission } from '@/hooks/usePermission';
 
 // Invoice and related interfaces
 interface Product {
@@ -120,6 +121,7 @@ export default function InvoiceDetail() {
     const printRef = useRef<HTMLDivElement>(null);
     const [isSendingSms, setIsSendingSms] = useState(false);
     const [smsStatus, setSmsStatus] = useState<{ success: boolean; message: string } | null>(null);
+    const { canEditInvoices } = usePermission();
 
     const handlePrint = useReactToPrint({
         contentRef: printRef,
@@ -362,14 +364,16 @@ export default function InvoiceDetail() {
                             Print
                         </Button>
 
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => router.push(`/invoices/edit/${invoice.id}`)}
-                        >
-                            <Edit className="w-4 h-4 mr-2" />
-                            Edit
-                        </Button>
+                        {canEditInvoices() && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => router.push(`/invoices/edit/${invoice.id}`)}
+                            >
+                                <Edit className="w-4 h-4 mr-2" />
+                                Edit
+                            </Button>
+                        )}
 
                         <Button
                             variant="outline"
@@ -402,32 +406,34 @@ export default function InvoiceDetail() {
                             </Button>
                         )}
 
-                        {confirmDelete ? (
-                            <>
-                                <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    onClick={handleDeleteInvoice}
-                                >
-                                    Confirm Delete
-                                </Button>
+                        {canEditInvoices() && (
+                            confirmDelete ? (
+                                <>
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={handleDeleteInvoice}
+                                    >
+                                        Confirm Delete
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setConfirmDelete(false)}
+                                    >
+                                        Cancel
+                                    </Button>
+                                </>
+                            ) : (
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => setConfirmDelete(false)}
+                                    onClick={() => setConfirmDelete(true)}
                                 >
-                                    Cancel
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Delete
                                 </Button>
-                            </>
-                        ) : (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setConfirmDelete(true)}
-                            >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Delete
-                            </Button>
+                            )
                         )}
 
                         <Button

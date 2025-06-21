@@ -1,0 +1,1024 @@
+{
+  "metadata": {
+    "exportedAt": "2025-06-20T19:01:48.951Z",
+    "source": "NeonDB",
+    "tool": "Prisma Migration Script"
+  },
+  "data": {
+    "Role": [],
+    "Permission": [
+      {
+        "id": 1,
+        "name": "inventory:view",
+        "description": "View inventory items and stock levels",
+        "createdAt": "2025-06-20T16:54:21.685Z",
+        "updatedAt": "2025-06-20T16:54:21.685Z"
+      },
+      {
+        "id": 2,
+        "name": "inventory:create",
+        "description": "Add new inventory items",
+        "createdAt": "2025-06-20T16:54:21.685Z",
+        "updatedAt": "2025-06-20T16:54:21.685Z"
+      },
+      {
+        "id": 3,
+        "name": "inventory:update",
+        "description": "Edit existing inventory items",
+        "createdAt": "2025-06-20T16:54:21.685Z",
+        "updatedAt": "2025-06-20T16:54:21.685Z"
+      },
+      {
+        "id": 4,
+        "name": "inventory:delete",
+        "description": "Remove inventory items",
+        "createdAt": "2025-06-20T16:54:21.685Z",
+        "updatedAt": "2025-06-20T16:54:21.685Z"
+      },
+      {
+        "id": 5,
+        "name": "inventory:manage",
+        "description": "Full inventory management access",
+        "createdAt": "2025-06-20T16:54:21.685Z",
+        "updatedAt": "2025-06-20T16:54:21.685Z"
+      },
+      {
+        "id": 6,
+        "name": "sales:view",
+        "description": "View sales data and transactions",
+        "createdAt": "2025-06-20T16:54:21.685Z",
+        "updatedAt": "2025-06-20T16:54:21.685Z"
+      },
+      {
+        "id": 7,
+        "name": "sales:create",
+        "description": "Create new sales orders",
+        "createdAt": "2025-06-20T16:54:21.685Z",
+        "updatedAt": "2025-06-20T16:54:21.685Z"
+      },
+      {
+        "id": 8,
+        "name": "sales:update",
+        "description": "Edit existing sales orders",
+        "createdAt": "2025-06-20T16:54:21.685Z",
+        "updatedAt": "2025-06-20T16:54:21.685Z"
+      },
+      {
+        "id": 9,
+        "name": "sales:manage",
+        "description": "Full sales management access",
+        "createdAt": "2025-06-20T16:54:21.685Z",
+        "updatedAt": "2025-06-20T16:54:21.685Z"
+      },
+      {
+        "id": 10,
+        "name": "user:view",
+        "description": "View user accounts",
+        "createdAt": "2025-06-20T16:54:21.685Z",
+        "updatedAt": "2025-06-20T16:54:21.685Z"
+      },
+      {
+        "id": 11,
+        "name": "user:create",
+        "description": "Create new user accounts",
+        "createdAt": "2025-06-20T16:54:21.685Z",
+        "updatedAt": "2025-06-20T16:54:21.685Z"
+      },
+      {
+        "id": 12,
+        "name": "user:update",
+        "description": "Edit user accounts",
+        "createdAt": "2025-06-20T16:54:21.685Z",
+        "updatedAt": "2025-06-20T16:54:21.685Z"
+      },
+      {
+        "id": 13,
+        "name": "user:delete",
+        "description": "Delete user accounts",
+        "createdAt": "2025-06-20T16:54:21.685Z",
+        "updatedAt": "2025-06-20T16:54:21.685Z"
+      },
+      {
+        "id": 14,
+        "name": "user:manage",
+        "description": "Full user management access",
+        "createdAt": "2025-06-20T16:54:21.685Z",
+        "updatedAt": "2025-06-20T16:54:21.685Z"
+      },
+      {
+        "id": 15,
+        "name": "reports:view",
+        "description": "View system reports",
+        "createdAt": "2025-06-20T16:54:21.685Z",
+        "updatedAt": "2025-06-20T16:54:21.685Z"
+      },
+      {
+        "id": 16,
+        "name": "reports:export",
+        "description": "Export reports to files",
+        "createdAt": "2025-06-20T16:54:21.685Z",
+        "updatedAt": "2025-06-20T16:54:21.685Z"
+      },
+      {
+        "id": 17,
+        "name": "settings:manage",
+        "description": "Manage system settings",
+        "createdAt": "2025-06-20T16:54:21.685Z",
+        "updatedAt": "2025-06-20T16:54:21.685Z"
+      },
+      {
+        "id": 18,
+        "name": "dashboard:view",
+        "description": "Access dashboard",
+        "createdAt": "2025-06-20T16:54:21.685Z",
+        "updatedAt": "2025-06-20T16:54:21.685Z"
+      },
+      {
+        "id": 19,
+        "name": "admin:all",
+        "description": "Full administrative access",
+        "createdAt": "2025-06-20T16:57:49.013Z",
+        "updatedAt": "2025-06-20T16:57:49.013Z"
+      },
+      {
+        "id": 20,
+        "name": "inventory:transfer",
+        "description": "Transfer inventory between shops",
+        "createdAt": "2025-06-20T16:57:49.013Z",
+        "updatedAt": "2025-06-20T16:57:49.013Z"
+      },
+      {
+        "id": 21,
+        "name": "shop:view",
+        "description": "View shop information",
+        "createdAt": "2025-06-20T16:57:49.013Z",
+        "updatedAt": "2025-06-20T16:57:49.013Z"
+      },
+      {
+        "id": 22,
+        "name": "shop:create",
+        "description": "Create new shops",
+        "createdAt": "2025-06-20T16:57:49.013Z",
+        "updatedAt": "2025-06-20T16:57:49.013Z"
+      },
+      {
+        "id": 23,
+        "name": "shop:update",
+        "description": "Edit shop information",
+        "createdAt": "2025-06-20T16:57:49.013Z",
+        "updatedAt": "2025-06-20T16:57:49.013Z"
+      },
+      {
+        "id": 24,
+        "name": "shop:delete",
+        "description": "Remove shops",
+        "createdAt": "2025-06-20T16:57:49.013Z",
+        "updatedAt": "2025-06-20T16:57:49.013Z"
+      },
+      {
+        "id": 25,
+        "name": "shop:manage",
+        "description": "Full shop management access",
+        "createdAt": "2025-06-20T16:57:49.013Z",
+        "updatedAt": "2025-06-20T16:57:49.013Z"
+      },
+      {
+        "id": 26,
+        "name": "shop:view_costs",
+        "description": "View shop cost information",
+        "createdAt": "2025-06-20T16:57:49.013Z",
+        "updatedAt": "2025-06-20T16:57:49.013Z"
+      },
+      {
+        "id": 27,
+        "name": "customer:view",
+        "description": "View customer information",
+        "createdAt": "2025-06-20T16:57:49.013Z",
+        "updatedAt": "2025-06-20T16:57:49.013Z"
+      },
+      {
+        "id": 28,
+        "name": "customer:create",
+        "description": "Create new customers",
+        "createdAt": "2025-06-20T16:57:49.013Z",
+        "updatedAt": "2025-06-20T16:57:49.013Z"
+      },
+      {
+        "id": 29,
+        "name": "customer:update",
+        "description": "Edit customer information",
+        "createdAt": "2025-06-20T16:57:49.013Z",
+        "updatedAt": "2025-06-20T16:57:49.013Z"
+      },
+      {
+        "id": 30,
+        "name": "customer:delete",
+        "description": "Remove customers",
+        "createdAt": "2025-06-20T16:57:49.013Z",
+        "updatedAt": "2025-06-20T16:57:49.013Z"
+      },
+      {
+        "id": 31,
+        "name": "invoice:view",
+        "description": "View invoices",
+        "createdAt": "2025-06-20T16:57:49.013Z",
+        "updatedAt": "2025-06-20T16:57:49.013Z"
+      },
+      {
+        "id": 32,
+        "name": "invoice:create",
+        "description": "Create new invoices",
+        "createdAt": "2025-06-20T16:57:49.013Z",
+        "updatedAt": "2025-06-20T16:57:49.013Z"
+      },
+      {
+        "id": 33,
+        "name": "quotation:view",
+        "description": "View quotations",
+        "createdAt": "2025-06-20T16:57:49.013Z",
+        "updatedAt": "2025-06-20T16:57:49.013Z"
+      },
+      {
+        "id": 34,
+        "name": "quotation:create",
+        "description": "Create new quotations",
+        "createdAt": "2025-06-20T16:57:49.013Z",
+        "updatedAt": "2025-06-20T16:57:49.013Z"
+      },
+      {
+        "id": 35,
+        "name": "quotation:manage",
+        "description": "Full quotation management",
+        "createdAt": "2025-06-20T16:57:49.013Z",
+        "updatedAt": "2025-06-20T16:57:49.013Z"
+      },
+      {
+        "id": 36,
+        "name": "purchase:view",
+        "description": "View purchase orders",
+        "createdAt": "2025-06-20T16:57:49.013Z",
+        "updatedAt": "2025-06-20T16:57:49.013Z"
+      },
+      {
+        "id": 37,
+        "name": "supplier:view",
+        "description": "View supplier information",
+        "createdAt": "2025-06-20T16:57:49.013Z",
+        "updatedAt": "2025-06-20T16:57:49.013Z"
+      },
+      {
+        "id": 38,
+        "name": "payment:view",
+        "description": "View payment records",
+        "createdAt": "2025-06-20T16:57:49.013Z",
+        "updatedAt": "2025-06-20T16:57:49.013Z"
+      },
+      {
+        "id": 39,
+        "name": "payment:record",
+        "description": "Record new payments",
+        "createdAt": "2025-06-20T16:58:06.543Z",
+        "updatedAt": "2025-06-20T16:58:06.543Z"
+      },
+      {
+        "id": 40,
+        "name": "receipt:view",
+        "description": "View receipts",
+        "createdAt": "2025-06-20T16:58:06.543Z",
+        "updatedAt": "2025-06-20T16:58:06.543Z"
+      },
+      {
+        "id": 41,
+        "name": "accounting:view",
+        "description": "View accounting information",
+        "createdAt": "2025-06-20T16:58:06.543Z",
+        "updatedAt": "2025-06-20T16:58:06.543Z"
+      },
+      {
+        "id": 42,
+        "name": "report:view",
+        "description": "View system reports",
+        "createdAt": "2025-06-20T16:58:06.543Z",
+        "updatedAt": "2025-06-20T16:58:06.543Z"
+      },
+      {
+        "id": 43,
+        "name": "audit:view",
+        "description": "View audit trail",
+        "createdAt": "2025-06-20T16:58:06.543Z",
+        "updatedAt": "2025-06-20T16:58:06.543Z"
+      },
+      {
+        "id": 44,
+        "name": "category:view",
+        "description": "View product categories",
+        "createdAt": "2025-06-20T16:58:06.543Z",
+        "updatedAt": "2025-06-20T16:58:06.543Z"
+      },
+      {
+        "id": 45,
+        "name": "category:create",
+        "description": "Create new categories",
+        "createdAt": "2025-06-20T16:58:06.543Z",
+        "updatedAt": "2025-06-20T16:58:06.543Z"
+      },
+      {
+        "id": 46,
+        "name": "category:update",
+        "description": "Edit categories",
+        "createdAt": "2025-06-20T16:58:06.543Z",
+        "updatedAt": "2025-06-20T16:58:06.543Z"
+      },
+      {
+        "id": 47,
+        "name": "category:delete",
+        "description": "Remove categories",
+        "createdAt": "2025-06-20T16:58:06.543Z",
+        "updatedAt": "2025-06-20T16:58:06.543Z"
+      },
+      {
+        "id": 48,
+        "name": "product:view",
+        "description": "View products",
+        "createdAt": "2025-06-20T16:58:06.543Z",
+        "updatedAt": "2025-06-20T16:58:06.543Z"
+      },
+      {
+        "id": 49,
+        "name": "product:create",
+        "description": "Create new products",
+        "createdAt": "2025-06-20T16:58:06.543Z",
+        "updatedAt": "2025-06-20T16:58:06.543Z"
+      },
+      {
+        "id": 50,
+        "name": "product:update",
+        "description": "Edit products",
+        "createdAt": "2025-06-20T16:58:06.543Z",
+        "updatedAt": "2025-06-20T16:58:06.543Z"
+      },
+      {
+        "id": 51,
+        "name": "product:delete",
+        "description": "Remove products",
+        "createdAt": "2025-06-20T16:58:06.543Z",
+        "updatedAt": "2025-06-20T16:58:06.543Z"
+      },
+      {
+        "id": 52,
+        "name": "shop:distribution:view",
+        "description": "View shop distribution data",
+        "createdAt": "2025-06-20T16:58:06.543Z",
+        "updatedAt": "2025-06-20T16:58:06.543Z"
+      }
+    ],
+    "Shop": [
+      {
+        "id": "cmc4nqcog0000unnqei52hlhs",
+        "name": "Zimantra",
+        "location": "battaramulla",
+        "createdAt": "2025-06-20T10:18:43.208Z",
+        "updatedAt": "2025-06-20T10:18:43.208Z",
+        "contact_person": null,
+        "phone": null,
+        "email": null,
+        "is_active": true,
+        "opening_time": null,
+        "closing_time": null,
+        "manager_id": null,
+        "opening_date": null,
+        "status": "open",
+        "address_line1": null,
+        "address_line2": null,
+        "city": null,
+        "state": null,
+        "postal_code": null,
+        "country": "Malaysia",
+        "latitude": null,
+        "longitude": null,
+        "tax_rate": "0"
+      },
+      {
+        "id": "cmc4nqj9b0001unnq2fqc59ci",
+        "name": "mba",
+        "location": "colombo",
+        "createdAt": "2025-06-20T10:18:52.031Z",
+        "updatedAt": "2025-06-20T10:18:52.031Z",
+        "contact_person": null,
+        "phone": null,
+        "email": null,
+        "is_active": true,
+        "opening_time": null,
+        "closing_time": null,
+        "manager_id": null,
+        "opening_date": null,
+        "status": "open",
+        "address_line1": null,
+        "address_line2": null,
+        "city": null,
+        "state": null,
+        "postal_code": null,
+        "country": "Malaysia",
+        "latitude": null,
+        "longitude": null,
+        "tax_rate": "0"
+      }
+    ],
+    "User": [
+      {
+        "id": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "name": "Admin User",
+        "email": "admin@mssport.lk",
+        "password": "$2a$10$SQITs.zDCN8AR7AgVlvjv.r1dDkBQ28pEskYphTYedFHt0z.Rwup6",
+        "roleId": null,
+        "phone": null,
+        "createdAt": "2025-06-20T09:30:07.472Z",
+        "updatedAt": "2025-06-20T09:30:07.472Z",
+        "isActive": true,
+        "shopId": null,
+        "roleName": null,
+        "permissions": [
+          "ALL"
+        ],
+        "allowedAccounts": [
+          "ALL"
+        ]
+      },
+      {
+        "id": "86517b04-c810-4e34-8706-4cf4bf11c422",
+        "name": "Chamika",
+        "email": "chamika@gmail.com",
+        "password": "$2a$10$VNXYEk/fW6T1vWBOEkSWIOnkEHzYXuBgtg9BMNPfjTh4k.zmV0Odi",
+        "roleId": null,
+        "phone": null,
+        "createdAt": "2025-06-20T16:05:40.433Z",
+        "updatedAt": "2025-06-20T16:05:40.433Z",
+        "isActive": true,
+        "shopId": "cmc4nqj9b0001unnq2fqc59ci",
+        "roleName": null,
+        "permissions": [
+          "sales:view",
+          "sales:create",
+          "quotation:view",
+          "quotation:create",
+          "shop:distribution:view",
+          "inventory:transfer",
+          "customer:view",
+          "payment:record"
+        ],
+        "allowedAccounts": [
+          "1"
+        ]
+      },
+      {
+        "id": "f459ce07-8b7b-448d-b864-c2b8958b3228",
+        "name": "test",
+        "email": "test@gmail.com",
+        "password": "$2a$12$TWf2m2sJrrNcCxvRYJHnqeZXlCEg7X2v3XItSWMLkWH0apAhbdNLa",
+        "roleId": null,
+        "phone": null,
+        "createdAt": "2025-06-20T17:14:09.534Z",
+        "updatedAt": "2025-06-20T17:14:09.534Z",
+        "isActive": true,
+        "shopId": "cmc4nqcog0000unnqei52hlhs",
+        "roleName": null,
+        "permissions": [
+          "28",
+          "27",
+          "20",
+          "32",
+          "31",
+          "34",
+          "33",
+          "52"
+        ],
+        "allowedAccounts": []
+      }
+    ],
+    "RefreshToken": [
+      {
+        "id": "151cc394-140a-441a-9eda-f2428b062f31",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "a03483a98259a02961652701ae4827db1d3bb98fd85c4b131ddb7d277ac42634bfee70fe2507e6e3",
+        "expiresAt": "2025-07-20T09:37:58.537Z",
+        "createdAt": "2025-06-20T09:37:58.540Z",
+        "updatedAt": "2025-06-20T09:41:01.616Z",
+        "isRevoked": true
+      },
+      {
+        "id": "0be76242-9156-4dfb-9ad5-6d200a6fa4cd",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "b464eb324842bc5a9a53de117d309e930f11dda908b8249b4913c350396a40ecb9f10cd41d8a1e71",
+        "expiresAt": "2025-07-20T15:52:56.959Z",
+        "createdAt": "2025-06-20T15:52:56.961Z",
+        "updatedAt": "2025-06-20T16:18:18.032Z",
+        "isRevoked": true
+      },
+      {
+        "id": "7ff97493-edbc-4130-b979-28956b023413",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "9ad3f45b21c43234743b973e7fe9330f1845639cfaec0f0c591559543e85ee1ad3e1dfea018d3595",
+        "expiresAt": "2025-07-20T09:41:09.403Z",
+        "createdAt": "2025-06-20T09:41:09.404Z",
+        "updatedAt": "2025-06-20T09:44:13.453Z",
+        "isRevoked": true
+      },
+      {
+        "id": "98004278-6de3-42d6-9f17-5c6e6e1e51cc",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "55a0be1afb7716e279ea16dedaaeaf167212fc5cfd623fa367ca4af2d8eb7c75667fc15eb54ef9b6",
+        "expiresAt": "2025-07-20T13:29:20.897Z",
+        "createdAt": "2025-06-20T13:29:20.899Z",
+        "updatedAt": "2025-06-20T13:30:36.737Z",
+        "isRevoked": true
+      },
+      {
+        "id": "bfa8eb8f-2b1e-438b-b462-2a9a90e4dd5d",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "ac96d15b501f15f3df711c7043058978ad76d5ada88536231c40814bbc54a09e81a6e9caf430c0dd",
+        "expiresAt": "2025-07-20T09:44:19.946Z",
+        "createdAt": "2025-06-20T09:44:19.948Z",
+        "updatedAt": "2025-06-20T09:46:12.679Z",
+        "isRevoked": true
+      },
+      {
+        "id": "6acb31b6-fe30-4f90-8c50-2d5e8ca6709a",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "ffc0a8589ef9eb14e44374743afa8d9cf5f95694c3934b0c4d5a31c47008edaf75a7b844d3ea56f2",
+        "expiresAt": "2025-07-20T09:46:20.098Z",
+        "createdAt": "2025-06-20T09:46:20.100Z",
+        "updatedAt": "2025-06-20T09:48:32.839Z",
+        "isRevoked": true
+      },
+      {
+        "id": "7d7447d3-d381-4e7b-ae11-03f371602051",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "29e17daf4792919c4caecfa92b0168504e850a1de12d8a0e0d68c83dca0ed4c5a64f15490ccfb667",
+        "expiresAt": "2025-07-20T09:48:41.629Z",
+        "createdAt": "2025-06-20T09:48:41.630Z",
+        "updatedAt": "2025-06-20T09:53:14.541Z",
+        "isRevoked": true
+      },
+      {
+        "id": "983b4b98-2767-4aba-bdad-a2ddc544c056",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "d32e09c40359b562d821f6bdda2e785d7fd8b5e62e1a9eb85fb948ab5dc95f7ee11073d86962e3a3",
+        "expiresAt": "2025-07-20T13:31:31.039Z",
+        "createdAt": "2025-06-20T13:31:31.040Z",
+        "updatedAt": "2025-06-20T13:31:43.840Z",
+        "isRevoked": true
+      },
+      {
+        "id": "5117fe36-c20f-42ed-8309-8e75471d3a38",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "c81f5cbbf239df4e7874d1e4a8ca3674434f614f54b357d6183ff228dc97ab194a83b0d19f4a0968",
+        "expiresAt": "2025-07-20T09:53:22.522Z",
+        "createdAt": "2025-06-20T09:53:22.522Z",
+        "updatedAt": "2025-06-20T09:54:19.161Z",
+        "isRevoked": true
+      },
+      {
+        "id": "135ead54-7d6c-4c86-a6eb-35d90969563f",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "1d3de670f520767ba955c896a0427133fbdead944512e4e20393f243d630148c971d7c7a8e6cc5d8",
+        "expiresAt": "2025-07-20T09:54:36.044Z",
+        "createdAt": "2025-06-20T09:54:36.046Z",
+        "updatedAt": "2025-06-20T10:08:04.440Z",
+        "isRevoked": true
+      },
+      {
+        "id": "955b32ba-e897-44a7-963f-6facbaf17958",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "fa3e441b8b8cfa71a552a17409969a2b206cdf4eeb6058988ebda790acb19d2ac1f365fef8847310",
+        "expiresAt": "2025-07-20T10:08:12.058Z",
+        "createdAt": "2025-06-20T10:08:12.060Z",
+        "updatedAt": "2025-06-20T10:13:12.607Z",
+        "isRevoked": true
+      },
+      {
+        "id": "78de9cab-06a5-4985-a433-665e46c8c16f",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "e453f9904e65c9202e55ec782df96d0e6416f0247177f8e093be75533e2615bb00584c563766a936",
+        "expiresAt": "2025-07-20T10:13:24.691Z",
+        "createdAt": "2025-06-20T10:13:24.693Z",
+        "updatedAt": "2025-06-20T10:13:24.692Z",
+        "isRevoked": false
+      },
+      {
+        "id": "ce89caa4-92bc-40df-accb-546697364eeb",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "a68abcc6ac090d26c2f358d7031703cb04aacb65e26cfc681c2fa6e0d5e7d4c6c43d6dfc1763cd03",
+        "expiresAt": "2025-07-20T16:42:37.040Z",
+        "createdAt": "2025-06-20T16:42:37.042Z",
+        "updatedAt": "2025-06-20T16:42:51.735Z",
+        "isRevoked": true
+      },
+      {
+        "id": "f98b1520-74e8-4c6b-84e6-cf39d270edf3",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "18a04818c4d46317ed6032a070751b458284530d04992abc75a03ab08cb4550b6fd400569e961542",
+        "expiresAt": "2025-07-20T10:13:38.473Z",
+        "createdAt": "2025-06-20T10:13:38.473Z",
+        "updatedAt": "2025-06-20T10:16:54.917Z",
+        "isRevoked": true
+      },
+      {
+        "id": "1a786b97-7647-47f9-a6f2-0e3fbde71699",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "08a4cb48236b471f751d2f3620da3a2c8abfffcbfc96b2a7868e7e0cd465e971cee40b3148fd2a21",
+        "expiresAt": "2025-07-20T13:31:49.627Z",
+        "createdAt": "2025-06-20T13:31:49.628Z",
+        "updatedAt": "2025-06-20T13:34:13.150Z",
+        "isRevoked": true
+      },
+      {
+        "id": "d747adcf-d9d4-4a66-b692-80a218df622a",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "39d231738eec8faa6a8bb021b523efbef63f2e50dedb0d7e9fca5e86e2e32d544926be86324b7102",
+        "expiresAt": "2025-07-20T10:17:44.633Z",
+        "createdAt": "2025-06-20T10:17:44.634Z",
+        "updatedAt": "2025-06-20T10:18:03.716Z",
+        "isRevoked": true
+      },
+      {
+        "id": "9ed3099c-8dab-42f7-8ced-c60af3b29506",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "4d76792f9a11dfc43810e91883e05cf8fb49c9584a427492f5df6fd0c6e1c78bfd1ec28f45c50038",
+        "expiresAt": "2025-07-20T10:18:18.107Z",
+        "createdAt": "2025-06-20T10:18:18.108Z",
+        "updatedAt": "2025-06-20T13:27:08.113Z",
+        "isRevoked": true
+      },
+      {
+        "id": "03f07973-44c5-4365-bbf8-beda17c41b66",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "8990692a0edb8b45465511f9d3347034993ad39e3ba2df0717ccae5b883898d44cfed1e90c14748e",
+        "expiresAt": "2025-07-20T13:27:16.143Z",
+        "createdAt": "2025-06-20T13:27:16.144Z",
+        "updatedAt": "2025-06-20T13:28:44.474Z",
+        "isRevoked": true
+      },
+      {
+        "id": "43a45ab3-b0d0-4269-9394-6e47cc341438",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "1ed6bbd6f3c23590d1784ed7914a3f3fb64ac7c11a3cbd11b9f339999ca092be8ec7696182eb3fb8",
+        "expiresAt": "2025-07-20T13:34:19.143Z",
+        "createdAt": "2025-06-20T13:34:19.144Z",
+        "updatedAt": "2025-06-20T13:38:41.852Z",
+        "isRevoked": true
+      },
+      {
+        "id": "415f6b1f-845d-4d7e-a718-4888fce1d3c8",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "1ad4ef6ec43b15bc58177b3bb91554ffa61a53b76fb768b4f50d6716b36abbcc59317a834467d46b",
+        "expiresAt": "2025-07-20T13:28:50.936Z",
+        "createdAt": "2025-06-20T13:28:50.937Z",
+        "updatedAt": "2025-06-20T13:29:15.230Z",
+        "isRevoked": true
+      },
+      {
+        "id": "dd35df95-ffcb-476b-bc8f-da1d1e972aa4",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "76835b2134399be33d777725023cfc4286ad3ee2ff0ac7cc7ce2f4d87f8b7fb19018ee86fd7575d9",
+        "expiresAt": "2025-07-20T17:23:15.983Z",
+        "createdAt": "2025-06-20T17:23:15.984Z",
+        "updatedAt": "2025-06-20T17:24:39.731Z",
+        "isRevoked": true
+      },
+      {
+        "id": "e5365104-de9c-4887-a101-c0977475e118",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "9f1a83d6fcec7288dfd16d43518f97055de703c59cbeb1ea7a095cf5fe254b6c4d89b22040708a74",
+        "expiresAt": "2025-07-20T13:39:27.951Z",
+        "createdAt": "2025-06-20T13:39:27.953Z",
+        "updatedAt": "2025-06-20T15:34:27.152Z",
+        "isRevoked": true
+      },
+      {
+        "id": "13c92168-09fe-423f-97ed-d0ea45e502f6",
+        "userId": "86517b04-c810-4e34-8706-4cf4bf11c422",
+        "token": "cfed55cfe784e8d83c4977268b07c65caa4f7dd77c2dd302e5f051a6d88ecd69906ca9fb50350d60",
+        "expiresAt": "2025-07-20T16:47:30.894Z",
+        "createdAt": "2025-06-20T16:47:30.895Z",
+        "updatedAt": "2025-06-20T16:47:54.946Z",
+        "isRevoked": true
+      },
+      {
+        "id": "19af9802-baf3-40a8-a3bc-5d2647e1f357",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "6925bfc4efb21b64f9cd7609a0695c82683a5a44547badbd2bd6240578a49502f526ae6cea102674",
+        "expiresAt": "2025-07-20T15:34:55.337Z",
+        "createdAt": "2025-06-20T15:34:55.338Z",
+        "updatedAt": "2025-06-20T15:40:22.593Z",
+        "isRevoked": true
+      },
+      {
+        "id": "4b7beee4-4155-4547-8cb9-b7b645a961a2",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "ed8cab541ced60d039f6ce9cb6d22bdb4f663f1978dd883a37739274dbf609244675f898619fee77",
+        "expiresAt": "2025-07-20T15:40:29.903Z",
+        "createdAt": "2025-06-20T15:40:29.905Z",
+        "updatedAt": "2025-06-20T15:43:05.224Z",
+        "isRevoked": true
+      },
+      {
+        "id": "ca1202b2-6ff9-48fd-82c7-48c4f5ee4ab1",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "b94de35274e0233c6ebf8ea4ab4e148daa753a7b29991ef5eca067cb3ff4fbdeee6f8005c002bb1f",
+        "expiresAt": "2025-07-20T15:45:29.192Z",
+        "createdAt": "2025-06-20T15:45:29.194Z",
+        "updatedAt": "2025-06-20T15:52:45.627Z",
+        "isRevoked": true
+      },
+      {
+        "id": "e3435452-9b8a-4941-a759-a644ff163ae7",
+        "userId": "86517b04-c810-4e34-8706-4cf4bf11c422",
+        "token": "77e3ede4c65ce81f1a6e4657b1d286043ce32fb206c4f35749815f304316bd456f03e871b263bc3c",
+        "expiresAt": "2025-07-20T16:48:02.412Z",
+        "createdAt": "2025-06-20T16:48:02.413Z",
+        "updatedAt": "2025-06-20T16:48:28.724Z",
+        "isRevoked": true
+      },
+      {
+        "id": "22a73a2a-00cc-4337-8a89-691efe9ab9fa",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "0a99fea6866291a1c599622e98d11fb562b8ebdfb458789a72ca99118242e1f08fc758d8905eba97",
+        "expiresAt": "2025-07-20T16:48:35.609Z",
+        "createdAt": "2025-06-20T16:48:35.610Z",
+        "updatedAt": "2025-06-20T16:59:01.472Z",
+        "isRevoked": true
+      },
+      {
+        "id": "c3bc735a-d4b0-4e4e-87d4-d8e4742b0745",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "8d53fdde0b5cd30e448cf62a08c387973ae28dc6755392395dfc91ebb23486c5304b6e19955bdf7e",
+        "expiresAt": "2025-07-20T16:59:34.724Z",
+        "createdAt": "2025-06-20T16:59:34.725Z",
+        "updatedAt": "2025-06-20T17:11:41.142Z",
+        "isRevoked": true
+      },
+      {
+        "id": "a430f6d4-f5b6-41cc-ac14-454eb2593179",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "3207147df803ad8f11f45ba019f3ec16b33418aabbb3c6a1e2dce02adaa9d3a196d147458c7ca55e",
+        "expiresAt": "2025-07-20T17:12:25.717Z",
+        "createdAt": "2025-06-20T17:12:25.724Z",
+        "updatedAt": "2025-06-20T17:14:21.473Z",
+        "isRevoked": true
+      },
+      {
+        "id": "5a276e3b-6799-4769-9ffb-2106467ee826",
+        "userId": "f459ce07-8b7b-448d-b864-c2b8958b3228",
+        "token": "c70059a8d02a7bb21d6d2e0c633da93812b2973e393f2f11c2c820bf2e21698caf079a28cd4799bf",
+        "expiresAt": "2025-07-20T17:14:27.744Z",
+        "createdAt": "2025-06-20T17:14:27.746Z",
+        "updatedAt": "2025-06-20T17:14:47.483Z",
+        "isRevoked": true
+      },
+      {
+        "id": "4d86fcfb-2a8e-497d-87d7-8d518282934c",
+        "userId": "f459ce07-8b7b-448d-b864-c2b8958b3228",
+        "token": "e2e4cb29e7c120f5f415bdcaaee7d74ef563b12fc0754c86076e640d453e015b8d0a7974d844c6a4",
+        "expiresAt": "2025-07-20T17:14:55.173Z",
+        "createdAt": "2025-06-20T17:14:55.175Z",
+        "updatedAt": "2025-06-20T17:15:09.463Z",
+        "isRevoked": true
+      },
+      {
+        "id": "c684a4ec-bba4-4cb0-bb6b-0207f50540d3",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "c593faa28274d5ad20004a81a0d1313cc2ff81c51559c8b96139f7f35fe1ee2fb827c3a35e3fda34",
+        "expiresAt": "2025-07-20T17:15:15.673Z",
+        "createdAt": "2025-06-20T17:15:15.673Z",
+        "updatedAt": "2025-06-20T17:23:08.642Z",
+        "isRevoked": true
+      },
+      {
+        "id": "a360290f-c45e-4be2-ab65-8d3265fd6ccb",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "8b514c9d24e0696a8c67ea26d6fef4e881d325b8a19cc2c1bea31bb29895353de1bd88fdf3cf613c",
+        "expiresAt": "2025-07-20T17:44:20.109Z",
+        "createdAt": "2025-06-20T17:44:20.111Z",
+        "updatedAt": "2025-06-20T18:13:04.459Z",
+        "isRevoked": true
+      },
+      {
+        "id": "be170489-d65a-4d4e-a72f-c52b56dac5a8",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "7f9676604fea2179fe55e12c402dc0ebfaf32f314846c64861f80c518969f87040c2f45ab0beb023",
+        "expiresAt": "2025-07-20T17:26:37.575Z",
+        "createdAt": "2025-06-20T17:26:37.584Z",
+        "updatedAt": "2025-06-20T17:26:56.094Z",
+        "isRevoked": true
+      },
+      {
+        "id": "19e846e1-90cf-44f8-9392-4818a46aefd6",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "f940fd723651995541b848ee98d5b87e4a3bd5c43429aa2d7e61e682862c4eefd6a34f5e5884883b",
+        "expiresAt": "2025-07-20T18:52:27.761Z",
+        "createdAt": "2025-06-20T18:52:27.762Z",
+        "updatedAt": "2025-06-20T18:52:27.761Z",
+        "isRevoked": false
+      },
+      {
+        "id": "44eec93a-ed85-4afa-ab65-1b4bdf3f9572",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "d32f0058560652b17927f858c46fa94d73b7295c5b3de329bb3f147388b48054f15e4751da880753",
+        "expiresAt": "2025-07-20T18:13:53.689Z",
+        "createdAt": "2025-06-20T18:13:53.692Z",
+        "updatedAt": "2025-06-20T18:47:14.961Z",
+        "isRevoked": true
+      },
+      {
+        "id": "00e07d31-f89b-4106-a4b8-95d7164dcf00",
+        "userId": "4447d3a9-595b-483e-b55a-38f0f6160121",
+        "token": "68ca134f65bbf8d9c511832a2e949d49fb5f913b4cad4b3beca06886e3ab8c57b88658b561b96db7",
+        "expiresAt": "2025-07-20T18:52:12.559Z",
+        "createdAt": "2025-06-20T18:52:12.561Z",
+        "updatedAt": "2025-06-20T18:52:12.560Z",
+        "isRevoked": false
+      }
+    ],
+    "Category": [
+      {
+        "id": 1,
+        "name": "shuttle",
+        "description": null,
+        "parentId": null,
+        "createdAt": "2025-06-20T14:26:58.382Z",
+        "updatedAt": "2025-06-20T14:26:58.382Z"
+      },
+      {
+        "id": 2,
+        "name": "grip",
+        "description": null,
+        "parentId": null,
+        "createdAt": "2025-06-20T14:27:04.770Z",
+        "updatedAt": "2025-06-20T14:27:04.770Z"
+      }
+    ],
+    "Supplier": [
+      {
+        "id": 1,
+        "name": "UK",
+        "email": "",
+        "phone": "",
+        "address": "",
+        "createdAt": "2025-06-20T17:20:26.228Z",
+        "updatedAt": "2025-06-20T17:20:26.228Z",
+        "contactPerson": "",
+        "city": "",
+        "notes": "",
+        "status": "active"
+      }
+    ],
+    "Customer": [
+      {
+        "id": 1,
+        "name": "sachin",
+        "email": null,
+        "phone": null,
+        "address": null,
+        "createdAt": "2025-06-20T18:15:48.675Z",
+        "updatedAt": "2025-06-20T18:15:48.675Z",
+        "city": null,
+        "postalCode": null,
+        "contactPerson": null,
+        "contactPersonPhone": null,
+        "customerType": "retail",
+        "creditLimit": null,
+        "creditPeriod": null,
+        "taxId": null,
+        "notes": null,
+        "status": null
+      }
+    ],
+    "Product": [
+      {
+        "id": 1,
+        "name": "GP 20 ",
+        "description": null,
+        "price": 500,
+        "weightedAverageCost": 250,
+        "sku": "GP1538",
+        "barcode": null,
+        "categoryId": 2,
+        "shopId": null,
+        "minStockLevel": 10,
+        "createdAt": "2025-06-20T17:19:22.201Z",
+        "updatedAt": "2025-06-20T18:14:56.477Z"
+      }
+    ],
+    "InventoryItem": [
+      {
+        "id": 1,
+        "productId": 1,
+        "quantity": 100,
+        "shopId": "cmc4nqcog0000unnqei52hlhs",
+        "shopSpecificCost": 200,
+        "createdAt": "2025-06-20T18:14:54.955Z",
+        "updatedAt": "2025-06-20T18:14:54.955Z"
+      },
+      {
+        "id": 2,
+        "productId": 1,
+        "quantity": 100,
+        "shopId": "cmc4nqj9b0001unnq2fqc59ci",
+        "shopSpecificCost": 300,
+        "createdAt": "2025-06-20T18:14:57.082Z",
+        "updatedAt": "2025-06-20T18:14:57.082Z"
+      }
+    ],
+    "Account": [
+      {
+        "id": 1,
+        "name": "cash in hand ",
+        "type": "income",
+        "balance": "0",
+        "description": "",
+        "isActive": true,
+        "parentId": null,
+        "createdAt": "2025-06-20T16:00:32.086Z",
+        "updatedAt": "2025-06-20T16:00:32.086Z"
+      },
+      {
+        "id": 2,
+        "name": "cash in bank",
+        "type": "income",
+        "balance": "0",
+        "description": "",
+        "isActive": true,
+        "parentId": null,
+        "createdAt": "2025-06-20T16:01:41.168Z",
+        "updatedAt": "2025-06-20T16:01:41.168Z"
+      }
+    ],
+    "Invoice": [],
+    "InvoiceItem": [],
+    "PurchaseInvoice": [
+      {
+        "id": 1,
+        "invoiceNumber": "PI-250620-715",
+        "supplierId": 1,
+        "total": 50000,
+        "status": "pending_approval",
+        "createdAt": "2025-06-20T18:14:51.264Z",
+        "updatedAt": "2025-06-20T18:14:51.264Z",
+        "distributions": [
+          {
+            "cmc4nqcog0000unnqei52hlhs": 100
+          },
+          {
+            "cmc4nqj9b0001unnq2fqc59ci": 100
+          },
+          {},
+          {}
+        ],
+        "date": "2025-06-20T00:00:00.000Z",
+        "dueDate": null
+      }
+    ],
+    "PurchaseInvoiceItem": [
+      {
+        "id": 1,
+        "purchaseInvoiceId": 1,
+        "productId": 1,
+        "quantity": 100,
+        "price": 200,
+        "total": 20000,
+        "createdAt": "2025-06-20T18:14:51.868Z",
+        "updatedAt": "2025-06-20T18:14:51.868Z"
+      },
+      {
+        "id": 2,
+        "purchaseInvoiceId": 1,
+        "productId": 1,
+        "quantity": 100,
+        "price": 300,
+        "total": 30000,
+        "createdAt": "2025-06-20T18:14:55.564Z",
+        "updatedAt": "2025-06-20T18:14:55.564Z"
+      }
+    ],
+    "Quotation": [],
+    "QuotationItem": [],
+    "Receipt": [],
+    "Payment": [],
+    "Transaction": [],
+    "InventoryTransfer": [],
+    "TransferItem": [],
+    "Notification": [],
+    "AuditLog": [],
+    "SystemSettings": [
+      {
+        "id": 1,
+        "key": "ai_chatbot_enabled",
+        "value": "1",
+        "description": "Enable or disable AI chatbot functionality",
+        "createdAt": "2025-06-20T15:38:05.630Z",
+        "updatedAt": "2025-06-20T15:38:05.630Z"
+      }
+    ],
+    "_PermissionToRole": []
+  }
+}

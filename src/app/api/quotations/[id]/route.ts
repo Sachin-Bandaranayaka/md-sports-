@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { verifyToken, extractToken } from '@/lib/auth';
+import { hasPermission } from '@/lib/utils/permissions';
 
 // GET /api/quotations/[id] - Get a specific quotation
 export async function GET(
@@ -7,6 +9,32 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
+        // Check authentication
+        const token = extractToken(request);
+        if (!token) {
+            return NextResponse.json({ error: 'Unauthorized - No token provided' }, { status: 401 });
+        }
+
+        const payload = await verifyToken(token);
+        if (!payload || !payload.sub) {
+            return NextResponse.json({ error: 'Unauthorized - Invalid token' }, { status: 401 });
+        }
+
+        // Get user details
+        const user = await prisma.user.findUnique({
+            where: { id: payload.sub as string },
+            select: { permissions: true, shopId: true }
+        });
+
+        if (!user) {
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+
+        // Check permissions
+        if (!hasPermission(user.permissions, 'sales:view')) {
+            return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+        }
+
         const quotationId = parseInt(params.id);
 
         if (isNaN(quotationId)) {
@@ -37,6 +65,15 @@ export async function GET(
             );
         }
 
+        // Check shop access for non-admin users
+        const isAdmin = hasPermission(user.permissions, 'admin:all') || hasPermission(user.permissions, '*');
+        if (!isAdmin && user.shopId && quotation.shopId !== user.shopId) {
+            return NextResponse.json(
+                { error: 'Access denied: Quotation belongs to different shop' },
+                { status: 403 }
+            );
+        }
+
         return NextResponse.json(quotation);
     } catch (error) {
         console.error(`Error fetching quotation ${params.id}:`, error);
@@ -53,6 +90,35 @@ export async function PUT(
     { params }: { params: { id: string } }
 ) {
     try {
+        // Check authentication
+        const token = extractToken(request);
+        if (!token) {
+            return NextResponse.json({ error: 'Unauthorized - No token provided' }, { status: 401 });
+        }
+
+        const payload = await verifyToken(token);
+        if (!payload || !payload.sub) {
+            return NextResponse.json({ error: 'Unauthorized - Invalid token' }, { status: 401 });
+        }
+
+        // Get user details
+        const user = await prisma.user.findUnique({
+            where: { id: payload.sub as string },
+            select: { permissions: true, shopId: true }
+        });
+
+        if (!user) {
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+
+        // Check permissions - only admin or users with sales:manage can edit quotations
+        const isAdmin = hasPermission(user.permissions, 'admin:all') || hasPermission(user.permissions, '*');
+        const canManageSales = hasPermission(user.permissions, 'sales:manage');
+        
+        if (!isAdmin && !canManageSales) {
+            return NextResponse.json({ error: 'Insufficient permissions to edit quotations' }, { status: 403 });
+        }
+
         const quotationId = parseInt(params.id);
 
         if (isNaN(quotationId)) {
@@ -73,6 +139,14 @@ export async function PUT(
             return NextResponse.json(
                 { error: 'Quotation not found' },
                 { status: 404 }
+            );
+        }
+        
+        // Check shop access for non-admin users
+        if (!isAdmin && user.shopId && existingQuotation.shopId !== user.shopId) {
+            return NextResponse.json(
+                { error: 'Access denied: Cannot edit quotations from other shops' },
+                { status: 403 }
             );
         }
 
@@ -187,6 +261,35 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
+        // Check authentication
+        const token = extractToken(request);
+        if (!token) {
+            return NextResponse.json({ error: 'Unauthorized - No token provided' }, { status: 401 });
+        }
+
+        const payload = await verifyToken(token);
+        if (!payload || !payload.sub) {
+            return NextResponse.json({ error: 'Unauthorized - Invalid token' }, { status: 401 });
+        }
+
+        // Get user details
+        const user = await prisma.user.findUnique({
+            where: { id: payload.sub as string },
+            select: { permissions: true, shopId: true }
+        });
+
+        if (!user) {
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+
+        // Check permissions - only admin or users with sales:manage can delete quotations
+        const isAdmin = hasPermission(user.permissions, 'admin:all') || hasPermission(user.permissions, '*');
+        const canManageSales = hasPermission(user.permissions, 'sales:manage');
+        
+        if (!isAdmin && !canManageSales) {
+            return NextResponse.json({ error: 'Insufficient permissions to delete quotations' }, { status: 403 });
+        }
+
         const quotationId = parseInt(params.id);
 
         if (isNaN(quotationId)) {
@@ -206,6 +309,14 @@ export async function DELETE(
             return NextResponse.json(
                 { error: 'Quotation not found' },
                 { status: 404 }
+            );
+        }
+        
+        // Check shop access for non-admin users
+        if (!isAdmin && user.shopId && quotation.shopId !== user.shopId) {
+            return NextResponse.json(
+                { error: 'Access denied: Cannot delete quotations from other shops' },
+                { status: 403 }
             );
         }
 

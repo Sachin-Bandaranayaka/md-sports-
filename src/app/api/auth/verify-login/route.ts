@@ -1,6 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
+
+/**
+ * Helper function to execute Prisma queries with retry logic for prepared statement conflicts
+ */
+const executeWithRetry = async <T>(operation: () => Promise<T>, maxRetries = 3): Promise<T> => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            return await operation();
+        } catch (error: any) {
+            // Check if this is a prepared statement conflict error
+            if (error?.code === '42P05' && attempt < maxRetries) {
+                console.log(`Prepared statement conflict detected, retrying... (attempt ${attempt}/${maxRetries})`);
+                // Exponential backoff: wait longer between retries
+                await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
+                continue;
+            }
+            // If it's not a retryable error or we've exhausted retries, throw the error
+            throw error;
+        }
+    }
+    throw new Error('Max retries exceeded');
+};
 
 export async function POST(req: NextRequest) {
     try {
@@ -14,13 +36,15 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Try to find the user directly from the database
-        const user = await prisma.user.findFirst({
-            where: {
-                email: email,
-                isActive: true
-            }
-        });
+        // Try to find the user directly from the database with retry logic
+        const user = await executeWithRetry(() =>
+            prisma.user.findFirst({
+                where: {
+                    email: email,
+                    isActive: true
+                }
+            })
+        );
 
         if (!user) {
             return NextResponse.json({
@@ -60,4 +84,4 @@ export async function POST(req: NextRequest) {
             { status: 500 }
         );
     }
-} 
+}

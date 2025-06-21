@@ -6,16 +6,40 @@ import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft, Plus, Trash, Search } from 'lucide-react';
 import { SalesQuotation, QuotationItem, Product } from '@/types';
+import { usePermission } from '@/hooks/usePermission';
 
 export default function EditQuotation() {
     const router = useRouter();
     const params = useParams();
     const quotationId = params.id as string;
+    const { canEditQuotations } = usePermission();
 
     const [customers, setCustomers] = useState<any[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+
+    // Check if user has permission to edit quotations
+    if (!canEditQuotations()) {
+        return (
+            <MainLayout>
+                <div className="p-6">
+                    <div className="text-center py-12">
+                        <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
+                        <p className="text-gray-600">You don't have permission to edit quotations.</p>
+                        <Button 
+                            variant="secondary" 
+                            size="sm" 
+                            onClick={() => router.push('/quotations')}
+                            className="mt-4"
+                        >
+                            Back to Quotations
+                        </Button>
+                    </div>
+                </div>
+            </MainLayout>
+        );
+    }
 
     // Add state for product search functionality
     const [productSearches, setProductSearches] = useState<string[]>([]);

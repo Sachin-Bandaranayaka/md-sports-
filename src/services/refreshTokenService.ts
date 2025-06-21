@@ -24,7 +24,7 @@ const generateSecureToken = (length = 40): string => {
 /**
  * Generate a new refresh token for a user
  */
-export const generateRefreshToken = async (userId: number): Promise<string> => {
+export const generateRefreshToken = async (userId: string): Promise<string> => {
     try {
         // Verify prisma client is initialized
         if (!prisma || !prisma.refreshToken) {
@@ -49,15 +49,17 @@ export const generateRefreshToken = async (userId: number): Promise<string> => {
             expiresAt,
         });
 
-        // Store the token in the database
-        const createdToken = await prisma.refreshToken.create({
-            data: {
-                userId,
-                token,
-                expiresAt,
-                updatedAt: new Date(),
-            },
-        });
+        // Store the token in the database with retry logic
+        const createdToken = await executeWithRetry(() => 
+            prisma.refreshToken.create({
+                data: {
+                    userId,
+                    token,
+                    expiresAt,
+                    updatedAt: new Date(),
+                },
+            })
+        );
 
         console.log('Successfully created refresh token with ID:', createdToken.id);
 
@@ -74,9 +76,30 @@ export const generateRefreshToken = async (userId: number): Promise<string> => {
 };
 
 /**
+ * Helper function to execute Prisma queries with retry logic for prepared statement conflicts
+ */
+const executeWithRetry = async <T>(operation: () => Promise<T>, maxRetries = 3): Promise<T> => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            return await operation();
+        } catch (error: any) {
+            // Check if it's a prepared statement conflict error
+            if (error?.code === '42P05' && error?.message?.includes('prepared statement') && attempt < maxRetries) {
+                console.warn(`Prepared statement conflict on attempt ${attempt}, retrying...`);
+                // Small delay before retry
+                await new Promise(resolve => setTimeout(resolve, 100 * attempt));
+                continue;
+            }
+            throw error;
+        }
+    }
+    throw new Error('Max retries exceeded');
+};
+
+/**
  * Verify a refresh token and return the associated user ID if valid
  */
-export const verifyRefreshToken = async (token: string): Promise<number | null> => {
+export const verifyRefreshToken = async (token: string): Promise<string | null> => {
     try {
         // Verify prisma client is initialized
         if (!prisma || !prisma.refreshToken) {
@@ -84,10 +107,12 @@ export const verifyRefreshToken = async (token: string): Promise<number | null> 
             return null;
         }
 
-        // Find the token in the database
-        const refreshToken = await prisma.refreshToken.findUnique({
-            where: { token },
-        });
+        // Find the token in the database with retry logic
+        const refreshToken = await executeWithRetry(() => 
+            prisma.refreshToken.findUnique({
+                where: { token },
+            })
+        );
 
         // Check if token exists and is not revoked
         if (!refreshToken || refreshToken.isRevoked) {
@@ -99,11 +124,13 @@ export const verifyRefreshToken = async (token: string): Promise<number | null> 
         if (new Date() > refreshToken.expiresAt) {
             console.log('Token expired:', token.substring(0, 10) + '...');
 
-            // Revoke expired token
-            await prisma.refreshToken.update({
-                where: { id: refreshToken.id },
-                data: { isRevoked: true },
-            });
+            // Revoke expired token with retry logic
+            await executeWithRetry(() => 
+                prisma.refreshToken.update({
+                    where: { id: refreshToken.id },
+                    data: { isRevoked: true },
+                })
+            );
 
             return null;
         }
@@ -126,10 +153,12 @@ export const revokeRefreshToken = async (token: string): Promise<boolean> => {
             return false;
         }
 
-        await prisma.refreshToken.updateMany({
-            where: { token },
-            data: { isRevoked: true },
-        });
+        await executeWithRetry(() => 
+            prisma.refreshToken.updateMany({
+                where: { token },
+                data: { isRevoked: true },
+            })
+        );
 
         return true;
     } catch (error) {
@@ -141,7 +170,7 @@ export const revokeRefreshToken = async (token: string): Promise<boolean> => {
 /**
  * Revoke all refresh tokens for a specific user
  */
-export const revokeAllUserRefreshTokens = async (userId: number): Promise<boolean> => {
+export const revokeAllUserRefreshTokens = async (userId: string): Promise<boolean> => {
     try {
         // Verify prisma client is initialized
         if (!prisma || !prisma.refreshToken) {
@@ -149,10 +178,12 @@ export const revokeAllUserRefreshTokens = async (userId: number): Promise<boolea
             return false;
         }
 
-        await prisma.refreshToken.updateMany({
-            where: { userId },
-            data: { isRevoked: true },
-        });
+        await executeWithRetry(() => 
+            prisma.refreshToken.updateMany({
+                where: { userId },
+                data: { isRevoked: true },
+            })
+        );
 
         return true;
     } catch (error) {
@@ -175,15 +206,17 @@ export const cleanupRefreshTokens = async (): Promise<void> => {
 
         const now = new Date();
 
-        await prisma.refreshToken.deleteMany({
-            where: {
-                OR: [
-                    { expiresAt: { lt: now } },
-                    { isRevoked: true },
-                ],
-            },
-        });
+        await executeWithRetry(() => 
+            prisma.refreshToken.deleteMany({
+                where: {
+                    OR: [
+                        { expiresAt: { lt: now } },
+                        { isRevoked: true },
+                    ],
+                },
+            })
+        );
     } catch (error) {
         console.error('Error cleaning up refresh tokens:', error);
     }
-}; 
+};

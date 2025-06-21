@@ -10,10 +10,14 @@ process.env.NODE_ENV = 'test';
 process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
 
 // Mock console.log to reduce noise during tests
-global.console = {
-  ...console,
-  log: jest.fn(),
-};
+// console.log = jest.fn();
+// global.console = {
+//   ...console,
+//   log: jest.fn(),
+// };
+
+// Temporarily enable console.log for debugging
+console.log = console.log;
 
 // Mock cache module
 jest.mock('./src/lib/cache', () => ({

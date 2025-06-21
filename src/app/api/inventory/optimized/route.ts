@@ -4,8 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { verifyToken, extractToken } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { inventoryCacheService, INVENTORY_CACHE_CONFIG } from '@/lib/inventoryCache';
 import { PerformanceMonitor } from '@/lib/performance';
@@ -51,10 +50,18 @@ export async function GET(request: NextRequest) {
 
   try {
     // Authentication check
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const token = extractToken(request);
+    if (!token) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized - No token provided' },
+        { status: 401 }
+      );
+    }
+
+    const payload = await verifyToken(token);
+    if (!payload || !payload.sub) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Invalid token' },
         { status: 401 }
       );
     }
@@ -107,7 +114,7 @@ export async function GET(request: NextRequest) {
     const mvTimer = performanceMonitor.startTimer('materialized_view_query');
 
     try {
-      const data = await fetchFromMaterializedView(validatedQuery, session.user.id);
+      const data = await fetchFromMaterializedView(validatedQuery, payload.sub as string);
       if (data) {
         dataSource = 'materialized_view';
         response = data;
@@ -121,7 +128,7 @@ export async function GET(request: NextRequest) {
 
       // Fallback to live query
       const liveTimer = performanceMonitor.startTimer('live_query');
-      response = await fetchFromLiveQuery(validatedQuery, session.user.id);
+      response = await fetchFromLiveQuery(validatedQuery, payload.sub as string);
       dataSource = 'live_query';
       performanceMonitor.endTimer(liveTimer);
     }

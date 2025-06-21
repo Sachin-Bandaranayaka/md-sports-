@@ -8,7 +8,7 @@ const prismaOptions = {
     datasources: {
         db: {
             url: process.env.DATABASE_URL ? 
-                `${process.env.DATABASE_URL}?connection_limit=1&pool_timeout=900&connect_timeout=900` :
+                `${process.env.DATABASE_URL}?connection_limit=1&pool_timeout=900&connect_timeout=900&prepared_statement_cache_size=0` :
                 'postgresql://localhost:5432/mssport',
         },
     },

@@ -187,6 +187,11 @@ async function initAuthTables() {
         module: 'inventory'
       },
       {
+        name: 'inventory:transfer',
+        description: 'Create and manage inventory transfers between shops',
+        module: 'inventory'
+      },
+      {
         name: 'sales:view',
         description: 'View sales data and transactions',
         module: 'sales'
@@ -229,7 +234,7 @@ async function initAuthTables() {
     
     // Manager permissions
     const managerPermissions = permissions.filter(p => 
-      ['inventory:view', 'inventory:manage', 'invoice:create', 'report:view'].includes(p.name));
+      ['inventory:view', 'inventory:manage', 'inventory:transfer', 'invoice:create', 'report:view'].includes(p.name));
     
     await RolePermission.bulkCreate(managerPermissions.map(permission => ({
       roleId: managerRole.id,

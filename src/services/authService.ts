@@ -1,7 +1,30 @@
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-import prisma from '@/lib/prisma';
-import { cacheService, CACHE_CONFIG } from '@/lib/cache';
+import * as jwt from 'jsonwebtoken';
+import * as bcrypt from 'bcryptjs';
+import prisma from '../lib/prisma';
+import { cacheService, CACHE_CONFIG } from '../lib/cache';
+import { hasPermission as checkPermission } from '../lib/utils/permissions';
+
+/**
+ * Helper function to execute Prisma queries with retry logic for prepared statement conflicts
+ */
+const executeWithRetry = async <T>(operation: () => Promise<T>, maxRetries = 3): Promise<T> => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            return await operation();
+        } catch (error: any) {
+            // Check if this is a prepared statement conflict error
+            if (error?.code === '42P05' && attempt < maxRetries) {
+                console.log(`Prepared statement conflict detected, retrying... (attempt ${attempt}/${maxRetries})`);
+                // Exponential backoff: wait longer between retries
+                await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
+                continue;
+            }
+            // If it's not a retryable error or we've exhausted retries, throw the error
+            throw error;
+        }
+    }
+    throw new Error('Max retries exceeded');
+};
 
 // Secret key for JWT - should be moved to environment variables in production
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -46,22 +69,24 @@ interface TokenPayload {
 export const authenticateUser = async (email: string, password: string) => {
     try {
         console.time('user authentication query');
-        // Optimized single query using the new composite index
-        const user = await prisma.user.findFirst({
-            where: {
-                email: email,
-                isActive: true
-            },
-            include: {
-                role: {
-                    include: {
-                        permissions: {
-                            select: { name: true }
+        // Optimized single query using the new composite index with retry logic
+        const user = await executeWithRetry(() => 
+            prisma.user.findFirst({
+                where: {
+                    email: email,
+                    isActive: true
+                },
+                include: {
+                    role: {
+                        include: {
+                            permissions: {
+                                select: { name: true }
+                            }
                         }
                     }
                 }
-            }
-        });
+            })
+        ) as any;
         console.timeEnd('user authentication query');
 
         // If user not found
@@ -96,15 +121,17 @@ export const authenticateUser = async (email: string, password: string) => {
                     .filter(id => !isNaN(id));
                 
                 if (validPermissionIds.length > 0) {
-                    const permissionRecords = await prisma.permission.findMany({
-                        where: {
-                            id: {
-                                in: validPermissionIds
-                            }
-                        },
-                        select: { name: true }
-                    });
-                    permissions = permissionRecords.map(p => p.name);
+                    const permissionRecords = await executeWithRetry(() =>
+                        prisma.permission.findMany({
+                            where: {
+                                id: {
+                                    in: validPermissionIds
+                                }
+                            },
+                            select: { name: true }
+                        })
+                    );
+                    permissions = (permissionRecords as any[]).map((p: any) => p.name);
                 }
             }
         }
@@ -162,7 +189,7 @@ export const authenticateUser = async (email: string, password: string) => {
  * Generate a JWT token
  */
 export const generateToken = (payload: TokenPayload) => {
-    return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+    return jwt.sign(payload, JWT_SECRET as string, { expiresIn: JWT_EXPIRES_IN as any });
 };
 
 /**
@@ -176,7 +203,7 @@ export const verifyToken = async (token: string) => {
 
     try {
         // Verify token first
-        const payload = jwt.verify(token, JWT_SECRET) as TokenPayload;
+        const decoded = jwt.verify(token, JWT_SECRET) as unknown as TokenPayload;
 
         // Only generate cache key for valid tokens (ensure token is long enough for substring)
         if (token.length >= 20) {
@@ -189,10 +216,10 @@ export const verifyToken = async (token: string) => {
             }
 
             // Cache the valid token payload (shorter TTL for security)
-            await cacheService.set(tokenKey, payload, CACHE_CONFIG.TTL.TOKEN_VALIDATION);
+            await cacheService.set(tokenKey, decoded, CACHE_CONFIG.TTL.TOKEN_VALIDATION);
         }
 
-        return payload;
+        return decoded;
     } catch (error) {
         // Log the error here if desired
         if (error instanceof jwt.TokenExpiredError) {
@@ -210,8 +237,7 @@ export const verifyToken = async (token: string) => {
  * Check if a token has a specific permission with caching
  */
 export const hasPermission = async (tokenPayload: TokenPayload, permission: string) => {
-    // Import the proper permission checking utility
-    const { hasPermission: checkPermission } = await import('@/lib/utils/permissions');
+    // Use the imported permission checking utility
     
     // Quick check from token payload first
     if (tokenPayload.permissions) {
@@ -230,19 +256,21 @@ export const hasPermission = async (tokenPayload: TokenPayload, permission: stri
         }
 
         // Fallback to database query if not cached
-        const user = await prisma.user.findFirst({
-            where: { id: tokenPayload.sub, isActive: true },
-            include: {
-                role: {
-                    include: {
-                        permissions: { select: { name: true } }
+        const user = await executeWithRetry(() =>
+            prisma.user.findFirst({
+                where: { id: String(tokenPayload.sub), isActive: true },
+                include: {
+                    role: {
+                        include: {
+                            permissions: { select: { name: true } }
+                        }
                     }
                 }
-            }
-        });
+            })
+        ) as any;
 
         if (user) {
-            const permissions = user.role.permissions.map(p => p.name);
+            const permissions = user.role.permissions.map((p: any) => p.name);
             // Cache permissions for future checks
             await cacheService.set(permissionsCacheKey, permissions, CACHE_CONFIG.TTL.USER_PERMISSIONS);
             return checkPermission(permissions, permission);
@@ -259,19 +287,24 @@ export const hasPermission = async (tokenPayload: TokenPayload, permission: stri
  */
 export const getUserFromDecodedPayload = async (payload: TokenPayload | null) => {
     console.log('getUserFromDecodedPayload received payload:', payload);
+    process.stderr.write(`DEBUG: getUserFromDecodedPayload called with payload: ${JSON.stringify(payload)}\n`);
 
     if (!payload) {
         console.error('Invalid token payload provided to getUserFromDecodedPayload');
+        process.stderr.write('DEBUG: Invalid payload or missing sub, returning null\n');
         return null;
     }
 
     if (!payload.sub) {
         console.error('Token payload missing user ID (sub claim)');
+        process.stderr.write('DEBUG: Invalid payload or missing sub, returning null\n');
         return null;
     }
 
     const userId = payload.sub;
+    process.stderr.write(`DEBUG: About to call cacheService.generateKey with userId: ${userId}\n`);
     const cacheKey = cacheService.generateKey(CACHE_CONFIG.KEYS.USER_SESSION, { userId });
+    process.stderr.write(`DEBUG: Generated cache key: ${cacheKey}\n`);
 
     try {
         // Try to get user from cache first
@@ -283,21 +316,23 @@ export const getUserFromDecodedPayload = async (payload: TokenPayload | null) =>
 
         console.log('Looking up user with ID:', userId);
         console.time('prisma.user.findFirst for auth'); // Start timer
-        const user = await prisma.user.findFirst({
-            where: {
-                id: userId,
-                isActive: true
-            },
-            include: {
-                role: {
-                    include: {
-                        permissions: {
-                            select: { name: true }
+        const user = await executeWithRetry(() =>
+            prisma.user.findFirst({
+                where: {
+                    id: String(userId),
+                    isActive: true
+                },
+                include: {
+                    role: {
+                        include: {
+                            permissions: {
+                                select: { name: true }
+                            }
                         }
                     }
                 }
-            }
-        });
+            })
+        ) as any;
         console.timeEnd('prisma.user.findFirst for auth'); // End timer
 
         if (!user) {
@@ -308,7 +343,7 @@ export const getUserFromDecodedPayload = async (payload: TokenPayload | null) =>
         const userWithPermissions = {
             ...user,
             roleName: user.role.name,
-            permissions: user.role.permissions.map(p => p.name)
+            permissions: user.role.permissions.map((p: any) => p.name)
         };
 
         // Cache the user session

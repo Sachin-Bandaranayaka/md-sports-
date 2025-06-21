@@ -8,6 +8,7 @@ import { Loader2, ArrowLeftRight, FileText, Plus, Search, RefreshCw } from 'luci
 import { formatDate } from '@/utils/formatters';
 import { useAuth } from '@/hooks/useAuth';
 import { authFetch } from '@/utils/api';
+import { hasPermission } from '@/lib/utils/permissions';
 
 interface TransferItem {
     id: number;
@@ -212,8 +213,6 @@ export default function TransfersPage() {
                         <p className="text-gray-500 mt-1">Manage transfers between shops</p>
                     </div>
                     <div className="flex gap-3">
-                        {console.log('User permissions:', user?.permissions)}
-                        {console.log('Has transfer permission:', user?.permissions?.includes('inventory:transfer'))}
                         <Button
                             variant="outline"
                             size="sm"
@@ -232,7 +231,7 @@ export default function TransfersPage() {
                             <FileText className="w-4 h-4 mr-2" />
                             Inventory
                         </Button>
-                        {user && user.permissions.includes('inventory:transfer') && (
+                        {user && hasPermission(user.permissions, 'inventory:transfer') && (
                             <Button
                                 variant="primary"
                                 size="sm"

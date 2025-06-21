@@ -1,131 +1,88 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="27" failures="10" errors="0" time="0.752">
-  <testsuite name="AuthService" errors="0" failures="10" skipped="0" timestamp="2025-06-20T14:38:47" time="0.403" tests="27">
-    <testcase classname="AuthService › parseTimeStringToSeconds" name="should parse seconds correctly" time="0.002">
+<testsuites name="jest tests" tests="27" failures="1" errors="0" time="0.634">
+  <testsuite name="AuthService" errors="0" failures="1" skipped="26" timestamp="2025-06-20T21:24:03" time="0.31" tests="27">
+    <testcase classname="AuthService › parseTimeStringToSeconds" name="should parse seconds correctly" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="AuthService › parseTimeStringToSeconds" name="should parse minutes correctly" time="0.001">
+    <testcase classname="AuthService › parseTimeStringToSeconds" name="should parse minutes correctly" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="AuthService › parseTimeStringToSeconds" name="should parse hours correctly" time="0.001">
+    <testcase classname="AuthService › parseTimeStringToSeconds" name="should parse hours correctly" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="AuthService › parseTimeStringToSeconds" name="should parse days correctly" time="0.001">
+    <testcase classname="AuthService › parseTimeStringToSeconds" name="should parse days correctly" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="AuthService › parseTimeStringToSeconds" name="should return 0 for invalid input" time="0.001">
+    <testcase classname="AuthService › parseTimeStringToSeconds" name="should return 0 for invalid input" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="AuthService › parseTimeStringToSeconds" name="should handle edge cases" time="0.001">
+    <testcase classname="AuthService › parseTimeStringToSeconds" name="should handle edge cases" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="AuthService › authenticateUser" name="should authenticate valid user credentials" time="0.065">
-      <failure>Error: expect(received).toBe(expected) // Object.is equality
-
-Expected: true
-Received: false
-    at Object.toBe (/Users/sachin/Documents/md-sports-/tests/unit/authService.test.ts:191:30)
-    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    <testcase classname="AuthService › authenticateUser" name="should authenticate valid user credentials" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="AuthService › authenticateUser" name="should reject invalid email" time="0.01">
-      <failure>Error: expect(received).toBe(expected) // Object.is equality
-
-Expected: &quot;Invalid email or password&quot;
-Received: &quot;Authentication failed&quot;
-    at Object.toBe (/Users/sachin/Documents/md-sports-/tests/unit/authService.test.ts:226:30)
-    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    <testcase classname="AuthService › authenticateUser" name="should reject invalid email" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="AuthService › authenticateUser" name="should reject invalid password" time="0.005">
-      <failure>Error: expect(received).toBe(expected) // Object.is equality
-
-Expected: &quot;Invalid email or password&quot;
-Received: &quot;Authentication failed&quot;
-    at Object.toBe (/Users/sachin/Documents/md-sports-/tests/unit/authService.test.ts:236:30)
-    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    <testcase classname="AuthService › authenticateUser" name="should reject invalid password" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="AuthService › authenticateUser" name="should reject inactive user" time="0.006">
-      <failure>Error: expect(received).toBe(expected) // Object.is equality
-
-Expected: &quot;Invalid email or password&quot;
-Received: &quot;Authentication failed&quot;
-    at Object.toBe (/Users/sachin/Documents/md-sports-/tests/unit/authService.test.ts:245:30)
-    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    <testcase classname="AuthService › authenticateUser" name="should reject inactive user" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="AuthService › authenticateUser" name="should handle database errors gracefully" time="0.006">
+    <testcase classname="AuthService › authenticateUser" name="should handle database errors gracefully" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="AuthService › authenticateUser" name="should handle bcrypt errors gracefully" time="0.003">
+    <testcase classname="AuthService › authenticateUser" name="should handle bcrypt errors gracefully" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="AuthService › generateToken" name="should generate JWT token" time="0.001">
-      <failure>Error: expect(received).toBe(expected) // Object.is equality
-
-Expected: &quot;mock-jwt-token&quot;
-Received: undefined
-    at Object.toBe (/Users/sachin/Documents/md-sports-/tests/unit/authService.test.ts:284:22)
-    at Promise.then.completed (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/utils.js:298:28)
-    at new Promise (&lt;anonymous&gt;)
-    at callAsyncCircusFn (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusTest (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:316:40)
-    at processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at _runTest (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:252:3)
-    at _runTestsForDescribeBlock (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:126:9)
-    at _runTestsForDescribeBlock (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:121:9)
-    at _runTestsForDescribeBlock (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:121:9)
-    at run (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/Users/sachin/Documents/md-sports-/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/Users/sachin/Documents/md-sports-/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    <testcase classname="AuthService › generateToken" name="should generate JWT token" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="AuthService › verifyToken" name="should verify valid token from cache" time="0.001">
-      <failure>Error: expect(received).toEqual(expected) // deep equality
-
-Expected: {&quot;email&quot;: &quot;test@example.com&quot;, &quot;exp&quot;: 1750433927, &quot;iat&quot;: 1750430327, &quot;roleId&quot;: 1, &quot;sub&quot;: &quot;1&quot;, &quot;username&quot;: &quot;testuser&quot;}
-Received: undefined
-    at Object.toEqual (/Users/sachin/Documents/md-sports-/tests/unit/authService.test.ts:308:22)
-    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    <testcase classname="AuthService › verifyToken" name="should verify valid token from cache" time="0">
+      <skipped/>
     </testcase>
     <testcase classname="AuthService › verifyToken" name="should verify valid token and cache result" time="0">
-      <failure>Error: expect(received).toEqual(expected) // deep equality
-
-Expected: {&quot;email&quot;: &quot;test@example.com&quot;, &quot;exp&quot;: 1750433927, &quot;iat&quot;: 1750430327, &quot;roleId&quot;: 1, &quot;sub&quot;: &quot;1&quot;, &quot;username&quot;: &quot;testuser&quot;}
-Received: undefined
-    at Object.toEqual (/Users/sachin/Documents/md-sports-/tests/unit/authService.test.ts:327:22)
+      <skipped/>
+    </testcase>
+    <testcase classname="AuthService › verifyToken" name="should throw error for invalid token" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="AuthService › verifyToken" name="should throw error for expired token" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="AuthService › getUserFromDecodedPayload" name="should return user from cache" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="AuthService › getUserFromDecodedPayload" name="should return user from database and cache it" time="0.064">
+      <failure>Error: getUserFromDecodedPayload returned null. Mock calls: 0, Prisma mock calls: 0, Error: none
+    at Object.&lt;anonymous&gt; (/Users/sachin/Documents/md-sports-/tests/unit/authService.test.ts:477:15)
     at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
     </testcase>
-    <testcase classname="AuthService › verifyToken" name="should throw error for invalid token" time="0.002">
+    <testcase classname="AuthService › getUserFromDecodedPayload" name="should return null for null payload" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="AuthService › verifyToken" name="should throw error for expired token" time="0.004">
+    <testcase classname="AuthService › getUserFromDecodedPayload" name="should return null for invalid payload" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="AuthService › getUserFromDecodedPayload" name="should return user from cache" time="0.002">
-      <failure>Error: expect(received).toEqual(expected) // deep equality
-
-Expected: {&quot;email&quot;: &quot;test@example.com&quot;, &quot;id&quot;: 1, &quot;isActive&quot;: true, &quot;name&quot;: &quot;testuser&quot;, &quot;permissions&quot;: [&quot;read_products&quot;, &quot;write_products&quot;], &quot;role&quot;: {&quot;id&quot;: 1, &quot;name&quot;: &quot;admin&quot;, &quot;permissions&quot;: [{&quot;name&quot;: &quot;read_products&quot;}, {&quot;name&quot;: &quot;write_products&quot;}]}, &quot;roleId&quot;: 1, &quot;roleName&quot;: &quot;admin&quot;, &quot;shopId&quot;: 1}
-Received: null
-    at Object.toEqual (/Users/sachin/Documents/md-sports-/tests/unit/authService.test.ts:395:22)
-    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    <testcase classname="AuthService › getUserFromDecodedPayload" name="should return null when user not found" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="AuthService › getUserFromDecodedPayload" name="should return user from database and cache it" time="0.005">
-      <failure>Error: expect(received).toEqual(expected) // deep equality
-
-Expected: {&quot;email&quot;: &quot;test@example.com&quot;, &quot;id&quot;: 1, &quot;isActive&quot;: true, &quot;name&quot;: &quot;testuser&quot;, &quot;permissions&quot;: [&quot;read_products&quot;, &quot;write_products&quot;], &quot;role&quot;: {&quot;id&quot;: 1, &quot;name&quot;: &quot;admin&quot;, &quot;permissions&quot;: [{&quot;name&quot;: &quot;read_products&quot;}, {&quot;name&quot;: &quot;write_products&quot;}]}, &quot;roleId&quot;: 1, &quot;roleName&quot;: &quot;admin&quot;, &quot;shopId&quot;: 1}
-Received: null
-    at Object.toEqual (/Users/sachin/Documents/md-sports-/tests/unit/authService.test.ts:412:22)
-    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    <testcase classname="AuthService › getUserFromToken" name="should return user from valid token" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="AuthService › getUserFromDecodedPayload" name="should return null for null payload" time="0.001">
+    <testcase classname="AuthService › getUserFromToken" name="should throw error for invalid token" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="AuthService › getUserFromDecodedPayload" name="should return null for invalid payload" time="0.002">
+    <testcase classname="AuthService › Error Handling" name="should handle missing JWT_SECRET" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="AuthService › getUserFromDecodedPayload" name="should return null when user not found" time="0.003">
+    <testcase classname="AuthService › Error Handling" name="should handle malformed tokens gracefully" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="AuthService › getUserFromToken" name="should return user from valid token" time="0.006">
-      <failure>Error: expect(received).not.toBeNull()
-
-Received: null
-    at Object.toBeNull (/Users/sachin/Documents/md-sports-/tests/unit/authService.test.ts:510:34)
-    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
-    </testcase>
-    <testcase classname="AuthService › getUserFromToken" name="should throw error for invalid token" time="0.002">
-    </testcase>
-    <testcase classname="AuthService › Error Handling" name="should handle missing JWT_SECRET" time="0.004">
-    </testcase>
-    <testcase classname="AuthService › Error Handling" name="should handle malformed tokens gracefully" time="0.002">
-    </testcase>
-    <testcase classname="AuthService › Error Handling" name="should handle empty token" time="0.001">
+    <testcase classname="AuthService › Error Handling" name="should handle empty token" time="0">
+      <skipped/>
     </testcase>
   </testsuite>
 </testsuites>

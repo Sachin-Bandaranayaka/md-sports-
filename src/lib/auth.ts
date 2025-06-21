@@ -2,13 +2,29 @@ import { NextRequest } from 'next/server';
 // import jwt from 'jsonwebtoken'; replaced
 import * as jose from 'jose';
 import prisma from '@/lib/prisma';
+import CredentialsProvider from 'next-auth/providers/credentials';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-key-for-development';
+const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET || 'default-secret-key-for-development';
 const secretKey = new TextEncoder().encode(JWT_SECRET);
 
 // Export authOptions for NextAuth
 export const authOptions = {
-  secret: JWT_SECRET,
+  secret: NEXTAUTH_SECRET,
+  providers: [
+    CredentialsProvider({
+      name: 'credentials',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' }
+      },
+      async authorize(credentials) {
+        // This is a placeholder - the actual authentication is handled by custom API routes
+        // NextAuth.js requires a provider to be configured even if we're using custom auth
+        return null;
+      }
+    })
+  ],
   session: {
     strategy: 'jwt' as const,
     maxAge: 24 * 60 * 60, // 24 hours

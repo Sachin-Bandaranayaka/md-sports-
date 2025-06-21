@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { verifyToken, extractToken } from '@/lib/auth';
 import { Prisma } from '@prisma/client';
 
 // Get all receipts with pagination and optional filtering

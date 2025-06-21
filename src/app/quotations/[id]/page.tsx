@@ -7,6 +7,7 @@ import { ArrowLeft, Edit, Copy, Download, Calendar, User, FileText, Printer } fr
 import { useReactToPrint } from 'react-to-print';
 import QuotationTemplate from '@/components/templates/QuotationTemplate';
 import { SalesQuotation } from '@/types';
+import { usePermission } from '@/hooks/usePermission';
 
 
 
@@ -14,11 +15,34 @@ export default function ViewQuotation() {
     const router = useRouter();
     const params = useParams();
     const quotationId = params.id as string;
+    const { canViewQuotations, canEditQuotations } = usePermission();
 
     const [quotation, setQuotation] = useState<SalesQuotation | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const printRef = useRef<HTMLDivElement>(null);
+
+    // Check if user has permission to view quotations
+    if (!canViewQuotations()) {
+        return (
+            <MainLayout>
+                <div className="p-6">
+                    <div className="text-center py-12">
+                        <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
+                        <p className="text-gray-600">You don't have permission to view quotations.</p>
+                        <Button 
+                            variant="secondary" 
+                            size="sm" 
+                            onClick={() => router.push('/quotations')}
+                            className="mt-4"
+                        >
+                            Back to Quotations
+                        </Button>
+                    </div>
+                </div>
+            </MainLayout>
+        );
+    }
 
     // Fetch quotation
     useEffect(() => {
@@ -128,14 +152,16 @@ export default function ViewQuotation() {
                     <div className="bg-tertiary p-6 rounded-lg shadow-sm border border-gray-200">
                         {/* Action buttons */}
                         <div className="flex flex-wrap gap-2 mb-6">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => router.push(`/quotations/${quotationId}/edit`)}
-                            >
-                                <Edit className="w-4 h-4 mr-2" />
-                                Edit
-                            </Button>
+                            {canEditQuotations() && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => router.push(`/quotations/${quotationId}/edit`)}
+                                >
+                                    <Edit className="w-4 h-4 mr-2" />
+                                    Edit
+                                </Button>
+                            )}
                             <Button
                                 variant="outline"
                                 size="sm"

@@ -15,7 +15,7 @@ const routePermissions: Record<string, string> = {
     '/quotations': 'quotation:view',
     '/shops': 'shop:view',
     '/customers': 'customer:view',
-    '/invoices': 'invoice:view',
+    '/invoices': 'sales:view',  // Changed from invoice:view to sales:view
     '/accounting': 'accounting:view',
     '/reports': 'report:view',
     '/settings': 'settings:manage',
@@ -36,6 +36,48 @@ export function usePermission() {
         }
         
         return user.permissions.includes(permission);
+    };
+
+    // Check if user can edit/delete invoices
+    const canEditInvoices = (): boolean => {
+        return hasPermission('sales:manage') || hasPermission('admin:all') || hasPermission('ALL') || hasPermission('*');
+    };
+
+    // Check if user can view quotations
+    const canViewQuotations = (): boolean => {
+        return hasPermission('quotation:view') || hasPermission('admin:all') || hasPermission('ALL') || hasPermission('*');
+    };
+
+    // Check if user can create quotations
+    const canCreateQuotations = (): boolean => {
+        return hasPermission('quotation:manage') || hasPermission('admin:all') || hasPermission('ALL') || hasPermission('*');
+    };
+
+    // Check if user can edit/delete quotations
+    const canEditQuotations = (): boolean => {
+        return hasPermission('quotation:manage') || hasPermission('admin:all') || hasPermission('ALL') || hasPermission('*');
+    };
+
+    // Check if user can view cost data
+    const canViewCosts = (): boolean => {
+        return hasPermission('shop:view_costs') || hasPermission('admin:all') || hasPermission('ALL') || hasPermission('*');
+    };
+
+    // Check if user can record payments to specific accounts
+    const canRecordPaymentToAccount = (accountId: number): boolean => {
+        // Admin can record to any account
+        if (hasPermission('admin:all') || hasPermission('ALL') || hasPermission('*')) {
+            return true;
+        }
+        
+        // Check if user has payment:record permission
+        if (!hasPermission('payment:record')) {
+            return false;
+        }
+        
+        // For restricted users, only allow cash in hand (account ID 1)
+        // This is based on the account IDs we found earlier
+        return accountId === 1;
     };
 
     // Check if user has permission to access the current route
@@ -65,6 +107,12 @@ export function usePermission() {
 
     return {
         hasPermission,
-        checkRoutePermission
+        checkRoutePermission,
+        canEditInvoices,
+        canViewQuotations,
+        canCreateQuotations,
+        canEditQuotations,
+        canViewCosts,
+        canRecordPaymentToAccount
     };
 }

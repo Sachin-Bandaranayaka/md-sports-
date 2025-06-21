@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft, Save, Plus, Trash2, ChevronDown, ChevronUp, Search, Bell } from 'lucide-react';
+import { usePermission } from '@/hooks/usePermission';
 
 // Interface for Customer in dropdown
 interface Customer {
@@ -62,6 +63,14 @@ interface InvoiceFormData {
 export default function CreateInvoice() {
     const router = useRouter();
     const { accessToken } = useAuth();
+    const { canEditInvoices } = usePermission();
+
+    // Redirect if user doesn't have edit permissions
+    useEffect(() => {
+        if (!canEditInvoices()) {
+            router.push('/invoices');
+        }
+    }, [canEditInvoices, router]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [products, setProducts] = useState<Product[]>([]);

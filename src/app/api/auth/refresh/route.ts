@@ -1,8 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
+import * as jwt from 'jsonwebtoken';
+import { verifyRefreshToken, generateRefreshToken } from '@/services/refreshTokenService';
+import { generateToken, parseTimeStringToSeconds } from '@/services/authService';
 import prisma from '@/lib/prisma';
-import { verifyRefreshToken } from '@/services/refreshTokenService';
-import { parseTimeStringToSeconds } from '@/services/authService';
+
+/**
+ * Helper function to execute Prisma queries with retry logic for prepared statement conflicts
+ */
+const executeWithRetry = async <T>(operation: () => Promise<T>, maxRetries = 3): Promise<T> => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            return await operation();
+        } catch (error: any) {
+            // Check if this is a prepared statement conflict error
+            if (error?.code === '42P05' && attempt < maxRetries) {
+                console.log(`Prepared statement conflict detected, retrying... (attempt ${attempt}/${maxRetries})`);
+                // Exponential backoff: wait longer between retries
+                await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
+                continue;
+            }
+            // If it's not a retryable error or we've exhausted retries, throw the error
+            throw error;
+        }
+    }
+    throw new Error('Max retries exceeded');
+};
 
 // JWT configuration
 const JWT_SECRET = process.env.JWT_SECRET || 'CHANGE_THIS_IN_PRODUCTION';
@@ -64,20 +86,22 @@ export async function POST(req: NextRequest) {
 
         console.log('Valid refresh token for user ID:', userId);
 
-        // Get user data to include in new token
-        const user = await prisma.user.findFirst({
-            where: {
-                id: userId,
-                isActive: true
-            },
-            include: {
-                role: {
-                    include: {
-                        permissions: true
+        // Get user data to include in new token with retry logic
+        const user = await executeWithRetry(() =>
+            prisma.user.findFirst({
+                where: {
+                    id: String(userId),
+                    isActive: true
+                },
+                include: {
+                    role: {
+                        include: {
+                            permissions: true
+                        }
                     }
                 }
-            }
-        });
+            })
+        );
 
         if (!user) {
             console.log('User not found or inactive for ID:', userId);
@@ -87,7 +111,24 @@ export async function POST(req: NextRequest) {
             }, { status: 401 });
         }
 
-        const permissions = user.role.permissions.map(p => p.name);
+        // Handle case where user has no role assigned but may have direct permissions
+        let permissions: string[] = [];
+        
+        if (user.role) {
+            // User has a role, get permissions from role
+            permissions = user.role.permissions.map((p: { name: string }) => p.name);
+        } else if (user.permissions && user.permissions.length > 0) {
+            // User has no role but has direct permissions
+            permissions = user.permissions;
+            console.log('User has no role but has direct permissions for ID:', userId, 'Permissions:', permissions);
+        } else {
+            // User has neither role nor permissions
+            console.log('User has no role and no permissions assigned for ID:', userId);
+            return NextResponse.json({
+                success: false,
+                message: 'User has no role or permissions assigned'
+            }, { status: 401 });
+        }
 
         const newAccessToken = jwt.sign({
             sub: user.id,
@@ -96,7 +137,7 @@ export async function POST(req: NextRequest) {
             roleId: user.roleId,
             permissions,
             shopId: user.shopId
-        }, JWT_SECRET, { expiresIn: JWT_ACCESS_TOKEN_EXPIRES_IN });
+        }, JWT_SECRET, { expiresIn: JWT_ACCESS_TOKEN_EXPIRES_IN } as any);
 
         console.log('Generated new access token for user:', user.id);
 
@@ -109,7 +150,7 @@ export async function POST(req: NextRequest) {
                 fullName: user.name,
                 email: user.email,
                 roleId: user.roleId,
-                roleName: user.role.name,
+                roleName: user.role?.name || null,
                 shopId: user.shopId,
                 permissions
             }
@@ -137,4 +178,4 @@ export async function POST(req: NextRequest) {
             message: 'Failed to refresh token'
         }, { status: 500 });
     }
-} 
+}

@@ -74,7 +74,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         // Send an empty object or no body. Relies on httpOnly refreshToken cookie.
                         // Use api instance to ensure CSRF token is included
                         const refreshResponse = await api.post('/api/auth/refresh', {}, {
-                            withCredentials: true
+                            withCredentials: true,
+                            timeout: 10000 // 10 second timeout for refresh
                         });
 
                         if (refreshResponse.data.success) {
@@ -94,10 +95,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         }
                     } catch (refreshError: any) {
                         console.error('Full error during token refresh attempt:', refreshError);
-                        if (refreshError.response) {
+                        
+                        // Be more lenient with network errors during refresh
+                        if (refreshError.code === 'ECONNABORTED' || refreshError.code === 'NETWORK_ERROR' || !refreshError.response) {
+                            console.log('Network error during token refresh, not logging out user');
+                            // Don't logout for network issues - let the user try again
+                            return Promise.reject(error); // Reject with original error, but don't logout
+                        } else if (refreshError.response) {
                             console.error('Refresh attempt failed with status:', refreshError.response.status, 'data:', refreshError.response.data);
+                            // Only logout for actual authentication failures (401, 403)
+                            if (refreshError.response.status === 401 || refreshError.response.status === 403) {
+                                await logout();
+                            } else {
+                                console.log('Server error during refresh, not logging out user');
+                            }
+                        } else {
+                            await logout(); // Logout for other unexpected errors
                         }
-                        await logout(); // Logout on any error during refresh process
                         return Promise.reject(refreshError); // Reject with refresh error
                     }
                 }
@@ -119,50 +133,70 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
                 if (storedAccessToken) {
                     console.log('Found stored accessToken, validating with /api/auth/validate...');
-                    try {
-                        const response = await api.get('/api/auth/validate', {
-                            headers: { Authorization: `Bearer ${storedAccessToken}` },
-                        });
-                        if (response.data.success) {
-                            setUser(response.data.user);
-                            setAccessToken(storedAccessToken); // Keep current token if still valid
-                            // The /api/auth/validate does not return a token, it validates the existing one.
-                            // No need to set localStorage items here again if they were already set.
-                            console.log('Stored accessToken is valid.');
-                        } else {
-                            // This case should ideally be handled by the 401 response from /validate directly
-                            console.warn('/api/auth/validate returned success:false, but not an error status. This is unusual.');
-                            // Attempt refresh if validate says not success but didn't error with 401
-                            // This scenario might indicate a valid token but inactive user, etc. which validate handles.
-                            // For now, let the interceptor handle 401s if validate actually throws one.
+                    
+                    // Retry logic for validation to handle network issues during hard refresh
+                    let retryCount = 0;
+                    const maxRetries = 2;
+                    let validationSuccessful = false;
+                    
+                    while (retryCount <= maxRetries && !validationSuccessful) {
+                        try {
+                            const response = await api.get('/api/auth/validate', {
+                                headers: { Authorization: `Bearer ${storedAccessToken}` },
+                                timeout: 10000, // 10 second timeout
+                            });
+                            
+                            if (response.data.success) {
+                                setUser(response.data.user);
+                                setAccessToken(storedAccessToken);
+                                console.log('Stored accessToken is valid.');
+                                validationSuccessful = true;
+                            } else {
+                                console.warn('/api/auth/validate returned success:false, but not an error status.');
+                                break; // Don't retry for explicit validation failures
+                            }
+                        } catch (validationError: any) {
+                            console.log(`Validation attempt ${retryCount + 1} failed. Error status:`, validationError?.response?.status);
+                            
+                            // Handle different types of errors
+                            if (validationError.response?.status === 401) {
+                                // Token is invalid/expired - let interceptor handle refresh
+                                console.log('Token appears invalid, letting interceptor handle refresh...');
+                                break;
+                            } else if (validationError.code === 'ECONNABORTED' || validationError.code === 'NETWORK_ERROR' || !validationError.response) {
+                                // Network/timeout errors - retry
+                                retryCount++;
+                                if (retryCount <= maxRetries) {
+                                    console.log(`Network error detected, retrying in ${retryCount * 1000}ms...`);
+                                    await new Promise(resolve => setTimeout(resolve, retryCount * 1000));
+                                    continue;
+                                } else {
+                                    console.log('Max retries reached for network errors, assuming user is still authenticated');
+                                    // Don't clear auth state for network issues - assume user is still valid
+                                    setAccessToken(storedAccessToken);
+                                    validationSuccessful = true;
+                                }
+                            } else {
+                                // Other server errors (5xx) - don't clear auth immediately
+                                console.log('Server error during validation, assuming temporary issue');
+                                setAccessToken(storedAccessToken);
+                                validationSuccessful = true;
+                                break;
+                            }
                         }
-                    } catch (validationError: any) {
-                        console.log('Initial /api/auth/validate call failed. Error status:', validationError?.response?.status);
-                        // If validation fails (e.g. 401), the response interceptor will try to refresh.
-                        // If refresh also fails, user will be logged out by interceptor.
-                        // No need to explicitly call refresh here if interceptor handles it.
-                        if (!(validationError.response?.status === 401 && !validationError.config?._retry)) {
-                            // If it's not a 401 that the interceptor will handle, or if it's already a retry, clear auth.
-                            // This might happen if /validate returns e.g. 500, or if it was a 401 and refresh already failed.
-                            console.log('Clearing auth state due to unhandled validation error or failed refresh.');
-                            setUser(null);
-                            setAccessToken(null);
-                            localStorage.removeItem('accessToken');
-                            localStorage.removeItem('authToken');
-                        }
-                        // The error will be re-thrown or handled by the interceptor trying to refresh
                     }
                 } else {
                     console.log('No stored accessToken found.');
                     // No token, user is not logged in
                 }
             } catch (error) {
-                // Catch-all for unexpected errors during initial auth validation phase
+                // Catch-all for unexpected errors - be more lenient
                 console.error('Unexpected error in validateAuth:', error);
-                setUser(null);
-                setAccessToken(null);
-                localStorage.removeItem('accessToken');
-                localStorage.removeItem('authToken');
+                const storedAccessToken = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
+                if (storedAccessToken) {
+                    console.log('Keeping existing token despite validation error');
+                    setAccessToken(storedAccessToken);
+                }
             } finally {
                 setIsLoading(false);
             }
@@ -218,7 +252,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Check if user has a specific permission
     const hasPermission = (permission: string): boolean => {
         if (!user || !user.permissions) return false;
-        return user.permissions.includes(permission);
+        return user.permissions.includes('*') || 
+               user.permissions.includes('admin:all') || 
+               user.permissions.includes('ALL') || 
+               user.permissions.includes(permission);
     };
 
     // Get all user permissions
