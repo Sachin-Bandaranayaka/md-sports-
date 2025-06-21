@@ -8,7 +8,7 @@ import { fetchTransfersData } from '../transfers/route';
 import { cacheService } from '@/lib/cache';
 import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
 import { validateTokenPermission, getUserIdFromToken } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, safeQuery } from '@/lib/prisma';
 
 export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest, context) => {
     try {
@@ -72,14 +72,18 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
         }
 
         // Fetch user details to check role and permissions
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
-            select: {
-                id: true,
-                roleName: true,
-                permissions: true
-            }
-        });
+        const user = await safeQuery(
+            () => prisma.user.findUnique({
+                where: { id: userId },
+                select: {
+                    id: true,
+                    roleName: true,
+                    permissions: true
+                }
+            }),
+            null,
+            'Failed to fetch user details'
+        );
 
         if (!user) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -94,24 +98,6 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
         if (!isAdmin) {
             filterUserId = userId;
         }
-
-        console.time('fetchSummaryData');
-        const p1 = fetchSummaryData(shopId, periodDays, undefined, undefined, filterUserId).finally(() => console.timeEnd('fetchSummaryData'));
-
-        console.time('fetchTotalRetailValueData');
-        const p2 = fetchTotalRetailValueData(shopId, periodDays).finally(() => console.timeEnd('fetchTotalRetailValueData'));
-
-        console.time('fetchShopsData');
-        const p3 = fetchShopsData(shopId, periodDays).finally(() => console.timeEnd('fetchShopsData'));
-
-        console.time('fetchInventoryDistributionData');
-        const p4 = fetchInventoryDistributionData(shopId, periodDays).finally(() => console.timeEnd('fetchInventoryDistributionData'));
-
-        console.time('fetchSalesData');
-        const p5 = fetchSalesData(shopId, periodDays, undefined, undefined, filterUserId).finally(() => console.timeEnd('fetchSalesData'));
-
-        console.time('fetchTransfersData');
-        const p6 = fetchTransfersData(shopId, periodDays).finally(() => console.timeEnd('fetchTransfersData'));
 
         console.time('Promise.all dashboard data');
         const [

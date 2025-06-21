@@ -71,13 +71,29 @@ export function usePermission() {
         }
         
         // Check if user has payment:record permission
-        if (!hasPermission('payment:record')) {
+        if (!hasPermission('payment:record') && !hasPermission('invoice:create')) {
             return false;
         }
         
-        // For restricted users, only allow cash in hand (account ID 1)
-        // This is based on the account IDs we found earlier
-        return accountId === 1;
+        // Check if user has specific account permissions
+        if (user?.allowedAccounts && user.allowedAccounts.length > 0) {
+            return user.allowedAccounts.includes(accountId.toString());
+        }
+        
+        // For users without specific account restrictions, allow all income/asset accounts
+        // This maintains backward compatibility
+        return true;
+    };
+
+    // Get list of accounts user can record payments to
+    const getAllowedAccountIds = (): string[] => {
+        // Admin can use any account
+        if (hasPermission('admin:all') || hasPermission('ALL') || hasPermission('*')) {
+            return [];
+        }
+        
+        // Return user's allowed accounts or empty array if no restrictions
+        return user?.allowedAccounts || [];
     };
 
     // Check if user has permission to access the current route
@@ -113,6 +129,7 @@ export function usePermission() {
         canCreateQuotations,
         canEditQuotations,
         canViewCosts,
-        canRecordPaymentToAccount
+        canRecordPaymentToAccount,
+        getAllowedAccountIds
     };
 }

@@ -28,7 +28,7 @@ export async function GET(request: Request) {
         // Get daily sales data for each shop
         const shopSalesData = await Promise.all(
             shops.map(async (shop) => {
-                // Get aggregated sales data for the shop
+                // Get aggregated sales data for the shop (all invoices)
                 const salesAggregate = await prisma.invoice.aggregate({
                     _sum: {
                         total: true,
@@ -42,11 +42,42 @@ export async function GET(request: Request) {
                             gte: startOfDay,
                             lte: endOfDay,
                         },
+                        // Remove status filter to include all invoices
+                    },
+                });
+
+                // Get status-specific aggregates
+                const paidAggregate = await prisma.invoice.aggregate({
+                    _sum: { total: true },
+                    _count: { id: true },
+                    where: {
+                        shopId: shop.id,
+                        createdAt: { gte: startOfDay, lte: endOfDay },
                         status: 'paid',
                     },
                 });
 
-                // Get detailed invoice data for the shop
+                const pendingAggregate = await prisma.invoice.aggregate({
+                    _sum: { total: true },
+                    _count: { id: true },
+                    where: {
+                        shopId: shop.id,
+                        createdAt: { gte: startOfDay, lte: endOfDay },
+                        status: 'pending',
+                    },
+                });
+
+                const partialAggregate = await prisma.invoice.aggregate({
+                    _sum: { total: true },
+                    _count: { id: true },
+                    where: {
+                        shopId: shop.id,
+                        createdAt: { gte: startOfDay, lte: endOfDay },
+                        status: 'partial',
+                    },
+                });
+
+                // Get detailed invoice data for the shop (all statuses)
                 const invoices = await prisma.invoice.findMany({
                     where: {
                         shopId: shop.id,
@@ -54,7 +85,7 @@ export async function GET(request: Request) {
                             gte: startOfDay,
                             lte: endOfDay,
                         },
-                        status: 'paid',
+                        // Remove status filter to include all invoices
                     },
                     include: {
                         customer: {
@@ -96,6 +127,13 @@ export async function GET(request: Request) {
                     averageTransactionValue: salesAggregate._count.id > 0 
                         ? (salesAggregate._sum.total || 0) / salesAggregate._count.id 
                         : 0,
+                    // Status breakdown
+                    paidSales: paidAggregate._sum.total || 0,
+                    paidInvoices: paidAggregate._count.id || 0,
+                    pendingSales: pendingAggregate._sum.total || 0,
+                    pendingInvoices: pendingAggregate._count.id || 0,
+                    partialSales: partialAggregate._sum.total || 0,
+                    partialInvoices: partialAggregate._count.id || 0,
                     invoices: invoices
                 };
             })

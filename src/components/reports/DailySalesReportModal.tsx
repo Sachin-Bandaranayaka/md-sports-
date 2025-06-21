@@ -257,6 +257,57 @@ const DailySalesReportModal: React.FC<DailySalesReportModalProps> = ({
                                 </div>
                             </div>
 
+                            {/* Payment Status Breakdown */}
+                            <div>
+                                <h3 className="text-lg font-medium text-gray-900 mb-4">Payment Status Breakdown</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                                        <div className="flex items-center">
+                                            <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                                            <div>
+                                                <p className="text-sm font-medium text-green-700">Paid Invoices</p>
+                                                <p className="text-lg font-semibold text-gray-900">
+                                                    {shopData.reduce((total: number, shop: any) => total + (shop.paidSales || 0), 0).toLocaleString(undefined, { style: 'currency', currency: 'LKR' })}
+                                                </p>
+                                                <p className="text-xs text-green-600">
+                                                    {shopData.reduce((total: number, shop: any) => total + (shop.paidInvoices || 0), 0)} invoices
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                                        <div className="flex items-center">
+                                            <div className="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
+                                            <div>
+                                                <p className="text-sm font-medium text-yellow-700">Pending Invoices</p>
+                                                <p className="text-lg font-semibold text-gray-900">
+                                                    {shopData.reduce((total: number, shop: any) => total + (shop.pendingSales || 0), 0).toLocaleString(undefined, { style: 'currency', currency: 'LKR' })}
+                                                </p>
+                                                <p className="text-xs text-yellow-600">
+                                                    {shopData.reduce((total: number, shop: any) => total + (shop.pendingInvoices || 0), 0)} invoices
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                                        <div className="flex items-center">
+                                            <div className="w-3 h-3 bg-orange-500 rounded-full mr-3"></div>
+                                            <div>
+                                                <p className="text-sm font-medium text-orange-700">Partial Payments</p>
+                                                <p className="text-lg font-semibold text-gray-900">
+                                                    {shopData.reduce((total: number, shop: any) => total + (shop.partialSales || 0), 0).toLocaleString(undefined, { style: 'currency', currency: 'LKR' })}
+                                                </p>
+                                                <p className="text-xs text-orange-600">
+                                                    {shopData.reduce((total: number, shop: any) => total + (shop.partialInvoices || 0), 0)} invoices
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* Shop Performance Table */}
                             <div>
                                 <h3 className="text-lg font-medium text-gray-900 mb-4">Shop Performance Overview</h3>
@@ -266,10 +317,12 @@ const DailySalesReportModal: React.FC<DailySalesReportModalProps> = ({
                                             <tr>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shop</th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Sales</th>
-                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Invoices</th>
+                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Sales</th>
+                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Invoices</th>
+                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Paid</th>
+                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Pending</th>
+                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Partial</th>
                                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Items Sold</th>
-                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Avg. Transaction</th>
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200">
@@ -287,11 +340,26 @@ const DailySalesReportModal: React.FC<DailySalesReportModalProps> = ({
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
                                                         {shop.numberOfInvoices}
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                                                        {shop.totalQuantitySold}
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 text-right">
+                                                        <div className="flex flex-col">
+                                                            <span className="font-medium">{shop.paidInvoices || 0}</span>
+                                                            <span className="text-xs">{(shop.paidSales || 0).toLocaleString(undefined, { style: 'currency', currency: 'LKR' })}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-yellow-600 text-right">
+                                                        <div className="flex flex-col">
+                                                            <span className="font-medium">{shop.pendingInvoices || 0}</span>
+                                                            <span className="text-xs">{(shop.pendingSales || 0).toLocaleString(undefined, { style: 'currency', currency: 'LKR' })}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-orange-600 text-right">
+                                                        <div className="flex flex-col">
+                                                            <span className="font-medium">{shop.partialInvoices || 0}</span>
+                                                            <span className="text-xs">{(shop.partialSales || 0).toLocaleString(undefined, { style: 'currency', currency: 'LKR' })}</span>
+                                                        </div>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                                                        {shop.averageTransactionValue.toLocaleString(undefined, { style: 'currency', currency: 'LKR' })}
+                                                        {shop.totalQuantitySold}
                                                     </td>
                                                 </tr>
                                             ))}

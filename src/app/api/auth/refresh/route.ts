@@ -2,29 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as jwt from 'jsonwebtoken';
 import { verifyRefreshToken, generateRefreshToken } from '@/services/refreshTokenService';
 import { generateToken, parseTimeStringToSeconds } from '@/services/authService';
-import prisma from '@/lib/prisma';
-
-/**
- * Helper function to execute Prisma queries with retry logic for prepared statement conflicts
- */
-const executeWithRetry = async <T>(operation: () => Promise<T>, maxRetries = 3): Promise<T> => {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-            return await operation();
-        } catch (error: any) {
-            // Check if this is a prepared statement conflict error
-            if (error?.code === '42P05' && attempt < maxRetries) {
-                console.log(`Prepared statement conflict detected, retrying... (attempt ${attempt}/${maxRetries})`);
-                // Exponential backoff: wait longer between retries
-                await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
-                continue;
-            }
-            // If it's not a retryable error or we've exhausted retries, throw the error
-            throw error;
-        }
-    }
-    throw new Error('Max retries exceeded');
-};
+import prisma, { safeQuery } from '@/lib/prisma';
 
 // JWT configuration
 const JWT_SECRET = process.env.JWT_SECRET || 'CHANGE_THIS_IN_PRODUCTION';
@@ -87,8 +65,8 @@ export async function POST(req: NextRequest) {
         console.log('Valid refresh token for user ID:', userId);
 
         // Get user data to include in new token with retry logic
-        const user = await executeWithRetry(() =>
-            prisma.user.findFirst({
+        const user = await safeQuery(
+            () => prisma.user.findFirst({
                 where: {
                     id: String(userId),
                     isActive: true
@@ -100,7 +78,9 @@ export async function POST(req: NextRequest) {
                         }
                     }
                 }
-            })
+            }),
+            null,
+            'Failed to find user during token refresh'
         );
 
         if (!user) {

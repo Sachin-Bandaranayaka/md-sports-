@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
                 shopId: true,
                 roleName: true,
                 permissions: true,
+                allowedAccounts: true,
                 createdAt: true,
                 updatedAt: true,
                 role: {
@@ -154,6 +155,7 @@ export async function POST(req: NextRequest) {
             roleName: roleName,
             shopId: shopId,
             permissions: userData.permissions || [],
+            allowedAccounts: userData.allowedAccounts || [],
             isActive: true
         };
 

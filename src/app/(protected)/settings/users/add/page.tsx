@@ -57,13 +57,21 @@ export default function AddUserPage() {
         shop: '',
         password: '',
         confirmPassword: '',
-        permissions: [] as string[]
+        permissions: [] as string[],
+        allowedAccounts: [] as string[]
     });
     const [isLoading, setIsLoading] = useState(false);
     const [formError, setFormError] = useState('');
     const [formSuccess, setFormSuccess] = useState('');
     const [dynamicShops, setDynamicShops] = useState<Shop[]>([]);
     const [shopsLoading, setShopsLoading] = useState(true);
+    const [availableAccounts, setAvailableAccounts] = useState<Array<{
+        id: number;
+        name: string;
+        type: string;
+        parent?: { name: string };
+    }>>([]);
+    const [accountsLoading, setAccountsLoading] = useState(true);
 
     // Available shops - This will be replaced by dynamic fetching
     // const shops = [
@@ -101,6 +109,41 @@ export default function AddUserPage() {
         };
 
         fetchShops();
+    }, []);
+
+    // Fetch accounts from database
+    useEffect(() => {
+        const fetchAccounts = async () => {
+            setAccountsLoading(true);
+            try {
+                const response = await fetch('/api/accounting/accounts', {
+                    headers: {
+                        'Authorization': 'Bearer dev-token',
+                    },
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to fetch accounts');
+                }
+                const data = await response.json();
+                if (data.success) {
+                    // Filter to only show income and asset accounts
+                    const filteredAccounts = data.data.filter((account: any) => 
+                        account.isActive && (account.type === 'income' || account.type === 'asset')
+                    );
+                    setAvailableAccounts(filteredAccounts);
+                } else {
+                    console.error('Failed to fetch accounts:', data.message);
+                    setAvailableAccounts([]);
+                }
+            } catch (error) {
+                console.error('Error fetching accounts:', error);
+                setAvailableAccounts([]);
+            } finally {
+                setAccountsLoading(false);
+            }
+        };
+
+        fetchAccounts();
     }, []);
 
     // Available permissions - fetched dynamically
@@ -244,6 +287,22 @@ export default function AddUserPage() {
             }
             return { ...prev, permissions: newPermissions };
         });
+    };
+
+    const handleAccountPermissionChange = (accountId: string) => {
+        setUserForm(prev => {
+            const newAllowedAccounts = prev.allowedAccounts.includes(accountId)
+                ? prev.allowedAccounts.filter(id => id !== accountId)
+                : [...prev.allowedAccounts, accountId];
+            return { ...prev, allowedAccounts: newAllowedAccounts };
+        });
+    };
+
+    const handleAllAccountsToggle = (isChecked: boolean) => {
+        setUserForm(prev => ({
+            ...prev,
+            allowedAccounts: isChecked ? availableAccounts.map(acc => acc.id.toString()) : []
+        }));
     };
 
     const handleSubmit = async (e) => {
@@ -499,6 +558,65 @@ export default function AddUserPage() {
                                     ))
                                 )}
                             </div>
+                        </div>
+
+                        {/* Account Permissions Section */}
+                        <div>
+                            <div className="flex items-center justify-between mb-3">
+                                <label className="block text-sm font-medium text-gray-700">
+                                    Account Permissions
+                                </label>
+                                <div className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        id="all-accounts"
+                                        checked={userForm.allowedAccounts.length === availableAccounts.length && availableAccounts.length > 0}
+                                        onChange={(e) => handleAllAccountsToggle(e.target.checked)}
+                                        className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                                    />
+                                    <label htmlFor="all-accounts" className="ml-2 text-sm text-gray-600">
+                                        Select All
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div className="border border-gray-300 rounded-lg p-4 max-h-60 overflow-y-auto">
+                                {accountsLoading ? (
+                                    <div className="flex items-center justify-center py-4">
+                                        <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                                        <span className="text-sm text-gray-500">Loading accounts...</span>
+                                    </div>
+                                ) : availableAccounts.length === 0 ? (
+                                    <div className="text-center py-4">
+                                        <span className="text-sm text-gray-500">No accounts available</span>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                        {availableAccounts.map(account => (
+                                            <div key={account.id} className="flex items-start space-x-2">
+                                                <input
+                                                    type="checkbox"
+                                                    id={`account-${account.id}`}
+                                                    checked={userForm.allowedAccounts.includes(account.id.toString())}
+                                                    onChange={() => handleAccountPermissionChange(account.id.toString())}
+                                                    className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5"
+                                                />
+                                                <div className="flex-1 min-w-0">
+                                                    <label htmlFor={`account-${account.id}`} className="text-sm text-gray-600 cursor-pointer">
+                                                        {account.name} {account.parent ? `(${account.parent.name})` : ''}
+                                                    </label>
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        Type: {account.type.charAt(0).toUpperCase() + account.type.slice(1)}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                                Select which accounts this user can record payments to. If none are selected, the user will not be able to record payments.
+                            </p>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

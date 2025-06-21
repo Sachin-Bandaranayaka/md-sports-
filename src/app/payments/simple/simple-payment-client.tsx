@@ -5,12 +5,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { usePermission } from '@/hooks/usePermission';
 
 // Renaming the main component to avoid conflict if page.tsx also had SimplePaymentForm
 export function SimplePaymentClientForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const invoiceId = searchParams.get('invoiceId');
+    const { canRecordPaymentToAccount, getAllowedAccountIds } = usePermission();
 
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -251,7 +253,14 @@ export function SimplePaymentClientForm() {
                             >
                                 <option value="">Select an account</option>
                                 {accounts
-                                    .filter(account => account.isActive && (account.type === 'asset' || account.type === 'income'))
+                                    .filter(account => {
+                                        // Basic filters: active and correct type
+                                        const isValidAccount = account.isActive && (account.type === 'asset' || account.type === 'income');
+                                        if (!isValidAccount) return false;
+                                        
+                                        // Check user permissions for this account
+                                        return canRecordPaymentToAccount(account.id);
+                                    })
                                     .map(account => (
                                         <option key={account.id} value={account.id}>
                                             {account.name} {account.parent ? `(${account.parent.name})` : ''}
