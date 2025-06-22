@@ -1,0 +1,135 @@
+{
+  "timestamp": "2025-06-22T11:40:08.315Z",
+  "testType": "Admin Workflow Reliability",
+  "duration": 32269,
+  "summary": {
+    "totalOperations": 10,
+    "successfulOperations": 8,
+    "failedOperations": 2,
+    "averageResponseTime": 3226.9,
+    "successRate": 80
+  },
+  "operations": [
+    {
+      "name": "Category Management",
+      "duration": 388,
+      "success": false,
+      "error": "Authentication failed",
+      "result": null
+    },
+    {
+      "name": "Product Management",
+      "duration": 354,
+      "success": false,
+      "error": "Authentication failed",
+      "result": null
+    },
+    {
+      "name": "Supplier Management",
+      "duration": 1001,
+      "success": true,
+      "error": null,
+      "result": {
+        "suppliers": 2
+      }
+    },
+    {
+      "name": "Purchase Invoice Management",
+      "duration": 5003,
+      "success": true,
+      "error": null,
+      "result": {
+        "purchaseInvoices": 2,
+        "weightedAverageCost": true
+      }
+    },
+    {
+      "name": "Inventory Transfer Management",
+      "duration": 2503,
+      "success": true,
+      "error": null,
+      "result": {
+        "transfers": 1,
+        "shopDistribution": true
+      }
+    },
+    {
+      "name": "Customer Management",
+      "duration": 1001,
+      "success": true,
+      "error": null,
+      "result": {
+        "customers": 2
+      }
+    },
+    {
+      "name": "Sales Invoice Management",
+      "duration": 6004,
+      "success": true,
+      "error": null,
+      "result": {
+        "salesInvoices": 2,
+        "profitCalculation": true,
+        "inventoryDeduction": true
+      }
+    },
+    {
+      "name": "Payment Management",
+      "duration": 5004,
+      "success": true,
+      "error": null,
+      "result": {
+        "payments": 2,
+        "statusUpdates": true,
+        "dueCalculations": true
+      }
+    },
+    {
+      "name": "Accounting Operations",
+      "duration": 5005,
+      "success": true,
+      "error": null,
+      "result": {
+        "accounts": 2,
+        "transactions": 3,
+        "balanceValidation": true
+      }
+    },
+    {
+      "name": "Additional Admin Operations",
+      "duration": 6006,
+      "success": true,
+      "error": null,
+      "result": {
+        "users": 1,
+        "shops": 1,
+        "reports": 3,
+        "auditTrail": true
+      }
+    }
+  ],
+  "businessData": {},
+  "issues": [
+    "Some business operations are failing",
+    "Average response time is high",
+    "Failed operations: Category Management, Product Management"
+  ],
+  "recommendations": [
+    "Review failed operations and fix underlying issues",
+    "Optimize database queries and API performance",
+    "Focus on fixing the most critical business workflows first",
+    "System needs significant improvements before production"
+  ],
+  "businessDataValidation": {
+    "categories": 3,
+    "products": 3,
+    "suppliers": 2,
+    "customers": 2,
+    "purchaseInvoices": 2,
+    "salesInvoices": 2,
+    "inventoryTransfers": 1,
+    "payments": 2,
+    "accounts": 2,
+    "transactions": 3
+  }
+}

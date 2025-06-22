@@ -47,7 +47,7 @@ export default function TransferDetailPage({ params }: { params: { id: string } 
     const [showTransferAnimation, setShowTransferAnimation] = useState(false);
 
     // Check if user has transfer permission
-    const hasTransferPermission = user ? hasPermission(user, 'inventory:transfer') : false;
+    const hasTransferPermission = user ? hasPermission(user.permissions, 'inventory:transfer') : false;
 
     useEffect(() => {
         const fetchTransfer = async () => {

@@ -1,0 +1,195 @@
+{
+  "timestamp": "2025-06-22T09:04:00.983Z",
+  "summary": {
+    "totalIndexes": 28,
+    "successfulIndexes": 28,
+    "failedIndexes": 0,
+    "successRate": 100
+  },
+  "appliedIndexes": [
+    {
+      "name": "idx_user_id_btree",
+      "table": "User Table",
+      "duration": 0,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_user_id_btree ON \"User\" USING btree (id)",
+      "status": "exists"
+    },
+    {
+      "name": "idx_user_email_btree",
+      "table": "User Table",
+      "duration": 0,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_user_email_btree ON \"User\" USING btree (email)",
+      "status": "exists"
+    },
+    {
+      "name": "idx_user_role_btree",
+      "table": "User Table",
+      "duration": 0,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_user_role_btree ON \"User\" USING btree (\"roleId\")",
+      "status": "exists"
+    },
+    {
+      "name": "idx_user_shop_btree",
+      "table": "User Table",
+      "duration": 0,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_user_shop_btree ON \"User\" USING btree (\"shopId\")",
+      "status": "exists"
+    },
+    {
+      "name": "idx_user_created_btree",
+      "table": "User Table",
+      "duration": 0,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_user_created_btree ON \"User\" USING btree (\"createdAt\")",
+      "status": "exists"
+    },
+    {
+      "name": "idx_product_id_btree",
+      "table": "Product Table",
+      "duration": 0,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_product_id_btree ON \"Product\" USING btree (id)",
+      "status": "exists"
+    },
+    {
+      "name": "idx_product_name_btree",
+      "table": "Product Table",
+      "duration": 0,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_product_name_btree ON \"Product\" USING btree (name)",
+      "status": "exists"
+    },
+    {
+      "name": "idx_product_category_btree",
+      "table": "Product Table",
+      "duration": 0,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_product_category_btree ON \"Product\" USING btree (\"categoryId\")",
+      "status": "exists"
+    },
+    {
+      "name": "idx_product_barcode_btree",
+      "table": "Product Table",
+      "duration": 167,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_product_barcode_btree ON \"Product\" USING btree (barcode)"
+    },
+    {
+      "name": "idx_inventory_product_btree",
+      "table": "InventoryItem Table (Critical)",
+      "duration": 188,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_inventory_product_btree ON \"InventoryItem\" USING btree (\"productId\")"
+    },
+    {
+      "name": "idx_inventory_shop_btree",
+      "table": "InventoryItem Table (Critical)",
+      "duration": 160,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_inventory_shop_btree ON \"InventoryItem\" USING btree (\"shopId\")"
+    },
+    {
+      "name": "idx_inventory_quantity_btree",
+      "table": "InventoryItem Table (Critical)",
+      "duration": 136,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_inventory_quantity_btree ON \"InventoryItem\" USING btree (quantity)"
+    },
+    {
+      "name": "idx_inventory_updated_btree",
+      "table": "InventoryItem Table (Critical)",
+      "duration": 142,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_inventory_updated_btree ON \"InventoryItem\" USING btree (\"updatedAt\")"
+    },
+    {
+      "name": "idx_inventory_shop_product",
+      "table": "InventoryItem Table (Critical)",
+      "duration": 160,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_inventory_shop_product ON \"InventoryItem\" USING btree (\"shopId\", \"productId\")"
+    },
+    {
+      "name": "idx_inventory_quantity_shop",
+      "table": "InventoryItem Table (Critical)",
+      "duration": 161,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_inventory_quantity_shop ON \"InventoryItem\" USING btree (quantity, \"shopId\")"
+    },
+    {
+      "name": "idx_inventory_product_quantity",
+      "table": "InventoryItem Table (Critical)",
+      "duration": 130,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_inventory_product_quantity ON \"InventoryItem\" USING btree (\"productId\", quantity)"
+    },
+    {
+      "name": "idx_category_id_btree",
+      "table": "Category & Shop Tables",
+      "duration": 151,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_category_id_btree ON \"Category\" USING btree (id)"
+    },
+    {
+      "name": "idx_category_name_btree",
+      "table": "Category & Shop Tables",
+      "duration": 134,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_category_name_btree ON \"Category\" USING btree (name)"
+    },
+    {
+      "name": "idx_shop_id_btree",
+      "table": "Category & Shop Tables",
+      "duration": 133,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_shop_id_btree ON \"Shop\" USING btree (id)"
+    },
+    {
+      "name": "idx_shop_name_btree",
+      "table": "Category & Shop Tables",
+      "duration": 133,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_shop_name_btree ON \"Shop\" USING btree (name)"
+    },
+    {
+      "name": "idx_transfer_created_btree",
+      "table": "Transfer & Invoice Tables",
+      "duration": 143,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_transfer_created_btree ON \"InventoryTransfer\" USING btree (\"createdAt\")"
+    },
+    {
+      "name": "idx_transfer_status_btree",
+      "table": "Transfer & Invoice Tables",
+      "duration": 136,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_transfer_status_btree ON \"InventoryTransfer\" USING btree (status)"
+    },
+    {
+      "name": "idx_transfer_from_shop_btree",
+      "table": "Transfer & Invoice Tables",
+      "duration": 130,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_transfer_from_shop_btree ON \"InventoryTransfer\" USING btree (\"fromShopId\")"
+    },
+    {
+      "name": "idx_transfer_to_shop_btree",
+      "table": "Transfer & Invoice Tables",
+      "duration": 136,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_transfer_to_shop_btree ON \"InventoryTransfer\" USING btree (\"toShopId\")"
+    },
+    {
+      "name": "idx_transfer_status_created",
+      "table": "Transfer & Invoice Tables",
+      "duration": 146,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_transfer_status_created ON \"InventoryTransfer\" USING btree (status, \"createdAt\")"
+    },
+    {
+      "name": "idx_invoice_created_btree",
+      "table": "Transfer & Invoice Tables",
+      "duration": 171,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_invoice_created_btree ON \"Invoice\" USING btree (\"createdAt\")"
+    },
+    {
+      "name": "idx_invoice_customer_btree",
+      "table": "Transfer & Invoice Tables",
+      "duration": 138,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_invoice_customer_btree ON \"Invoice\" USING btree (\"customerId\")"
+    },
+    {
+      "name": "idx_invoice_shop_btree",
+      "table": "Transfer & Invoice Tables",
+      "duration": 134,
+      "sql": "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_invoice_shop_btree ON \"Invoice\" USING btree (\"shopId\")"
+    }
+  ],
+  "failedIndexes": [],
+  "expectedImprovements": {
+    "dashboardSummary": "841ms → <50ms (94% improvement)",
+    "productCount": "142ms → <20ms (86% improvement)",
+    "inventoryQueries": "154ms → <30ms (81% improvement)",
+    "overallQueries": "80% slow → <20% slow",
+    "lcpImprovement": "17.4s → <3s (83% improvement)"
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "timestamp": "2025-06-22T11:28:26.959Z",
+  "duration": 672.317,
+  "summary": {
+    "totalTests": 4,
+    "passedTests": 1,
+    "failedTests": 3,
+    "successRate": 25,
+    "productionReady": false
+  },
+  "results": [
+    {
+      "testName": "Basic Functionality",
+      "startTime": "2025-06-22T11:17:15.416Z",
+      "endTime": "2025-06-22T11:17:18.709Z",
+      "success": false,
+      "details": {
+        "endpoints": 5,
+        "successfulEndpoints": 4,
+        "failedEndpoints": 1,
+        "averageResponseTime": 658.6
+      },
+      "errors": [
+        "Dashboard Summary: Request failed with status code 401"
+      ]
+    },
+    {
+      "testName": "Concurrent Users",
+      "startTime": "2025-06-22T11:17:18.709Z",
+      "endTime": "2025-06-22T11:27:21.072Z",
+      "success": false,
+      "details": {
+        "userCount": 4,
+        "duration": 600,
+        "requests": 2003,
+        "successfulRequests": 984,
+        "failedRequests": 1019,
+        "averageResponseTime": 455.9830254618073
+      },
+      "errors": []
+    },
+    {
+      "testName": "Database Stability",
+      "startTime": "2025-06-22T11:27:21.072Z",
+      "endTime": "2025-06-22T11:27:22.219Z",
+      "success": false,
+      "details": {
+        "queries": 0,
+        "successfulQueries": 0,
+        "failedQueries": 0,
+        "averageResponseTime": null,
+        "requests": null,
+        "failedRequests": null
+      },
+      "errors": []
+    },
+    {
+      "testName": "Memory Usage",
+      "startTime": "2025-06-22T11:27:22.219Z",
+      "endTime": "2025-06-22T11:28:26.959Z",
+      "success": true,
+      "details": {
+        "memorySnapshots": [],
+        "maxMemory": 0,
+        "averageMemory": 0
+      },
+      "errors": []
+    }
+  ]
+}

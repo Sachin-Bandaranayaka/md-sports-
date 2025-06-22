@@ -1,520 +1,96 @@
 'use client';
 
+import { Suspense, lazy } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
-import { Button } from '@/components/ui/Button';
-import { BarChart2, Download, Filter, Calendar, FileText } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Loader2, BarChart2 } from 'lucide-react';
 
-import DailySalesReportModal from '@/components/reports/DailySalesReportModal';
-import ScheduleReportModal from '@/components/reports/ScheduleReportModal';
-import GenerateReportModal from '@/components/reports/GenerateReportModal';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+// Lazy load heavy components and libraries
+const ReportsContent = lazy(() => import('./components/ReportsContent'));
 
-// Extend jsPDF type to include autoTable
-declare module 'jspdf' {
-    interface jsPDF {
-        autoTable: (options: any) => jsPDF;
-    }
-}
-import * as XLSX from 'xlsx';
+// Loading skeleton for reports
+const ReportsLoadingSkeleton = () => (
+  <div className="space-y-6 animate-pulse">
+    {/* Header skeleton */}
+    <div className="flex justify-between items-center">
+      <div>
+        <div className="h-8 bg-gray-200 rounded w-48 mb-2"></div>
+        <div className="h-4 bg-gray-200 rounded w-96"></div>
+      </div>
+      <div className="flex space-x-3">
+        <div className="h-10 bg-gray-200 rounded w-32"></div>
+        <div className="h-10 bg-gray-200 rounded w-32"></div>
+      </div>
+    </div>
 
-interface Report {
-    id: string;
-    name: string;
-    description: string;
-    type: string;
-    lastGenerated: string;
-    format: string;
-    data?: any; // To store fetched data for the report
-}
+    {/* Filters skeleton */}
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+      <div className="h-10 bg-gray-200 rounded"></div>
+      <div className="h-10 bg-gray-200 rounded"></div>
+      <div className="h-10 bg-gray-200 rounded"></div>
+      <div className="h-10 bg-gray-200 rounded"></div>
+    </div>
 
-// Initial dummy data for reports
-const initialReports: Report[] = [
-    {
-        id: 'REP-006',
-        name: 'Daily Sales Report',
-        description: 'Comprehensive daily sales breakdown by shop including all payment statuses (paid, pending, partial) with Excel and PDF export',
-        type: 'Sales',
-        lastGenerated: 'loading...',
-        format: 'Both'
-    }
-];
+    {/* Reports grid skeleton */}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {[1, 2, 3, 4, 5, 6].map((i) => (
+        <div key={i} className="border rounded-lg p-6 space-y-4">
+          <div className="flex justify-between items-start">
+            <div className="h-6 bg-gray-200 rounded w-32"></div>
+            <div className="h-6 bg-gray-200 rounded w-16"></div>
+          </div>
+          <div className="space-y-2">
+            <div className="h-4 bg-gray-200 rounded w-full"></div>
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+          </div>
+          <div className="flex justify-between items-center">
+            <div className="h-4 bg-gray-200 rounded w-24"></div>
+            <div className="flex space-x-2">
+              <div className="h-8 bg-gray-200 rounded w-16"></div>
+              <div className="h-8 bg-gray-200 rounded w-16"></div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
 
-// Report type badge colors
-const getReportTypeBadgeClass = (type: string) => {
-    switch (type) {
-        case 'Sales':
-            return 'bg-blue-100 text-blue-800';
-        case 'Inventory':
-            return 'bg-green-100 text-green-800';
-        case 'Financial':
-            return 'bg-yellow-100 text-yellow-800';
-        case 'Analytics':
-            return 'bg-purple-100 text-purple-800';
-        default:
-            return 'bg-gray-100 text-gray-800';
-    }
-};
-
-// Helper function to convert array of objects to CSV string
-const convertToCSV = (data: any[], invoiceDetails: any) => {
-    if (!data || data.length === 0 || !invoiceDetails) return '';
-
-    const csvRows = [];
-    // Add headers
-    const headers = [
-        'Invoice Number',
-        'Invoice Date',
-        'Customer Name',
-        'Shop Name',
-        'Product Name',
-        'Quantity',
-        'Price Per Unit',
-        'Item Total'
-    ];
-    csvRows.push(headers.join(','));
-
-    // Add data rows
-    invoiceDetails.forEach((invoice: any) => {
-        invoice.items.forEach((item: any) => {
-            const row = [
-                `"${invoice.invoiceNumber}"`,
-                `"${new Date(invoice.createdAt).toLocaleDateString()}"`,
-                `"${invoice.customer.name.replace(/"/g, '""')}"`,
-                `"${(invoice.shop?.name || 'N/A').replace(/"/g, '""')}"`,
-                `"${(item.product?.name || 'N/A').replace(/"/g, '""')}"`,
-                item.quantity,
-                item.price,
-                item.total
-            ];
-            csvRows.push(row.join(','));
-        });
-    });
-
-    return csvRows.join('\n');
-};
-
-
-
-interface ReportOption {
-    id: string;
-    name: string;
-    description: string;
-    data?: any;
-    isLoading: boolean;
-}
+// Error boundary component
+const ReportsErrorFallback = ({ error, retry }: { error: Error; retry: () => void }) => (
+  <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+    <BarChart2 className="h-16 w-16 text-gray-400" />
+    <div className="text-center">
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to load reports</h3>
+      <p className="text-gray-600 mb-4">There was an error loading the reports module.</p>
+      <button
+        onClick={retry}
+        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+      >
+        Try Again
+      </button>
+    </div>
+  </div>
+);
 
 export default function Reports() {
-    const [reports, setReports] = useState<Report[]>(initialReports);
-    const [loading, setLoading] = useState<Record<string, boolean>>({});
-    const [error, setError] = useState<string | null>(null);
+  return (
+    <MainLayout>
+      <div className="space-y-6">
+        {/* Page Header */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Reports</h1>
+            <p className="text-gray-600 mt-1">
+              Generate and manage business reports with real-time data
+            </p>
+          </div>
+        </div>
 
-
-
-    const [isDailySalesModalOpen, setIsDailySalesModalOpen] = useState(false);
-    const [selectedDailySalesData, setSelectedDailySalesData] = useState<any | null>(null);
-
-    const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
-    const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
-
-    const [selectedReportName, setSelectedReportName] = useState<string>('');
-
-    // State for Filters
-    const [searchTerm, setSearchTerm] = useState('');
-    const [selectedType, setSelectedType] = useState('');
-    const [selectedFormat, setSelectedFormat] = useState('');
-    const [filteredReports, setFilteredReports] = useState<Report[]>(initialReports);
-
-    useEffect(() => {
-        const fetchDailySales = async () => {
-            setLoading(prev => ({ ...prev, 'REP-006': true }));
-            setError(null);
-            try {
-                const response = await fetch('/api/reports/daily-sales');
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch daily sales: ${response.statusText}`);
-                }
-                const data = await response.json();
-                if (data.success) {
-                    setReports(prevReports => prevReports.map(report => {
-                        if (report.id === 'REP-006') {
-                            const totalSales = data.summary.totalSales;
-                            const totalShops = data.summary.totalShops;
-                            const totalInvoices = data.summary.totalInvoices;
-                            return {
-                                ...report,
-                                description: `Daily sales for ${data.summary.date}: ${totalSales.toLocaleString(undefined, { style: 'currency', currency: 'LKR' })} from ${totalInvoices} invoices across ${totalShops} shops (all payment statuses included).`,
-                                lastGenerated: new Date().toLocaleDateString('en-CA'),
-                                data: data
-                            };
-                        }
-                        return report;
-                    }));
-                } else {
-                    throw new Error(data.message || 'Failed to fetch daily sales');
-                }
-            } catch (err: any) {
-                console.error(err);
-                setError(err.message);
-                setReports(prevReports => prevReports.map(report =>
-                    report.id === 'REP-006' ? { ...report, description: 'Error loading daily sales data', lastGenerated: 'Error' } : report
-                ));
-            }
-            setLoading(prev => ({ ...prev, 'REP-006': false }));
-        };
-
-        fetchDailySales();
-    }, []);
-
-    // useEffect for filtering reports when data or filter criteria change
-    useEffect(() => {
-        let currentReports = reports.map(report => {
-            // Ensure we have the latest data description from the main `reports` state,
-            // rather than `initialReports` which has placeholder descriptions.
-            const liveReportData = reports.find(r => r.id === report.id);
-            return liveReportData || report; // Fallback to original if somehow not found (should not happen)
-        });
-
-        if (searchTerm) {
-            currentReports = currentReports.filter(report =>
-                report.name.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-        }
-        if (selectedType) {
-            currentReports = currentReports.filter(report => report.type === selectedType);
-        }
-        if (selectedFormat) {
-            currentReports = currentReports.filter(report => report.format === selectedFormat);
-        }
-        setFilteredReports(currentReports);
-    }, [searchTerm, selectedType, selectedFormat, reports]);
-
-    const handleViewReport = (report: Report) => {
-        setSelectedReportName(report.name);
-        if (report.id === 'REP-006' && report.data) {
-            setSelectedDailySalesData(report.data);
-            setIsDailySalesModalOpen(true);
-        } else {
-            alert(`View functionality for "${report.name}" is not yet implemented or data is missing.`);
-        }
-        if (isGenerateModalOpen) setIsGenerateModalOpen(false);
-    };
-
-    const handleDownloadReport = (report: Report) => {
-        if (report.id === 'REP-006' && report.data) {
-            // Daily Sales Report - supports both PDF and Excel
-            if (report.format === 'Both' || report.format === 'PDF') {
-                // Generate PDF using the same logic as in DailySalesReportModal
-                const doc = new jsPDF();
-                
-                // Title
-                doc.setFontSize(20);
-                doc.text('Daily Sales Report', 20, 20);
-                
-                // Date and summary
-                doc.setFontSize(12);
-                doc.text(`Date: ${report.data.summary.date}`, 20, 35);
-                doc.text(`Total Sales: ${report.data.summary.totalSales.toLocaleString(undefined, { style: 'currency', currency: 'LKR' })}`, 20, 45);
-                doc.text(`Total Invoices: ${report.data.summary.totalInvoices}`, 20, 55);
-                doc.text(`Active Shops: ${report.data.summary.numberOfShops}`, 20, 65);
-                
-                // Shop summary table
-                const shopTableData = report.data.shopData.map((shop: any) => [
-                    shop.shopName,
-                    shop.totalSales.toLocaleString(undefined, { style: 'currency', currency: 'LKR' }),
-                    shop.numberOfInvoices.toString(),
-                    shop.totalQuantitySold.toString(),
-                    shop.averageTransactionValue.toLocaleString(undefined, { style: 'currency', currency: 'LKR' })
-                ]);
-                
-                autoTable(doc, {
-                    head: [['Shop Name', 'Total Sales', 'Invoices', 'Quantity', 'Avg. Transaction']],
-                    body: shopTableData,
-                    startY: 75,
-                    styles: { fontSize: 10 },
-                    headStyles: { fillColor: [66, 139, 202] }
-                });
-                
-                doc.save(`Daily_Sales_Report_${report.data.summary.date}.pdf`);
-            }
-            
-            if (report.format === 'Both' || report.format === 'Excel') {
-                // Generate Excel using the same logic as in DailySalesReportModal
-                const wb = XLSX.utils.book_new();
-                
-                // Summary sheet
-                const summaryData = [
-                    ['Daily Sales Report Summary'],
-                    ['Date', report.data.summary.date],
-                    ['Total Sales', report.data.summary.totalSales],
-                    ['Total Invoices', report.data.summary.totalInvoices],
-                    ['Active Shops', report.data.summary.numberOfShops],
-                    ['Average Per Shop', report.data.summary.averagePerShop]
-                ];
-                const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
-                XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
-                
-                // Shop overview sheet
-                const shopOverviewData = [
-                    ['Shop Name', 'Total Sales', 'Invoice Count', 'Total Quantity', 'Average Transaction Value']
-                ];
-                report.data.shopData.forEach((shop: any) => {
-                    shopOverviewData.push([
-                        shop.shopName,
-                        shop.totalSales,
-                        shop.numberOfInvoices,
-                        shop.totalQuantitySold,
-                        shop.averageTransactionValue
-                    ]);
-                });
-                const shopOverviewWs = XLSX.utils.aoa_to_sheet(shopOverviewData);
-                XLSX.utils.book_append_sheet(wb, shopOverviewWs, 'Shop Overview');
-                
-                // Detailed invoices sheet
-                const detailedData = [
-                    ['Invoice Number', 'Shop', 'Customer', 'Total Amount', 'Payment Status', 'Created At', 'Items']
-                ];
-                report.data.shopData.forEach((shop: any) => {
-                    shop.invoices.forEach((invoice: any) => {
-                        const itemsText = invoice.items.map((item: any) => 
-                            `${item.productName} (${item.quantity}x${item.unitPrice})`
-                        ).join('; ');
-                        
-                        detailedData.push([
-                            invoice.invoiceNumber,
-                            shop.shopName,
-                            invoice.customerName || 'Walk-in Customer',
-                            invoice.totalAmount,
-                            invoice.paymentStatus,
-                            new Date(invoice.createdAt).toLocaleString(),
-                            itemsText
-                        ]);
-                    });
-                });
-                const detailedWs = XLSX.utils.aoa_to_sheet(detailedData);
-                XLSX.utils.book_append_sheet(wb, detailedWs, 'Detailed Invoices');
-                
-                XLSX.writeFile(wb, `Daily_Sales_Report_${report.data.summary.date}.xlsx`);
-            }
-        } else {
-            alert(`Download functionality for "${report.name}" is not yet implemented or data is missing.`);
-        }
-    };
-
-    const handleGenerateFromTemplate = (reportId: string) => {
-        const reportToView = reports.find(r => r.id === reportId);
-        if (reportToView && reportToView.data) {
-            if (loading[reportId]) {
-                alert('Report data is still loading. Please wait.');
-                return;
-            }
-            handleViewReport(reportToView);
-        } else if (reportToView && loading[reportId]) {
-            alert('Report data is still loading. Please wait.');
-        } else {
-            alert('Report data not yet available or template is misconfigured. Please try again shortly.');
-        }
-    };
-
-    const handleGenerateAdhocReport = (reportId: string) => {
-        const reportToView = reports.find(r => r.id === reportId);
-        if (reportToView) {
-            handleViewReport(reportToView);
-        }
-    };
-
-    const reportOptionsForModal: ReportOption[] = reports.map(r => ({
-        id: r.id,
-        name: r.name,
-        description: r.description,
-        data: r.data,
-        isLoading: loading[r.id] || false
-    }));
-
-    return (
-        <MainLayout>
-            <div className="space-y-6">
-                {/* Header with actions */}
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
-                        <p className="text-gray-500">Generate and view business reports</p>
-                    </div>
-                    <div className="flex gap-3">
-                        <Button variant="outline" size="sm" onClick={() => setIsScheduleModalOpen(true)}>
-                            <Calendar className="w-4 h-4 mr-2" />
-                            Schedule Report
-                        </Button>
-                        <Button variant="primary" size="sm" onClick={() => setIsGenerateModalOpen(true)}>
-                            <BarChart2 className="w-4 h-4 mr-2" />
-                            Generate Report
-                        </Button>
-                    </div>
-                </div>
-
-                {error && (
-                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-                        <strong className="font-bold">Error: </strong>
-                        <span className="block sm:inline">{error}</span>
-                    </div>
-                )}
-
-                {/* Filter bar */}
-                <div className="bg-tertiary p-4 rounded-lg shadow-sm border border-gray-200">
-                    <div className="flex flex-col md:flex-row gap-4">
-                        <div className="relative flex-grow">
-                            <input
-                                type="text"
-                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
-                                placeholder="Search reports by name..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
-                        <div className="flex gap-2">
-                            <select
-                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5"
-                                value={selectedType}
-                                onChange={(e) => setSelectedType(e.target.value)}
-                            >
-                                <option value="">All Types</option>
-                                <option value="Sales">Sales</option>
-                                <option value="Inventory">Inventory</option>
-                                <option value="Financial">Financial</option>
-                                <option value="Analytics">Analytics</option>
-                            </select>
-                            <select
-                                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5"
-                                value={selectedFormat}
-                                onChange={(e) => setSelectedFormat(e.target.value)}
-                            >
-                                <option value="">All Formats</option>
-                                <option value="PDF">PDF</option>
-                                <option value="Excel">Excel</option>
-                            </select>
-                            <Button variant="outline" size="sm" title="Filters apply automatically">
-                                <Filter className="w-4 h-4" />
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Reports List - Now uses filteredReports */}
-                <div className="bg-tertiary rounded-lg shadow-sm border border-gray-200">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left text-gray-500">
-                            <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3">Report Name</th>
-                                    <th className="px-6 py-3">Description</th>
-                                    <th className="px-6 py-3">Type</th>
-                                    <th className="px-6 py-3">Last Generated</th>
-                                    <th className="px-6 py-3">Format</th>
-                                    <th className="px-6 py-3">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredReports.map((report) => (
-                                    <tr key={report.id} className="border-b hover:bg-gray-50">
-                                        <td className="px-6 py-4 font-medium text-gray-900">
-                                            {report.name}
-                                            {loading[report.id] && <span className="text-xs text-gray-500 ml-2">(loading...)</span>}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {report.description}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`px-2 py-1 rounded-full text-xs ${getReportTypeBadgeClass(report.type)}`}>
-                                                {report.type}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">{report.lastGenerated}</td>
-                                        <td className="px-6 py-4">{report.format}</td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex gap-2">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    disabled={report.id === 'REP-006' && (loading[report.id] || !report.data)}
-                                                    onClick={() => handleViewReport(report)}
-                                                >
-                                                    View
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    disabled={report.id === 'REP-006' && (loading[report.id] || !report.data)}
-                                                    onClick={() => handleDownloadReport(report)}
-                                                >
-                                                    <Download className="w-4 h-4" />
-                                                </Button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {filteredReports.length === 0 && (
-                                    <tr>
-                                        <td colSpan={6} className="px-6 py-10 text-center text-gray-500">
-                                            No reports match your filter criteria.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                {/* Report Templates */}
-                <div className="space-y-4">
-                    <h2 className="text-lg font-semibold text-gray-900">Report Templates</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <div className="bg-tertiary p-6 rounded-lg shadow-sm border border-gray-200">
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <h3 className="text-lg font-semibold text-gray-900">Daily Sales Report</h3>
-                                    <p className="text-sm text-gray-500 mt-1">Comprehensive daily sales breakdown by shop including all payment statuses</p>
-                                </div>
-                                <div className="p-3 rounded-full bg-blue-100">
-                                    <FileText className="h-6 w-6 text-blue-600" />
-                                </div>
-                            </div>
-                            <div className="mt-6">
-                                <Button
-                                    variant="outline"
-                                    className="w-full"
-                                    onClick={() => handleGenerateFromTemplate('REP-006')}
-                                    disabled={loading['REP-006'] || !reports.find(r => r.id === 'REP-006')?.data}
-                                >
-                                    Generate Report {loading['REP-006'] && '(Loading...)'}
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {isDailySalesModalOpen && selectedDailySalesData && (
-                <DailySalesReportModal
-                    isOpen={isDailySalesModalOpen}
-                    onClose={() => setIsDailySalesModalOpen(false)}
-                    reportName={selectedReportName}
-                    reportData={selectedDailySalesData}
-                />
-            )}
-            {isScheduleModalOpen && (
-                <ScheduleReportModal
-                    isOpen={isScheduleModalOpen}
-                    onClose={() => setIsScheduleModalOpen(false)}
-                />
-            )}
-            {isGenerateModalOpen && (
-                <GenerateReportModal
-                    isOpen={isGenerateModalOpen}
-                    onClose={() => setIsGenerateModalOpen(false)}
-                    reports={reportOptionsForModal}
-                    onGenerate={handleGenerateAdhocReport}
-                />
-            )}
-        </MainLayout>
-    );
+        {/* Lazy loaded reports content */}
+        <Suspense fallback={<ReportsLoadingSkeleton />}>
+          <ReportsContent />
+        </Suspense>
+      </div>
+    </MainLayout>
+  );
 }

@@ -1,0 +1,43 @@
+{
+  "timestamp": "2025-06-22T09:04:10.270Z",
+  "summary": {
+    "totalQueries": 5,
+    "slowQueries": 0,
+    "averageDuration": 74.6
+  },
+  "slowQueries": [],
+  "queryPatterns": [
+    {
+      "pattern": "SELECT COUNT(*) FROM (SELECT STRING.STRING.STRING FROM STRING.STRING WHERE N=N OFFSET $?) AS STRING",
+      "count": 2,
+      "totalDuration": 149,
+      "averageDuration": 74.5,
+      "maxDuration": 75,
+      "minDuration": 74
+    },
+    {
+      "pattern": "SELECT STRING.STRING.STRING, STRING.STRING.STRING, STRING.STRING.STRING, STRING.STRING.STRING, STRING.STRING.STRING, STRING.STRING.STRING, STRING.STRING.STRING FROM STRING.STRING WHERE N=N ORDER BY STRING.STRING.STRING ASC LIMIT $? OFFSET $?",
+      "count": 1,
+      "totalDuration": 79,
+      "averageDuration": 79,
+      "maxDuration": 79,
+      "minDuration": 79
+    },
+    {
+      "pattern": "SELECT STRING.STRING.STRING, STRING.STRING.STRING, STRING.STRING.STRING, STRING.STRING.STRING, STRING.STRING.STRING, STRING.STRING.STRING, STRING.STRING.STRING FROM STRING.STRING WHERE STRING.STRING.STRING > $? ORDER BY STRING.STRING.STRING ASC LIMIT $? OFFSET $?",
+      "count": 1,
+      "totalDuration": 81,
+      "averageDuration": 81,
+      "maxDuration": 81,
+      "minDuration": 81
+    },
+    {
+      "pattern": "SELECT STRING.STRING.STRING, STRING.STRING.STRING, STRING.STRING.STRING, STRING.STRING.STRING, STRING.STRING.STRING, STRING.STRING.STRING, STRING.STRING.STRING FROM STRING.STRING WHERE STRING.STRING.STRING < $? OFFSET $?",
+      "count": 1,
+      "totalDuration": 64,
+      "averageDuration": 64,
+      "maxDuration": 64,
+      "minDuration": 64
+    }
+  ]
+}

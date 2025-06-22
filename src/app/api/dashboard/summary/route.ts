@@ -5,6 +5,7 @@ import { cacheService } from '@/lib/cache';
 import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
 import { validateTokenPermission, getUserIdFromToken } from '@/lib/auth';
 import { permissionService } from '@/lib/services/PermissionService';
+import { withApiOptimization } from '@/lib/middleware/api-optimizer';
 
 export async function fetchSummaryData(shopId?: string | null, periodDays?: number, startDate?: Date, endDate?: Date, userId?: string | null) {
     // Build date filter for queries
@@ -138,52 +139,62 @@ export async function fetchSummaryData(shopId?: string | null, periodDays?: numb
     };
 }
 
-export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest, context) => {
-    try {
-        // Validate token and permissions
-        const authResult = await validateTokenPermission(request, 'dashboard:view');
-        if (!authResult.isValid) {
-            return NextResponse.json({ error: authResult.message }, { status: 401 });
+// Original handler function
+async function dashboardSummaryHandler(request: NextRequest) {
+    return ShopAccessControl.withShopAccess(async (request: NextRequest, context) => {
+        try {
+            // Validate token and permissions
+            const authResult = await validateTokenPermission(request, 'dashboard:view');
+            if (!authResult.isValid) {
+                return NextResponse.json({ error: authResult.message }, { status: 401 });
+            }
+
+            const { searchParams } = new URL(request.url);
+            const startDateParam = searchParams.get('startDate');
+            const endDateParam = searchParams.get('endDate');
+            
+            const shopId = context.isFiltered ? context.shopId : null;
+
+            const endDate = endDateParam ? new Date(endDateParam) : new Date();
+            const startDate = startDateParam ? new Date(startDateParam) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+            
+            // Get user ID from token
+            const userId = await getUserIdFromToken(request);
+            if (!userId) {
+                return NextResponse.json({ error: 'User ID not found in token' }, { status: 401 });
+            }
+            
+            // NOTE: User-specific filtering for summary data not fully implemented in cache key yet.
+            const dateRangeKey = `${startDate.toISOString().split('T')[0]}-${endDate.toISOString().split('T')[0]}`;
+            const cacheKey = `dashboard:summary:${shopId || 'all'}:${dateRangeKey}`;
+            const cachedData = await cacheService.get(cacheKey);
+
+            if (cachedData) {
+                console.log('✅ Summary data served from cache');
+                return NextResponse.json({ ...cachedData, meta: { fromCache: true } });
+            }
+
+            const result = await fetchSummaryData(shopId, undefined, startDate, endDate, userId);
+
+            if (result.success) {
+                await cacheService.set(cacheKey, result, 120);
+            }
+
+            return NextResponse.json({ ...result, meta: { fromCache: false } });
+
+        } catch (error) {
+            console.error('Error fetching dashboard summary:', error);
+            return NextResponse.json({
+                success: false,
+                message: error instanceof Error ? error.message : 'Unknown error',
+            }, { status: 500 });
         }
+    })(request);
+}
 
-        const { searchParams } = new URL(request.url);
-        const startDateParam = searchParams.get('startDate');
-        const endDateParam = searchParams.get('endDate');
-        
-        const shopId = context.isFiltered ? context.shopId : null;
-
-        const endDate = endDateParam ? new Date(endDateParam) : new Date();
-        const startDate = startDateParam ? new Date(startDateParam) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-        
-        // Get user ID from token
-        const userId = await getUserIdFromToken(request);
-        if (!userId) {
-            return NextResponse.json({ error: 'User ID not found in token' }, { status: 401 });
-        }
-        
-        // NOTE: User-specific filtering for summary data not fully implemented in cache key yet.
-        const dateRangeKey = `${startDate.toISOString().split('T')[0]}-${endDate.toISOString().split('T')[0]}`;
-        const cacheKey = `dashboard:summary:${shopId || 'all'}:${dateRangeKey}`;
-        const cachedData = await cacheService.get(cacheKey);
-
-        if (cachedData) {
-            console.log('✅ Summary data served from cache');
-            return NextResponse.json({ ...cachedData, meta: { fromCache: true } });
-        }
-
-        const result = await fetchSummaryData(shopId, undefined, startDate, endDate, userId);
-
-        if (result.success) {
-            await cacheService.set(cacheKey, result, 120);
-        }
-
-        return NextResponse.json({ ...result, meta: { fromCache: false } });
-
-    } catch (error) {
-        console.error('Error fetching dashboard summary:', error);
-        return NextResponse.json({
-            success: false,
-            message: error instanceof Error ? error.message : 'Unknown error',
-        }, { status: 500 });
-    }
+// Apply API optimization middleware
+export const GET = withApiOptimization(dashboardSummaryHandler, {
+    cacheTTL: 300, // 5 minutes cache
+    enableCompression: true,
+    enableCaching: true
 });

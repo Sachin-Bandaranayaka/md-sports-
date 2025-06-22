@@ -1,17 +1,33 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState, lazy } from 'react';
 import { Loader2, Calendar, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
-import DashboardTransfers from './components/DashboardTransfers';
-import ShopWiseMetrics from './components/ShopWiseMetrics';
+
+// Lazy load heavy components for better performance
+const DashboardTransfers = lazy(() => import('./components/DashboardTransfers'));
+const ShopWiseMetrics = lazy(() => import('./components/ShopWiseMetrics'));
+
+// Component loading skeleton
+const ComponentSkeleton = ({ className = "h-64" }: { className?: string }) => (
+    <div className={`animate-pulse bg-gray-200 rounded-lg ${className}`}>
+        <div className="p-4 space-y-3">
+            <div className="h-4 bg-gray-300 rounded w-1/4"></div>
+            <div className="space-y-2">
+                <div className="h-3 bg-gray-300 rounded w-full"></div>
+                <div className="h-3 bg-gray-300 rounded w-3/4"></div>
+                <div className="h-3 bg-gray-300 rounded w-1/2"></div>
+            </div>
+        </div>
+    </div>
+);
 
 // Simple dashboard without dual modes or complex optimizations
 export default function DashboardPage() {
     const { user, isLoading, isAuthenticated } = useAuth();
     const router = useRouter();
-    const [dashboardData, setDashboardData] = useState(null);
+    const [dashboardData, setDashboardData] = useState<{ recentTransfers: any[] } | null>(null);
     const [dataLoading, setDataLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [startDate, setStartDate] = useState<string>(() => {
@@ -23,6 +39,7 @@ export default function DashboardPage() {
         return new Date().toISOString().split('T')[0]; // Default to today
     });
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const [componentsLoaded, setComponentsLoaded] = useState(false);
 
     // Redirect if not authenticated
     useEffect(() => {
@@ -30,6 +47,27 @@ export default function DashboardPage() {
             router.push('/login');
         }
     }, [isLoading, isAuthenticated, router]);
+
+    // Preload components after initial render for better UX
+    useEffect(() => {
+        if (isAuthenticated && !isLoading) {
+            // Preload lazy components
+            const preloadComponents = async () => {
+                try {
+                    await Promise.all([
+                        import('./components/DashboardTransfers'),
+                        import('./components/ShopWiseMetrics')
+                    ]);
+                    setComponentsLoaded(true);
+                } catch (error) {
+                    console.warn('Failed to preload components:', error);
+                }
+            };
+            
+            // Delay preloading to not block initial render
+            setTimeout(preloadComponents, 100);
+        }
+    }, [isAuthenticated, isLoading]);
 
     // Fetch dashboard data with real-time updates
     const fetchDashboardData = async (customStartDate?: string, customEndDate?: string) => {
@@ -70,7 +108,7 @@ export default function DashboardPage() {
             }
 
             setDashboardData({
-                recentTransfers: result.recentTransfers,
+                recentTransfers: result.recentTransfers || [],
             });
             
             // Trigger refresh for shop-wise metrics
@@ -90,23 +128,10 @@ export default function DashboardPage() {
         fetchDashboardData(newStartDate, newEndDate);
     };
 
-
-
     // Initial data fetch
     useEffect(() => {
         fetchDashboardData();
     }, [isAuthenticated, isLoading]);
-
-    // Auto-refresh removed - using manual refresh button instead
-    // useEffect(() => {
-    //     if (!isAuthenticated || isLoading) return;
-
-    //     const interval = setInterval(() => {
-    //         fetchDashboardData();
-    //     }, 30000); // 30 seconds
-
-    //     return () => clearInterval(interval);
-    // }, [isAuthenticated, isLoading, startDate, endDate]);
 
     // Show loading while auth is being checked
     if (isLoading) {
@@ -175,12 +200,12 @@ export default function DashboardPage() {
         
         return (
             <div className="space-y-6">
-                {/* Welcome Section */}
+                {/* Welcome Section - Critical above-the-fold content */}
                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-100">
                     <div className="flex items-start justify-between">
                         <div>
                             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                                Welcome back, {user?.name || 'User'}!
+                                Welcome back, {user?.fullName || user?.username || 'User'}!
                             </h1>
                             <p className="text-gray-600 mb-3">
                                 You have access to {accessibleModules.length} module{accessibleModules.length !== 1 ? 's' : ''}: {accessibleModules.join(', ')}
@@ -198,66 +223,82 @@ export default function DashboardPage() {
                         </div>
                         <div className="text-right">
                             <p className="text-sm text-gray-500">Last login</p>
-                            <p className="text-sm font-medium text-gray-900">{new Date().toLocaleDateString()}</p>
+                            <p className="text-sm font-medium text-gray-900">
+                                {new Date().toLocaleDateString()}
+                            </p>
                         </div>
                     </div>
                 </div>
 
-                {/* Header with date range filters and refresh button */}
-                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                    <h2 className="text-xl font-semibold text-gray-900">Analytics Overview</h2>
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                        {/* Custom Date Range */}
-                        <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-gray-500" />
-                            <span className="text-sm text-gray-600">From:</span>
+                {/* Date Range Filter */}
+                <div className="bg-white rounded-lg shadow-sm border p-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                            <Calendar className="h-5 w-5 text-gray-400" />
+                            <span className="text-sm font-medium text-gray-700">Date Range:</span>
                             <input
                                 type="date"
                                 value={startDate}
                                 onChange={(e) => handleDateRangeChange(e.target.value, endDate)}
-                                className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="border border-gray-300 rounded px-3 py-1 text-sm"
                             />
-                            <span className="text-sm text-gray-600">To:</span>
+                            <span className="text-gray-500">to</span>
                             <input
                                 type="date"
                                 value={endDate}
                                 onChange={(e) => handleDateRangeChange(startDate, e.target.value)}
-                                className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="border border-gray-300 rounded px-3 py-1 text-sm"
                             />
                         </div>
-                        
-                        {/* Refresh Button */}
                         <button
                             onClick={() => fetchDashboardData()}
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors text-sm"
                         >
-                            <Loader2 className="h-4 w-4" />
-                            Refresh
+                            Refresh Data
                         </button>
                     </div>
                 </div>
 
-                {/* Dashboard Content */}
-                <Suspense fallback={
-                    <div className="h-full flex items-center justify-center p-20">
-                        <div className="text-center">
-                            <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
-                            <p className="text-gray-500">Loading dashboard...</p>
-                        </div>
+                {/* Lazy-loaded components with Suspense boundaries - Full width containers */}
+                <div className="space-y-6">
+                    {/* Shop-wise Metrics - Full width container */}
+                    <div className="w-full">
+                        <Suspense fallback={<ComponentSkeleton className="h-96" />}>
+                            <ShopWiseMetrics 
+                                startDate={startDate} 
+                                endDate={endDate} 
+                                refreshTrigger={refreshTrigger}
+                            />
+                        </Suspense>
                     </div>
-                }>
-                    <ShopWiseMetrics 
-                        startDate={startDate} 
-                        endDate={endDate} 
-                        refreshTrigger={refreshTrigger} 
-                    />
-                    <DashboardTransfers recentTransfers={dashboardData.recentTransfers} />
-                    
 
-                </Suspense>
+                    {/* Recent Transfers - Full width container */}
+                    <div className="w-full">
+                        <Suspense fallback={<ComponentSkeleton className="h-96" />}>
+                            <DashboardTransfers 
+                                recentTransfers={dashboardData.recentTransfers || []} 
+                            />
+                        </Suspense>
+                    </div>
+                </div>
+
+                {/* Performance indicator for development */}
+                {process.env.NODE_ENV === 'development' && (
+                    <div className="fixed bottom-4 right-4 bg-gray-800 text-white px-3 py-2 rounded-lg text-xs">
+                        Components: {componentsLoaded ? '✅ Loaded' : '⏳ Loading'}
+                    </div>
+                )}
             </div>
         );
     }
 
-    return null;
+    // Fallback loading state
+    return (
+        <div className="h-full flex items-center justify-center p-20">
+            <div className="text-center">
+                <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
+                <p className="text-gray-500">Initializing dashboard...</p>
+            </div>
+        </div>
+    );
 }

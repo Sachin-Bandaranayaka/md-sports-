@@ -1,110 +1,118 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/utils/db';
-
-
 import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
+import { withApiOptimization } from '@/lib/middleware/api-optimizer';
 
 // GET: Fetch all inventory items with shop-based filtering
-export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest, context) => {
-    try {
-        // Parse query parameters
-        const { searchParams } = new URL(request.url);
-        const productId = searchParams.get('productId');
-        const categoryId = searchParams.get('categoryId');
-        const lowStock = searchParams.get('lowStock') === 'true';
+async function inventoryGetHandler(request: NextRequest) {
+    return ShopAccessControl.withShopAccess(async (request: NextRequest, context) => {
+        try {
+            // Parse query parameters
+            const { searchParams } = new URL(request.url);
+            const productId = searchParams.get('productId');
+            const categoryId = searchParams.get('categoryId');
+            const lowStock = searchParams.get('lowStock') === 'true';
 
-        console.log('Inventory API - Shop context:', {
-            shopId: context.shopId,
-            isFiltered: context.isFiltered,
-            isAdmin: context.isAdmin,
-            userShopId: context.userShopId
-        });
-
-        // Build the query with possible filters
-        let query = `
-            SELECT 
-                i.id as inventory_id,
-                i.shop_id,
-                s.name as shop_name,
-                s.location as shop_location,
-                i.product_id,
-                p.name as product_name,
-                p.sku as product_sku,
-                p.barcode as product_barcode,
-                p.price,
-                p.weightedAverageCost,
-                i.shopspecificcost as shop_specific_cost,
-                c.id as category_id,
-                c.name as category_name,
-                i.quantity,
-                i.reorder_level,
-                i.last_updated
-            FROM 
-                inventory_items i
-            JOIN 
-                products p ON i.product_id = p.id
-            JOIN 
-                shops s ON i.shop_id = s.id
-            LEFT JOIN 
-                categories c ON p.category_id = c.id
-            WHERE 
-                p.is_active = true 
-                AND s.is_active = true
-        `;
-
-        // Add filters based on query parameters and shop access
-        const params: any[] = [];
-        let paramIndex = 1;
-
-        // Apply shop filtering based on user permissions
-        if (context.isFiltered && context.shopId) {
-            query += ` AND i.shop_id = $${paramIndex}`;
-            params.push(context.shopId);
-            paramIndex++;
-        }
-
-        if (productId) {
-            query += ` AND i.product_id = $${paramIndex}`;
-            params.push(parseInt(productId));
-            paramIndex++;
-        }
-
-        if (categoryId) {
-            query += ` AND p.category_id = $${paramIndex}`;
-            params.push(parseInt(categoryId));
-            paramIndex++;
-        }
-
-        if (lowStock) {
-            query += ` AND i.quantity <= i.reorder_level`;
-        }
-
-        // Add sorting
-        query += ` ORDER BY s.name, p.name`;
-
-        console.log('Inventory query:', query);
-        console.log('Inventory params:', params);
-
-        // Execute the query
-        const result = await db.query(query, params);
-
-        return NextResponse.json({
-            success: true,
-            data: result.rows,
-            meta: {
-                shopFiltered: context.isFiltered,
+            console.log('Inventory API - Shop context:', {
                 shopId: context.shopId,
-                totalItems: result.rows.length
+                isFiltered: context.isFiltered,
+                isAdmin: context.isAdmin,
+                userShopId: context.userShopId
+            });
+
+            // Build the query with possible filters
+            let query = `
+                SELECT 
+                    i.id as inventory_id,
+                    i.shop_id,
+                    s.name as shop_name,
+                    s.location as shop_location,
+                    i.product_id,
+                    p.name as product_name,
+                    p.sku as product_sku,
+                    p.barcode as product_barcode,
+                    p.price,
+                    p.weightedAverageCost,
+                    i.shopspecificcost as shop_specific_cost,
+                    c.id as category_id,
+                    c.name as category_name,
+                    i.quantity,
+                    i.reorder_level,
+                    i.last_updated
+                FROM 
+                    inventory_items i
+                JOIN 
+                    products p ON i.product_id = p.id
+                JOIN 
+                    shops s ON i.shop_id = s.id
+                LEFT JOIN 
+                    categories c ON p.category_id = c.id
+                WHERE 
+                    p.is_active = true 
+                    AND s.is_active = true
+            `;
+
+            // Add filters based on query parameters and shop access
+            const params: any[] = [];
+            let paramIndex = 1;
+
+            // Apply shop filtering based on user permissions
+            if (context.isFiltered && context.shopId) {
+                query += ` AND i.shop_id = $${paramIndex}`;
+                params.push(context.shopId);
+                paramIndex++;
             }
-        });
-    } catch (error) {
-        console.error('Error fetching inventory items:', error);
-        return NextResponse.json({
-            success: false,
-            message: 'Error fetching inventory items',
-            error: error instanceof Error ? error.message : String(error)
-        }, { status: 500 });
-    }
+
+            if (productId) {
+                query += ` AND i.product_id = $${paramIndex}`;
+                params.push(parseInt(productId));
+                paramIndex++;
+            }
+
+            if (categoryId) {
+                query += ` AND p.category_id = $${paramIndex}`;
+                params.push(parseInt(categoryId));
+                paramIndex++;
+            }
+
+            if (lowStock) {
+                query += ` AND i.quantity <= i.reorder_level`;
+            }
+
+            // Add sorting
+            query += ` ORDER BY s.name, p.name`;
+
+            console.log('Inventory query:', query);
+            console.log('Inventory params:', params);
+
+            // Execute the query
+            const result = await db.query(query, params);
+
+            return NextResponse.json({
+                success: true,
+                data: result.rows,
+                meta: {
+                    shopFiltered: context.isFiltered,
+                    shopId: context.shopId,
+                    totalItems: result.rows.length
+                }
+            });
+        } catch (error) {
+            console.error('Error fetching inventory items:', error);
+            return NextResponse.json({
+                success: false,
+                message: 'Error fetching inventory items',
+                error: error instanceof Error ? error.message : String(error)
+            }, { status: 500 });
+        }
+    })(request);
+}
+
+// Apply optimization middleware to GET
+export const GET = withApiOptimization(inventoryGetHandler, {
+    cacheTTL: 180, // 3 minutes cache for inventory data
+    enableCompression: true,
+    enableCaching: true
 });
 
 // POST: Create or update inventory items with shop validation

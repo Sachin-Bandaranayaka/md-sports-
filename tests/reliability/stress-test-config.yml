@@ -1,0 +1,415 @@
+config:
+  target: 'http://localhost:3000'
+  phases:
+    # Warm-up phase - Single user operations
+    - duration: 60
+      arrivalRate: 1
+      name: "Warm-up - Single User"
+    
+    # Normal business hours - 2 shop staff + 1 admin
+    - duration: 300  # 5 minutes
+      arrivalRate: 3
+      name: "Normal Operations - 3 Users"
+    
+    # Peak hours - All users active
+    - duration: 600  # 10 minutes
+      arrivalRate: 4
+      name: "Peak Hours - 4 Concurrent Users"
+    
+    # Stress test - Beyond normal capacity
+    - duration: 300  # 5 minutes
+      arrivalRate: 8
+      name: "Stress Test - 8 Concurrent Users"
+    
+    # Recovery phase
+    - duration: 120  # 2 minutes
+      arrivalRate: 2
+      name: "Recovery Phase"
+
+  # Performance thresholds for MS Sport
+  ensure:
+    # 95% of requests should complete within 3 seconds
+    - p95: 3000
+    # 99% of requests should complete within 8 seconds
+    - p99: 8000
+    # Error rate should be less than 2% (allowing for some database timeouts)
+    - maxErrorRate: 2
+    # Memory usage should not exceed 1GB
+    - maxMemoryUsage: 1024
+
+  # HTTP configuration optimized for concurrent users
+  http:
+    timeout: 15
+    pool: 10
+    maxSockets: 50
+
+  # Test data for realistic scenarios
+  variables:
+    adminUsers:
+      - email: "admin1@test.com"
+        password: "admin123"
+      - email: "admin2@test.com" 
+        password: "admin123"
+    
+    shopStaffUsers:
+      - email: "staff1@test.com"
+        password: "staff123"
+        shopId: "shop-1"
+      - email: "staff2@test.com"
+        password: "staff123"
+        shopId: "shop-2"
+    
+    testShops:
+      - "shop-1"
+      - "shop-2"
+      - "shop-3"
+    
+    productCategories:
+      - "Sports Equipment"
+      - "Footwear"
+      - "Apparel"
+      - "Accessories"
+      - "Electronics"
+    
+    searchTerms:
+      - "nike"
+      - "adidas"
+      - "shoes"
+      - "shirt"
+      - "ball"
+      - "equipment"
+    
+    customerTypes:
+      - "walk-in"
+      - "regular"
+      - "wholesale"
+      - "online"
+
+scenarios:
+  # Scenario 1: Admin Dashboard Monitoring (30% of load)
+  - name: "Admin Dashboard Operations"
+    weight: 30
+    flow:
+      # Login as admin
+      - post:
+          url: "/api/auth/login"
+          headers:
+            Content-Type: "application/json"
+          json:
+            email: "{{ $randomPick(adminUsers).email }}"
+            password: "{{ $randomPick(adminUsers).password }}"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+            - json: "$.user.id"
+              as: "userId"
+          expect:
+            - statusCode: [200, 401]
+      
+      # Dashboard summary (most frequent admin operation)
+      - get:
+          url: "/api/dashboard/summary"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: [200, 401]
+          ifTrue: "authToken"
+      
+      # View all shops performance
+      - get:
+          url: "/api/dashboard/shops"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: [200, 401]
+          ifTrue: "authToken"
+      
+      # Check inventory across all shops
+      - get:
+          url: "/api/inventory"
+          qs:
+            page: "{{ $randomInt(1, 5) }}"
+            limit: "50"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: [200, 401]
+          ifTrue: "authToken"
+      
+      # Generate reports (heavy operation)
+      - get:
+          url: "/api/reports/sales"
+          qs:
+            startDate: "2024-01-01"
+            endDate: "2024-12-31"
+            format: "json"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: [200, 401, 500]
+          ifTrue: "authToken"
+
+  # Scenario 2: Shop Staff Product Management (40% of load)
+  - name: "Shop Staff Product Operations"
+    weight: 40
+    flow:
+      # Login as shop staff
+      - post:
+          url: "/api/auth/login"
+          headers:
+            Content-Type: "application/json"
+          json:
+            email: "{{ $randomPick(shopStaffUsers).email }}"
+            password: "{{ $randomPick(shopStaffUsers).password }}"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+            - json: "$.user.shopId"
+              as: "userShopId"
+          expect:
+            - statusCode: [200, 401]
+      
+      # Browse products (simulating large inventory)
+      - get:
+          url: "/api/products"
+          qs:
+            shopId: "{{ userShopId || $randomPick(testShops) }}"
+            page: "{{ $randomInt(1, 20) }}"
+            limit: "100"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: [200, 401]
+          ifTrue: "authToken"
+      
+      # Search products (common operation)
+      - get:
+          url: "/api/products"
+          qs:
+            shopId: "{{ userShopId || $randomPick(testShops) }}"
+            search: "{{ $randomPick(searchTerms) }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: [200, 401]
+          ifTrue: "authToken"
+      
+      # Check inventory levels
+      - get:
+          url: "/api/inventory"
+          qs:
+            shopId: "{{ userShopId || $randomPick(testShops) }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: [200, 401]
+          ifTrue: "authToken"
+      
+      # View customers
+      - get:
+          url: "/api/customers"
+          qs:
+            shopId: "{{ userShopId || $randomPick(testShops) }}"
+            page: "1"
+            limit: "20"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: [200, 401]
+          ifTrue: "authToken"
+
+  # Scenario 3: Invoice Creation (Daily Load Simulation) (25% of load)
+  - name: "Invoice Creation Operations"
+    weight: 25
+    flow:
+      # Login as shop staff
+      - post:
+          url: "/api/auth/login"
+          headers:
+            Content-Type: "application/json"
+          json:
+            email: "{{ $randomPick(shopStaffUsers).email }}"
+            password: "{{ $randomPick(shopStaffUsers).password }}"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+            - json: "$.user.shopId"
+              as: "userShopId"
+          expect:
+            - statusCode: [200, 401]
+      
+      # Get available products for invoice
+      - get:
+          url: "/api/products"
+          qs:
+            shopId: "{{ userShopId || $randomPick(testShops) }}"
+            limit: "10"
+            available: "true"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          capture:
+            - json: "$.products[0].id"
+              as: "productId"
+          expect:
+            - statusCode: [200, 401]
+          ifTrue: "authToken"
+      
+      # Get customers for invoice
+      - get:
+          url: "/api/customers"
+          qs:
+            shopId: "{{ userShopId || $randomPick(testShops) }}"
+            limit: "5"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          capture:
+            - json: "$.customers[0].id"
+              as: "customerId"
+          expect:
+            - statusCode: [200, 401]
+          ifTrue: "authToken"
+      
+      # Create invoice (simulating daily load)
+      - post:
+          url: "/api/invoices"
+          headers:
+            Content-Type: "application/json"
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            customerId: "{{ customerId || 1 }}"
+            shopId: "{{ userShopId || $randomPick(testShops) }}"
+            items:
+              - productId: "{{ productId || 1 }}"
+                quantity: "{{ $randomInt(1, 5) }}"
+                price: "{{ $randomInt(100, 2000) }}"
+            total: "{{ $randomInt(500, 10000) }}"
+            notes: "Load test invoice {{ $randomString() }}"
+          expect:
+            - statusCode: [201, 400, 401]
+          ifTrue: "authToken"
+
+  # Scenario 4: Data Consistency Testing (5% of load)
+  - name: "Concurrent Data Operations"
+    weight: 5
+    flow:
+      # Login as admin for data operations
+      - post:
+          url: "/api/auth/login"
+          headers:
+            Content-Type: "application/json"
+          json:
+            email: "{{ $randomPick(adminUsers).email }}"
+            password: "{{ $randomPick(adminUsers).password }}"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+          expect:
+            - statusCode: [200, 401]
+      
+      # Rapid inventory checks (testing database connections)
+      - get:
+          url: "/api/inventory"
+          qs:
+            page: "1"
+            limit: "100"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: [200, 401]
+          ifTrue: "authToken"
+      
+      # Health check (monitoring system stability)
+      - get:
+          url: "/api/health"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: [200, 401]
+          ifTrue: "authToken"
+      
+      # Database statistics
+      - get:
+          url: "/api/dashboard/stats"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: [200, 401, 500]
+          ifTrue: "authToken"
+
+# Pre-test setup
+before:
+  flow:
+    # Health check before starting
+    - get:
+        url: "/api/health"
+        expect:
+          - statusCode: 200
+    
+    # Verify authentication endpoints
+    - post:
+        url: "/api/auth/login"
+        headers:
+          Content-Type: "application/json"
+        json:
+          email: "admin1@test.com"
+          password: "admin123"
+        expect:
+          - statusCode: [200, 401]
+
+# Post-test cleanup and verification
+after:
+  flow:
+    # Final health check
+    - get:
+        url: "/api/health"
+        expect:
+          - statusCode: 200
+    
+    # Verify system is still responsive
+    - get:
+        url: "/api/dashboard/summary"
+        headers:
+          Authorization: "Bearer test-token"
+        expect:
+          - statusCode: [200, 401]
+
+# Reliability-specific metrics
+metrics:
+  - name: "auth_success_rate"
+    expression: "count(statusCode == 200 && url =~ /auth/login/) / count(url =~ /auth/login/)"
+  
+  - name: "invoice_creation_success_rate"
+    expression: "count(statusCode == 201 && url =~ /invoices$/) / count(url =~ /invoices$/)"
+  
+  - name: "database_error_rate"
+    expression: "count(statusCode >= 500) / count()"
+  
+  - name: "average_dashboard_response_time"
+    expression: "avg(responseTime, url =~ /dashboard/)"
+
+# Performance monitoring plugins
+plugins:
+  expect: {}
+  metrics-by-endpoint: {}
+  
+# Custom expectations for MS Sport reliability
+expect:
+  # Authentication should be highly reliable
+  - url: "/api/auth/login"
+    maxErrorRate: 1
+    p95: 2000
+  
+  # Invoice creation is critical business function
+  - url: "/api/invoices"
+    maxErrorRate: 2
+    p95: 5000
+  
+  # Dashboard should be responsive
+  - url: "/api/dashboard/summary"
+    maxErrorRate: 5
+    p95: 3000
+  
+  # Product operations should handle high volume
+  - url: "/api/products"
+    maxErrorRate: 3
+    p95: 2000 

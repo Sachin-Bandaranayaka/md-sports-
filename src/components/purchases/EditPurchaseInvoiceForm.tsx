@@ -91,7 +91,6 @@ export default function EditPurchaseInvoiceForm({
     // Use real-time hooks for data fetching
     const { data: suppliers = initialSuppliers || [] } = useSuppliersOptimized();
     const [products, setProducts] = useState<Product[]>(initialProducts || []);
-    const [filteredProducts, setFilteredProducts] = useState<Product[]>(initialProducts || []);
     const [categories, setCategories] = useState<Category[]>(initialCategories || []);
     const [shops, setShops] = useState<Shop[]>(initialShops || []);
 
@@ -209,7 +208,6 @@ export default function EditPurchaseInvoiceForm({
                 const data = await response.json();
                 if (data.success && data.data) {
                     setProducts(data.data);
-                    setFilteredProducts(data.data);
                 }
             }
         } catch (error) {
@@ -336,7 +334,6 @@ export default function EditPurchaseInvoiceForm({
             }
             const createdProduct = await response.json();
             setProducts(prev => [...prev, createdProduct.data]);
-            setFilteredProducts(prev => [...prev, createdProduct.data]);
             setShowNewProductModal(false);
             setNewProductData({ name: '', sku: '', description: '', price: 0, weightedAverageCost: 0, categoryId: '' });
         } catch (err: any) {
@@ -426,19 +423,7 @@ export default function EditPurchaseInvoiceForm({
         }
     };
 
-    const handleProductSearch = (query: string) => {
-        if (!query) {
-            setFilteredProducts(products);
-            return;
-        }
-        setFilteredProducts(
-            products.filter(
-                (product) =>
-                    product.name.toLowerCase().includes(query.toLowerCase()) ||
-                    (product.sku && product.sku.toLowerCase().includes(query.toLowerCase()))
-            )
-        );
-    };
+    // Remove the global product search handler - let each Combobox handle its own filtering
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6 pb-24">
@@ -514,10 +499,9 @@ export default function EditPurchaseInvoiceForm({
                             <div className="md:col-span-4">
                                 <label htmlFor={`item-product-${index}`} className="block text-xs font-medium text-gray-600 mb-1">Product <span className="text-red-500">*</span></label>
                                 <Combobox
-                                    options={filteredProducts.map(p => ({ value: p.id.toString(), label: `${p.name} (SKU: ${p.sku || 'N/A'})` }))}
+                                    options={products.map(p => ({ value: p.id.toString(), label: `${p.name} (SKU: ${p.sku || 'N/A'})` }))}
                                     value={item.productId || ''}
                                     onChange={(value) => handleItemChange({ target: { name: 'productId', value } } as any, index)}
-                                    onSearch={handleProductSearch}
                                     placeholder="Search or Select Product"
                                     searchable
                                 />
