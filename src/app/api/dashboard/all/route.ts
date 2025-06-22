@@ -33,11 +33,18 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
             // Calculate period days for backward compatibility with existing functions
             const periodDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
 
-            // Validate period parameter
-            if (![7, 30].includes(periodDays)) {
+            // Validate that the date range is reasonable (not negative and not too large)
+            if (periodDays < 1) {
                 return NextResponse.json({ 
                     success: false, 
-                    message: 'Invalid period. Must be 7 or 30 days.' 
+                    message: 'Invalid date range. Start date must be before end date.' 
+                }, { status: 400 });
+            }
+
+            if (periodDays > 365) {
+                return NextResponse.json({ 
+                    success: false, 
+                    message: 'Date range too large. Maximum allowed range is 365 days.' 
                 }, { status: 400 });
             }
 

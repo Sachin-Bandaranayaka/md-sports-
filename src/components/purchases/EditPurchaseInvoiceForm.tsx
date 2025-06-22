@@ -415,6 +415,11 @@ export default function EditPurchaseInvoiceForm({
                 const errorData = await response.json();
                 throw new Error(errorData.error || errorData.message || 'Failed to update purchase invoice');
             }
+            
+            // Force router refresh to show updated data immediately
+            router.refresh();
+            
+            // Navigate with success message
             router.push('/purchases?status=success&action=update');
         } catch (err: any) {
             setError(err.message || 'An unexpected error occurred.');

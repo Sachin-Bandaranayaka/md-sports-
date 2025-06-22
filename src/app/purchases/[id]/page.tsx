@@ -54,8 +54,10 @@ interface PurchaseInvoiceWithDetails {
 async function fetchPurchaseInvoice(id: string, baseUrl: string): Promise<PurchaseInvoiceWithDetails | null> {
     try {
         const response = await fetch(`${baseUrl}/api/purchases/${id}`, { 
-            cache: 'no-store',
-            next: { tags: ['purchase-invoices', `purchase-${id}`] }
+            next: { 
+                tags: ['purchase-invoices', `purchase-${id}`],
+                revalidate: 0 // Always fetch fresh data but use tags for revalidation
+            }
         });
         if (!response.ok) {
             if (response.status === 404) return null;

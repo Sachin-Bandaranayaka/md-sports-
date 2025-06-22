@@ -372,13 +372,17 @@ export async function PUT(
             // Do not let cache invalidation error fail the main operation
         }
 
-        // Revalidate Next.js cached pages
+        // Revalidate Next.js cached pages immediately
         try {
             revalidateTag('purchase-invoices');
             revalidateTag(`purchase-${purchaseId}`);
             revalidatePath(`/purchases/${purchaseId}`);
             revalidatePath(`/purchases/${purchaseId}/edit`);
             revalidatePath('/purchases');
+            
+            // Also revalidate the main purchases page to ensure list updates
+            revalidatePath('/purchases', 'page');
+            
             console.log('Next.js pages revalidated after purchase update.');
         } catch (revalidateError) {
             console.error('Error revalidating Next.js pages after purchase update:', revalidateError);

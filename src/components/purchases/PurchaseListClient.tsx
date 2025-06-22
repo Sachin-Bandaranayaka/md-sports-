@@ -168,39 +168,35 @@ export default function PurchaseListClient({
             setIsRefreshing(true);
             setError(null);
 
-            // Build query parameters
-            const params = new URLSearchParams(searchParams);
-            params.set('_t', Date.now().toString()); // Add timestamp to bust cache
-
             console.log('Manually refreshing purchase invoices...');
 
-            const response = await fetch(`/api/purchases?${params.toString()}`);
-
-            if (!response.ok) {
-                throw new Error(`Failed to refresh: ${response.status}`);
+            // First, trigger server-side cache revalidation
+            try {
+                await fetch('/api/revalidate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        tags: ['purchase-invoices']
+                    }),
+                });
+            } catch (revalidateError) {
+                console.warn('Server-side cache revalidation failed:', revalidateError);
+                // Continue with client-side refresh even if revalidation fails
             }
 
-            const data = await response.json();
-
-            if (data.data) {
-                setPurchaseInvoices(data.data || []);
-                if (data.pagination) {
-                    setTotalPages(data.pagination.totalPages);
-                    setCurrentPage(data.pagination.page);
-                }
-                setLastRefreshed(new Date());
-            } else if (data.error && data.error.message) {
-                throw new Error(data.error.message);
-            } else {
-                throw new Error('Failed to refresh data due to an unknown error structure');
-            }
+            // Then refetch using React Query
+            await refetch();
+            
+            setLastRefreshed(new Date());
         } catch (err) {
             console.error('Error refreshing data:', err);
             setError(err instanceof Error ? err.message : 'Failed to refresh data');
         } finally {
             setIsRefreshing(false);
         }
-    }, [searchParams]);
+    }, [refetch]);
 
     // Auto-refresh when page loads - REMOVED as initial props should be sufficient
     // useEffect(() => {

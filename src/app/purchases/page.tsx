@@ -21,12 +21,11 @@ async function fetchPurchaseInvoices(baseUrl: string, page: number, limit: numbe
     if (endDate) queryParams.append('endDate', endDate);
 
     try {
-        // Add timestamp to bust cache and ensure fresh data
-        queryParams.append('_t', Date.now().toString());
-
         const response = await fetch(`${baseUrl}/api/purchases?${queryParams.toString()}`, {
-            cache: 'no-store', // Never cache this request
-            next: { revalidate: 0 } // Force revalidation on each request
+            next: { 
+                tags: ['purchase-invoices'],
+                revalidate: 0 // Always fetch fresh data but use tags for revalidation
+            }
         });
 
         if (!response.ok) {
