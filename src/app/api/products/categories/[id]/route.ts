@@ -5,8 +5,11 @@ import { AuditService } from '@/services/auditService';
 import { verifyToken } from '@/lib/auth';
 
 // PUT: Update a category
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
+        // Await params before using its properties
+        const resolvedParams = await params;
+        
         // Verify permission
         const hasPermission = await validateTokenPermission(request, 'category:update');
         if (!hasPermission) {
@@ -16,7 +19,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
             );
         }
 
-        const categoryId = parseInt(params.id);
+        const categoryId = parseInt(resolvedParams.id);
         if (isNaN(categoryId)) {
             return NextResponse.json(
                 { success: false, message: 'Invalid category ID' },
@@ -39,7 +42,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         const category = await prisma.category.findUnique({
             where: { id: categoryId },
             include: {
-                children: true,
+                subCategories: true,
                 products: true
             }
         });
@@ -127,10 +130,12 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 // DELETE: Delete a category by ID
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const categoryId = parseInt(params.id);
+        // Await params before using its properties
+        const resolvedParams = await params;
+        const categoryId = parseInt(resolvedParams.id);
 
         if (isNaN(categoryId)) {
             return NextResponse.json(
@@ -162,9 +167,11 @@ export async function DELETE(
             }
             
             // Get user ID from token
-            const decoded = await verifyToken(token);
-            if (decoded) {
-                userId = decoded.userId;
+            if (token) {
+                const decoded = await verifyToken(token);
+                if (decoded && typeof decoded === 'object' && 'userId' in decoded) {
+                    userId = decoded.userId as number;
+                }
             }
         } else {
             console.log('Using development token - bypassing permission check');
@@ -175,7 +182,7 @@ export async function DELETE(
         const category = await prisma.category.findUnique({
             where: { id: categoryId },
             include: {
-                children: true,
+                subCategories: true,
                 products: true
             }
         });
@@ -188,7 +195,7 @@ export async function DELETE(
         }
 
         // Check if category has child categories
-        if (category.children && category.children.length > 0) {
+        if (category.subCategories && category.subCategories.length > 0) {
             return NextResponse.json(
                 {
                     success: false,
@@ -211,12 +218,12 @@ export async function DELETE(
 
         // Use audit service for soft delete
         if (userId) {
-            const auditService = new AuditService();
+            const auditService = AuditService.getInstance();
             await auditService.softDelete(
                 'Category',
                 categoryId,
-                userId,
                 category,
+                userId,
                 true // canRecover
             );
         } else {
@@ -246,10 +253,12 @@ export async function DELETE(
 // GET: Get a category by ID
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const categoryId = parseInt(params.id);
+        // Await params before using its properties
+        const resolvedParams = await params;
+        const categoryId = parseInt(resolvedParams.id);
 
         if (isNaN(categoryId)) {
             return NextResponse.json(
@@ -301,10 +310,12 @@ export async function GET(
 // PATCH: Update a category
 export async function PATCH(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const categoryId = parseInt(params.id);
+        // Await params before using its properties
+        const resolvedParams = await params;
+        const categoryId = parseInt(resolvedParams.id);
 
         if (isNaN(categoryId)) {
             return NextResponse.json(
@@ -330,7 +341,7 @@ export async function PATCH(
         const category = await prisma.category.findUnique({
             where: { id: categoryId },
             include: {
-                children: true,
+                subCategories: true,
                 products: true
             }
         });

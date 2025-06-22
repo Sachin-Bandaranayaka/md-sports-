@@ -5,7 +5,7 @@ import db from '@/utils/db';
 
 export async function GET(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     // Check for inventory view permissions
     const token = req.headers.get('authorization')?.replace('Bearer ', '');
@@ -42,15 +42,18 @@ export async function GET(
     const includeCosts = hasAllPermissions || (hasFullView && !hasBasicView);
 
     try {
+        // Await params before using its properties
+        const resolvedParams = await params;
+        
         // Get the shop ID safely
-        if (!params || !params.id) {
+        if (!resolvedParams || !resolvedParams.id) {
             return NextResponse.json({
                 success: false,
                 message: 'Shop ID is required',
             }, { status: 400 });
         }
 
-        const shopId = params.id;
+        const shopId = resolvedParams.id;
 
         // Get inventory items for the shop with conditional cost inclusion
         const costField = includeCosts ? 'i.shopspecificcost,' : '';
@@ -87,7 +90,7 @@ export async function GET(
         });
     } catch (error) {
         // Log the error
-        console.error(`Error fetching shop inventory (shop_id ${params?.id}):`, error);
+        console.error(`Error fetching shop inventory:`, error);
         return NextResponse.json({
             success: false,
             message: 'Failed to fetch shop inventory',

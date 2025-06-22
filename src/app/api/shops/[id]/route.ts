@@ -4,16 +4,18 @@ import prisma from '@/lib/prisma';
 // GET: Fetch a specific shop by ID
 export async function GET(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const id = params.id;
+        // Await params before using its properties
+        const resolvedParams = await params;
+        const id = resolvedParams.id;
 
         // Get the shop with its inventory and manager
         const shop = await prisma.shop.findUnique({
             where: { id },
             include: {
-                inventoryItems: {
+                InventoryItem: {
                     include: {
                         product: true
                     }
@@ -37,7 +39,7 @@ export async function GET(
         }
 
         // Format the inventory data for the response
-        const inventory = shop.inventoryItems.map(item => ({
+        const inventory = shop.InventoryItem.map((item: any) => ({
             id: item.id,
             product_id: item.productId,
             product_name: item.product.name,
@@ -48,7 +50,7 @@ export async function GET(
         }));
 
         // Format the response
-        const { inventoryItems, ...shopData } = shop;
+        const { InventoryItem, ...shopData } = shop;
         const shopWithInventory = {
             ...shopData,
             inventory
@@ -59,7 +61,7 @@ export async function GET(
             data: shopWithInventory
         });
     } catch (error) {
-        console.error(`Error fetching shop with ID ${params.id}:`, error);
+        console.error(`Error fetching shop:`, error);
         return NextResponse.json({
             success: false,
             message: 'Error fetching shop',
@@ -71,10 +73,12 @@ export async function GET(
 // PUT: Update a shop by ID
 export async function PUT(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const id = params.id;
+        // Await params before using its properties
+        const resolvedParams = await params;
+        const id = resolvedParams.id;
         const body = await request.json();
 
         // Validate required fields
@@ -130,7 +134,7 @@ export async function PUT(
             data: updatedShop
         });
     } catch (error) {
-        console.error(`Error updating shop with ID ${params.id}:`, error);
+        console.error(`Error updating shop:`, error);
         return NextResponse.json({
             success: false,
             message: 'Error updating shop',
@@ -142,10 +146,12 @@ export async function PUT(
 // DELETE: Delete a shop by ID (since Prisma doesn't have built-in soft delete)
 export async function DELETE(
     request: NextRequest,
-    context: { params: { id: string } }
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
-        const id = context.params.id;
+        // Await params before using its properties
+        const resolvedParams = await context.params;
+        const id = resolvedParams.id;
 
         // Check if the shop exists
         const existingShop = await prisma.shop.findUnique({
@@ -215,7 +221,7 @@ export async function DELETE(
             message: 'Shop deleted successfully'
         });
     } catch (error) {
-        console.error(`Error deleting shop with ID ${context.params.id}:`, error);
+        console.error(`Error deleting shop:`, error);
         return NextResponse.json({
             success: false,
             message: 'Error deleting shop',

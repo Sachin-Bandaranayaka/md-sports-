@@ -81,12 +81,18 @@ export default function PurchaseListClient({
         }
     });
 
-    const purchaseInvoices = purchasesData?.data || initialPurchaseInvoices;
+    // Transform the purchase invoices to ensure supplier name is available
+    const rawPurchaseInvoices = purchasesData?.data || initialPurchaseInvoices;
+    const purchaseInvoices = rawPurchaseInvoices.map(invoice => ({
+        ...invoice,
+        supplierName: invoice.supplierName || invoice.supplier?.name || 'Unknown Supplier'
+    }));
     const totalPages = purchasesData?.pagination?.totalPages || initialTotalPages;
     const suppliers = initialSuppliers;
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [lastRefreshed, setLastRefreshed] = useState<Date | null>(new Date());
     const [showNewInvoiceModal, setShowNewInvoiceModal] = useState(false);
+    const [customError, setCustomError] = useState<string | null>(null);
 
     // Modal states removed - using separate pages for detail and edit views
 
@@ -166,7 +172,7 @@ export default function PurchaseListClient({
     const refreshData = useCallback(async () => {
         try {
             setIsRefreshing(true);
-            setError(null);
+            setCustomError(null);
 
             console.log('Manually refreshing purchase invoices...');
 
@@ -192,7 +198,7 @@ export default function PurchaseListClient({
             setLastRefreshed(new Date());
         } catch (err) {
             console.error('Error refreshing data:', err);
-            setError(err instanceof Error ? err.message : 'Failed to refresh data');
+            setCustomError(err instanceof Error ? err.message : 'Failed to refresh data');
         } finally {
             setIsRefreshing(false);
         }
@@ -256,7 +262,7 @@ export default function PurchaseListClient({
                     <h2 className="text-xl font-bold">Invoice Details: {invoice.invoiceNumber}</h2>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-700"><X size={24} /></button>
                 </div>
-                <p><strong>Supplier:</strong> {invoice.supplier?.name || 'N/A'}</p>
+                <p><strong>Supplier:</strong> {invoice.supplierName || 'N/A'}</p>
                 <p><strong>Date:</strong> {invoice.date ? new Date(invoice.date).toLocaleDateString() : 'N/A'}</p>
                 <p><strong>Due Date:</strong> {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A'}</p>
                 <p><strong>Amount:</strong> Rs. {invoice.total?.toLocaleString() || '0.00'}</p>
@@ -265,7 +271,7 @@ export default function PurchaseListClient({
                 {invoice.items && invoice.items.length > 0 ? (
                     <ul className="list-disc pl-5">
                         {invoice.items.map(item => (
-                            <li key={item.id}>{item.product?.name} (Qty: {item.quantity}, Price: {item.price})</li>
+                            <li key={item.id}>{item.productName} (Qty: {item.quantity}, Price: {item.unitPrice})</li>
                         ))}
                     </ul>
                 ) : <p>No items found.</p>}
@@ -404,10 +410,13 @@ export default function PurchaseListClient({
             </div>
 
             {loading && <div className="text-center py-4">Loading...</div>}
-            {error && (
+            {(error || customError) && (
                 <div className="text-center py-4 text-red-500">
-                    <p>{error instanceof Error ? error.message : 'An error occurred'}</p>
-                    <Button variant="outline" size="sm" onClick={() => refetch()} className="mt-2">Retry</Button>
+                    <p>{error instanceof Error ? error.message : customError || 'An error occurred'}</p>
+                    <Button variant="outline" size="sm" onClick={() => {
+                        setCustomError(null);
+                        refetch();
+                    }} className="mt-2">Retry</Button>
                 </div>
             )}
 
@@ -433,7 +442,7 @@ export default function PurchaseListClient({
                                         <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
                                             <button onClick={() => handleViewInvoice(invoice)} className="text-primary hover:underline">{invoice.invoiceNumber}</button>
                                         </td>
-                                        <td className="px-6 py-4">{invoice.supplier?.name || 'Unknown Supplier'}</td>
+                                        <td className="px-6 py-4">{invoice.supplierName || 'Unknown Supplier'}</td>
                                         <td className="px-6 py-4">{invoice.date ? new Date(invoice.date).toLocaleDateString() : 'N/A'}</td>
                                         <td className="px-6 py-4">{invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A'}</td>
                                         <td className="px-6 py-4 font-medium">Rs. {invoice.total ? invoice.total.toLocaleString() : '0.00'}</td>

@@ -4,31 +4,27 @@ import { prisma } from '@/lib/prisma';
 // DELETE: Remove all inventory items for a shop
 export async function DELETE(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        // Await params before using its properties
+        const resolvedParams = await params;
+        
         // Get the shop ID safely
-        if (!params || !params.id) {
+        if (!resolvedParams || !resolvedParams.id) {
             return NextResponse.json({
                 success: false,
                 message: 'Shop ID is required',
             }, { status: 400 });
         }
 
-        const shopId = parseInt(params.id);
-
-        if (isNaN(shopId)) {
-            return NextResponse.json({
-                success: false,
-                message: 'Invalid shop ID',
-            }, { status: 400 });
-        }
+        const shopId = resolvedParams.id;
 
         // Check if shop exists
         const shop = await prisma.shop.findUnique({
             where: { id: shopId },
             include: {
-                inventoryItems: true
+                InventoryItem: true
             }
         });
 
@@ -40,7 +36,7 @@ export async function DELETE(
         }
 
         // Get the count of inventory items
-        const inventoryCount = shop.inventoryItems.length;
+        const inventoryCount = shop.InventoryItem.length;
 
         // Delete all inventory items for this shop
         await prisma.inventoryItem.deleteMany({
@@ -53,7 +49,7 @@ export async function DELETE(
                 data: {
                     action: 'DELETE_ALL_INVENTORY',
                     entity: 'Shop',
-                    entityId: shopId,
+                    entityId: parseInt(shopId),
                     details: JSON.stringify({
                         shopId,
                         shopName: shop.name,
@@ -78,7 +74,7 @@ export async function DELETE(
         });
     } catch (error) {
         // Log the error
-        console.error(`Error deleting shop inventory (shop_id ${params?.id}):`, error);
+        console.error(`Error deleting shop inventory:`, error);
         return NextResponse.json({
             success: false,
             message: 'Failed to delete shop inventory',

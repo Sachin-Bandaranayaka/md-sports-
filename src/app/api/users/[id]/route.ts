@@ -6,7 +6,7 @@ import bcrypt from 'bcryptjs';
 // GET: Get user by ID
 export async function GET(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     const permissionError = await requirePermission('user:manage')(req);
     if (permissionError) {
@@ -14,9 +14,11 @@ export async function GET(
     }
 
     try {
-        const userId = parseInt(params.id);
+        // Await params before using its properties
+        const resolvedParams = await params;
+        const userId = resolvedParams.id;
 
-        if (isNaN(userId)) {
+        if (!userId) {
             return NextResponse.json(
                 { success: false, message: 'Invalid user ID' },
                 { status: 400 }
@@ -64,7 +66,7 @@ export async function GET(
             user
         });
     } catch (error) {
-        console.error(`Error fetching user with ID ${params.id}:`, error);
+        console.error(`Error fetching user:`, error);
         return NextResponse.json(
             { success: false, message: 'Failed to fetch user' },
             { status: 500 }
@@ -75,7 +77,7 @@ export async function GET(
 // PUT: Update user
 export async function PUT(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     const permissionError = await requirePermission('user:manage')(req);
     if (permissionError) {
@@ -83,9 +85,11 @@ export async function PUT(
     }
 
     try {
-        const userId = parseInt(params.id);
+        // Await params before using its properties
+        const resolvedParams = await params;
+        const userId = resolvedParams.id;
 
-        if (isNaN(userId)) {
+        if (!userId) {
             return NextResponse.json(
                 { success: false, message: 'Invalid user ID' },
                 { status: 400 }
@@ -214,10 +218,10 @@ export async function PUT(
         return NextResponse.json({
             success: true,
             message: 'User updated successfully',
-            data: updatedUser
+            user: updatedUser
         });
     } catch (error) {
-        console.error(`Error updating user with ID ${params.id}:`, error);
+        console.error(`Error updating user:`, error);
         return NextResponse.json(
             { success: false, message: 'Failed to update user' },
             { status: 500 }
@@ -225,10 +229,10 @@ export async function PUT(
     }
 }
 
-// DELETE: Deactivate user (soft delete)
+// DELETE: Delete user
 export async function DELETE(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     const permissionError = await requirePermission('user:manage')(req);
     if (permissionError) {
@@ -236,9 +240,11 @@ export async function DELETE(
     }
 
     try {
-        const userId = parseInt(params.id);
+        // Await params before using its properties
+        const resolvedParams = await params;
+        const userId = resolvedParams.id;
 
-        if (isNaN(userId)) {
+        if (!userId) {
             return NextResponse.json(
                 { success: false, message: 'Invalid user ID' },
                 { status: 400 }
@@ -246,29 +252,28 @@ export async function DELETE(
         }
 
         // Check if user exists
-        const user = await prisma.user.findUnique({
+        const existingUser = await prisma.user.findUnique({
             where: { id: userId }
         });
 
-        if (!user) {
+        if (!existingUser) {
             return NextResponse.json(
                 { success: false, message: 'User not found' },
                 { status: 404 }
             );
         }
 
-        // Instead of hard delete, set isActive to false
-        await prisma.user.update({
-            where: { id: userId },
-            data: { isActive: false }
+        // Delete user
+        await prisma.user.delete({
+            where: { id: userId }
         });
 
         return NextResponse.json({
             success: true,
-            message: 'User deactivated successfully'
+            message: 'User deleted successfully'
         });
     } catch (error) {
-        console.error(`Error deleting user with ID ${params.id}:`, error);
+        console.error(`Error deleting user:`, error);
         return NextResponse.json(
             { success: false, message: 'Failed to delete user' },
             { status: 500 }
