@@ -4,7 +4,6 @@ import { Suspense, useEffect, useState } from 'react';
 import { Loader2, Calendar, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
-import DashboardMetrics from './components/DashboardMetrics';
 import DashboardTransfers from './components/DashboardTransfers';
 import ShopWiseMetrics from './components/ShopWiseMetrics';
 
@@ -71,7 +70,6 @@ export default function DashboardPage() {
             }
 
             setDashboardData({
-                summaryData: result.summaryData,
                 recentTransfers: result.recentTransfers,
             });
             
@@ -248,7 +246,6 @@ export default function DashboardPage() {
                         </div>
                     </div>
                 }>
-                    <DashboardMetrics summaryData={dashboardData.summaryData} />
                     <ShopWiseMetrics 
                         startDate={startDate} 
                         endDate={endDate} 

@@ -1,4 +1,4 @@
-import { PrismaClient, LogLevel } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 // Use a single instance of Prisma Client across the entire app
 const globalForPrisma = global as unknown as { 
@@ -11,18 +11,22 @@ if (!globalForPrisma.prismaInstanceCount) {
     globalForPrisma.prismaInstanceCount = 0;
 }
 
-// Optimized connection options for Vercel serverless
+// Optimized connection options for millisecond performance
 const prismaOptions = {
     datasources: {
         db: {
             url: process.env.DATABASE_URL ? 
-                `${process.env.DATABASE_URL}?connection_limit=1&pool_timeout=900&connect_timeout=900&prepared_statement_cache_size=0&statement_timeout=30000&idle_in_transaction_session_timeout=30000&pgbouncer=true` :
+                `${process.env.DATABASE_URL}?connection_limit=5&pool_timeout=20&connect_timeout=10&prepared_statement_cache_size=100&statement_timeout=10000&idle_in_transaction_session_timeout=10000&pgbouncer=true&application_name=mssports_prisma` :
                 'postgresql://localhost:5432/mssport',
         },
     },
-    // Optimized logging for production
-    log: process.env.NODE_ENV === 'production' ? ['error' as LogLevel] : ['error' as LogLevel, 'warn' as LogLevel],
     errorFormat: 'minimal' as const,
+    
+    // Additional performance options
+    transactionOptions: {
+        maxWait: 5000,      // 5 seconds max wait for transaction
+        timeout: 10000,     // 10 seconds timeout for transaction
+    },
 };
 
 console.log('Initializing Prisma client with DATABASE_URL:',
@@ -34,10 +38,9 @@ console.log('Initializing Prisma client with DATABASE_URL:',
 // Function to detect if we're running in Edge Runtime
 function isEdgeRuntime(): boolean {
     return (
-        typeof EdgeRuntime !== 'undefined' ||
         typeof process === 'undefined' ||
         process.env.NEXT_RUNTIME === 'edge' ||
-        globalThis.EdgeRuntime !== undefined
+        (typeof globalThis !== 'undefined' && 'EdgeRuntime' in globalThis)
     );
 }
 

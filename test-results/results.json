@@ -1,0 +1,171 @@
+{
+  "config": {
+    "configFile": "/Users/sachin/Documents/md-sports-/playwright.config.ts",
+    "rootDir": "/Users/sachin/Documents/md-sports-/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": "/Users/sachin/Documents/md-sports-/tests/e2e/global-setup.ts",
+    "globalTeardown": "/Users/sachin/Documents/md-sports-/tests/e2e/global-teardown.ts",
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/results.json"
+        }
+      ],
+      [
+        "junit",
+        {
+          "outputFile": "test-results/junit.xml"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/Users/sachin/Documents/md-sports-/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/sachin/Documents/md-sports-/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/sachin/Documents/md-sports-/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "/Users/sachin/Documents/md-sports-/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/sachin/Documents/md-sports-/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "/Users/sachin/Documents/md-sports-/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/sachin/Documents/md-sports-/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "Mobile Chrome",
+        "name": "Mobile Chrome",
+        "testDir": "/Users/sachin/Documents/md-sports-/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/sachin/Documents/md-sports-/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "Mobile Safari",
+        "name": "Mobile Safari",
+        "testDir": "/Users/sachin/Documents/md-sports-/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/sachin/Documents/md-sports-/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "Microsoft Edge",
+        "name": "Microsoft Edge",
+        "testDir": "/Users/sachin/Documents/md-sports-/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/sachin/Documents/md-sports-/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "Google Chrome",
+        "name": "Google Chrome",
+        "testDir": "/Users/sachin/Documents/md-sports-/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.53.1",
+    "workers": 5,
+    "webServer": {
+      "command": "npm run dev",
+      "url": "http://localhost:3000",
+      "reuseExistingServer": true,
+      "timeout": 120000
+    }
+  },
+  "suites": [],
+  "errors": [
+    {
+      "message": "PrismaClientKnownRequestError: \nInvalid `prisma.inventoryItem.create()` invocation in\n/Users/sachin/Documents/md-sports-/tests/e2e/global-setup.ts:72:30\n\n  69 });\n  70 \n  71 // Create inventory item\n→ 72 await prisma.inventoryItem.create(\nForeign key constraint violated: `InventoryItem_shopId_fkey (index)`",
+      "stack": "PrismaClientKnownRequestError: \nInvalid `prisma.inventoryItem.create()` invocation in\n/Users/sachin/Documents/md-sports-/tests/e2e/global-setup.ts:72:30\n\n  69 });\n  70 \n  71 // Create inventory item\n→ 72 await prisma.inventoryItem.create(\nForeign key constraint violated: `InventoryItem_shopId_fkey (index)`\n    at /Users/sachin/Documents/md-sports-/tests/e2e/global-setup.ts:72:30\n    at $n.handleRequestError (/Users/sachin/Documents/md-sports-/node_modules/@prisma/client/runtime/library.js:121:7315)\n    at $n.handleAndLogRequestError (/Users/sachin/Documents/md-sports-/node_modules/@prisma/client/runtime/library.js:121:6623)\n    at $n.request (/Users/sachin/Documents/md-sports-/node_modules/@prisma/client/runtime/library.js:121:6307)\n    at l (/Users/sachin/Documents/md-sports-/node_modules/@prisma/client/runtime/library.js:130:9633)\n    at globalSetup (/Users/sachin/Documents/md-sports-/tests/e2e/global-setup.ts:72:3)",
+      "location": {
+        "file": "/Users/sachin/Documents/md-sports-/tests/e2e/global-setup.ts",
+        "column": 30,
+        "line": 72
+      },
+      "snippet": "\u001b[90m   at \u001b[39mglobal-setup.ts:72\n\n  70 |\n  71 |   // Create inventory item\n> 72 |   await prisma.inventoryItem.create({\n     |                              ^\n  73 |     data: {\n  74 |       productId: testProduct.id,\n  75 |       quantity: 100,"
+    }
+  ],
+  "stats": {
+    "startTime": "2025-06-22T08:37:17.858Z",
+    "duration": 7835.062,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

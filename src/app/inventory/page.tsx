@@ -88,7 +88,9 @@ export default async function Inventory({
 
     // Get access token from cookies for authentication
     const cookieStore = await cookies();
+    console.log('All cookies received on server component:', cookieStore.getAll());
     const accessToken = cookieStore.get('accessToken')?.value;
+    console.log('Access token from cookie:', accessToken ? `${accessToken.substring(0, 10)}...` : 'Not Found');
 
     // Prepare headers for authenticated requests
     const requestHeaders: HeadersInit = {

@@ -32,7 +32,7 @@ export default function LoginPage() {
 
         // Try the auth login using the useAuth hook
         try {
-            const success = await login(email, password, rememberMe);
+            const success = await login(email, password);
             if (success) {
                 router.push('/dashboard');
             } else {
