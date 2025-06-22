@@ -5,35 +5,48 @@ import { validateTokenPermission } from '@/lib/auth';
 
 const prisma = new PrismaClient();
 
-export async function fetchCustomersData(shopId: number | null) {
+// This function can be moved to a lib/data-access layer later
+async function fetchCustomersData(shopId: string | null) {
     try {
-        console.log('Fetching customers data for dashboard', { shopId });
+        const whereClause: any = {};
+        if (shopId) {
+            whereClause.shopId = shopId;
+        }
 
-        // Get monthly customer stats - how many customers were created each month
-        const monthlyCustomersStats = await prisma.$queryRaw`
-            SELECT 
-                DATE_TRUNC('month', "createdAt") as month,
-                COUNT(*) as count
-            FROM "Customer"
-            ${shopId ? prisma.$raw`WHERE EXISTS (
-                SELECT 1 FROM "Sale" 
-                WHERE "Sale"."customerId" = "Customer"."id" 
-                AND "Sale"."shopId" = ${shopId}
-            )` : prisma.$raw``}
-            GROUP BY month
-            ORDER BY month ASC
-            LIMIT 12
-        `;
+        const totalCustomers = await prisma.customer.count({ where });
+        const newCustomersThisWeek = await prisma.customer.count({
+            where: {
+                ...whereClause,
+                createdAt: {
+                    gte: new Date(new Date().setDate(new Date().getDate() - 7)),
+                },
+            },
+        });
+        const customerTypes = await prisma.customer.groupBy({
+            by: ['customerType'],
+            _count: {
+                id: true,
+            },
+            where: whereClause,
+        });
 
         return {
             success: true,
-            data: monthlyCustomersStats
+            data: {
+                totalCustomers,
+                newCustomersThisWeek,
+                customerTypes: customerTypes.map(ct => ({
+                    type: ct.customerType,
+                    count: ct._count.id
+                })),
+            },
         };
+
     } catch (error) {
-        console.error('Error fetching customers data for dashboard:', error);
+        console.error('Error fetching customers dashboard data:', error);
         return {
             success: false,
-            error: error instanceof Error ? error.message : String(error)
+            error: 'Failed to fetch customer data'
         };
     }
 }
@@ -41,7 +54,7 @@ export async function fetchCustomersData(shopId: number | null) {
 export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest, context) => {
     try {
         // Validate token and permissions
-        const authResult = await validateTokenPermission(request, 'view_dashboard');
+        const authResult = await validateTokenPermission(request, 'dashboard:view');
         if (!authResult.isValid) {
             return NextResponse.json({ error: authResult.message }, { status: 401 });
         }
@@ -57,6 +70,7 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
                 shopId: context.shopId
             }
         });
+
     } catch (error) {
         console.error('Error in customers dashboard API:', error);
         return NextResponse.json({

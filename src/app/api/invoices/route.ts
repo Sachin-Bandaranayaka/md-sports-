@@ -89,23 +89,16 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
             let whereClause: any = ShopAccessControl.buildShopFilter(context);
 
             // Shop filtering is now primarily handled by the middleware.
-            // We only allow overriding it with a query parameter if the user is an admin.
-            console.log(`User ${user.id} (${user.role?.name}) - shop filtering applied: ${JSON.stringify(whereClause)}`);
-
-            if (status) {
-                whereClause.status = status;
-            }
-            if (paymentMethod) {
-                whereClause.paymentMethod = paymentMethod;
-            }
+            if (status) whereClause.status = status;
+            if (paymentMethod) whereClause.paymentMethod = paymentMethod;
             
-            // Allow admin to filter by a specific shopId from query params
+            // For non-admins, the shopId from their token is already applied by buildShopFilter.
+            // We only allow an admin to override it with a query parameter.
             if (isAdmin && shopId && shopId !== 'all') {
                 whereClause.shopId = shopId;
-            } else if (shopId && shopId !== 'all' && !isAdmin && shopId !== context.shopId) {
-                // If a non-admin tries to access a shop they are not assigned to, deny access.
-                // This is an additional layer of security.
-                return NextResponse.json({ error: 'Access denied: You can only view invoices for your assigned shop.' }, { status: 403 });
+            } else if (!isAdmin) {
+                // Enforce the user's shopId from the token context for all non-admin users
+                whereClause.shopId = context.shopId;
             }
 
             console.log('Invoices where clause:', JSON.stringify(whereClause, null, 2));

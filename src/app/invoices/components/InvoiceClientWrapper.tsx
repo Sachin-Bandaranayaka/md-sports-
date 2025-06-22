@@ -21,18 +21,18 @@ import { cn } from '@/lib/utils';
 interface Invoice {
     id: string | number;
     invoiceNumber: string;
-    customerId: number;
+    customerId: number | null;
     customerName?: string; // Added by API or server component
     total: number;
     totalProfit?: number; // Added
     profitMargin?: number; // Added
     status: string;
-    paymentMethod: string;
+    paymentMethod: string | null;
     createdAt: Date | string; // Can be string if pre-formatted
     updatedAt: Date | string;
     date?: string; // UI formatted date
     dueDate?: string; // UI formatted due date
-    notes?: string;
+    notes?: string | null;
     totalPaid?: number; // Total amount paid
     dueAmount?: number; // Amount still due
     shop?: {
@@ -89,7 +89,7 @@ interface InvoiceClientWrapperProps {
         totalCreditSales: number;
         totalNonCreditSales: number;
     };
-    shops: { id: number; name: string; location: string }[];
+    shops: { id: string; name: string; location: string }[];
 }
 
 export default function InvoiceClientWrapper({
@@ -104,7 +104,10 @@ export default function InvoiceClientWrapper({
     const { accessToken } = useAuth();
     const { hasPermission } = usePermission();
 
-    const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
+    const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices.map(inv => ({
+        ...inv,
+        shop: inv.shop ? { ...inv.shop, id: String(inv.shop.id) } : undefined
+    })));
     const [totalPages, setTotalPages] = useState<number>(initialTotalPages);
     const [currentPage, setCurrentPage] = useState<number>(initialCurrentPage);
     const [statistics, setStatistics] = useState(initialStatistics);
@@ -112,9 +115,7 @@ export default function InvoiceClientWrapper({
     const [error, setError] = useState<string | null>(null);
     const [customers, setCustomers] = useState<{ id: number; name: string; customerType: 'wholesale' | 'retail' }[]>([]);
     const [products, setProducts] = useState<{ id: number; name: string; price: number }[]>([]);
-    const [shopsState, setShopsState] = useState<{ id: string; name: string; location: string }[]>(
-        shops.map(shop => ({ ...shop, id: shop.id.toString() }))
-    );
+    const [shopsState, setShopsState] = useState<{ id: string; name: string; location: string }[]>(shops);
 
     // Modal states
     const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
@@ -181,7 +182,10 @@ export default function InvoiceClientWrapper({
     }, [dueStatusSortOrder]);
 
     useEffect(() => {
-        setInvoices(initialInvoices);
+        setInvoices(initialInvoices.map(inv => ({
+            ...inv,
+            shop: inv.shop ? { ...inv.shop, id: String(inv.shop.id) } : undefined
+        })));
         setTotalPages(initialTotalPages);
         setCurrentPage(initialCurrentPage);
         setStatistics(initialStatistics);

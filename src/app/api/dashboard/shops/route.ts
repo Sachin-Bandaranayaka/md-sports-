@@ -183,8 +183,7 @@ export async function fetchShopsData(shopId?: string | null, periodDays?: number
 // GET: Fetch shop performance data
 export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest, context) => {
     try {
-        // Validate token and permissions
-        const authResult = await validateTokenPermission(request, 'view_dashboard');
+        const authResult = await validateTokenPermission(request, 'dashboard:view');
         if (!authResult.isValid) {
             return NextResponse.json({ error: authResult.message }, { status: 401 });
         }

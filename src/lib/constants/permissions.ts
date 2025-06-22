@@ -120,7 +120,8 @@ export const PERMISSIONS = {
 
   // Dashboard permissions
   DASHBOARD_VIEW: 'dashboard:view' as const,
-  VIEW_DASHBOARD: 'view_dashboard' as const, // Legacy format
+  VIEW_SALES: 'view_sales' as const,
+  MANAGE_DASHBOARD: 'manage_dashboard' as const,
 
   // Product permissions (plural)
   PRODUCTS_VIEW: 'products:view' as const,
@@ -185,8 +186,6 @@ export const PERMISSIONS = {
   WRITE_INVOICES: 'write:invoices' as const,
 
   // Legacy dashboard permissions
-  MANAGE_DASHBOARD: 'manage_dashboard' as const,
-  VIEW_SALES: 'view_sales' as const,
   VIEW_TRANSFERS: 'view_transfers' as const,
 
   // Shop update permission

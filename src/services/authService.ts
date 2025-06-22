@@ -98,9 +98,8 @@ export const authenticateUser = async (email: string, password: string) => {
         let rolePermissions: string[] = [];
 
         if (user.permissions && Array.isArray(user.permissions)) {
-            // Separate string permissions from numeric-string IDs
-            const permissionNames = user.permissions.filter((p: string) => isNaN(parseInt(p)));
-            const permissionIds = user.permissions.filter((p: string) => !isNaN(parseInt(p))).map((id: string) => parseInt(id));
+            const permissionNames = user.permissions.filter((p: string) => isNaN(parseInt(p, 10)));
+            const permissionIds = user.permissions.filter((p: string) => !isNaN(parseInt(p, 10))).map((id: string) => parseInt(id, 10));
 
             if (permissionIds.length > 0) {
                 const fetchedPermissions = await prisma.permission.findMany({

@@ -14,16 +14,24 @@ const getDefaultProduct = (id: number) => ({
     price: 1000,
     weightedAverageCost: 800,
     category_name: 'General',
-    inventory: []
+    inventory: [],
+    inventoryItems: [],
+    category: null,
+    barcode: null,
+    categoryId: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    shopId: null,
+    minStockLevel: null,
 });
 
 export async function GET(
     req: NextRequest,
     { params }: { params: { id: string } }
 ) {
+    const { id: paramId } = params;
     try {
-        // Ensure params.id is properly awaited in Next.js 14+
-        const id = parseInt(params.id);
+        const id = parseInt(paramId);
 
         if (isNaN(id)) {
             return NextResponse.json({
@@ -65,14 +73,14 @@ export async function GET(
                     }))
                 };
             },
-            getDefaultProduct(parseInt(params.id)),
-            `Failed to fetch product with ID ${params.id}`
+            getDefaultProduct(parseInt(paramId)),
+            `Failed to fetch product with ID ${paramId}`
         );
 
         if (!product) {
             return NextResponse.json({
                 success: false,
-                message: `Product with ID ${params.id} not found`
+                message: `Product with ID ${paramId} not found`
             }, { status: 404 });
         }
 
@@ -84,7 +92,7 @@ export async function GET(
         console.error(`Error fetching product:`, error);
         return NextResponse.json({
             success: true,
-            data: getDefaultProduct(parseInt(params.id))
+            data: getDefaultProduct(parseInt(paramId))
         });
     }
 }
@@ -93,8 +101,9 @@ export async function PUT(
     req: NextRequest,
     { params }: { params: { id: string } }
 ) {
+    const { id: paramId } = params;
     try {
-        const id = parseInt(params.id);
+        const id = parseInt(paramId);
         if (isNaN(id)) {
             return NextResponse.json({ success: false, message: 'Invalid product ID' }, { status: 400 });
         }
@@ -119,7 +128,9 @@ export async function PUT(
         if (productData.description !== undefined) dataToUpdate.description = productData.description || null;
         if (productData.basePrice !== undefined) dataToUpdate.weightedAverageCost = productData.basePrice; // Assuming basePrice maps to WAC
         if (productData.retailPrice !== undefined) dataToUpdate.price = productData.retailPrice;
-        if (productData.categoryId !== undefined) dataToUpdate.categoryId = productData.categoryId ? parseInt(productData.categoryId) : null;
+        if (productData.categoryId !== undefined) {
+            dataToUpdate.category = productData.categoryId ? { connect: { id: parseInt(productData.categoryId) } } : { disconnect: true };
+        }
 
         const updatedProduct = await prisma.product.update({
             where: { id },
@@ -143,7 +154,7 @@ export async function PUT(
             try {
                 await prisma.auditLog.create({
                     data: {
-                        userId: userId ? parseInt(userId) : null,
+                        userId: userId ? parseInt(userId, 10) : null,
                         action: 'UPDATE_PRODUCT',
                         entity: 'Product',
                         entityId: id,
@@ -162,7 +173,7 @@ export async function PUT(
         // Revalidate Next.js cached pages
         revalidateTag('products');
         revalidateTag('inventory');
-        revalidateTag(`product-${id}`);
+        revalidateTag(`product-${paramId}`);
         revalidatePath('/inventory');
         revalidatePath('/products');
 
@@ -187,9 +198,10 @@ export async function DELETE(
     req: NextRequest,
     { params }: { params: { id: string } }
 ) {
+    const { id: paramId } = params;
     try {
         // Ensure params.id is properly awaited in Next.js 14+
-        const id = parseInt(params.id);
+        const id = parseInt(paramId);
 
         if (isNaN(id)) {
             return NextResponse.json({
@@ -207,7 +219,7 @@ export async function DELETE(
             if (!existingProduct) {
                 return NextResponse.json({
                     success: false,
-                    message: `Product with ID ${id} not found`
+                    message: `Product with ID ${paramId} not found`
                 }, { status: 404 });
             }
 
@@ -274,7 +286,7 @@ export async function DELETE(
             // Revalidate Next.js cached pages
             revalidateTag('products');
             revalidateTag('inventory');
-            revalidateTag(`product-${id}`);
+            revalidateTag(`product-${paramId}`);
             revalidatePath('/inventory');
             revalidatePath('/products');
 

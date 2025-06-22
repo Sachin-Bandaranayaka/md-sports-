@@ -16,9 +16,9 @@ interface ShopWiseMetrics {
 export async function GET(request: NextRequest) {
     try {
         // Validate token and permissions
-        const authResult = await validateTokenPermission(request, 'view_dashboard');
+        const authResult = await validateTokenPermission(request, 'dashboard:view');
         if (!authResult.isValid) {
-            return NextResponse.json({ error: authResult.message }, { status: 401 });
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
         // Extract date range from query parameters

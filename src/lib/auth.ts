@@ -194,10 +194,9 @@ export const getShopIdFromToken = async (req: NextRequest): Promise<string | nul
 
     const payload = await verifyToken(token);
 
-    if (!payload || typeof payload !== 'object') {
+    if (!payload || typeof payload !== 'object' || !('shopId' in payload)) {
         return null;
     }
 
-    // Extract shop ID from token as string to match database schema
-    return 'shopId' in payload ? String(payload.shopId) : null;
+    return payload.shopId as string;
 };

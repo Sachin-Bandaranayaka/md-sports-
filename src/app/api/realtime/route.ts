@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
           requiredPermission = 'inventory:view'; // transfers are part of inventory
           break;
         case 'notification':
-          requiredPermission = 'view_dashboard'; // notifications are general
+          requiredPermission = 'dashboard:view'; // notifications are general
           break;
         case 'supplier':
           requiredPermission = 'purchases:view'; // suppliers are part of purchases

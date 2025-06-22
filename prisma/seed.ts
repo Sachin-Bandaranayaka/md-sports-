@@ -22,7 +22,6 @@ async function main() {
         { name: 'reports:view', description: 'View reports' },
         { name: 'settings:manage', description: 'Manage system settings' },
         { name: 'dashboard:view', description: 'View dashboard' },
-        { name: 'view_dashboard', description: 'View dashboard (legacy)' },
         { name: 'view_sales', description: 'View sales dashboard' },
         { name: 'manage_dashboard', description: 'Manage dashboard' },
         { name: 'view_transfers', description: 'View inventory transfers' },
