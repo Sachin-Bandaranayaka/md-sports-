@@ -6,7 +6,7 @@ import { hasPermission } from '@/lib/utils/permissions';
 // GET /api/quotations/[id] - Get a specific quotation
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         // Check authentication
@@ -35,7 +35,8 @@ export async function GET(
             return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
         }
 
-        const quotationId = parseInt(params.id);
+        const { id } = await params;
+        const quotationId = parseInt(id);
 
         if (isNaN(quotationId)) {
             return NextResponse.json(
@@ -76,7 +77,7 @@ export async function GET(
 
         return NextResponse.json(quotation);
     } catch (error) {
-        console.error(`Error fetching quotation ${params.id}:`, error);
+        console.error(`Error fetching quotation:`, error);
         return NextResponse.json(
             { error: 'Failed to fetch quotation' },
             { status: 500 }
@@ -87,7 +88,7 @@ export async function GET(
 // PUT /api/quotations/[id] - Update a quotation
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         // Check authentication
@@ -119,7 +120,8 @@ export async function PUT(
             return NextResponse.json({ error: 'Insufficient permissions to edit quotations' }, { status: 403 });
         }
 
-        const quotationId = parseInt(params.id);
+        const { id } = await params;
+        const quotationId = parseInt(id);
 
         if (isNaN(quotationId)) {
             return NextResponse.json(
@@ -240,7 +242,7 @@ export async function PUT(
 
         return NextResponse.json(updatedQuotation);
     } catch (error: any) { // Catch specific error types if needed
-        console.error(`Error updating quotation ${params.id}:`, error);
+        console.error(`Error updating quotation:`, error);
         // Provide a more specific error message if it's our custom validation error
         if (error.message.startsWith('Invalid item data:')) {
             return NextResponse.json(
@@ -258,7 +260,7 @@ export async function PUT(
 // DELETE /api/quotations/[id] - Delete a quotation
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         // Check authentication
@@ -290,7 +292,8 @@ export async function DELETE(
             return NextResponse.json({ error: 'Insufficient permissions to delete quotations' }, { status: 403 });
         }
 
-        const quotationId = parseInt(params.id);
+        const { id } = await params;
+        const quotationId = parseInt(id);
 
         if (isNaN(quotationId)) {
             return NextResponse.json(
@@ -342,7 +345,7 @@ export async function DELETE(
             { status: 200 }
         );
     } catch (error) {
-        console.error(`Error deleting quotation ${params.id}:`, error);
+        console.error(`Error deleting quotation:`, error);
         return NextResponse.json(
             { error: 'Failed to delete quotation' },
             { status: 500 }

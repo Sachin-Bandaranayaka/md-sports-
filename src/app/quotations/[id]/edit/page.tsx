@@ -112,8 +112,47 @@ export default function EditQuotation() {
                     throw new Error('Failed to fetch quotation');
                 }
                 const quotationData = await quotationResponse.json();
-                setFormData(quotationData);
-                setItems(quotationData.items || []);
+                // Transform API data to match form structure
+                const transformedData = {
+                    ...quotationData,
+                    date: quotationData.createdAt ? new Date(quotationData.createdAt).toISOString().split('T')[0] : quotationData.date,
+                    expiryDate: quotationData.validUntil ? new Date(quotationData.validUntil).toISOString().split('T')[0] : quotationData.expiryDate,
+                    customerName: quotationData.customer?.name || quotationData.customerName
+                };
+                setFormData(transformedData);
+                
+                // Transform items data to match form structure
+                const transformedItems = (quotationData.items || []).map((item: any) => ({
+                    ...item,
+                    unitPrice: item.price || item.unitPrice || 0,  // Transform price to unitPrice
+                    productName: item.product?.name || item.productName || '',
+                    productId: item.productId?.toString() || ''
+                }));
+                
+                // If no items exist, add a default empty item
+                if (transformedItems.length === 0) {
+                    transformedItems.push({
+                        productId: '',
+                        productName: '',
+                        quantity: 1,
+                        unitPrice: 0,
+                        total: 0
+                    });
+                }
+                
+                setItems(transformedItems);
+                
+                // Initialize product search arrays with existing product names
+                if (transformedItems.length > 0) {
+                    const initialSearches = transformedItems.map((item: any) => item.productName || '');
+                    setProductSearches(initialSearches);
+                    
+                    // Initialize dropdown states
+                    const newShowProductDropdowns = new Array(transformedItems.length).fill(false);
+                    const newFilteredProducts = new Array(transformedItems.length).fill([]);
+                    setShowProductDropdowns(newShowProductDropdowns);
+                    setFilteredProducts(newFilteredProducts);
+                }
 
                 // Fetch customers for the form
                 const customersResponse = await fetch('/api/customers');
@@ -270,14 +309,12 @@ export default function EditQuotation() {
     // Update totals based on items
     const updateTotals = (currentItems: Partial<QuotationItem>[]) => {
         const subtotal = currentItems.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
-        const tax = Math.round(subtotal * 0.17); // 17% tax
         const discount = Number(formData.discount) || 0;
-        const total = subtotal + tax - discount;
+        const total = subtotal - discount;
 
         setFormData(prev => ({
             ...prev,
             subtotal,
-            tax,
             total
         }));
     };
@@ -554,10 +591,6 @@ export default function EditQuotation() {
                                 <div className="flex justify-between">
                                     <span className="text-black">Subtotal:</span>
                                     <span className="text-black font-medium">{(formData.subtotal || 0).toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-black">Tax (17%):</span>
-                                    <span className="text-black font-medium">{(formData.tax || 0).toLocaleString()}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-black">Discount:</span>
