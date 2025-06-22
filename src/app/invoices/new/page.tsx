@@ -14,6 +14,7 @@ interface Customer {
     name: string;
     email?: string | null;
     phone?: string | null;
+    address?: string | null;
     customerType: 'wholesale' | 'retail'; // Changed from type to customerType
     creditLimit?: number | null;
     creditPeriod?: number | null;
@@ -750,6 +751,18 @@ export default function CreateInvoice() {
                                                                 <div className="font-medium">{customer.name}</div>
                                                                 <div className="text-xs text-gray-500">
                                                                     {customer.email} {customer.phone && `• ${customer.phone}`}
+                                                                    {(() => {
+                                                                        // Parse address if it's a JSON string
+                                                                        if (customer.address && typeof customer.address === 'string') {
+                                                                            try {
+                                                                                const addressObj = JSON.parse(customer.address);
+                                                                                return ` • ${addressObj.mainAddress || customer.address}`;
+                                                                            } catch {
+                                                                                return ` • ${customer.address}`;
+                                                                            }
+                                                                        }
+                                                                        return customer.address ? ` • ${customer.address}` : '';
+                                                                    })()}
                                                                 </div>
                                                             </li>
                                                         ))}

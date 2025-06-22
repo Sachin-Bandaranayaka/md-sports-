@@ -159,9 +159,11 @@ export default function EditExpensePaymentForm({ expense, onClose, onSuccess }: 
     );
     
     const sourceAccounts = accounts.filter(account => 
-        account.type === 'asset' || account.type === 'liability' || 
+        account.type === 'asset' || account.type === 'liability' || account.type === 'revenue' || account.type === 'income' ||
         account.name.toLowerCase().includes('cash') || 
-        account.name.toLowerCase().includes('bank')
+        account.name.toLowerCase().includes('bank') ||
+        account.name.toLowerCase().includes('income') ||
+        account.name.toLowerCase().includes('revenue')
     );
 
     return (

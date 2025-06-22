@@ -129,8 +129,11 @@ export default function ExpensePaymentForm({ onClose, onSuccess }: ExpensePaymen
     );
     
     const sourceAccounts = accounts.filter(account => 
-        account.type === 'asset' || account.name.toLowerCase().includes('cash') || 
-        account.name.toLowerCase().includes('bank')
+        account.type === 'asset' || account.type === 'revenue' || account.type === 'income' ||
+        account.name.toLowerCase().includes('cash') || 
+        account.name.toLowerCase().includes('bank') ||
+        account.name.toLowerCase().includes('income') ||
+        account.name.toLowerCase().includes('revenue')
     );
 
     return (

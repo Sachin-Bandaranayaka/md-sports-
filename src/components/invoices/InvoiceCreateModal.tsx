@@ -73,6 +73,7 @@ interface InvoiceCreateModalProps {
     onClose: () => void;
     onSave?: (invoice: any) => void;
     onSuccess?: () => void;
+    onCustomerCreated?: (customer: Customer) => void;
     customers: Customer[];
     products: Product[];
     shops: Shop[];
@@ -84,6 +85,7 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
     onClose,
     onSave,
     onSuccess,
+    onCustomerCreated,
     customers = [],
     products = [],
     shops = [],
@@ -203,7 +205,7 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
     }, [formData.items]);
 
     const handleCustomerSelect = useCallback((customerId: string) => {
-        const customer = customers.find(c => c.id.toString() === customerId);
+        const customer = customers.find(c => c && c.id != null && c.id.toString() === customerId);
         if (customer) {
             setSelectedCustomer(customer);
             
@@ -385,8 +387,10 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                 });
                 setShowQuickCustomerModal(false);
                 
-                // Customer created successfully - the parent component will handle refreshing
-                // if needed through the onSuccess callback
+                // Notify parent component about the new customer
+                if (onCustomerCreated) {
+                    onCustomerCreated(newCustomer);
+                }
             } else {
                 const errorData = await response.json();
                 if (errorData.error === 'Duplicate mobile number') {
@@ -431,11 +435,13 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
 
     // Memoized filtered customers based on debounced search
     const filteredCustomers = useMemo(() => {
-        if (!debouncedCustomerSearch.trim()) return customers.slice(0, 50); // Limit initial results
+        const validCustomers = customers.filter(customer => customer && customer.id != null);
+        
+        if (!debouncedCustomerSearch.trim()) return validCustomers.slice(0, 50); // Limit initial results
         
         const searchTerm = debouncedCustomerSearch.toLowerCase();
-        return customers.filter(customer =>
-            customer.name.toLowerCase().includes(searchTerm) ||
+        return validCustomers.filter(customer =>
+            customer.name?.toLowerCase().includes(searchTerm) ||
             customer.phone?.toLowerCase().includes(searchTerm) ||
             customer.address?.toLowerCase().includes(searchTerm)
         ).slice(0, 50); // Limit search results for performance
@@ -677,10 +683,12 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
 
     // Memoized options for better performance
     const customerOptions = useMemo(() => 
-        Array.isArray(customers) ? customers.map(customer => ({
-            value: customer.id.toString(),
-            label: customer.name
-        })) : [], [customers]
+        Array.isArray(customers) ? customers
+            .filter(customer => customer && customer.id != null)
+            .map(customer => ({
+                value: customer.id.toString(),
+                label: customer.name
+            })) : [], [customers]
     );
 
     const productOptions = useMemo(() => 
@@ -793,7 +801,18 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                                                             className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-black border-b border-gray-100 last:border-b-0"
                                                         >
                                                             <div className="font-medium">{customer.name}</div>
-                                                            <div className="text-sm text-gray-600">{customer.phone} - {customer.address}</div>
+                                                            <div className="text-sm text-gray-600">{customer.phone} - {(() => {
+                                                                // Parse address if it's a JSON string
+                                                                if (customer.address && typeof customer.address === 'string') {
+                                                                    try {
+                                                                        const addressObj = JSON.parse(customer.address);
+                                                                        return addressObj.mainAddress || customer.address;
+                                                                    } catch {
+                                                                        return customer.address;
+                                                                    }
+                                                                }
+                                                                return customer.address || 'No address';
+                                                            })()}</div>
                                                         </div>
                                                     ))}
                                                 </div>

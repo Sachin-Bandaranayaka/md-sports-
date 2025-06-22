@@ -55,7 +55,7 @@ interface InvoiceEditModalProps {
     onSave: (invoiceData: InvoiceFormData) => Promise<void>;
     customers: Customer[];
     products: Product[];
-    initialData?: InvoiceFormData;
+    initialData?: any; // Use any to handle both API structure and form structure
     isLoading?: boolean;
 }
 
@@ -87,13 +87,30 @@ const InvoiceEditModal: React.FC<InvoiceEditModalProps> = ({
     // Load initial data when modal opens
     useEffect(() => {
         if (isOpen && initialData) {
-            setFormData({
-                ...initialData,
+            // Transform API data structure to form data structure
+            const transformedData: InvoiceFormData = {
+                id: initialData.id,
+                customerId: initialData.customer?.id?.toString() || initialData.customerId?.toString() || '',
+                customerName: initialData.customer?.name || initialData.customerName || '',
+                invoiceNumber: initialData.invoiceNumber || '',
                 dueDate: initialData.dueDate ? new Date(initialData.dueDate).toISOString().split('T')[0] : '',
-                subtotal: initialData.subtotal || 0,
+                paymentMethod: initialData.paymentMethod || 'cash',
+                notes: initialData.notes || '',
+                items: initialData.items?.map((item: any) => ({
+                    id: item.id?.toString() || `item-${Date.now()}-${Math.random()}`,
+                    productId: item.product?.id?.toString() || item.productId?.toString() || '',
+                    productName: item.product?.name || item.productName || '',
+                    quantity: item.quantity || 0,
+                    price: item.price || 0,
+                    total: item.total || (item.quantity * item.price) || 0
+                })) || [],
+                subtotal: initialData.subtotal || initialData.total || 0,
                 tax: initialData.tax || 0,
-                total: initialData.total || 0
-            });
+                total: initialData.total || 0,
+                status: initialData.status
+            };
+            
+            setFormData(transformedData);
         }
     }, [isOpen, initialData]);
 
@@ -111,7 +128,7 @@ const InvoiceEditModal: React.FC<InvoiceEditModalProps> = ({
     }, [formData.items]);
 
     const handleCustomerSelect = (customerId: string) => {
-        const customer = customers.find(c => c.id.toString() === customerId);
+        const customer = customers.find(c => c && c.id != null && c.id.toString() === customerId);
         setFormData(prev => ({
             ...prev,
             customerId,
@@ -237,15 +254,19 @@ const InvoiceEditModal: React.FC<InvoiceEditModalProps> = ({
         onClose();
     };
 
-    const customerOptions = Array.isArray(customers) ? customers.map(customer => ({
-        value: customer.id.toString(),
-        label: customer.name
-    })) : [];
+    const customerOptions = Array.isArray(customers) ? customers
+        .filter(customer => customer && customer.id != null)
+        .map(customer => ({
+            value: customer.id.toString(),
+            label: customer.name
+        })) : [];
 
-    const productOptions = Array.isArray(products) ? products.map(product => ({
-        value: product.id.toString(),
-        label: `${product.name} - LKR ${product.price.toFixed(2)}`
-    })) : [];
+    const productOptions = Array.isArray(products) ? products
+        .filter(product => product && product.id != null)
+        .map(product => ({
+            value: product.id.toString(),
+            label: `${product.name} - LKR ${product.price.toFixed(2)}`
+        })) : [];
 
     const footer = (
         <div className="flex justify-between items-center">

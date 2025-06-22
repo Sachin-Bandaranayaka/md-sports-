@@ -6,7 +6,7 @@ import { cacheService } from '@/lib/cache';
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         // Validate token and permissions
@@ -37,14 +37,15 @@ export async function GET(
             return NextResponse.json({ error: 'User not found' }, { status: 401 });
         }
 
-        if (!params?.id || isNaN(Number(params.id))) {
+        const resolvedParams = await params;
+        if (!resolvedParams?.id || isNaN(Number(resolvedParams.id))) {
             return NextResponse.json(
                 { error: 'Invalid invoice ID' },
                 { status: 400 }
             );
         }
 
-        const invoiceId = Number(params.id);
+        const invoiceId = Number(resolvedParams.id);
 
         // Build where clause with shop filtering
         let whereClause: any = { id: invoiceId };
@@ -116,7 +117,7 @@ export async function GET(
 
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         // Validate token and permissions
@@ -147,14 +148,15 @@ export async function PUT(
             return NextResponse.json({ error: 'User not found' }, { status: 401 });
         }
 
-        if (!params?.id || isNaN(Number(params.id))) {
+        const resolvedParams = await params;
+        if (!resolvedParams?.id || isNaN(Number(resolvedParams.id))) {
             return NextResponse.json(
                 { error: 'Invalid invoice ID' },
                 { status: 400 }
             );
         }
 
-        const invoiceId = Number(params.id);
+        const invoiceId = Number(resolvedParams.id);
         
         // First, check if the invoice exists and user has access to it
         let whereClause: any = { id: invoiceId };
@@ -176,6 +178,57 @@ export async function PUT(
         const requestData = await request.json();
         console.log('Invoice update request data:', { invoiceId, ...requestData });
         const { sendSms, ...invoiceData } = requestData;
+
+        // Credit limit validation for wholesale customers
+        if (invoiceData.customerId) {
+            const customer = await prisma.customer.findUnique({
+                where: { id: parseInt(invoiceData.customerId.toString()) },
+                select: { 
+                    customerType: true, 
+                    creditLimit: true,
+                    name: true
+                }
+            });
+
+            if (customer && customer.customerType === 'wholesale' && customer.creditLimit) {
+                // Calculate total invoice amount from the updated items
+                const totalAmount = invoiceData.items?.reduce((sum: number, item: any) => {
+                    const price = parseFloat(item.customPrice) || parseFloat(item.price) || 0;
+                    const quantity = parseInt(item.quantity, 10) || 0;
+                    return sum + (price * quantity);
+                }, 0) || 0;
+
+                // Get customer's current outstanding balance (excluding the current invoice being updated)
+                const outstandingInvoices = await prisma.invoice.aggregate({
+                    where: {
+                        customerId: parseInt(invoiceData.customerId.toString()),
+                        status: { in: ['pending', 'overdue'] },
+                        id: { not: invoiceId } // Exclude the current invoice being updated
+                    },
+                    _sum: { total: true }
+                });
+
+                const currentBalance = outstandingInvoices._sum.total || 0;
+                const newTotalBalance = currentBalance + totalAmount;
+
+                if (newTotalBalance > customer.creditLimit) {
+                    return NextResponse.json(
+                        {
+                            success: false,
+                            message: `Credit limit exceeded for customer ${customer.name}. Current balance: Rs. ${currentBalance.toLocaleString()}, Updated invoice amount: Rs. ${totalAmount.toLocaleString()}, Credit limit: Rs. ${customer.creditLimit.toLocaleString()}`,
+                            error: 'Credit limit exceeded',
+                            details: {
+                                currentBalance,
+                                invoiceAmount: totalAmount,
+                                creditLimit: customer.creditLimit,
+                                exceedAmount: newTotalBalance - customer.creditLimit
+                            }
+                        },
+                        { status: 400 }
+                    );
+                }
+            }
+        }
 
         // Check if this is only a status update to "Paid"
         // More specific check: make sure it only has the status field and it's being changed to 'Paid'
@@ -366,14 +419,14 @@ export async function PUT(
                         invoiceDate: invoiceData.invoiceDate ? new Date(invoiceData.invoiceDate) : undefined,
                         dueDate: invoiceData.dueDate ? new Date(invoiceData.dueDate) : undefined,
                         notes: invoiceData.notes,
-                        shopId: invoiceData.shopId ? String(invoiceData.shopId) : null, // Ensure shopId is string or null
+                        shopId: invoiceData.shopId ? parseInt(invoiceData.shopId.toString()) : null, // Ensure shopId is number or null
                         total: newCalculatedTotalInvoiceAmount, // Updated total
                         totalProfit: newTotalInvoiceProfit,   // Updated profit
                         profitMargin: newProfitMargin         // Updated profit margin
                     };
 
                     if (invoiceData.customerId) {
-                        dataToUpdate.customerId = invoiceData.customerId;
+                        dataToUpdate.customerId = parseInt(invoiceData.customerId.toString());
                     } else {
                         // If customerId is explicitly null or undefined, disconnect it if your schema allows
                         // dataToUpdate.customer = { disconnect: true }; 
@@ -462,13 +515,14 @@ export async function PUT(
 
 export async function DELETE(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        if (!params?.id || isNaN(Number(params.id))) {
+        const resolvedParams = await params;
+        if (!resolvedParams?.id || isNaN(Number(resolvedParams.id))) {
             return NextResponse.json({ error: 'Invalid invoice ID' }, { status: 400 });
         }
-        const invoiceId = Number(params.id);
+        const invoiceId = Number(resolvedParams.id);
 
         const inventoryUpdatesForEvent: Array<{ productId: number, shopId?: number, quantityChange: number }> = [];
 

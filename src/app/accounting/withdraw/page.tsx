@@ -38,10 +38,15 @@ export default function PersonalWithdrawal() {
       setIsLoadingAccounts(true);
       const response = await fetch('/api/accounting/accounts');
       if (!response.ok) throw new Error('Failed to fetch accounts');
-      const data = await response.json();
+      const result = await response.json();
+      
+      // Check if the response is successful and has data
+      if (!result.success || !Array.isArray(result.data)) {
+        throw new Error('Invalid response format');
+      }
       
       // Filter for active income and asset accounts
-      const incomeAccounts = data.filter((account: Account) => 
+      const incomeAccounts = result.data.filter((account: Account) => 
         (account.type === 'income' || account.type === 'asset') && account.isActive
       );
       setAccounts(incomeAccounts);

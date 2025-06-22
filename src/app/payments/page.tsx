@@ -18,8 +18,10 @@ interface ExpensePayment {
   amount: number;
   description: string;
   reference?: string;
+  referenceNumber?: string;
   date: string;
   createdAt: string;
+  paymentMethod?: string;
   account: {
     id: number;
     name: string;
@@ -439,32 +441,24 @@ export default function Payments() {
             
             {/* Expense Payment Form Modal */}
             {showExpenseForm && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                        <ExpensePaymentForm
-                            onSuccess={() => {
-                                fetchExpensePayments();
-                                setShowExpenseForm(false);
-                            }}
-                            onCancel={() => setShowExpenseForm(false)}
-                        />
-                    </div>
-                </div>
+                <ExpensePaymentForm
+                    onSuccess={() => {
+                        fetchExpensePayments();
+                        setShowExpenseForm(false);
+                    }}
+                    onClose={() => setShowExpenseForm(false)}
+                />
             )}
 
             {showEditForm && selectedExpense && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                        <EditExpensePaymentForm
-                            expense={selectedExpense}
-                            onSuccess={handleEditSuccess}
-                            onCancel={() => {
-                                setShowEditForm(false);
-                                setSelectedExpense(null);
-                            }}
-                        />
-                    </div>
-                </div>
+                <EditExpensePaymentForm
+                    expense={selectedExpense}
+                    onSuccess={handleEditSuccess}
+                    onClose={() => {
+                        setShowEditForm(false);
+                        setSelectedExpense(null);
+                    }}
+                />
             )}
             </div>
         </MainLayout>

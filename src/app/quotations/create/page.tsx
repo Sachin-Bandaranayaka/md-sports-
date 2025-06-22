@@ -583,6 +583,18 @@ export default function CreateQuotation() {
                                                                 <div className="font-medium">{customer.name}</div>
                                                                 <div className="text-xs text-gray-500">
                                                                     {customer.email} {customer.phone && `• ${customer.phone}`}
+                                                                    {(() => {
+                                                                        // Parse address if it's a JSON string
+                                                                        if (customer.address && typeof customer.address === 'string') {
+                                                                            try {
+                                                                                const addressObj = JSON.parse(customer.address);
+                                                                                return ` • ${addressObj.mainAddress || customer.address}`;
+                                                                            } catch {
+                                                                                return ` • ${customer.address}`;
+                                                                            }
+                                                                        }
+                                                                        return customer.address ? ` • ${customer.address}` : '';
+                                                                    })()}
                                                                 </div>
                                                             </li>
                                                         ))}
