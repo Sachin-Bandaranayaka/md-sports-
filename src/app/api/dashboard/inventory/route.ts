@@ -4,7 +4,7 @@ import { cacheService } from '@/lib/cache';
 import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
 import { validateTokenPermission } from '@/lib/auth';
 
-export async function fetchInventoryDistributionData(shopId?: string | null, periodDays?: number, startDate?: Date, endDate?: Date) {
+export async function fetchInventoryDistributionData(shopId?: string | null) {
     // Get all categories
     const categories = await safeQuery(
         () => prisma.category.findMany(),
@@ -75,9 +75,11 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
         if (!authResult.isValid) {
             return NextResponse.json({ error: authResult.message }, { status: 401 });
         }
+        
+        const shopId = context.isFiltered ? context.shopId : null;
 
         // Check cache first with shop context
-        const cacheKey = `dashboard:inventory:${context.isFiltered ? context.shopId : 'all'}`;
+        const cacheKey = `dashboard:inventory:${shopId || 'all'}`;
         const cachedData = await cacheService.get(cacheKey);
 
         if (cachedData) {
@@ -93,10 +95,10 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
         }
 
         console.log('🔄 Fetching fresh inventory data with shop context:', {
-            shopId: context.shopId,
+            shopId: shopId,
             isFiltered: context.isFiltered
         });
-        const inventoryResult = await fetchInventoryDistributionData(context.isFiltered ? context.shopId : null);
+        const inventoryResult = await fetchInventoryDistributionData(shopId);
 
         // Add metadata to response
         const responseData = {

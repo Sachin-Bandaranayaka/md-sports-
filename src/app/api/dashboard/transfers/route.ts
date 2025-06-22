@@ -84,14 +84,21 @@ export async function fetchTransfersData(shopId?: string | null, periodDays?: nu
         ];
     }
     
-    // Add date filtering based on period
-    if (periodDays) {
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - periodDays);
-        startDate.setHours(0, 0, 0, 0);
+    // Add date filtering based on provided dates
+    if (startDate && endDate) {
+        const endOfDay = new Date(endDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        whereClause.createdAt = {
+            gte: startDate,
+            lte: endOfDay
+        };
+    } else if (periodDays) { // Fallback to periodDays if dates not provided
+        const calculatedStartDate = new Date();
+        calculatedStartDate.setDate(calculatedStartDate.getDate() - periodDays);
+        calculatedStartDate.setHours(0, 0, 0, 0);
         
         whereClause.createdAt = {
-            gte: startDate
+            gte: calculatedStartDate
         };
     }
 
@@ -116,7 +123,7 @@ export async function fetchTransfersData(shopId?: string | null, periodDays?: nu
             orderBy: {
                 createdAt: 'desc'
             },
-            take: 5 // Limit to 5 most recent transfers
+            take: 10 // Show more transfers when filtering by date
         }),
         [], // Empty array fallback
         'Failed to fetch transfers data'
@@ -148,11 +155,18 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
 
         // Get query parameters
         const { searchParams } = new URL(request.url);
-        const period = searchParams.get('period');
-        const periodDays = period ? parseInt(period) : undefined;
+        const startDateParam = searchParams.get('startDate');
+        const endDateParam = searchParams.get('endDate');
+        const shopId = context.isFiltered ? context.shopId : null;
+        
+        // Determine date range
+        const endDate = endDateParam ? new Date(endDateParam) : new Date();
+        const startDate = startDateParam ? new Date(startDateParam) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-        // Check cache first with shop context and period
-        const cacheKey = `dashboard:transfers:${context.isFiltered ? context.shopId : 'all'}${periodDays ? `:${periodDays}d` : ''}`;
+        // Check cache first with shop context and date range
+        const dateRangeKey = `${startDate.toISOString().split('T')[0]}-${endDate.toISOString().split('T')[0]}`;
+        const cacheKey = `dashboard:transfers:${shopId || 'all'}:${dateRangeKey}`;
+        
         console.time('cache check');
         const cachedData = await cacheService.get(cacheKey);
         console.timeEnd('cache check');
@@ -164,22 +178,20 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
                 meta: {
                     shopFiltered: context.isFiltered,
                     shopId: context.shopId,
-                    period: periodDays,
                     fromCache: true
                 }
             });
         }
 
         console.log('🔄 Fetching fresh transfers data with shop context:', {
-            shopId: context.shopId,
+            shopId: shopId,
             isFiltered: context.isFiltered,
-            period: periodDays
+            startDate,
+            endDate
         });
 
-        const shopId = context.isFiltered ? context.shopId : null;
-
-        // Fetch transfers data with period filtering
-        const result = await fetchTransfersData(shopId, periodDays);
+        // Fetch transfers data with date filtering
+        const result = await fetchTransfersData(shopId, undefined, startDate, endDate);
 
         if (!result.success) {
             return NextResponse.json(
@@ -189,8 +201,7 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
                     data: [],
                     meta: {
                         shopFiltered: context.isFiltered,
-                        shopId: context.shopId,
-                        period: periodDays
+                        shopId: context.shopId
                     }
                 },
                 { status: 500 }
@@ -203,7 +214,6 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
             meta: {
                 shopFiltered: context.isFiltered,
                 shopId: context.shopId,
-                period: periodDays,
                 fromCache: false
             }
         };

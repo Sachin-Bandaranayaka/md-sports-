@@ -3,13 +3,12 @@
  */
 
 export interface User {
-    id: number;
-    username: string;
-    fullName: string;
+    id: string;
+    name: string;
     email: string;
-    roleId: number;
-    roleName: string;
-    shopId?: number;
+    roleId: string | null;
+    roleName: string | null;
+    shopId?: string | null;
     permissions: string[];
     allowedAccounts?: string[];
 }

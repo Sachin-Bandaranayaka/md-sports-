@@ -5,95 +5,39 @@ import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
 import { validateTokenPermission, getUserIdFromToken } from '@/lib/auth';
 import { permissionService } from '@/lib/services/PermissionService';
 
-// Filtered version of fetchSalesData with date range and shop support
-export async function fetchSalesDataFiltered(startDate?: string | null, endDate?: string | null, shopId?: number | null, userId?: string | null) {
+export async function fetchSalesData(shopId?: string | null, periodDays?: number, startDate?: Date, endDate?: Date, userId?: string | null) {
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    let start: Date;
+    let end: Date;
 
     if (startDate && endDate) {
-        // Custom date range - generate monthly data within the range
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-
-        const months = [];
-        const current = new Date(start.getFullYear(), start.getMonth(), 1);
-
-        while (current <= end) {
-            const monthStart = new Date(current.getFullYear(), current.getMonth(), 1);
-            const monthEnd = new Date(current.getFullYear(), current.getMonth() + 1, 0, 23, 59, 59, 999);
-
-            // Ensure we don't go beyond the specified end date
-            const actualEnd = monthEnd > end ? end : monthEnd;
-            const actualStart = monthStart < start ? start : monthStart;
-
-            const monthlyInvoices = await safeQuery(
-                () => prisma.invoice.aggregate({
-                    where: {
-                        createdAt: {
-                            gte: actualStart,
-                            lte: actualEnd
-                        },
-                        ...(shopId ? { shopId } : {}),
-                        ...(userId ? { createdBy: userId } : {})
-                    },
-                    _sum: {
-                        total: true
-                    }
-                }),
-                { _sum: { total: null } },
-                `Failed to fetch invoice data for ${monthNames[current.getMonth()]} ${current.getFullYear()}`
-            );
-
-            months.push({
-                month: `${monthNames[current.getMonth()]} ${current.getFullYear()}`,
-                sales: monthlyInvoices._sum.total || 0
-            });
-
-            // Move to next month
-            current.setMonth(current.getMonth() + 1);
-        }
-
-        return {
-            success: true,
-            data: months
-        };
+        start = startDate;
+        end = endDate;
     } else {
         // Default behavior - last 6 months
-        return fetchSalesData();
+        const now = new Date();
+        end = new Date();
+        start = new Date(now.getFullYear(), now.getMonth() - 5, 1);
     }
-}
-
-export async function fetchSalesData(shopId?: number | null, periodDays?: number, startDate?: Date, endDate?: Date, userId?: string | null) {
-    // Get current month and year
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth(); // 0-indexed (0 = January)
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-    // Prepare the result array with 6 months of data (current month and 5 previous months)
+    
     const months = [];
+    const current = new Date(start.getFullYear(), start.getMonth(), 1);
 
-    for (let i = 5; i >= 0; i--) {
-        // Calculate month index (handle wrapping to previous year)
-        let monthIndex = currentMonth - i;
-        let yearToUse = currentYear;
+    while (current <= end) {
+        const monthStart = new Date(current.getFullYear(), current.getMonth(), 1);
+        const monthEnd = new Date(current.getFullYear(), current.getMonth() + 1, 0, 23, 59, 59, 999);
 
-        if (monthIndex < 0) {
-            monthIndex += 12;
-            yearToUse -= 1;
-        }
+        // Ensure we don't go beyond the specified end date
+        const actualEnd = monthEnd > end ? end : monthEnd;
+        const actualStart = monthStart < start ? start : monthStart;
 
-        // Create start and end date for this month
-        const startDate = new Date(yearToUse, monthIndex, 1);
-        const endDate = new Date(yearToUse, monthIndex + 1, 0, 23, 59, 59, 999);
-
-        // Query actual invoices for this month
         const monthlyInvoices = await safeQuery(
             () => prisma.invoice.aggregate({
                 where: {
                     createdAt: {
-                        gte: startDate,
-                        lte: endDate
+                        gte: actualStart,
+                        lte: actualEnd
                     },
                     ...(shopId ? { shopId } : {}),
                     ...(userId ? { createdBy: userId } : {})
@@ -102,16 +46,19 @@ export async function fetchSalesData(shopId?: number | null, periodDays?: number
                     total: true
                 }
             }),
-            { _sum: { total: null } }, // Default to null if query fails
-            `Failed to fetch invoice data for ${monthNames[monthIndex]} ${yearToUse}`
+            { _sum: { total: null } },
+            `Failed to fetch invoice data for ${monthNames[current.getMonth()]} ${current.getFullYear()}`
         );
 
-        // Add the month data to our result array
         months.push({
-            month: monthNames[monthIndex],
-            sales: monthlyInvoices._sum.total || 0 // Use 0 if no sales data
+            month: `${monthNames[current.getMonth()]} ${current.getFullYear()}`,
+            sales: monthlyInvoices._sum.total || 0
         });
+
+        // Move to next month
+        current.setMonth(current.getMonth() + 1);
     }
+
     return {
         success: true,
         data: months
@@ -127,19 +74,27 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
             return NextResponse.json({ error: authResult.message }, { status: 401 });
         }
 
+        const { searchParams } = new URL(request.url);
+        const startDateParam = searchParams.get('startDate');
+        const endDateParam = searchParams.get('endDate');
+
         // Get user ID from token
-        const userId = await getUserIdFromToken(request);
-        if (!userId) {
+        const tokenUserId = await getUserIdFromToken(request);
+        if (!tokenUserId) {
             return NextResponse.json({ error: 'User ID not found in token' }, { status: 401 });
         }
 
         // Fetch user details to check role and permissions
         const user = await prisma.user.findUnique({
-            where: { id: userId },
+            where: { id: tokenUserId },
             select: {
                 id: true,
+                name: true,
+                email: true,
+                roleId: true,
                 roleName: true,
-                permissions: true
+                permissions: true,
+                shopId: true
             }
         });
 
@@ -155,24 +110,20 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
         // Determine user filtering
         let filterUserId: string | null = null;
         if (!isAdmin) {
-            filterUserId = userId;
+            filterUserId = tokenUserId;
         }
 
-        console.log('Sales API - Shop context:', {
-            shopId: context.shopId,
-            isFiltered: context.isFiltered,
-            isAdmin: context.isAdmin,
-            userShopId: context.userShopId,
-            userId: userId,
-            userRole: user.roleName,
-            filterUserId: filterUserId
-        });
+        const shopId = context.isFiltered ? context.shopId : null;
+        
+        // Determine date range
+        const endDate = endDateParam ? new Date(endDateParam) : new Date();
+        const startDate = startDateParam ? new Date(startDateParam) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-        // Create cache key that includes shop context and user context
-        const userContext = isAdmin ? 'admin' : userId;
-        const cacheKey = context.isFiltered ? 
-            `dashboard:sales:shop:${context.shopId}:user:${userContext}` : 
-            `dashboard:sales:all:user:${userContext}`;
+        // Create cache key that includes shop context and user context and date range
+        const userContext = isAdmin ? 'admin' : filterUserId;
+        const dateRangeKey = `${startDate.toISOString().split('T')[0]}-${endDate.toISOString().split('T')[0]}`;
+        const cacheKey = `dashboard:sales:${shopId || 'all'}:user:${userContext}:${dateRangeKey}`;
+        
         const cachedData = await cacheService.get(cacheKey);
 
         if (cachedData) {
@@ -189,10 +140,10 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
 
         console.log('🔄 Fetching fresh sales data');
         const salesResult = await fetchSalesData(
-            context.isFiltered ? context.shopId : null,
+            shopId,
             undefined,
-            undefined,
-            undefined,
+            startDate,
+            endDate,
             filterUserId
         );
 
@@ -211,24 +162,10 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
     } catch (error) {
         console.error('Error generating sales data:', error);
 
-        // Return months with zero values on error, consistent with original logic
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const now = new Date();
-        const currentMonth = now.getMonth();
-
-        const emptyMonths = Array(6).fill(0).map((_, i) => {
-            let monthIndex = currentMonth - i;
-            if (monthIndex < 0) monthIndex += 12;
-
-            return {
-                month: monthNames[monthIndex],
-                sales: 0
-            };
-        }).reverse();
-
+        // Return empty array on error
         return NextResponse.json({
-            success: true, // Or false
-            data: emptyMonths,
+            success: false,
+            data: [],
             message: error instanceof Error ? error.message : 'Unknown error',
             meta: {
                 shopFiltered: context.isFiltered,

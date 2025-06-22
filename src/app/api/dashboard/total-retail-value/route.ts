@@ -4,7 +4,7 @@ import { cacheService } from '@/lib/cache';
 import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
 import { validateTokenPermission } from '@/lib/auth';
 
-export async function fetchTotalRetailValueData(shopId?: string | null, periodDays?: number) {
+export async function fetchTotalRetailValueData(shopId?: string | null) {
     // Get inventory items with optional shop filtering
     const inventoryItems = await prisma.inventoryItem.findMany({
         where: shopId ? { shopId } : {}
@@ -33,8 +33,7 @@ export async function fetchTotalRetailValueData(shopId?: string | null, periodDa
 
     // Calculate total retail value
     let totalRetailValue = 0;
-    let previousPeriodValue = 0;  // For comparison with previous period
-
+    
     // Process each inventory item
     inventoryItems.forEach(item => {
         const product = productMap.get(item.productId);
@@ -45,9 +44,9 @@ export async function fetchTotalRetailValueData(shopId?: string | null, periodDa
         }
     });
 
+    // NOTE: Trend calculation is a placeholder as historical data is not available.
     // For demo purposes, let's assume previous value was 5% less
-    // In a real app, you would fetch historical data
-    previousPeriodValue = totalRetailValue * 0.95;
+    const previousPeriodValue = totalRetailValue * 0.95;
 
     // Calculate trend
     const difference = totalRetailValue - previousPeriodValue;
@@ -74,20 +73,11 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
             return NextResponse.json({ error: authResult.message }, { status: 401 });
         }
 
-        // Extract period parameter from URL
-        const { searchParams } = new URL(request.url);
-        const period = searchParams.get('period');
-        let periodDays: number | undefined;
-        
-        if (period) {
-            const parsedPeriod = parseInt(period);
-            if (parsedPeriod === 7 || parsedPeriod === 30) {
-                periodDays = parsedPeriod;
-            }
-        }
+        const shopId = context.isFiltered ? context.shopId : null;
 
-        // Check cache first with shop context and period
-        const cacheKey = `dashboard:total-retail-value:${context.isFiltered ? context.shopId : 'all'}:${periodDays || 'all'}`;
+        // Check cache first with shop context.
+        // This metric is current, so it doesn't depend on a date range.
+        const cacheKey = `dashboard:total-retail-value:${shopId || 'all'}`;
         const cachedData = await cacheService.get(cacheKey);
 
         if (cachedData) {
@@ -103,11 +93,10 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
         }
 
         console.log('🔄 Fetching fresh total retail value with shop context:', {
-            shopId: context.shopId,
-            isFiltered: context.isFiltered,
-            periodDays
+            shopId: shopId,
+            isFiltered: context.isFiltered
         });
-        const retailValueData = await fetchTotalRetailValueData(context.isFiltered ? context.shopId : null, periodDays);
+        const retailValueData = await fetchTotalRetailValueData(shopId);
 
         // Add metadata to response
         const responseData = {

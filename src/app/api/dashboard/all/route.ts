@@ -80,12 +80,12 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
                     where: { id: userId },
                     select: {
                         id: true,
-                        roleName: true,
-                        permissions: true,
-                        username: true,
-                        fullName: true,
+                        name: true,
                         email: true,
                         roleId: true,
+                        roleName: true,
+                        permissions: true,
+                        shopId: true,
                     }
                 }),
                 null,
@@ -116,12 +116,12 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
                 salesResult,
                 transfersResult
             ] = await Promise.all([
-                 fetchSummaryData(context.shopId ? Number(context.shopId) : null, periodDays),
-                 fetchTotalRetailValueData(context.shopId, periodDays, startDate, endDate),
-                 fetchShopsData(context.shopId, periodDays, startDate, endDate),
-                 fetchInventoryDistributionData(context.shopId, periodDays, startDate, endDate),
-                 fetchSalesData(context.shopId, periodDays, startDate, endDate, filterUserId),
-                 fetchTransfersData(context.shopId, periodDays, startDate, endDate)
+                 fetchSummaryData(shopId, periodDays, startDate, endDate, filterUserId),
+                 fetchTotalRetailValueData(shopId),
+                 fetchShopsData(shopId, periodDays, startDate, endDate),
+                 fetchInventoryDistributionData(shopId),
+                 fetchSalesData(shopId, periodDays, startDate, endDate, filterUserId),
+                 fetchTransfersData(shopId, periodDays, startDate, endDate)
              ]);
             console.timeEnd('Promise.all dashboard data');
 
@@ -142,9 +142,8 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
             }
 
             const responseData = {
-                success: true, // Overall success
+                success: true,
                 summaryData: summaryResult.success ? summaryResult.data : null,
-                // totalRetailValue: totalRetailValueResult.success ? totalRetailValueResult : null, // No longer needed separately
                 shopPerformance: shopsResult.success ? shopsResult.data : null,
                 inventoryDistribution: inventoryResult.success ? inventoryResult.data : null,
                 monthlySales: salesResult.success ? salesResult.data : null,
@@ -155,7 +154,6 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
                     period: periodDays,
                     fromCache: false
                 },
-                // You might want to include individual success statuses or error messages if needed
                 errors: [
                     !summaryResult.success ? 'Failed to fetch summary data' : null,
                     !totalRetailValueResult.success ? 'Failed to fetch total retail value' : null,
@@ -190,4 +188,4 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
             );
         }
     });
-});
+}); 
