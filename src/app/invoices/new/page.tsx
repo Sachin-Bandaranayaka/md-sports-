@@ -64,14 +64,14 @@ interface InvoiceFormData {
 export default function CreateInvoice() {
     const router = useRouter();
     const { accessToken } = useAuth();
-    const { canEditInvoices } = usePermission();
+    const { canCreateInvoices } = usePermission();
 
-    // Redirect if user doesn't have edit permissions
+    // Redirect if user doesn't have create permissions
     useEffect(() => {
-        if (!canEditInvoices()) {
+        if (!canCreateInvoices()) {
             router.push('/invoices');
         }
-    }, [canEditInvoices, router]);
+    }, [canCreateInvoices, router]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [products, setProducts] = useState<Product[]>([]);

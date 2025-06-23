@@ -39,7 +39,7 @@ const defaultTransfersData = [
 // GET: Fetch a specific inventory transfer by ID
 export async function GET(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     const operation = trackTransferOperation('detail');
 
@@ -50,7 +50,8 @@ export async function GET(
         return permissionError;
     }
 
-    const id = parseInt(params.id);
+    const resolvedParams = await params;
+    const id = parseInt(resolvedParams.id);
     if (isNaN(id)) {
         operation.end(false, 'invalid_id');
         return NextResponse.json({
@@ -61,7 +62,7 @@ export async function GET(
 
     try {
         // Generate cache key
-        const cacheKey = `${TRANSFER_CACHE_CONFIG.KEYS.TRANSFER_DETAIL}:${params.id}`;
+        const cacheKey = `${TRANSFER_CACHE_CONFIG.KEYS.TRANSFER_DETAIL}:${resolvedParams.id}`;
 
         // Try to get from cache first
         const cached = await transferCacheService.get(cacheKey);
@@ -123,7 +124,7 @@ export async function GET(
                     `Failed to fetch transfer with ID ${id}`
                 );
             },
-            `/api/inventory/transfers/${params.id}`
+            `/api/inventory/transfers/${resolvedParams.id}`
         );
 
         if (!transfer) {
@@ -155,7 +156,7 @@ export async function GET(
 // PATCH: Update a transfer (complete, cancel)
 export async function PATCH(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     const operation = trackTransferOperation('complete');
 
@@ -166,7 +167,8 @@ export async function PATCH(
         return permissionError;
     }
 
-    const id = parseInt(params.id);
+    const resolvedParams = await params;
+    const id = parseInt(resolvedParams.id);
     if (isNaN(id)) {
         operation.end(false, 'invalid_id');
         return NextResponse.json({
@@ -405,7 +407,7 @@ export async function PATCH(
 // PUT: Update a transfer (only if pending)
 export async function PUT(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     const operation = trackTransferOperation('update');
 
@@ -416,7 +418,8 @@ export async function PUT(
         return permissionError;
     }
 
-    const id = parseInt(params.id);
+    const resolvedParams = await params;
+    const id = parseInt(resolvedParams.id);
     if (isNaN(id)) {
         operation.end(false, 'invalid_id');
         return NextResponse.json({
@@ -556,7 +559,7 @@ export async function PUT(
         }
 
         // Invalidate relevant caches
-        await transferCacheService.invalidateTransferCache(params.id, [result.fromShopId, result.toShopId]);
+        await transferCacheService.invalidateTransferCache(id, [result.fromShopId, result.toShopId]);
 
         operation.end(true);
         return NextResponse.json({
@@ -577,7 +580,7 @@ export async function PUT(
 // DELETE: Delete a transfer (only if pending)
 export async function DELETE(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     const operation = trackTransferOperation('cancel');
 
@@ -588,7 +591,8 @@ export async function DELETE(
         return permissionError;
     }
 
-    const id = parseInt(params.id);
+    const resolvedParams = await params;
+    const id = parseInt(resolvedParams.id);
     if (isNaN(id)) {
         operation.end(false, 'invalid_id');
         return NextResponse.json({
@@ -640,7 +644,7 @@ export async function DELETE(
         }
 
         // Invalidate relevant caches
-        await transferCacheService.invalidateTransferCache(params.id, [result.fromShopId, result.toShopId]);
+        await transferCacheService.invalidateTransferCache(id, [result.fromShopId, result.toShopId]);
 
         operation.end(true);
         return NextResponse.json({

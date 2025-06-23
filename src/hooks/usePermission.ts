@@ -61,27 +61,40 @@ export function usePermission() {
         return permissionService.getAccessibleShopIds(user);
     };
 
+    // Check if user can create invoices
+    const canCreateInvoices = (): boolean => {
+        if (!user) return false;
+        // A user can create an invoice if they have general sales management permission
+        // or the specific permission to create invoices for their own shop.
+        return hasPermission(PERMISSIONS.SALES_MANAGE) || hasPermission(PERMISSIONS.INVOICE_CREATE);
+    };
+
     // Check if user can edit/delete invoices
-    const canEditInvoices = (): boolean => {
+    const canManageInvoices = (): boolean => {
         if (!user) return false;
         
-        // Shop staff cannot edit/delete invoices
-        if (permissionService.hasPermission(user, PERMISSIONS.SHOP_ASSIGNED_ONLY)) {
+        // Shop staff role cannot edit/delete invoices, this is a business rule.
+        if (user.roleName === 'Shop Staff') {
             return false;
         }
         
-        return hasPermission(PERMISSIONS.SALES_EDIT);
+        // For other roles, check for the required permissions
+        return hasAnyPermission([
+            'invoice:manage',
+            PERMISSIONS.SALES_EDIT, 
+            PERMISSIONS.SALES_DELETE
+        ]);
     };
 
     const canDeleteInvoices = (): boolean => {
         if (!user) return false;
         
-        // Shop staff cannot edit/delete invoices
-        if (permissionService.hasPermission(user, PERMISSIONS.SHOP_ASSIGNED_ONLY)) {
+        // Shop staff role cannot edit/delete invoices
+        if (user.roleName === 'Shop Staff') {
             return false;
         }
         
-        return hasPermission(PERMISSIONS.SALES_DELETE);
+        return hasAnyPermission(['invoice:manage', PERMISSIONS.SALES_DELETE]);
     };
 
     const canManageUsers = (): boolean => {
@@ -105,6 +118,18 @@ export function usePermission() {
         return hasPermission(PERMISSIONS.REPORTS_VIEW);
     };
 
+    const canViewDashboard = (): boolean => {
+        if (!user) return false;
+
+        // Shop staff are not allowed to see the main dashboard
+        if (user.roleName === 'Shop Staff') {
+            return false;
+        }
+
+        // For other roles, check for the required permission
+        return hasPermission(PERMISSIONS.DASHBOARD_VIEW);
+    };
+
     const canAccessRoute = (route: string): boolean => {
         const requiredPermission = routePermissions[route];
         if (!requiredPermission) {
@@ -115,16 +140,21 @@ export function usePermission() {
 
     // Check if user can view quotations
     const canViewQuotations = (): boolean => {
-        return hasPermission('quotation:view') || hasPermission('admin:all') || hasPermission('ALL') || hasPermission('*');
+        if (!user) return false;
+        // Allow viewing if user has general sales view, specific quotation view permission, or is a Shop Staff
+        return hasPermission(PERMISSIONS.SALES_VIEW) || hasPermission(PERMISSIONS.QUOTATION_VIEW) || user.roleName === 'Shop Staff';
     };
 
     // Check if user can create quotations
     const canCreateQuotations = (): boolean => {
-        return hasPermission('quotation:manage') || hasPermission('admin:all') || hasPermission('ALL') || hasPermission('*');
+        if (!user) return false;
+        // Allow creation if user has manage or create permission
+        return hasPermission(PERMISSIONS.QUOTATION_MANAGE) || hasPermission(PERMISSIONS.QUOTATION_CREATE);
     };
 
     // Check if user can edit/delete quotations
     const canEditQuotations = (): boolean => {
+        if (!user) return false;
         return hasPermission('quotation:manage') || hasPermission('admin:all') || hasPermission('ALL') || hasPermission('*');
     };
 
@@ -201,11 +231,13 @@ export function usePermission() {
         getAccessibleShopIds,
         
         // Specific business logic functions
-        canEditInvoices,
+        canCreateInvoices,
+        canManageInvoices,
         canDeleteInvoices,
         canManageUsers,
         canManageInventory,
         canViewReports,
+        canViewDashboard,
         canAccessRoute,
         checkRoutePermission,
         canViewQuotations,

@@ -3,6 +3,9 @@ import { headers, cookies } from 'next/headers';
 import MainLayout from '@/components/layout/MainLayout';
 import InventoryClientWrapper from '@/components/inventory/InventoryClientWrapper';
 import InventoryHeaderActions from '@/components/inventory/InventoryHeaderActions';
+import { PermissionGuard } from '@/components/auth/PermissionGuard';
+import { PERMISSIONS } from '@/lib/constants/permissions';
+import { AccessDenied } from '@/components/ui/AccessDenied';
 
 // Add revalidation - cache inventory page for 5 seconds (reduced from 10)
 export const revalidate = 5;
@@ -143,26 +146,31 @@ export default async function Inventory({
 
     return (
         <MainLayout>
-            <div className="space-y-6">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Inventory Management</h1>
-                        <p className="text-gray-500">Manage your product inventory across all shops</p>
+            <PermissionGuard
+                permission={PERMISSIONS.INVENTORY_VIEW}
+                fallback={<AccessDenied message="You do not have permission to view the inventory." />}
+            >
+                <div className="space-y-6">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-900">Inventory Management</h1>
+                            <p className="text-gray-500">Manage your product inventory across all shops</p>
+                        </div>
+                        <InventoryHeaderActions />
                     </div>
-                    <InventoryHeaderActions />
-                </div>
 
-                <Suspense fallback={<div>Loading inventory...</div>}>
-                    <InventoryClientWrapper
-                        initialInventoryItems={inventoryItems}
-                        initialCategories={categories}
-                        initialPagination={pagination}
-                        initialSearchTerm={search}
-                        initialCategoryFilter={categoryFilter}
-                        initialStatusFilter={statusFilter}
-                    />
-                </Suspense>
-            </div>
+                    <Suspense fallback={<div>Loading inventory...</div>}>
+                        <InventoryClientWrapper
+                            initialInventoryItems={inventoryItems}
+                            initialCategories={categories}
+                            initialPagination={pagination}
+                            initialSearchTerm={search}
+                            initialCategoryFilter={categoryFilter}
+                            initialStatusFilter={statusFilter}
+                        />
+                    </Suspense>
+                </div>
+            </PermissionGuard>
         </MainLayout>
     );
 }

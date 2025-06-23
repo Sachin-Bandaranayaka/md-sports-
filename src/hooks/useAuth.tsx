@@ -4,20 +4,9 @@ import { createContext, useContext, useState, useEffect, useCallback, ReactNode 
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import { hasPermission as checkPermission } from '@/lib/utils/permissions';
+import { AuthenticatedUser as User } from '@/types/auth';
 
 // Types
-interface User {
-    id: number;
-    username: string;
-    fullName: string;
-    email: string;
-    roleId: number;
-    roleName: string;
-    shopId?: number;
-    permissions: string[];
-    allowedAccounts?: string[];
-}
-
 interface AuthContextType {
     user: User | null;
     accessToken: string | null;
@@ -251,8 +240,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.removeItem('authToken');
         return false;
     };
-
-
 
     // Check if user has a specific permission
     const hasPermission = (permission: string): boolean => {

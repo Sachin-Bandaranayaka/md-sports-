@@ -60,6 +60,7 @@ export default function AddUserPage() {
         password: '',
         confirmPassword: '',
         permissions: [] as string[],
+        roleName: '',
         allowedAccounts: [] as string[]
     });
     const [isLoading, setIsLoading] = useState(false);
@@ -230,80 +231,21 @@ export default function AddUserPage() {
         setSelectedTemplate(templateId);
         const template = roleTemplates.find(t => t.id === templateId);
         if (template) {
-            // Create a map from permission names to IDs
-            const permissionNameToId: Record<string, string> = {};
-            
-            // First, get the actual permission names from the API response
-            // The API returns permissions with their original names (e.g., "sales:view")
-            // We need to map these to the transformed permission objects
-            availablePermissions.forEach(p => {
-                // The permission name in the database is stored in the API response
-                // We need to reverse-engineer it from the module and transformed name
-                const module = p.module.toLowerCase();
-                
-                // Try to reconstruct the original permission name
-                // This is a bit hacky, but we need to work with the current structure
-                const possibleNames = [
-                    `${module}:view`,
-                    `${module}:create`, 
-                    `${module}:update`,
-                    `${module}:delete`,
-                    `${module}:manage`,
-                    `${module}:transfer`,
-                    `${module}:distribution:view`,
-                    `${module}:assigned_only`,
-                    `${module}:all`
-                ];
-                
-                // Check if any of these match what we're looking for
-                possibleNames.forEach(possibleName => {
-                    // This is imperfect, but we'll match based on the module and action
-                    const [, action] = possibleName.split(':');
-                    if (p.name.toLowerCase().includes(action) || possibleName === 'admin:all') {
-                        permissionNameToId[possibleName] = p.id;
-                    }
-                });
-            });
-            
-            // For debugging - let's also try a direct approach
-            // We'll fetch the permissions again to get the raw data
-            fetch('/api/permissions', {
-                headers: { 'Authorization': 'Bearer dev-token' }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Create proper mapping from raw permission names to IDs
-                    const rawPermissionMap: Record<string, string> = {};
-                    data.data.forEach((perm: any) => {
-                        rawPermissionMap[perm.name] = perm.id.toString();
-                    });
-                    
-                    // Map template permissions to actual permission IDs
-                    const templatePermissionIds: string[] = [];
-                    
-                    template.permissions.forEach(templatePerm => {
-                        if (templatePerm === 'shop:assigned_only') {
-                            // This permission might not exist yet, we'll handle it in the backend
-                            templatePermissionIds.push('shop:assigned_only');
-                        } else {
-                            const permissionId = rawPermissionMap[templatePerm];
-                            if (permissionId) {
-                                templatePermissionIds.push(permissionId);
-                            } else {
-                                console.warn(`Permission not found: ${templatePerm}`);
-                            }
-                        }
-                    });
-                    
-                    console.log('Template permissions:', template.permissions);
-                    console.log('Mapped permission IDs:', templatePermissionIds);
-                    console.log('Available raw permissions:', rawPermissionMap);
-                    
-                    setUserForm(prev => ({ ...prev, permissions: templatePermissionIds }));
-                }
-            })
-            .catch(error => {
+            setUserForm(prev => ({
+                ...prev,
+                permissions: template.permissions,
+                roleName: template.name
+            }));
+        } else {
+            // Fetch raw permissions for custom role
+            fetch('/api/permissions?raw=true').then(res => res.json()).then(data => {
+                const allPermissions = data.success ? data.data.map((p: any) => p.name) : [];
+                setUserForm(prev => ({
+                    ...prev,
+                    permissions: allPermissions,
+                    roleName: 'Custom'
+                }));
+            }).catch(error => {
                 console.error('Error fetching raw permissions:', error);
             });
         }
@@ -325,7 +267,7 @@ export default function AddUserPage() {
         return acc;
     }, {} as Record<string, typeof availablePermissions>);
 
-    const handleFormChange = (e) => {
+    const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setUserForm(prev => ({ ...prev, [name]: value }));
     };
@@ -346,7 +288,7 @@ export default function AddUserPage() {
             let newPermissions;
             if (isChecked) {
                 // Add all module permissions that aren't already selected
-                newPermissions = [...new Set([...prev.permissions, ...modulePermissionIds])];
+                newPermissions = Array.from(new Set([...prev.permissions, ...modulePermissionIds]));
             } else {
                 // Remove all module permissions
                 newPermissions = prev.permissions.filter(id => !modulePermissionIds.includes(id));
@@ -371,7 +313,7 @@ export default function AddUserPage() {
         }));
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setIsLoading(true);
         setFormError('');

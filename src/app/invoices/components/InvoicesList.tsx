@@ -266,7 +266,7 @@ async function fetchInvoicesData({
 export default async function InvoicesList({
     searchParams,
 }: {
-    searchParams: { 
+    searchParams: Promise<{ 
         page?: string;
         status?: string;
         paymentMethod?: string;
@@ -274,7 +274,7 @@ export default async function InvoicesList({
         timePeriod?: string;
         sortBy?: string;
         shopId?: string;
-    };
+    }>;
 }) {
     const cookieStore = await cookies();
     const token = cookieStore.get('accessToken')?.value;
@@ -287,7 +287,8 @@ export default async function InvoicesList({
         }
     }
 
-    const { page, status, paymentMethod, search, timePeriod, sortBy, shopId } = searchParams;
+    const resolvedSearchParams = await searchParams;
+    const { page, status, paymentMethod, search, timePeriod, sortBy, shopId } = resolvedSearchParams;
 
     const appliedShopId = userShopId || shopId;
 

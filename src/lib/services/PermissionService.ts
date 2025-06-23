@@ -129,6 +129,20 @@ class PermissionService {
   }
 
   /**
+   * Checks if a user has a specific permission, ignoring wildcards.
+   * This is useful for checking for explicit restrictions.
+   */
+  hasExactPermission(
+    user: AuthenticatedUser | null,
+    permission: Permission | string
+  ): boolean {
+    if (!user || !user.permissions) {
+      return false;
+    }
+    return user.permissions.includes(permission);
+  }
+
+  /**
    * Get user's accessible shop IDs based on permissions
    */
   getAccessibleShopIds(user: AuthenticatedUser | null): string[] {

@@ -47,6 +47,8 @@ interface InvoiceFormData {
     tax: number;
     total: number;
     status?: string;
+    shopId?: string;
+    shopName?: string;
 }
 
 interface InvoiceEditModalProps {
@@ -78,7 +80,9 @@ const InvoiceEditModal: React.FC<InvoiceEditModalProps> = ({
         items: [],
         subtotal: 0,
         tax: 0,
-        total: 0
+        total: 0,
+        shopId: '',
+        shopName: ''
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -107,7 +111,9 @@ const InvoiceEditModal: React.FC<InvoiceEditModalProps> = ({
                 subtotal: initialData.subtotal || initialData.total || 0,
                 tax: initialData.tax || 0,
                 total: initialData.total || 0,
-                status: initialData.status
+                status: initialData.status,
+                shopId: initialData.shop?.id?.toString() || initialData.shopId?.toString() || '',
+                shopName: initialData.shop?.name || initialData.shopName || '',
             };
             
             setFormData(transformedData);
@@ -248,7 +254,9 @@ const InvoiceEditModal: React.FC<InvoiceEditModalProps> = ({
             items: [],
             subtotal: 0,
             tax: 0,
-            total: 0
+            total: 0,
+            shopId: '',
+            shopName: ''
         });
         setErrors({});
         onClose();
@@ -338,6 +346,11 @@ const InvoiceEditModal: React.FC<InvoiceEditModalProps> = ({
                         {errors.invoiceNumber && (
                             <p className="text-red-500 text-sm mt-1">{errors.invoiceNumber}</p>
                         )}
+                    </div>
+
+                    <div>
+                        <Label htmlFor="shop">Shop</Label>
+                        <Input id="shop" value={formData.shopName} disabled />
                     </div>
 
                     <div>

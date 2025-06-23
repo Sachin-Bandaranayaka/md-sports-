@@ -23,6 +23,15 @@ export async function GET(request: NextRequest) {
         }
 
         const permissions = Array.isArray(decodedToken.permissions) ? decodedToken.permissions : [];
+
+        // Check for view permissions before proceeding
+        const canViewByPermission = hasPermission(permissions, 'sales:view') || hasPermission(permissions, 'quotation:view');
+        const isShopStaff = decodedToken.roleName === 'Shop Staff';
+
+        if (!canViewByPermission && !isShopStaff) {
+            return NextResponse.json({ error: 'Insufficient permissions to view quotations' }, { status: 403 });
+        }
+
         const isAdmin = hasPermission(permissions, 'admin:all');
         const shopIdFromUrl = searchParams.get('shopId');
 
@@ -34,6 +43,11 @@ export async function GET(request: NextRequest) {
         // Build the where clause
         const whereClause: any = ShopAccessControl.buildShopFilter(context);
 
+        // If the user is shop staff, we MUST filter by their shopId, overriding other logic
+        if (isShopStaff) {
+            whereClause.shopId = decodedToken.shopId;
+        }
+
         // Add other filters
         const search = searchParams.get('search') || '';
         const customerId = searchParams.get('customerId');
@@ -43,7 +57,7 @@ export async function GET(request: NextRequest) {
         if (search) {
             whereClause.OR = [
                 { quotationNumber: { contains: search, mode: 'insensitive' } },
-                { customer: { name: { contains: search, mode: 'insensitive' } } },
+                { customer: { is: { name: { contains: search, mode: 'insensitive' } } } },
             ];
         }
 
@@ -105,17 +119,18 @@ export async function POST(request: NextRequest) {
         }
 
         // Check permissions
-        const canCreateAll = hasPermission(user.permissions, 'sales:manage');
+        const canManageSales = hasPermission(user.permissions, 'sales:manage');
         const canCreateShop = hasPermission(user.permissions, 'sales:create:shop');
+        const canCreateQuotation = hasPermission(user.permissions, 'quotation:create');
         
-        if (!canCreateAll && !canCreateShop) {
+        if (!canManageSales && !canCreateShop && !canCreateQuotation) {
             return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
         }
 
         const body = await request.json();
         
         // Validate shopId for users with only shop-specific permissions
-        if (!canCreateAll && canCreateShop) {
+        if (!canManageSales && (canCreateShop || canCreateQuotation)) {
             if (!user.shopId) {
                 return NextResponse.json({ error: 'User not assigned to any shop' }, { status: 403 });
             }

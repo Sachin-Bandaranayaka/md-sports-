@@ -37,6 +37,7 @@ interface TokenPayload {
     username: string;
     email: string;
     roleId: number;
+    roleName: string | null;
     shopId?: number | null;
     permissions?: string[];
 }
@@ -60,6 +61,7 @@ export const authenticateUser = async (email: string, password: string) => {
                     email: true,
                     password: true,
                     roleId: true,
+                    roleName: true,
                     shopId: true,
                     permissions: true,
                     role: {
@@ -127,6 +129,7 @@ export const authenticateUser = async (email: string, password: string) => {
             username: user.name,
             email: user.email,
             roleId: user.roleId,
+            roleName: user.roleName || user.role?.name || null,
             shopId: user.shopId,
             permissions: allPermissions,
         });
@@ -137,7 +140,7 @@ export const authenticateUser = async (email: string, password: string) => {
             fullName: user.name,
             email: user.email,
             roleId: user.roleId,
-            roleName: user.role?.name || user.roleName || null,
+            roleName: user.roleName || user.role?.name || null,
             shopId: user.shopId,
             permissions: allPermissions,
             role: user.role
@@ -156,7 +159,7 @@ export const authenticateUser = async (email: string, password: string) => {
                 fullName: user.name,
                 email: user.email,
                 roleId: user.roleId,
-                roleName: user.role?.name || user.roleName || null,
+                roleName: user.roleName || user.role?.name || null,
                 shopId: user.shopId,
                 permissions: allPermissions,
             }

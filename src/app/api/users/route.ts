@@ -157,7 +157,7 @@ export async function POST(req: NextRequest) {
             shopAssignedPermissionId = permission.id.toString();
         }
 
-        // Prepare user data
+                        // Prepare user data
         const newUser = await prisma.user.create({
             data: {
                 id: randomUUID(),
@@ -165,7 +165,7 @@ export async function POST(req: NextRequest) {
                 email: userData.email,
                 password: hashedPassword,
                 roleId: userData.roleId,
-                roleName: userData.roleName,
+                roleName: userData.roleName, // Add this line
                 shopId: shopId,
                 permissions: userData.permissions,
                 allowedAccounts: userData.allowedAccounts || [],

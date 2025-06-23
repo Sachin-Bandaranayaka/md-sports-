@@ -4,7 +4,7 @@ import React from 'react';
 import { usePermission } from '@/hooks/usePermission';
 import { PERMISSIONS, Permission } from '@/lib/constants/permissions';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Shield, AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 

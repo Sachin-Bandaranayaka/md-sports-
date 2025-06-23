@@ -41,22 +41,14 @@ export default function Quotations() {
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Check if user has permission to view quotations
-    if (!canViewQuotations()) {
-        return (
-            <MainLayout>
-                <div className="p-6">
-                    <div className="text-center py-12">
-                        <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
-                        <p className="text-gray-600">You don't have permission to view quotations.</p>
-                    </div>
-                </div>
-            </MainLayout>
-        );
-    }
-
     // Fetch quotations from API
     useEffect(() => {
+        // No need to fetch if the user can't view quotations anyway
+        if (!canViewQuotations()) {
+            setLoading(false);
+            return;
+        }
+
         const fetchData = async () => {
             try {
                 setLoading(true);
@@ -95,7 +87,7 @@ export default function Quotations() {
     // Filter quotations based on search term
     const filteredQuotations = quotations.filter((quotation) =>
         quotation.quotationNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (quotation.customer?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (quotation.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         quotation.status?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -114,7 +106,7 @@ export default function Quotations() {
     const handleDuplicateQuotation = async (quotation: SalesQuotation) => {
         try {
             // Create a copy of the quotation without the id and with a new date
-            const { id: _id, quotationNumber: _quotationNumber, createdAt: _createdAt, updatedAt: _updatedAt, ...quotationData } = quotation;
+            const { id: _id, quotationNumber: _quotationNumber, createdAt: _createdAt, ...quotationData } = quotation;
 
             const duplicatedQuotation = {
                 ...quotationData,
@@ -162,6 +154,20 @@ export default function Quotations() {
             }
         }
     };
+
+    // Check if user has permission to view quotations AFTER all hooks have been called
+    if (!canViewQuotations()) {
+        return (
+            <MainLayout>
+                <div className="p-6">
+                    <div className="text-center py-12">
+                        <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
+                        <p className="text-gray-600">You don't have permission to view quotations.</p>
+                    </div>
+                </div>
+            </MainLayout>
+        );
+    }
 
     return (
         <MainLayout>

@@ -4,6 +4,8 @@ import { Suspense, useEffect, useState, lazy } from 'react';
 import { Loader2, Calendar, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
+import { usePermission } from '@/hooks/usePermission';
+import { AccessDenied } from '@/components/ui/AccessDenied';
 
 // Lazy load heavy components for better performance
 const DashboardTransfers = lazy(() => import('./components/DashboardTransfers'));
@@ -27,6 +29,7 @@ const ComponentSkeleton = ({ className = "h-64" }: { className?: string }) => (
 export default function DashboardPage() {
     const { user, isLoading, isAuthenticated } = useAuth();
     const router = useRouter();
+    const { canViewDashboard } = usePermission();
     const [dashboardData, setDashboardData] = useState<{ recentTransfers: any[] } | null>(null);
     const [dataLoading, setDataLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -130,8 +133,14 @@ export default function DashboardPage() {
 
     // Initial data fetch
     useEffect(() => {
-        fetchDashboardData();
-    }, [isAuthenticated, isLoading]);
+        if (isAuthenticated && canViewDashboard()) {
+            fetchDashboardData();
+        } else if (isAuthenticated) {
+            // If user is authenticated but can't view, no need to fetch.
+            // We can stop the loading indicator here.
+            setDataLoading(false);
+        }
+    }, [isAuthenticated, user]); // user dependency to re-check permissions
 
     // Show loading while auth is being checked
     if (isLoading) {
@@ -143,6 +152,11 @@ export default function DashboardPage() {
                 </div>
             </div>
         );
+    }
+
+    // After loading, check permissions
+    if (!canViewDashboard()) {
+        return <AccessDenied message="You do not have permission to view the dashboard." />;
     }
 
     // Show loading while data is being fetched

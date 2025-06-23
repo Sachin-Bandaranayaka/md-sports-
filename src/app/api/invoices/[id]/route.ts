@@ -121,9 +121,12 @@ export async function PUT(
 ) {
     try {
         // Validate token and permissions
-        const authResult = await validateTokenPermission(request, 'sales:edit');
-        if (!authResult.isValid) {
-            return NextResponse.json({ error: authResult.message }, { status: 401 });
+        const hasSalesEdit = await validateTokenPermission(request, 'sales:edit');
+        const hasInvoiceManage = await validateTokenPermission(request, 'invoice:manage');
+        if (!hasSalesEdit.isValid && !hasInvoiceManage.isValid) {
+            return NextResponse.json({ 
+                error: "Permission denied. Requires 'sales:edit' or 'invoice:manage'." 
+            }, { status: 403 });
         }
 
         // Get user ID from token
@@ -245,6 +248,7 @@ export async function PUT(
                 data: { status: invoiceData.status },
                 include: {
                     customer: true,
+                    shop: true,
                     items: {
                         include: {
                             product: true
@@ -253,6 +257,20 @@ export async function PUT(
                     payments: true
                 }
             });
+
+            // Invalidate caches
+            const shopId = updatedInvoice.shopId;
+            const invalidationPromises = [
+                cacheService.invalidateInvoices(),
+                cacheService.invalidatePattern(`invoices:*:shop:${shopId || 'all'}`),
+                cacheService.invalidatePattern('invoices:all:*'),
+                cacheService.invalidatePattern('dashboard:*'),
+                cacheService.invalidatePattern(`dashboard:optimized:shop:${shopId || 'all'}`),
+                cacheService.invalidatePattern('dashboard:summary'),
+                cacheService.invalidatePattern('dashboard:sales'),
+                cacheService.invalidatePattern('dashboard:shops'),
+            ];
+            await Promise.all(invalidationPromises);
 
             return NextResponse.json(updatedInvoice);
         }
@@ -311,11 +329,11 @@ export async function PUT(
                         console.log(`Product ID ${productId}: Old=${oldQuantity}, New=${newQuantity}, Change=${quantityChange}`);
                         if (quantityChange !== 0) {
                             // Ensure affectedShopId is a string if invoiceData.shopId is a string
-                            let affectedShopId: string | undefined = invoiceData.shopId ? String(invoiceData.shopId) : undefined;
+                            const affectedShopId: string | undefined = invoiceData.shopId ? String(invoiceData.shopId) : undefined;
 
                             inventoryUpdatesForEvent.push({
                                 productId: productId as number,
-                                shopId: affectedShopId,
+                                shopId: affectedShopId ? parseInt(affectedShopId, 10) : undefined,
                                 quantityChange: quantityChange,
                             });
                             if (quantityChange > 0) { // Deduct (more items sold or added)
@@ -419,7 +437,7 @@ export async function PUT(
                         invoiceDate: invoiceData.invoiceDate ? new Date(invoiceData.invoiceDate) : undefined,
                         dueDate: invoiceData.dueDate ? new Date(invoiceData.dueDate) : undefined,
                         notes: invoiceData.notes,
-                        shopId: invoiceData.shopId ? parseInt(invoiceData.shopId.toString()) : null, // Ensure shopId is number or null
+                        shopId: invoiceData.shopId ? invoiceData.shopId.toString() : null, // Ensure shopId is string or null
                         total: newCalculatedTotalInvoiceAmount, // Updated total
                         totalProfit: newTotalInvoiceProfit,   // Updated profit
                         profitMargin: newProfitMargin         // Updated profit margin
@@ -441,7 +459,12 @@ export async function PUT(
                         data: dataToUpdate,
                         include: {
                             customer: true,
-                            items: { include: { product: true } },
+                            shop: true,
+                            items: {
+                                include: {
+                                    product: true
+                                }
+                            },
                             payments: true
                         }
                     });
@@ -489,11 +512,20 @@ export async function PUT(
         }
 
         // Invalidate related caches after successful update
-        await Promise.all([
+        const shopId = updatedInvoice.shopId;
+        const invalidationPromises = [
             cacheService.invalidateInvoices(),
-            cacheService.invalidateInventory(),
-            cacheService.del('dashboard:summary') // Invalidate dashboard cache
-        ]);
+            cacheService.invalidatePattern(`invoices:*:shop:${shopId || 'all'}`),
+            cacheService.invalidatePattern('invoices:all:*'),
+            cacheService.invalidatePattern('inventory:*'),
+            cacheService.invalidatePattern(`inventory:*:shop:${shopId || 'all'}`),
+            cacheService.invalidatePattern('dashboard:*'),
+            cacheService.invalidatePattern(`dashboard:optimized:shop:${shopId || 'all'}`),
+            cacheService.invalidatePattern('dashboard:summary'),
+            cacheService.invalidatePattern('dashboard:sales'),
+            cacheService.invalidatePattern('dashboard:shops'),
+        ];
+        await Promise.all(invalidationPromises);
 
         return NextResponse.json({
             success: true,
@@ -518,6 +550,16 @@ export async function DELETE(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        // Validate token and permissions
+        const hasSalesDelete = await validateTokenPermission(request as NextRequest, 'sales:delete');
+        const hasInvoiceManage = await validateTokenPermission(request as NextRequest, 'invoice:manage');
+
+        if (!hasSalesDelete.isValid && !hasInvoiceManage.isValid) {
+            return NextResponse.json({ 
+                error: "Permission denied. Requires 'sales:delete' or 'invoice:manage'." 
+            }, { status: 403 });
+        }
+
         const resolvedParams = await params;
         if (!resolvedParams?.id || isNaN(Number(resolvedParams.id))) {
             return NextResponse.json({ error: 'Invalid invoice ID' }, { status: 400 });
@@ -543,7 +585,7 @@ export async function DELETE(
                     // Add item quantity back to inventory
                     // Similar to PUT, we need to determine the shopId if possible.
                     // If the invoice had a shopId, we assume items are returned to that shop's inventory.
-                    let targetShopId: string | undefined = invoiceToDelete.shopId || undefined;
+                    const targetShopId: string | undefined = invoiceToDelete.shopId || undefined;
 
                     // If no shopId on invoice, this becomes a general increment for the product.
                     // For more precise shop-specific return, the original shop source of item would be needed.
@@ -557,7 +599,7 @@ export async function DELETE(
 
                     inventoryUpdatesForEvent.push({
                         productId: item.productId,
-                        shopId: targetShopId, // May be undefined
+                        shopId: targetShopId ? parseInt(targetShopId, 10) : undefined, // May be undefined
                         quantityChange: item.quantity, // Positive, as it's being added back
                     });
                 }
@@ -578,7 +620,7 @@ export async function DELETE(
                 where: { id: invoiceId }
             });
 
-            return { id: invoiceId, customerId: invoiceToDelete.customerId, invoiceNumber: invoiceToDelete.invoiceNumber }; // Return some info about the deleted invoice
+            return { id: invoiceId, customerId: invoiceToDelete.customerId, invoiceNumber: invoiceToDelete.invoiceNumber, shopId: invoiceToDelete.shopId }; // Return some info about the deleted invoice
         });
 
         // Real-time updates now handled by polling system

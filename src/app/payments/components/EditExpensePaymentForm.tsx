@@ -168,7 +168,7 @@ export default function EditExpensePaymentForm({ expense, onClose, onSuccess }: 
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <Card className="w-full max-w-md mx-4">
+            <Card className="w-full max-w-md mx-4 bg-white">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-lg font-semibold">Edit Expense Payment</CardTitle>
                     <Button
