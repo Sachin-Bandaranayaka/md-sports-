@@ -26,20 +26,24 @@ export async function GET(
         }, { status: 401 });
     }
 
+    // Allow Shop Staff to view any shop's inventory for transfers
+    const isShopStaff = user.roleName === 'Shop Staff';
+
     // Check if user has any inventory view permission
     const hasAllPermissions = user.permissions?.includes('ALL');
     const hasBasicView = user.permissions?.includes('inventory:view:basic');
     const hasFullView = user.permissions?.includes('inventory:view');
     
-    if (!hasAllPermissions && !hasBasicView && !hasFullView) {
+    // Pass if user is shop staff, otherwise check permissions
+    if (!isShopStaff && !hasAllPermissions && !hasBasicView && !hasFullView) {
         return NextResponse.json({
             success: false,
             message: 'Permission denied: inventory view access required'
         }, { status: 403 });
     }
 
-    // Determine if costs should be included
-    const includeCosts = hasAllPermissions || (hasFullView && !hasBasicView);
+    // Determine if costs should be included (never for shop staff in this view)
+    const includeCosts = !isShopStaff && (hasAllPermissions || (hasFullView && !hasBasicView));
 
     try {
         // Await params before using its properties

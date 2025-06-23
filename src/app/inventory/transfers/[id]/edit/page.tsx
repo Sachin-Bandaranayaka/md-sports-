@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
@@ -58,101 +58,138 @@ export default function EditTransferPage({ params }: { params: { id: string } })
     const [searchTerm, setSearchTerm] = useState('');
 
     const transferId = parseInt(params.id);
+    const isInitialLoad = useRef(true);
 
-    // Load transfer data, shops and products on mount
+    // Debug logging for state changes
     useEffect(() => {
-        const fetchData = async () => {
+        console.log('🔍 State Update - sourceShopId:', sourceShopId, 'destinationShopId:', destinationShopId);
+    }, [sourceShopId, destinationShopId]);
+
+    // Effect for initial data loading
+    useEffect(() => {
+        console.log('🚀 Starting initial data fetch...');
+        const fetchInitialData = async () => {
             try {
                 setLoading(true);
                 setError(null);
 
-                // Fetch transfer details
-                const transferResponse = await authFetch(`/api/inventory/transfers/${transferId}`);
-                if (!transferResponse.ok) {
-                    throw new Error('Failed to fetch transfer details');
+                // Fetch shops and transfer details in parallel
+                const [shopsResponse, transferResponse] = await Promise.all([
+                    authFetch('/api/shops'),
+                    authFetch(`/api/inventory/transfers/${transferId}`)
+                ]);
+
+                if (!shopsResponse.ok) throw new Error('Failed to fetch shops');
+                const shopsData = await shopsResponse.json();
+                if (shopsData.success) {
+                    setShops(shopsData.data);
+                    console.log('✅ Shops loaded:', shopsData.data.length);
+                } else {
+                    throw new Error(shopsData.error || 'Failed to fetch shops');
                 }
+
+                if (!transferResponse.ok) throw new Error('Failed to fetch transfer details');
                 const transferData = await transferResponse.json();
-                
                 if (!transferData.success) {
                     throw new Error(transferData.error || 'Failed to fetch transfer details');
                 }
-
+                
                 const transferInfo = transferData.data;
                 setTransfer(transferInfo);
+                console.log('✅ Transfer loaded:', transferInfo);
 
-                // Check if transfer can be edited (only pending transfers)
                 if (transferInfo.status !== 'pending') {
                     setError('Only pending transfers can be edited');
                     return;
                 }
 
-                // Set form values
-                setSourceShopId(transferInfo.source_shop_id.toString());
-                setDestinationShopId(transferInfo.destination_shop_id.toString());
+                // Set form state from fetched transfer
+                const sourceId = transferInfo.source_shop_id.toString();
+                const destId = transferInfo.destination_shop_id.toString();
+                console.log('🔧 Setting shop IDs - Source:', sourceId, 'Destination:', destId);
                 
-                // Transform API items to match expected format
-                const transformedItems = (transferInfo.items || []).map(item => ({
+                setSourceShopId(sourceId);
+                setDestinationShopId(destId);
+                
+                const transformedItems = (transferInfo.items || []).map((item: any) => ({
                     id: item.id,
                     productId: item.product_id,
-                    product: {
-                        id: item.product_id,
-                        name: item.product_name,
-                        sku: item.sku,
-                        price: item.price,
-                        available_quantity: 0 // Will be updated when products are fetched
-                    },
+                    product: { id: item.product_id, name: item.product_name, sku: item.sku, price: item.price, available_quantity: 0 },
                     quantity: item.quantity,
                     notes: item.notes || ''
                 }));
                 setTransferItems(transformedItems);
-
-                // Fetch shops
-                const shopsResponse = await authFetch('/api/shops');
-                if (!shopsResponse.ok) {
-                    throw new Error('Failed to fetch shops');
-                }
-                const shopsData = await shopsResponse.json();
-                setShops(shopsData.success ? shopsData.data : []);
-
-                // Fetch products for source shop
+                console.log('✅ Transfer items set:', transformedItems.length);
+                
+                // Fetch initial products for the source shop
                 if (transferInfo.source_shop_id) {
-                    const productsResponse = await authFetch(`/api/inventory?shopId=${transferInfo.source_shop_id}`);
+                     const productsResponse = await authFetch(`/api/inventory?shopId=${transferInfo.source_shop_id}`);
                     if (productsResponse.ok) {
                         const productsData = await productsResponse.json();
                         if (productsData.success) {
-                            setProducts(productsData.data);
-                            setFilteredProducts(productsData.data);
-                            
-                            // Update available quantities in transfer items
-                            setTransferItems(prevItems => 
+                            const fetchedProducts = productsData.data;
+                            setProducts(fetchedProducts);
+                            setFilteredProducts(fetchedProducts);
+                            console.log('✅ Products loaded:', fetchedProducts.length);
+
+                            // Update available quantities for initial items
+                            setTransferItems(prevItems =>
                                 prevItems.map(item => {
-                                    const product = productsData.data.find(p => p.id === item.productId);
-                                    if (product) {
-                                        return {
-                                            ...item,
-                                            product: {
-                                                ...item.product,
-                                                available_quantity: product.available_quantity || 0
-                                            }
-                                        };
-                                    }
-                                    return item;
+                                    const product = fetchedProducts.find((p: any) => p.id === item.productId);
+                                    return product ? { ...item, product: { ...item.product, available_quantity: product.available_quantity || 0 } } : item;
                                 })
                             );
                         }
                     }
                 }
-
             } catch (err) {
-                console.error('Error fetching data:', err);
+                console.error('❌ Error fetching initial data:', err);
                 setError(err instanceof Error ? err.message : 'An error occurred');
             } finally {
                 setLoading(false);
+                isInitialLoad.current = false;
+                console.log('🏁 Initial data fetch completed');
             }
         };
 
-        fetchData();
+        fetchInitialData();
     }, [transferId]);
+
+    // Effect for handling USER-DRIVEN source shop changes
+    useEffect(() => {
+        console.log('🔄 Source shop change effect triggered. isInitialLoad:', isInitialLoad.current, 'sourceShopId:', sourceShopId);
+        
+        if (isInitialLoad.current) {
+            console.log('⏭️ Skipping product fetch - initial load in progress');
+            return;
+        }
+
+        const fetchProductsForShop = async () => {
+            console.log('🛒 Fetching products for shop:', sourceShopId);
+            setProducts([]);
+            setFilteredProducts([]);
+            setTransferItems([]); // Clear items when shop changes
+            setSelectedProducts([]);
+
+            if (sourceShopId) {
+                try {
+                    const productsResponse = await authFetch(`/api/inventory?shopId=${sourceShopId}`);
+                    if (productsResponse.ok) {
+                        const productsData = await productsResponse.json();
+                        if (productsData.success) {
+                            setProducts(productsData.data);
+                            setFilteredProducts(productsData.data);
+                            console.log('✅ Products updated for shop change:', productsData.data.length);
+                        }
+                    }
+                } catch (err) {
+                    console.error('❌ Error fetching products:', err);
+                }
+            }
+        };
+
+        fetchProductsForShop();
+    }, [sourceShopId]);
 
     // Filter products based on search term
     useEffect(() => {
@@ -166,36 +203,6 @@ export default function EditTransferPage({ params }: { params: { id: string } })
             setFilteredProducts(products);
         }
     }, [searchTerm, products]);
-
-    // Fetch products when source shop changes
-    useEffect(() => {
-        const fetchProducts = async () => {
-            if (sourceShopId) {
-                try {
-                    const response = await authFetch(`/api/inventory?shopId=${sourceShopId}`);
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.success) {
-                            setProducts(data.data);
-                            setFilteredProducts(data.data);
-                        }
-                    }
-                } catch (err) {
-                    console.error('Error fetching products:', err);
-                }
-            } else {
-                setProducts([]);
-                setFilteredProducts([]);
-            }
-        };
-
-        // Only fetch if source shop changed from initial load
-        if (transfer && sourceShopId !== transfer.source_shop_id.toString()) {
-            fetchProducts();
-            // Clear transfer items when source shop changes
-            setTransferItems([]);
-        }
-    }, [sourceShopId, transfer]);
 
     // Add product to transfer
     const addProductToTransfer = (product: Product) => {
@@ -241,6 +248,10 @@ export default function EditTransferPage({ params }: { params: { id: string } })
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
+        console.log('📝 Form submission started');
+        console.log('📝 Current state - sourceShopId:', sourceShopId, 'destinationShopId:', destinationShopId);
+        console.log('📝 Transfer items:', transferItems);
+        
         if (!sourceShopId || !destinationShopId) {
             setError('Please select both source and destination shops');
             return;
@@ -273,14 +284,16 @@ export default function EditTransferPage({ params }: { params: { id: string } })
             setError(null);
 
             const transferData = {
-                sourceShopId: parseInt(sourceShopId),
-                destinationShopId: parseInt(destinationShopId),
+                sourceShopId: sourceShopId,
+                destinationShopId: destinationShopId,
                 items: transferItems.map(item => ({
                     productId: item.productId,
                     quantity: item.quantity,
                     notes: item.notes
                 }))
             };
+
+            console.log('📤 Sending this data to the API:', JSON.stringify(transferData, null, 2));
 
             const response = await authFetch(`/api/inventory/transfers/${transferId}`, {
                 method: 'PUT',
@@ -388,7 +401,7 @@ export default function EditTransferPage({ params }: { params: { id: string } })
                                 >
                                     <option value="">Select source shop</option>
                                     {shops.map(shop => (
-                                        <option key={shop.id} value={shop.id}>
+                                        <option key={shop.id} value={shop.id.toString()}>
                                             {shop.name}
                                         </option>
                                     ))}
@@ -406,7 +419,7 @@ export default function EditTransferPage({ params }: { params: { id: string } })
                                 >
                                     <option value="">Select destination shop</option>
                                     {shops.filter(shop => shop.id.toString() !== sourceShopId).map(shop => (
-                                        <option key={shop.id} value={shop.id}>
+                                        <option key={shop.id} value={shop.id.toString()}>
                                             {shop.name}
                                         </option>
                                     ))}

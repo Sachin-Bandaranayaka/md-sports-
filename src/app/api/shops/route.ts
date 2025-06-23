@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { validateTokenPermission, getShopIdFromToken } from '@/lib/auth';
+import { validateTokenPermission, getShopIdFromToken, extractToken, verifyToken } from '@/lib/auth';
 import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
 
 export async function GET(req: NextRequest) {
@@ -19,7 +19,10 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Get user's shop context for filtering
+    // Get user's role and shop context for filtering
+    const token = extractToken(req);
+    const payload = token ? await verifyToken(token) : null;
+    const userRole = payload?.roleName as string ?? '';
     const userShopId = await getShopIdFromToken(req);
     const adminAllPermission = await validateTokenPermission(req, 'admin:all');
     const userManagePermission = await validateTokenPermission(req, 'user:manage');
@@ -27,13 +30,13 @@ export async function GET(req: NextRequest) {
     const isAdmin = shopManagePermission.isValid || adminAllPermission.isValid || userManagePermission.isValid;
     
     // Development mode - allow all access
-    const token = req.headers.get('authorization')?.split(' ')[1];
     const isDevMode = token === 'dev-token';
 
     // Debug logging
     console.log('Shops API Debug:', {
         isAdmin,
         userShopId,
+        userRole,
         isDevMode,
         shopManagePermission: shopManagePermission.isValid,
         adminAllPermission: adminAllPermission.isValid,
@@ -45,13 +48,14 @@ export async function GET(req: NextRequest) {
       let whereClause = {};
       
       // If user is not admin, filter by their assigned shop
-       if (!isAdmin && userShopId) {
+      // UNLESS they are a Shop Staff user, in which case they need all shops for transfers
+       if (!isAdmin && userShopId && userRole !== 'Shop Staff') {
          whereClause = {
            id: userShopId
          };
          console.log('Applying shop filter:', whereClause);
        } else {
-         console.log('No shop filter applied - isAdmin:', isAdmin, 'userShopId:', userShopId);
+         console.log('No shop filter applied - isAdmin:', isAdmin, 'userShopId:', userShopId, 'userRole:', userRole);
        }
       
       const shops = await prisma.shop.findMany({
@@ -75,7 +79,7 @@ export async function GET(req: NextRequest) {
         let whereClause = {};
         
         // If user is not admin, filter by their assigned shop
-         if (!isAdmin && userShopId) {
+         if (!isAdmin && userShopId && userRole !== 'Shop Staff') {
              whereClause = {
                  id: userShopId
              };

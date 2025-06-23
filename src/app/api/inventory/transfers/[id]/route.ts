@@ -4,6 +4,7 @@ import { prisma, safeQuery } from '@/lib/prisma';
 import { transferCacheService, TRANSFER_CACHE_CONFIG } from '@/lib/transferCache';
 import { trackTransferOperation } from '@/lib/transferPerformanceMonitor';
 import { deduplicateRequest } from '@/lib/request-deduplication';
+import { validateTokenPermission, extractToken, verifyToken } from '@/lib/auth';
 
 // Default fallback data for a transfer
 function getDefaultTransfer(id: number) {
@@ -43,11 +44,16 @@ export async function GET(
 ) {
     const operation = trackTransferOperation('detail');
 
-    // Check for inventory:view permission
-    const permissionError = await requirePermission('inventory:view')(req);
-    if (permissionError) {
+    // Check for inventory:view or inventory:transfer permission
+    const viewPermission = await validateTokenPermission(req, 'inventory:view');
+    const transferPermission = await validateTokenPermission(req, 'inventory:transfer');
+
+    if (!viewPermission.isValid && !transferPermission.isValid) {
         operation.end(false, 'unauthorized');
-        return permissionError;
+        return NextResponse.json({
+            success: false,
+            message: 'Permission denied'
+        }, { status: 403 });
     }
 
     const resolvedParams = await params;
@@ -411,11 +417,19 @@ export async function PUT(
 ) {
     const operation = trackTransferOperation('update');
 
+    // Token and user role check
+    const token = extractToken(req);
+    const payload = token ? await verifyToken(token) : null;
+    const userRole = payload?.roleName as string ?? '';
+
     // Check for inventory:transfer permission
-    const permissionError = await requirePermission('inventory:transfer')(req);
-    if (permissionError) {
+    const permissionResult = await validateTokenPermission(req, 'inventory:transfer');
+    if (!permissionResult.isValid) {
         operation.end(false, 'unauthorized');
-        return permissionError;
+        return NextResponse.json({
+            success: false,
+            message: permissionResult.message || 'Permission denied'
+        }, { status: 403 });
     }
 
     const resolvedParams = await params;
@@ -433,7 +447,7 @@ export async function PUT(
         const { sourceShopId, destinationShopId, items } = body;
 
         // Validate input
-        if (!sourceShopId || !destinationShopId || !items || !Array.isArray(items)) {
+        if (sourceShopId == null || destinationShopId == null || !items || !Array.isArray(items)) {
             operation.end(false, 'invalid_input');
             return NextResponse.json({
                 success: false,
@@ -584,11 +598,19 @@ export async function DELETE(
 ) {
     const operation = trackTransferOperation('cancel');
 
+    // Token and user role check
+    const token = extractToken(req);
+    const payload = token ? await verifyToken(token) : null;
+    const userRole = payload?.roleName as string ?? '';
+
     // Check for inventory:transfer permission
-    const permissionError = await requirePermission('inventory:transfer')(req);
-    if (permissionError) {
+    const permissionResult = await validateTokenPermission(req, 'inventory:transfer');
+    if (!permissionResult.isValid) {
         operation.end(false, 'unauthorized');
-        return permissionError;
+        return NextResponse.json({
+            success: false,
+            message: permissionResult.message || 'Permission denied'
+        }, { status: 403 });
     }
 
     const resolvedParams = await params;
