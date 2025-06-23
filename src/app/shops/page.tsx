@@ -318,7 +318,8 @@ export default function Shops() {
                             </svg>
                             Analytics
                         </Button>
-                        <Button
+                        {/* Compare button hidden as requested */}
+                        {/* <Button
                             variant="outline"
                             size="sm"
                             onClick={() => window.open('/shops/compare', '_self')}
@@ -338,7 +339,7 @@ export default function Shops() {
                                 />
                             </svg>
                             Compare
-                        </Button>
+                        </Button> */}
                         <Button variant="primary" size="sm" onClick={handleAddShop}>
                             <Plus className="w-4 h-4 mr-2" />
                             Add New Shop

@@ -551,7 +551,8 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                             <option value="retail">Retail</option>
                         </select>
                     </div>
-                    <div>
+                    {/* Status filter hidden as requested */}
+                    {/* <div>
                         <label htmlFor="customerStatus" className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                         <select
                             id="customerStatus"
@@ -575,7 +576,7 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                             <option value="unpaid">Unpaid (Invoice)</option>
                             <option value="partial">Partial (Invoice)</option>
                         </select>
-                    </div>
+                    </div> */}
                 </div>
             </div>
 
@@ -604,7 +605,8 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                                     <option value="retail">Retail</option>
                                 </select>
                             </div>
-                            <div>
+                            {/* Status filter hidden as requested */}
+                            {/* <div>
                                 <label htmlFor="filterCustomerStatus" className="block text-sm font-medium text-gray-700">Customer/Invoice Status</label>
                                 <select
                                     id="filterCustomerStatus"
@@ -621,7 +623,7 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                                     <option value="unpaid">Unpaid (Invoice)</option>
                                     <option value="partial">Partial (Invoice)</option>
                                 </select>
-                            </div>
+                            </div> */}
                             <div>
                                 <label htmlFor="balanceMin" className="block text-sm font-medium text-gray-700">Min Balance</label>
                                 <input

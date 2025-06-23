@@ -218,7 +218,22 @@ export default function EditPurchaseInvoiceForm({
     // Force refresh products on component mount to ensure latest data
     useEffect(() => {
         fetchUpdatedProductData();
-    }, [fetchUpdatedProductData]);
+        
+        // Check if we just updated this invoice and need to refresh data
+        if (typeof window !== 'undefined') {
+            const updateFlag = sessionStorage.getItem(`purchase-${initialInvoice.id}-updated`);
+            if (updateFlag) {
+                console.log('Detected recent update, forcing data refresh...');
+                // Clear the flag
+                sessionStorage.removeItem(`purchase-${initialInvoice.id}-updated`);
+                
+                // Force a page reload to get fresh data
+                setTimeout(() => {
+                    window.location.reload();
+                }, 100);
+            }
+        }
+    }, [fetchUpdatedProductData, initialInvoice.id]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -416,11 +431,36 @@ export default function EditPurchaseInvoiceForm({
                 throw new Error(errorData.error || errorData.message || 'Failed to update purchase invoice');
             }
             
+            // Force immediate cache invalidation for this purchase invoice
+            try {
+                await fetch('/api/revalidate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        tags: ['purchase-invoices', `purchase-${initialInvoice.id}`],
+                        paths: [`/purchases/${initialInvoice.id}`, `/purchases/${initialInvoice.id}/edit`, '/purchases']
+                    }),
+                });
+            } catch (revalidateError) {
+                console.warn('Failed to trigger revalidation:', revalidateError);
+            }
+            
             // Force router refresh to show updated data immediately
             router.refresh();
             
-            // Navigate with success message
+            // Short delay to ensure cache invalidation is processed
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Navigate with success message and force hard refresh
             router.push('/purchases?status=success&action=update');
+            
+            // If user navigates back to edit page, they'll see updated data
+            if (typeof window !== 'undefined') {
+                // Store a flag to force refresh when returning to edit page
+                sessionStorage.setItem(`purchase-${initialInvoice.id}-updated`, Date.now().toString());
+            }
         } catch (err: any) {
             setError(err.message || 'An unexpected error occurred.');
         } finally {

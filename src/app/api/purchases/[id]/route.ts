@@ -42,7 +42,14 @@ export async function GET(
             );
         }
 
-        return NextResponse.json(purchase);
+        // Create response with proper cache headers
+        const response = NextResponse.json(purchase);
+        
+        // Add cache control headers to enable proper caching and revalidation
+        response.headers.set('Cache-Control', 'no-cache, must-revalidate');
+        response.headers.set('ETag', `"purchase-${purchaseId}-${purchase.updatedAt?.getTime() || Date.now()}"`);
+        
+        return response;
     } catch (error) {
         console.error(`Error fetching purchase invoice ${id}:`, error);
         const details = error instanceof Error ? error.message : 'An unknown error occurred';

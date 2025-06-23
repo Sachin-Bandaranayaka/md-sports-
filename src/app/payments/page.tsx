@@ -394,52 +394,37 @@ export default function Payments() {
                 </CardContent>
             </Card>
 
-            {/* Summary cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Summary Cards */}
+            {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card>
-                    <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-500">Total Expenses</p>
-                                <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalExpenses)}</p>
-                            </div>
-                            <div className="p-3 rounded-full bg-red-100">
-                                <CreditCard className="h-6 w-6 text-red-600" />
-                            </div>
-                        </div>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+                        <CreditCard className="h-5 w-5 text-red-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{formatCurrency(stats.totalExpenses, 'LKR')}</div>
                     </CardContent>
                 </Card>
-
                 <Card>
-                    <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-500">Expenses This Month</p>
-                                <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.expensesThisMonth)}</p>
-                            </div>
-                            <div className="p-3 rounded-full bg-orange-100">
-                                <CreditCard className="h-6 w-6 text-orange-600" />
-                            </div>
-                        </div>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Expenses This Month</CardTitle>
+                        <CreditCard className="h-5 w-5 text-orange-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{formatCurrency(stats.expensesThisMonth, 'LKR')}</div>
                     </CardContent>
                 </Card>
-
                 <Card>
-                    <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-500">Average Expense</p>
-                                <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.averageExpense)}</p>
-                            </div>
-                            <div className="p-3 rounded-full bg-yellow-100">
-                                <CreditCard className="h-6 w-6 text-yellow-600" />
-                            </div>
-                        </div>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Average Expense</CardTitle>
+                        <CreditCard className="h-5 w-5 text-yellow-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{formatCurrency(stats.averageExpense, 'LKR')}</div>
                     </CardContent>
                 </Card>
-            </div>
+            </div> */}
             
-            {/* Expense Payment Form Modal */}
             {showExpenseForm && (
                 <ExpensePaymentForm
                     onSuccess={() => {

@@ -83,10 +83,18 @@ interface PurchaseInvoiceWithDetails {
 
 async function fetchPurchaseInvoice(id: string, baseUrl: string): Promise<PurchaseInvoiceWithDetails | null> {
     try {
-        const response = await fetch(`${baseUrl}/api/purchases/${id}`, { 
+        // Add timestamp to ensure we get fresh data, especially after updates
+        const timestamp = Date.now();
+        const response = await fetch(`${baseUrl}/api/purchases/${id}?t=${timestamp}`, { 
             next: { 
                 tags: ['purchase-invoices', `purchase-${id}`],
                 revalidate: 0 // Always fetch fresh data but use tags for revalidation
+            },
+            // Add cache-busting headers
+            headers: {
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
             }
         });
         if (!response.ok) {

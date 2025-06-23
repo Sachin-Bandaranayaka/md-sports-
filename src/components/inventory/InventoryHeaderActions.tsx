@@ -206,15 +206,15 @@ export default function InventoryHeaderActions() {
                     <Store className="h-4 w-4 mr-2" />
                     Shop Distribution
                 </Button>
-                <Button
+                {/* <Button
                     variant="info"
                     size="sm"
                     onClick={() => window.location.href = '/api/products/template'}
                 >
                     <Download className="w-4 h-4 mr-2" />
                     Download Template
-                </Button>
-                <Button
+                </Button> */}
+                {/* <Button
                     variant="success"
                     size="sm"
                     onClick={handleImportButtonClick}
@@ -226,7 +226,7 @@ export default function InventoryHeaderActions() {
                         <Upload className="w-4 h-4 mr-2" />
                     )}
                     Import Products
-                </Button>
+                </Button> */}
                 <input
                     type="file"
                     ref={fileInputRef}

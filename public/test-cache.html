@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purchase Invoice Cache Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .result {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .status {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Purchase Invoice Cache Test</h1>
+    <p>This page tests the caching improvements for purchase invoice editing.</p>
+
+    <div class="test-section">
+        <h2>Test 1: API Cache Headers</h2>
+        <p>Tests if the purchase invoice API returns proper cache headers.</p>
+        <button onclick="testApiHeaders()">Run Test</button>
+        <div id="apiHeadersResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Cache Invalidation</h2>
+        <p>Tests the cache invalidation endpoint (requires authentication).</p>
+        <input type="number" id="invoiceIdInput" placeholder="Invoice ID" value="5">
+        <button onclick="testCacheInvalidation()">Run Test</button>
+        <div id="cacheInvalidationResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: ETag Comparison</h2>
+        <p>Compares ETags between requests to verify cache versioning.</p>
+        <button onclick="testETagComparison()">Run Test</button>
+        <div id="etagComparisonResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Manual Test Instructions</h2>
+        <div class="info result">
+            <strong>To manually test the cache fix:</strong><br>
+            1. Open a purchase invoice for editing<br>
+            2. Change the quantity of an item (e.g., from 10 to 20)<br>
+            3. Click "Update Invoice"<br>
+            4. Navigate back to the same invoice's edit page<br>
+            5. ✅ The updated quantity should be visible immediately<br>
+            <br>
+            <strong>Before the fix:</strong> You would see the old quantity for ~5 minutes<br>
+            <strong>After the fix:</strong> You see the updated quantity immediately
+        </div>
+    </div>
+
+    <script>
+        // Utility functions
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="result ${type}">${message}</div>`;
+        }
+
+        function showStatus(elementId, status) {
+            const element = document.getElementById(elementId);
+            element.innerHTML += `<div class="status">${status}</div>`;
+        }
+
+        // Test 1: API Cache Headers
+        async function testApiHeaders() {
+            showResult('apiHeadersResult', '⏳ Testing API cache headers...', 'info');
+            
+            try {
+                // First get list of invoices to find one to test
+                const listResponse = await fetch('/api/purchases');
+                
+                if (!listResponse.ok) {
+                    throw new Error(`Failed to fetch invoices: ${listResponse.status}`);
+                }
+                
+                const listData = await listResponse.json();
+                const invoices = listData.data || listData || [];
+                
+                if (!invoices.length) {
+                    showResult('apiHeadersResult', '⚠️ No purchase invoices found to test with', 'error');
+                    return;
+                }
+                
+                const testInvoiceId = invoices[0].id;
+                
+                // Test individual invoice API
+                const response = await fetch(`/api/purchases/${testInvoiceId}`);
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch invoice: ${response.status}`);
+                }
+                
+                const cacheControl = response.headers.get('cache-control');
+                const etag = response.headers.get('etag');
+                
+                let resultHtml = `
+                    <strong>📋 Testing Invoice ID:</strong> ${testInvoiceId}<br>
+                    <strong>📦 Cache-Control:</strong> ${cacheControl || 'Not set'}<br>
+                    <strong>🏷️ ETag:</strong> ${etag || 'Not set'}<br><br>
+                `;
+                
+                if (cacheControl && cacheControl.includes('no-cache')) {
+                    resultHtml += '✅ Cache-Control header is properly configured<br>';
+                } else {
+                    resultHtml += '❌ Cache-Control header is missing or incorrect<br>';
+                }
+                
+                if (etag) {
+                    resultHtml += '✅ ETag header is present<br>';
+                } else {
+                    resultHtml += '❌ ETag header is missing<br>';
+                }
+                
+                showResult('apiHeadersResult', resultHtml, 'success');
+                
+            } catch (error) {
+                showResult('apiHeadersResult', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Test 2: Cache Invalidation
+        async function testCacheInvalidation() {
+            const invoiceId = document.getElementById('invoiceIdInput').value;
+            
+            if (!invoiceId) {
+                showResult('cacheInvalidationResult', '❌ Please enter an invoice ID', 'error');
+                return;
+            }
+            
+            showResult('cacheInvalidationResult', '⏳ Testing cache invalidation...', 'info');
+            
+            try {
+                const response = await fetch('/api/revalidate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        tags: ['purchase-invoices', `purchase-${invoiceId}`],
+                        paths: [`/purchases/${invoiceId}`, `/purchases/${invoiceId}/edit`]
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('cacheInvalidationResult', 
+                        `✅ Cache invalidation successful!<br>
+                         <strong>Response:</strong> ${JSON.stringify(data, null, 2)}`, 
+                        'success');
+                } else {
+                    showResult('cacheInvalidationResult', 
+                        `❌ Cache invalidation failed: ${response.status}<br>
+                         <strong>Error:</strong> ${data.message || 'Unknown error'}`, 
+                        'error');
+                }
+                
+            } catch (error) {
+                showResult('cacheInvalidationResult', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Test 3: ETag Comparison
+        async function testETagComparison() {
+            showResult('etagComparisonResult', '⏳ Testing ETag comparison...', 'info');
+            
+            try {
+                // Get list of invoices
+                const listResponse = await fetch('/api/purchases');
+                const listData = await listResponse.json();
+                const invoices = listData.data || listData || [];
+                
+                if (!invoices.length) {
+                    showResult('etagComparisonResult', '⚠️ No invoices found', 'error');
+                    return;
+                }
+                
+                const testInvoiceId = invoices[0].id;
+                
+                // Make two requests with different timestamps
+                const timestamp1 = Date.now();
+                const timestamp2 = timestamp1 + 1000;
+                
+                const [response1, response2] = await Promise.all([
+                    fetch(`/api/purchases/${testInvoiceId}?t=${timestamp1}`),
+                    fetch(`/api/purchases/${testInvoiceId}?t=${timestamp2}`)
+                ]);
+                
+                const etag1 = response1.headers.get('etag');
+                const etag2 = response2.headers.get('etag');
+                
+                let resultHtml = `
+                    <strong>📋 Testing Invoice ID:</strong> ${testInvoiceId}<br>
+                    <strong>🏷️ Request 1 ETag:</strong> ${etag1}<br>
+                    <strong>🏷️ Request 2 ETag:</strong> ${etag2}<br><br>
+                `;
+                
+                if (etag1 && etag2) {
+                    resultHtml += '✅ Both requests returned ETags<br>';
+                    
+                    if (etag1 === etag2) {
+                        resultHtml += '✅ ETags are consistent for unchanged data<br>';
+                    } else {
+                        resultHtml += '⚠️ ETags differ (might indicate data changes)<br>';
+                    }
+                } else {
+                    resultHtml += '❌ One or both requests missing ETags<br>';
+                }
+                
+                showResult('etagComparisonResult', resultHtml, 'success');
+                
+            } catch (error) {
+                showResult('etagComparisonResult', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-run first test on page load
+        window.addEventListener('load', () => {
+            setTimeout(testApiHeaders, 1000);
+        });
+    </script>
+</body>
+</html> 

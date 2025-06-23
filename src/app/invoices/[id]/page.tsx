@@ -121,7 +121,7 @@ export default function InvoiceDetail() {
     const printRef = useRef<HTMLDivElement>(null);
     const [isSendingSms, setIsSendingSms] = useState(false);
     const [smsStatus, setSmsStatus] = useState<{ success: boolean; message: string } | null>(null);
-    const { canEditInvoices } = usePermission();
+    const { canManageInvoices } = usePermission();
 
     const handlePrint = useReactToPrint({
         contentRef: printRef,
@@ -364,7 +364,7 @@ export default function InvoiceDetail() {
                             Print
                         </Button>
 
-                        {canEditInvoices() && (
+                        {canManageInvoices() && (
                             <Button
                                 variant="outline"
                                 size="sm"
@@ -406,7 +406,7 @@ export default function InvoiceDetail() {
                             </Button>
                         )}
 
-                        {canEditInvoices() && (
+                        {canManageInvoices() && (
                             confirmDelete ? (
                                 <>
                                     <Button
