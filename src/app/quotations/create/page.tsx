@@ -725,29 +725,33 @@ export default function CreateQuotation() {
                                                             <Search className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                                                         </div>
                                                         
-                                                        {showProductDropdowns[index] && filteredProducts[index] && filteredProducts[index].length > 0 && (
-                                                            <div className="absolute w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto" style={{position: 'fixed', top: `${productDropdownRefs.current[index]?.getBoundingClientRect()?.bottom ? productDropdownRefs.current[index]!.getBoundingClientRect().bottom + window.scrollY : 0}px`, left: `${productDropdownRefs.current[index]?.getBoundingClientRect()?.left ? productDropdownRefs.current[index]!.getBoundingClientRect().left + window.scrollX : 0}px`, width: `${productDropdownRefs.current[index]?.getBoundingClientRect()?.width ? productDropdownRefs.current[index]!.getBoundingClientRect().width : 200}px`, zIndex: 10000}}>
-                                                                {filteredProducts[index].map((product) => (
-                                                                    <div
-                                                                        key={product.id}
-                                                                        onClick={() => handleProductSelect(index, product)}
-                                                                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-black border-b border-gray-100 last:border-b-0"
-                                                                    >
-                                                                        <div className="font-medium">{product.name}</div>
-                                                                        {product.sku && (
-                                                                            <div className="text-sm text-gray-500">SKU: {product.sku}</div>
-                                                                        )}
-                                                                        <div className="text-sm text-gray-600">Price: Rs {product.price}</div>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                        
-                                                        {showProductDropdowns[index] && filteredProducts[index] && filteredProducts[index].length === 0 && productSearches[index] && (
-                                                            <div className="absolute w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg" style={{position: 'fixed', top: `${productDropdownRefs.current[index]?.getBoundingClientRect().bottom + window.scrollY}px`, left: `${productDropdownRefs.current[index]?.getBoundingClientRect().left + window.scrollX}px`, width: `${productDropdownRefs.current[index]?.getBoundingClientRect().width}px`, zIndex: 10000}}>
-                                                                <div className="px-3 py-2 text-gray-500 text-center">
-                                                                    No products found
-                                                                </div>
+                                                        {showProductDropdowns[index] && productDropdownRefs.current[index] && (
+                                                            <div 
+                                                                className="fixed z-50 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto"
+                                                                style={{
+                                                                    top: `${productDropdownRefs.current[index]!.getBoundingClientRect().bottom + 4}px`,
+                                                                    left: `${productDropdownRefs.current[index]!.getBoundingClientRect().left}px`,
+                                                                    width: `${productDropdownRefs.current[index]!.getBoundingClientRect().width}px`
+                                                                }}
+                                                            >
+                                                                {filteredProducts[index] && filteredProducts[index].length > 0 ? (
+                                                                    <ul className="py-1 text-sm text-black">
+                                                                        {filteredProducts[index].map((product) => (
+                                                                            <li
+                                                                                key={product.id}
+                                                                                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                                                                                onClick={() => handleProductSelect(index, product)}
+                                                                            >
+                                                                                <div className="font-medium">{product.name}</div>
+                                                                                <div className="text-xs text-gray-500">
+                                                                                    {product.sku && `SKU: ${product.sku} • `}Price: Rs {product.price}
+                                                                                </div>
+                                                                            </li>
+                                                                        ))}
+                                                                    </ul>
+                                                                ) : (
+                                                                    <div className="px-4 py-2 text-sm text-gray-500">No products found</div>
+                                                                )}
                                                             </div>
                                                         )}
                                                     </div>
