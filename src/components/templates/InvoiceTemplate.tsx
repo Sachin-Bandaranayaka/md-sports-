@@ -193,34 +193,54 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
     };
 
     return (
-        <div className="bg-white p-8 max-w-4xl mx-auto" style={{ fontFamily: 'Arial, sans-serif' }}>
+        <>
+            <style jsx>{`
+                @media print {
+                    @page {
+                        size: A5;
+                        margin: 15mm;
+                    }
+                    body {
+                        margin: 0;
+                        padding: 0;
+                    }
+                }
+            `}</style>
+            <div className="bg-white p-4 max-w-full mx-auto print:p-2" style={{ fontFamily: 'Arial, sans-serif', fontSize: '12px' }}>
             {/* Header */}
-            <div className="flex justify-between items-start mb-8">
+            <div className="flex justify-between items-start mb-4 print:mb-3">
                 <div className="flex items-center">
                     {/* Company Logo */}
-                    <div className="mr-4">
+                    <div className="mr-3 print:mr-2">
                         <img 
                             src="/mssport-logo.jpeg" 
                             alt="MS Sports Logo" 
-                            className="h-16 w-auto object-contain"
+                            className="h-12 w-auto object-contain print:h-10"
+                            style={{ 
+                                backgroundColor: 'white',
+                                filter: 'brightness(1.3) contrast(1.5) saturate(1.2)',
+                                mixBlendMode: 'darken',
+                                borderRadius: '4px',
+                                padding: '2px'
+                            }}
                         />
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold text-black">{currentCompanyInfo.name}</h1>
+                        <h1 className="text-lg font-bold text-black print:text-base">{currentCompanyInfo.name}</h1>
                     </div>
                 </div>
                 <div className="text-right">
-                    <h2 className="text-3xl font-bold text-black mb-2">Invoice</h2>
+                    <h2 className="text-2xl font-bold text-black mb-1 print:text-xl print:mb-0">Invoice</h2>
                 </div>
             </div>
 
             {/* Invoice Info and Customer Details */}
-            <div className="grid grid-cols-2 gap-8 mb-8">
+            <div className="grid grid-cols-2 gap-4 mb-4 print:gap-3 print:mb-3">
                 {/* Customer Information */}
                 <div>
-                    <h3 className="text-lg font-bold text-black mb-3">Customer Name</h3>
-                    <div className="text-black">
-                        <div className="font-medium text-lg">{invoice.customer.name}</div>
+                    <h3 className="text-base font-bold text-black mb-2 print:text-sm print:mb-1">Customer Name</h3>
+                    <div className="text-black text-sm print:text-xs">
+                        <div className="font-medium text-base print:text-sm">{invoice.customer.name}</div>
                         {renderCustomerAddress()}
                         {invoice.customer.phone && <div>Phone: {invoice.customer.phone}</div>}
                         {invoice.customer.email && <div>Email: {invoice.customer.email}</div>}
@@ -229,17 +249,17 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
 
                 {/* Invoice Details */}
                 <div className="text-right">
-                    <div className="mb-4">
-                        <div className="text-black font-bold">Invoice Number</div>
-                        <div className="text-black">{invoice.invoiceNumber}</div>
+                    <div className="mb-2 print:mb-1">
+                        <div className="text-black font-bold text-sm print:text-xs">Invoice Number</div>
+                        <div className="text-black text-sm print:text-xs">{invoice.invoiceNumber}</div>
                     </div>
-                    <div className="mb-4">
-                        <div className="text-black font-bold">Issued Date</div>
-                        <div className="text-black">{formatDate(invoice.createdAt)}</div>
+                    <div className="mb-2 print:mb-1">
+                        <div className="text-black font-bold text-sm print:text-xs">Issued Date</div>
+                        <div className="text-black text-sm print:text-xs">{formatDate(invoice.createdAt)}</div>
                     </div>
-                    <div className="mb-4">
-                        <div className="text-black font-bold">Due Date</div>
-                        <div className="text-black">
+                    <div className="mb-2 print:mb-1">
+                        <div className="text-black font-bold text-sm print:text-xs">Due Date</div>
+                        <div className="text-black text-sm print:text-xs">
                             {invoice.paymentMethod === 'Cash' ? 'N/A' : formatDate(dueDate.toISOString())}
                         </div>
                     </div>
@@ -247,29 +267,29 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
             </div>
 
             {/* Items Table */}
-            <div className="mb-8">
-                <h3 className="text-lg font-bold text-black mb-4">Description</h3>
-                <table className="w-full border-collapse">
+            <div className="mb-4 print:mb-3">
+                <h3 className="text-base font-bold text-black mb-2 print:text-sm print:mb-1">Description</h3>
+                <table className="w-full border-collapse text-sm print:text-xs">
                     <thead>
                         <tr className="bg-gray-100">
-                            <th className="border border-gray-300 px-4 py-3 text-left text-black font-bold">Item</th>
-                            <th className="border border-gray-300 px-4 py-3 text-center text-black font-bold">Qty</th>
-                            <th className="border border-gray-300 px-4 py-3 text-right text-black font-bold">Unit price</th>
-                            <th className="border border-gray-300 px-4 py-3 text-right text-black font-bold">Total</th>
+                            <th className="border border-gray-300 px-2 py-2 text-left text-black font-bold print:px-1 print:py-1">Item</th>
+                            <th className="border border-gray-300 px-2 py-2 text-center text-black font-bold print:px-1 print:py-1">Qty</th>
+                            <th className="border border-gray-300 px-2 py-2 text-right text-black font-bold print:px-1 print:py-1">Unit price</th>
+                            <th className="border border-gray-300 px-2 py-2 text-right text-black font-bold print:px-1 print:py-1">Total</th>
                         </tr>
                     </thead>
                     <tbody>
                         {invoice.items.map((item) => (
                             <tr key={item.id}>
-                                <td className="border border-gray-300 px-4 py-3 text-black">
+                                <td className="border border-gray-300 px-2 py-2 text-black print:px-1 print:py-1">
                                     <div className="font-medium">{item.product.name}</div>
                                     {item.product.description && (
-                                        <div className="text-sm text-gray-600">{item.product.description}</div>
+                                        <div className="text-xs text-gray-600 print:text-xs">{item.product.description}</div>
                                     )}
                                 </td>
-                                <td className="border border-gray-300 px-4 py-3 text-center text-black">{item.quantity}</td>
-                                <td className="border border-gray-300 px-4 py-3 text-right text-black">{formatCurrency(item.price)}</td>
-                                <td className="border border-gray-300 px-4 py-3 text-right text-black font-medium">{formatCurrency(item.total)}</td>
+                                <td className="border border-gray-300 px-2 py-2 text-center text-black print:px-1 print:py-1">{item.quantity}</td>
+                                <td className="border border-gray-300 px-2 py-2 text-right text-black print:px-1 print:py-1">{formatCurrency(item.price)}</td>
+                                <td className="border border-gray-300 px-2 py-2 text-right text-black font-medium print:px-1 print:py-1">{formatCurrency(item.total)}</td>
                             </tr>
                         ))}
                     </tbody>
@@ -277,22 +297,22 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
             </div>
 
             {/* Totals */}
-            <div className="flex justify-end mb-8">
-                <div className="w-80">
-                    <div className="border-t border-gray-300 pt-4">
-                        <div className="flex justify-between py-2">
+            <div className="flex justify-end mb-4 print:mb-3">
+                <div className="w-60 print:w-48">
+                    <div className="border-t border-gray-300 pt-2 print:pt-1">
+                        <div className="flex justify-between py-1 text-sm print:text-xs">
                             <span className="text-black font-bold">Total</span>
                             <span className="text-black font-bold">{formatCurrency(invoice.total)}</span>
                         </div>
                         {invoice.payments && invoice.payments.length > 0 && invoice.payments.some(p => p.receipt) && (
-                            <div className="flex justify-between py-2 text-sm text-gray-600">
+                            <div className="flex justify-between py-1 text-xs text-gray-600 print:text-xs">
                                 <span>
                                     Receipt — {invoice.payments.filter(p => p.receipt).map(p => p.receipt?.receiptNumber).join(', ') || 'N/A'} — {formatDate(invoice.createdAt)}
                                 </span>
                                 <span>-{formatCurrency(paidAmount)}</span>
                             </div>
                         )}
-                        <div className="flex justify-between py-2 border-t border-gray-300">
+                        <div className="flex justify-between py-1 border-t border-gray-300 text-sm print:text-xs">
                             <span className="text-black font-bold">Balance due</span>
                             <span className="text-black font-bold">{formatCurrency(remainingBalance)}</span>
                         </div>
@@ -302,34 +322,34 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
 
             {/* Payment Status */}
             {remainingBalance <= 0 ? (
-                <div className="text-center mb-8">
-                    <div className="inline-block border-4 border-green-600 px-8 py-2">
-                        <span className="text-green-600 text-xl font-bold">PAID IN FULL</span>
+                <div className="text-center mb-4 print:mb-3">
+                    <div className="inline-block border-2 border-green-600 px-4 py-1 print:px-3 print:py-1">
+                        <span className="text-green-600 text-base font-bold print:text-sm">PAID IN FULL</span>
                     </div>
                 </div>
             ) : paidAmount > 0 ? (
-                <div className="text-center mb-8">
-                    <div className="inline-block border-4 border-orange-500 px-8 py-2">
-                        <span className="text-orange-500 text-xl font-bold">PARTIALLY PAID</span>
+                <div className="text-center mb-4 print:mb-3">
+                    <div className="inline-block border-2 border-orange-500 px-4 py-1 print:px-3 print:py-1">
+                        <span className="text-orange-500 text-base font-bold print:text-sm">PARTIALLY PAID</span>
                     </div>
                 </div>
             ) : null}
 
             {/* Footer */}
-            <div className="border-t border-gray-300 pt-6">
+            <div className="border-t border-gray-300 pt-3 print:pt-2">
                 <div className="flex justify-between items-end">
                     <div>
-                        <div className="text-black font-bold mb-2">MBA Branch</div>
-                        <div className="text-black text-sm">{currentCompanyInfo.address}</div>
-                        <div className="text-black text-sm">Phone: {currentCompanyInfo.phone}</div>
-                        <div className="text-black text-sm">Email: {currentCompanyInfo.email}</div>
+                        <div className="text-black font-bold mb-1 text-sm print:text-xs print:mb-0">MBA Branch</div>
+                        <div className="text-black text-xs print:text-xs">{currentCompanyInfo.address}</div>
+                        <div className="text-black text-xs print:text-xs">Phone: {currentCompanyInfo.phone}</div>
+                        <div className="text-black text-xs print:text-xs">Email: {currentCompanyInfo.email}</div>
                     </div>
                     <div className="text-center">
-                        <div className="text-black font-bold text-lg mb-2">PLAY GENUINE PAY LESS</div>
+                        <div className="text-black font-bold text-sm mb-1 print:text-xs print:mb-0">PLAY GENUINE PAY LESS</div>
                     </div>
                     <div className="text-right">
-                        <div className="text-black font-bold mb-2">Zimantra Branch</div>
-                        <div className="text-black text-sm">No 465, Ganahena, Battaramulla</div>
+                        <div className="text-black font-bold mb-1 text-sm print:text-xs print:mb-0">Zimantra Branch</div>
+                        <div className="text-black text-xs print:text-xs">No 465, Ganahena, Battaramulla</div>
                     </div>
                 </div>
             </div>
@@ -365,6 +385,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
                 </div>
             )}
         </div>
+        </>
     );
 };
 
