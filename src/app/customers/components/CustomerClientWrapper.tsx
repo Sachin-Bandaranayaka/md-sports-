@@ -700,10 +700,10 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                 </div>
             ) : (
                 <div className="overflow-x-auto bg-white shadow rounded-lg">
-                    <table className="min-w-full divide-y divide-gray-200">
+                    <table className="min-w-full divide-y divide-gray-200 text-sm">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-4 py-3 w-12">
+                                <th className="px-3 py-2 w-12">
                                     <input
                                         type="checkbox"
                                         checked={selectAll}
@@ -711,15 +711,15 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                                         className="rounded border-gray-300 text-primary focus:ring-primary"
                                     />
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer ID</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Credit Limit</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Purchase</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice Status</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer ID</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Credit Limit / Period</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Purchase</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice Status</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -727,7 +727,7 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                                 <tr key={customer.id} className={`hover:bg-gray-50 transition-colors duration-150 ${
                                     selectedItems.has(String(customer.id)) ? 'bg-blue-50 border-blue-200' : getCustomerTypeRowClass(customer.customerType)
                                 }`}>
-                                    <td className="px-4 py-3 w-12">
+                                    <td className="px-3 py-2 w-12">
                                         <input
                                             type="checkbox"
                                             checked={selectedItems.has(String(customer.id))}
@@ -738,36 +738,43 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                                             className="rounded border-gray-300 text-primary focus:ring-primary"
                                         />
                                     </td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{customer.id}</td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">{customer.id}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">
                                         <button onClick={() => router.push(`/customers/${customer.id}`)} className="text-indigo-600 hover:text-indigo-900 hover:underline">
                                             {customer.name}
                                         </button>
                                     </td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getCustomerTypeClass(customer.customerType)}`}>
+                                    <td className="px-3 py-2 whitespace-nowrap text-xs">
+                                        <span className={`px-1.5 inline-flex text-xs leading-4 font-semibold rounded-full ${getCustomerTypeClass(customer.customerType)}`}>
                                             {customer.customerType.charAt(0).toUpperCase() + customer.customerType.slice(1)}
                                         </span>
                                     </td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{customer.phone || 'N/A'}</td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{customer.address || 'N/A'}</td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                                        {customer.customerType.toLowerCase() === 'wholesale' && customer.creditLimit !== undefined && customer.creditLimit !== null ? `Rs ${new Intl.NumberFormat('en-US').format(customer.creditLimit)}` : 'N/A'}
+                                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">{customer.phone || 'N/A'}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">{customer.address || 'N/A'}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">
+                                        {customer.customerType.toLowerCase() === 'wholesale' && customer.creditLimit !== undefined && customer.creditLimit !== null ? (
+                                            <div>
+                                                <div className="font-medium text-xs">Rs {new Intl.NumberFormat('en-US').format(customer.creditLimit)}</div>
+                                                <div className="text-xs text-gray-400">
+                                                    {customer.creditPeriod ? `${customer.creditPeriod} days` : 'No period set'}
+                                                </div>
+                                            </div>
+                                        ) : 'N/A'}
                                     </td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">
                                         {customer.lastPurchaseDate ? new Date(customer.lastPurchaseDate).toLocaleDateString() : 'N/A'}
                                     </td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getInvoicePaymentStatusBadgeClass(customer.latestInvoicePaymentStatus)}`}>
+                                    <td className="px-3 py-2 whitespace-nowrap text-xs">
+                                        <span className={`px-1.5 inline-flex text-xs leading-4 font-semibold rounded-full ${getInvoicePaymentStatusBadgeClass(customer.latestInvoicePaymentStatus)}`}>
                                             {customer.latestInvoicePaymentStatus ? customer.latestInvoicePaymentStatus.charAt(0).toUpperCase() + customer.latestInvoicePaymentStatus.slice(1) : 'N/A'}
                                         </span>
                                     </td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
-                                        <div className="flex items-center space-x-2">
-                                            <Button variant="link" size="sm" onClick={() => router.push(`/customers/${customer.id}`)} className="text-indigo-600 hover:text-indigo-900">
+                                    <td className="px-3 py-2 whitespace-nowrap text-xs font-medium">
+                                        <div className="flex items-center space-x-1">
+                                            <Button variant="link" size="sm" onClick={() => router.push(`/customers/${customer.id}`)} className="text-indigo-600 hover:text-indigo-900 text-xs">
                                                 View
                                             </Button>
-                                            <Button variant="link" size="sm" onClick={() => router.push(`/customers/${customer.id}/edit`)} className="text-yellow-600 hover:text-yellow-900">
+                                            <Button variant="link" size="sm" onClick={() => router.push(`/customers/${customer.id}/edit`)} className="text-yellow-600 hover:text-yellow-900 text-xs">
                                                 Edit
                                             </Button>
                                             <Button
@@ -778,9 +785,9 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                                                 disabled={deleteLoading === customer.id}
                                             >
                                                 {deleteLoading === customer.id ? (
-                                                    <Loader2 className="animate-spin" size={16} />
+                                                    <Loader2 className="animate-spin" size={14} />
                                                 ) : (
-                                                    <Trash2 size={16} />
+                                                    <Trash2 size={14} />
                                                 )}
                                             </Button>
                                         </div>

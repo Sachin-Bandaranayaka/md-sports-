@@ -157,12 +157,12 @@
         "column": 30,
         "line": 72
       },
-      "snippet": "\u001b[90m   at \u001b[39mglobal-setup.ts:72\n\n  70 |\n  71 |   // Create inventory item\n> 72 |   await prisma.inventoryItem.create({\n     |                              ^\n  73 |     data: {\n  74 |       productId: testProduct.id,\n  75 |       quantity: 100,"
+      "snippet": "\u001b[90m   at \u001b[39mglobal-setup.ts:72\n\n\u001b[0m \u001b[90m 70 |\u001b[39m\n \u001b[90m 71 |\u001b[39m   \u001b[90m// Create inventory item\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 72 |\u001b[39m   \u001b[36mawait\u001b[39m prisma\u001b[33m.\u001b[39minventoryItem\u001b[33m.\u001b[39mcreate({\n \u001b[90m    |\u001b[39m                              \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 73 |\u001b[39m     data\u001b[33m:\u001b[39m {\n \u001b[90m 74 |\u001b[39m       productId\u001b[33m:\u001b[39m testProduct\u001b[33m.\u001b[39mid\u001b[33m,\u001b[39m\n \u001b[90m 75 |\u001b[39m       quantity\u001b[33m:\u001b[39m \u001b[35m100\u001b[39m\u001b[33m,\u001b[39m\u001b[0m"
     }
   ],
   "stats": {
-    "startTime": "2025-06-22T08:37:17.858Z",
-    "duration": 7835.062,
+    "startTime": "2025-06-24T08:58:26.910Z",
+    "duration": 5229.735000000001,
     "expected": 0,
     "skipped": 0,
     "unexpected": 0,
