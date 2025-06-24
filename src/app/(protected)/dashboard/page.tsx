@@ -221,9 +221,6 @@ export default function DashboardPage() {
                             <h1 className="text-2xl font-bold text-gray-900 mb-2">
                                 Welcome back, {user?.fullName || user?.username || 'User'}!
                             </h1>
-                            <p className="text-gray-600 mb-3">
-                                You have access to {accessibleModules.length} module{accessibleModules.length !== 1 ? 's' : ''}: {accessibleModules.join(', ')}
-                            </p>
                             <div className="flex items-center space-x-4 text-sm">
                                 <div className="flex items-center text-green-600">
                                     <CheckCircle className="h-4 w-4 mr-1" />

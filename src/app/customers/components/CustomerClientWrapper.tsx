@@ -48,11 +48,11 @@ const getInvoicePaymentStatusBadgeClass = (status?: string | null): string => {
 };
 
 const getCustomerTypeClass = (customerType: 'wholesale' | 'retail') => {
-    return customerType === 'wholesale' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800';
+    return customerType.toLowerCase() === 'wholesale' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800';
 };
 
 const getCustomerTypeRowClass = (customerType: 'wholesale' | 'retail') => {
-    return customerType === 'wholesale' ? 'bg-blue-50' : 'bg-green-50';
+    return customerType.toLowerCase() === 'wholesale' ? 'bg-blue-50' : 'bg-green-50';
 };
 
 interface CustomerClientWrapperProps {
@@ -716,7 +716,7 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Credit Limit</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Purchase</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice Status</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -752,7 +752,7 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{customer.phone || 'N/A'}</td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{customer.address || 'N/A'}</td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                                        {customer.customerType === 'wholesale' && customer.balance !== undefined ? `Rs ${new Intl.NumberFormat('en-US').format(customer.balance)}` : 'N/A'}
+                                        {customer.customerType.toLowerCase() === 'wholesale' && customer.creditLimit !== undefined && customer.creditLimit !== null ? `Rs ${new Intl.NumberFormat('en-US').format(customer.creditLimit)}` : 'N/A'}
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                                         {customer.lastPurchaseDate ? new Date(customer.lastPurchaseDate).toLocaleDateString() : 'N/A'}
@@ -806,7 +806,7 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                         <Button
                             key={page}
-                            variant={currentPage === page ? "default" : "outline"}
+                            variant={currentPage === page ? "primary" : "outline"}
                             size="sm"
                             onClick={() => handlePageChange(page)}
                             disabled={loading}

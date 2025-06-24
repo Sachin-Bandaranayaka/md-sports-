@@ -41,7 +41,7 @@ export default function EditCustomer({ params }: { params: { id: string } }) {
                 const data = await response.json();
 
                 // Parse the address field which might contain JSON data
-                let addressData = {};
+                let addressData: any = {};
                 try {
                     if (data.address && typeof data.address === 'string') {
                         const parsedAddress = JSON.parse(data.address);
@@ -70,11 +70,17 @@ export default function EditCustomer({ params }: { params: { id: string } }) {
                 }
 
                 // Update form data with customer data
+                // Normalize customer type to title case
+                let customerType = data.customerType || addressData.customerType || 'Retail';
+                if (typeof customerType === 'string') {
+                    customerType = customerType.charAt(0).toUpperCase() + customerType.slice(1).toLowerCase();
+                }
+                
                 setFormData({
                     name: data.name || '',
                     phone: data.phone || '',
                     address: typeof addressData.mainAddress === 'string' ? addressData.mainAddress : (data.address || ''),
-                    customerType: (addressData.customerType || data.customerType || 'Retail') as 'Retail' | 'Wholesale',
+                    customerType: customerType as 'Retail' | 'Wholesale',
                     creditLimit: addressData.creditLimit || data.creditLimit || undefined,
                     creditPeriod: addressData.creditPeriod || data.creditPeriod || undefined,
                     notes: addressData.notes || data.notes || ''

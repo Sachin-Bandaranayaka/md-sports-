@@ -89,9 +89,9 @@ export async function PUT(
         }
 
         const body = await request.json();
-        const { name, email, phone, address: addressString, ...otherData } = body;
+        const { name, email, phone, address: addressString, customerType: bodyCustomerType, creditLimit: bodyCreditLimit, creditPeriod: bodyCreditPeriod, notes: bodyNotes, ...otherData } = body;
 
-        let addressDetails = {};
+        let addressDetails: any = {};
         if (addressString && typeof addressString === 'string') {
             try {
                 addressDetails = JSON.parse(addressString);
@@ -117,19 +117,24 @@ export async function PUT(
             addressDetails = addressString;
         }
 
-
         const {
             mainAddress,
             city,
             postalCode,
             contactPerson,
             contactPersonPhone,
-            customerType,
-            creditLimit,
-            creditPeriod,
+            customerType: addressCustomerType,
+            creditLimit: addressCreditLimit,
+            creditPeriod: addressCreditPeriod,
             taxId,
-            notes
+            notes: addressNotes
         } = addressDetails as any; // Type assertion for easier access
+
+        // Use values from request body first, then fall back to address details, then defaults
+        const customerType = bodyCustomerType || addressCustomerType || 'Retail';
+        const creditLimit = bodyCreditLimit || addressCreditLimit || 0;
+        const creditPeriod = bodyCreditPeriod || addressCreditPeriod || 0;
+        const notes = bodyNotes || addressNotes || null;
 
         const customerUpdateData: any = {
             name: name,
@@ -192,6 +197,10 @@ export async function PUT(
             },
             data: customerUpdateData
         });
+
+        // Revalidate the customers page to refresh data
+        const { revalidatePath } = await import('next/cache');
+        revalidatePath('/customers');
 
         return NextResponse.json({
             success: true,
