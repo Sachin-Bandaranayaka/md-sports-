@@ -55,10 +55,14 @@ export default function Quotations() {
 
                 // Fetch quotations
                 const quotationsResponse = await fetch('/api/quotations');
+                console.log('[Quotations Page] API Response status:', quotationsResponse.status);
+                
                 if (!quotationsResponse.ok) {
                     throw new Error('Failed to fetch quotations');
                 }
                 const apiQuotations = await quotationsResponse.json();
+                console.log('[Quotations Page] API Response:', apiQuotations);
+                console.log('[Quotations Page] Number of quotations:', apiQuotations.length);
 
                 // Transform API data to match SalesQuotation frontend type
                 const transformedQuotations = apiQuotations.map((q: any) => ({
@@ -70,6 +74,7 @@ export default function Quotations() {
                     // id, quotationNumber, customerId, items, subtotal, tax, discount, total, notes, status, createdAt are already in q
                 }));
 
+                console.log('[Quotations Page] Transformed quotations:', transformedQuotations);
                 setQuotations(transformedQuotations);
 
                 setError(null);

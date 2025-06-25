@@ -74,7 +74,7 @@ export function usePermission() {
         if (!user) return false;
         
         // Shop staff role cannot edit/delete invoices, this is a business rule.
-        if (user.roleName === 'Shop Staff') {
+        if (user.roleName?.toLowerCase() === 'shop staff') {
             return false;
         }
         
@@ -90,7 +90,7 @@ export function usePermission() {
         if (!user) return false;
         
         // Shop staff role cannot edit/delete invoices
-        if (user.roleName === 'Shop Staff') {
+        if (user.roleName?.toLowerCase() === 'shop staff') {
             return false;
         }
         
@@ -122,7 +122,7 @@ export function usePermission() {
         if (!user) return false;
 
         // Shop staff are not allowed to see the main dashboard
-        if (user.roleName === 'Shop Staff') {
+        if (user.roleName?.toLowerCase() === 'shop staff') {
             return false;
         }
 
@@ -142,7 +142,9 @@ export function usePermission() {
     const canViewQuotations = (): boolean => {
         if (!user) return false;
         // Allow viewing if user has general sales view, specific quotation view permission, or is a Shop Staff
-        return hasPermission(PERMISSIONS.SALES_VIEW) || hasPermission(PERMISSIONS.QUOTATION_VIEW) || user.roleName === 'Shop Staff';
+        return hasPermission(PERMISSIONS.SALES_VIEW) || 
+               hasPermission(PERMISSIONS.QUOTATION_VIEW) || 
+               user.roleName?.toLowerCase() === 'shop staff';
     };
 
     // Check if user can create quotations

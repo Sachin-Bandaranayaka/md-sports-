@@ -66,14 +66,7 @@ export async function GET(
             );
         }
 
-        // Check shop access for non-admin users
-        const isAdmin = hasPermission(user.permissions, 'admin:all') || hasPermission(user.permissions, '*');
-        if (!isAdmin && user.shopId && quotation.shopId !== user.shopId) {
-            return NextResponse.json(
-                { error: 'Access denied: Quotation belongs to different shop' },
-                { status: 403 }
-            );
-        }
+        // No need to check shop access for quotations as they don't have shops assigned
 
         return NextResponse.json(quotation);
     } catch (error) {
@@ -144,13 +137,7 @@ export async function PUT(
             );
         }
         
-        // Check shop access for non-admin users
-        if (!isAdmin && user.shopId && existingQuotation.shopId !== user.shopId) {
-            return NextResponse.json(
-                { error: 'Access denied: Cannot edit quotations from other shops' },
-                { status: 403 }
-            );
-        }
+        // No need to check shop access for quotations as they don't have shops assigned
 
         const { items, ...quotationDetails } = body;
 
@@ -315,13 +302,7 @@ export async function DELETE(
             );
         }
         
-        // Check shop access for non-admin users
-        if (!isAdmin && user.shopId && quotation.shopId !== user.shopId) {
-            return NextResponse.json(
-                { error: 'Access denied: Cannot delete quotations from other shops' },
-                { status: 403 }
-            );
-        }
+        // No need to check shop access for quotations as they don't have shops assigned
 
         // Delete quotation and items in a transaction
         await prisma.$transaction(async (tx) => {

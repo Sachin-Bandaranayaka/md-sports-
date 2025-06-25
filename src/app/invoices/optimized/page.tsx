@@ -70,7 +70,7 @@ function InvoicePageContent() {
     const handleRefresh = useCallback(() => {
         refetch();
     }, [refetch]);
-
+    
     if (isLoading) {
         return (
             <div className="container mx-auto px-4 py-8">
@@ -137,14 +137,14 @@ function InvoicePageContent() {
             {/* Main Content */}
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        Invoices
-                        {invoices.length > 0 && (
-                            <Badge variant="secondary">
-                                {invoices.length} total
-                            </Badge>
-                        )}
-                    </CardTitle>
+                        <CardTitle className="flex items-center gap-2">
+                            Invoices
+                            {invoices.length > 0 && (
+                                <Badge variant="secondary">
+                                    {invoices.length} total
+                                </Badge>
+                            )}
+                        </CardTitle>
                 </CardHeader>
                 <CardContent>
                     {invoices.length === 0 ? (
@@ -164,7 +164,7 @@ function InvoicePageContent() {
                                             <p className="text-sm text-gray-500">
                                                 {new Date(invoice.createdAt).toLocaleDateString()}
                                             </p>
-                                        </div>
+                    </div>
                                         <div className="text-right">
                                             <p className="font-semibold">${invoice.total.toFixed(2)}</p>
                                             <Badge 
@@ -177,8 +177,8 @@ function InvoicePageContent() {
                                     </div>
                                 </div>
                             ))}
-                        </div>
-                    )}
+                            </div>
+                        )}
                 </CardContent>
             </Card>
         </div>

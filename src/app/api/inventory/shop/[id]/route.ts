@@ -27,7 +27,7 @@ export async function GET(
     }
 
     // Allow Shop Staff to view any shop's inventory for transfers
-    const isShopStaff = user.roleName === 'Shop Staff';
+    const isShopStaff = user.roleName?.toLowerCase() === 'shop staff';
 
     // Check if user has any inventory view permission
     const hasAllPermissions = user.permissions?.includes('ALL');

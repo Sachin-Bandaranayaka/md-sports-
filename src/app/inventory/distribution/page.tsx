@@ -41,7 +41,7 @@ interface Shop {
 
 export default function InventoryDistribution() {
     const router = useRouter();
-    const { hasPermission } = useAuth();
+    const { hasPermission, user } = useAuth();
     const [loading, setLoading] = useState(true);
     const [shopList, setShopList] = useState<Shop[]>([]);
     const [products, setProducts] = useState<ProductStock[]>([]);
@@ -53,6 +53,8 @@ export default function InventoryDistribution() {
     
     // Check if user can view cost data
     const canViewCosts = hasPermission('shop:view_costs');
+    // Check if user is Shop Staff
+    const isShopStaff = user?.roleName?.toLowerCase() === 'shop staff';
     const [error, setError] = useState<string | null>(null);
     const [showFilterPanel, setShowFilterPanel] = useState(false);
     const [viewMode, setViewMode] = useState<'product' | 'shop'>('product');
@@ -518,14 +520,16 @@ export default function InventoryDistribution() {
 
                                             {/* Actions */}
                                             <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => goToProductDetails(product.id)}
-                                                    className="text-black"
-                                                >
-                                                    View
-                                                </Button>
+                                                {!isShopStaff && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => goToProductDetails(product.id)}
+                                                        className="text-black"
+                                                    >
+                                                        View
+                                                    </Button>
+                                                )}
                                             </td>
                                         </tr>
                                     );
@@ -634,14 +638,16 @@ export default function InventoryDistribution() {
                                                                     </td>
                                                                 )}
                                                                 <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
-                                                                    <Button
-                                                                        variant="outline"
-                                                                        size="sm"
-                                                                        onClick={() => goToProductDetails(product.id)}
-                                                                        className="text-black"
-                                                                    >
-                                                                        View
-                                                                    </Button>
+                                                                    {!isShopStaff && (
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            onClick={() => goToProductDetails(product.id)}
+                                                                            className="text-black"
+                                                                        >
+                                                                            View
+                                                                        </Button>
+                                                                    )}
                                                                 </td>
                                                             </tr>
                                                         );

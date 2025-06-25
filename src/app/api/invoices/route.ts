@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { validateTokenPermission, getUserIdFromToken } from '@/lib/auth';
 import { revalidateTag } from 'next/cache';
-
+import prisma, { executeQuery } from '@/lib/prisma';
 
 import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
 import { measureAsync } from '@/lib/performance';
@@ -10,7 +9,29 @@ import { cacheService, CACHE_CONFIG } from '@/lib/cache';
 // Note: smsService import commented out as it may not be available
 // import { smsService } from '@/lib/sms';
 
-const prisma = new PrismaClient();
+// Helper function to retry on prepared statement errors
+async function retryOnPreparedStatementError<T>(queryFn: () => Promise<T>, maxRetries: number = 3): Promise<T> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            return await queryFn();
+        } catch (error: any) {
+            const isPreparedStatementError = 
+                error?.code === '26000' ||  // prepared statement does not exist
+                error?.code === '42P05' ||  // prepared statement already exists
+                error?.message?.includes('prepared statement') ||
+                error?.message?.includes('does not exist');
+            
+            if (isPreparedStatementError && attempt < maxRetries) {
+                console.log(`Prepared statement error detected (attempt ${attempt}/${maxRetries}), retrying...`);
+                // Wait a bit before retrying
+                await new Promise(resolve => setTimeout(resolve, 100 * attempt));
+                continue;
+            }
+            throw error;
+        }
+    }
+    throw new Error('Max retries exceeded');
+}
 const CACHE_DURATION = 60; // 60 seconds
 
 const ITEMS_PER_PAGE = 15;
@@ -375,14 +396,16 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
 
             // Credit limit validation for wholesale customers
             if (invoiceDetails.customerId) {
-                const customer = await prisma.customer.findUnique({
-                    where: { id: invoiceDetails.customerId },
-                    select: { 
-                        customerType: true, 
-                        creditLimit: true,
-                        name: true
-                    }
-                });
+                const customer = await retryOnPreparedStatementError(() => 
+                    prisma.customer.findUnique({
+                        where: { id: invoiceDetails.customerId },
+                        select: { 
+                            customerType: true, 
+                            creditLimit: true,
+                            name: true
+                        }
+                    })
+                );
 
                 if (customer && customer.customerType === 'wholesale' && customer.creditLimit) {
                     // Calculate total invoice amount
@@ -393,13 +416,15 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
                     }, 0);
 
                     // Get customer's current outstanding balance
-                    const outstandingInvoices = await prisma.invoice.aggregate({
-                        where: {
-                            customerId: invoiceDetails.customerId,
-                            status: { in: ['pending', 'overdue'] }
-                        },
-                        _sum: { total: true }
-                    });
+                    const outstandingInvoices = await retryOnPreparedStatementError(() =>
+                        prisma.invoice.aggregate({
+                            where: {
+                                customerId: invoiceDetails.customerId,
+                                status: { in: ['pending', 'overdue'] }
+                            },
+                            _sum: { total: true }
+                        })
+                    );
 
                     const currentBalance = outstandingInvoices._sum.total || 0;
                     const newTotalBalance = currentBalance + totalAmount;

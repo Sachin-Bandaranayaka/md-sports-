@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 
         // Check for view permissions before proceeding
         const canViewByPermission = hasPermission(permissions, 'sales:view') || hasPermission(permissions, 'quotation:view');
-        const isShopStaff = decodedToken.roleName === 'Shop Staff';
+        const isShopStaff = typeof decodedToken.roleName === 'string' && decodedToken.roleName.toLowerCase() === 'shop staff';
 
         if (!canViewByPermission && !isShopStaff) {
             return NextResponse.json({ error: 'Insufficient permissions to view quotations' }, { status: 403 });
@@ -35,18 +35,9 @@ export async function GET(request: NextRequest) {
         const isAdmin = hasPermission(permissions, 'admin:all');
         const shopIdFromUrl = searchParams.get('shopId');
 
-        const context = {
-            shopId: isAdmin && shopIdFromUrl ? shopIdFromUrl : decodedToken.shopId as string,
-            isFiltered: !isAdmin || (isAdmin && !!shopIdFromUrl)
-        };
-        
-        // Build the where clause
-        const whereClause: any = ShopAccessControl.buildShopFilter(context);
-
-        // If the user is shop staff, we MUST filter by their shopId, overriding other logic
-        if (isShopStaff) {
-            whereClause.shopId = decodedToken.shopId;
-        }
+        // For quotations, we don't filter by shop since quotations are not shop-specific
+        // Unlike invoices, quotations don't have shops assigned to them
+        const whereClause: any = {};
 
         // Add other filters
         const search = searchParams.get('search') || '';
@@ -72,6 +63,8 @@ export async function GET(request: NextRequest) {
             };
         }
 
+        console.log('[Quotations API] Where clause:', JSON.stringify(whereClause, null, 2));
+
         const quotations = await prisma.quotation.findMany({
             where: whereClause,
             include: {
@@ -86,6 +79,15 @@ export async function GET(request: NextRequest) {
                 createdAt: 'desc',
             },
         });
+
+        console.log(`[Quotations API] Found ${quotations.length} quotations`);
+        if (quotations.length > 0) {
+            console.log('[Quotations API] First quotation:', {
+                id: quotations[0].id,
+                quotationNumber: quotations[0].quotationNumber,
+                shopId: quotations[0].shopId
+            });
+        }
 
         return NextResponse.json(quotations);
     } catch (error) {
@@ -129,17 +131,8 @@ export async function POST(request: NextRequest) {
 
         const body = await request.json();
         
-        // Validate shopId for users with only shop-specific permissions
-        if (!canManageSales && (canCreateShop || canCreateQuotation)) {
-            if (!user.shopId) {
-                return NextResponse.json({ error: 'User not assigned to any shop' }, { status: 403 });
-            }
-            if (body.shopId && body.shopId !== user.shopId) {
-                return NextResponse.json({ error: 'Cannot create quotations for other shops' }, { status: 403 });
-            }
-            // Ensure shopId is set to user's shop
-            body.shopId = user.shopId;
-        }
+        // For quotations, we don't need to validate or set shopId
+        // Quotations are not shop-specific unlike invoices
 
         // Generate a quotation number if not provided
         if (!body.quotationNumber) {

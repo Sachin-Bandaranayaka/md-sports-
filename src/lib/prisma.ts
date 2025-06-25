@@ -16,7 +16,7 @@ const prismaOptions = {
     datasources: {
         db: {
             url: process.env.DATABASE_URL ? 
-                `${process.env.DATABASE_URL}?connection_limit=5&pool_timeout=20&connect_timeout=10&prepared_statement_cache_size=100&statement_timeout=10000&idle_in_transaction_session_timeout=10000&pgbouncer=true&application_name=mssports_prisma` :
+                `${process.env.DATABASE_URL}?connection_limit=5&pool_timeout=20&connect_timeout=10&prepared_statement_cache_size=0&statement_timeout=10000&idle_in_transaction_session_timeout=10000&pgbouncer=true&application_name=mssports_prisma` :
                 'postgresql://localhost:5432/mssport',
         },
     },
@@ -62,9 +62,11 @@ function createPrismaClient(): PrismaClient {
             } catch (error: any) {
                 // Check for prepared statement errors
                 const isPreparedStatementError = 
-                    error?.code === '42P05' ||
+                    error?.code === '42P05' ||  // prepared statement already exists
+                    error?.code === '26000' ||  // prepared statement does not exist
                     error?.message?.includes('prepared statement') ||
-                    error?.message?.includes('already exists');
+                    error?.message?.includes('already exists') ||
+                    error?.message?.includes('does not exist');
                 
                 if (isPreparedStatementError) {
                     console.log('Prepared statement conflict detected in middleware, retrying...');
@@ -110,10 +112,13 @@ export async function safeQuery<T>(queryFn: () => Promise<T>, fallback: T, logMe
             
             // Check for prepared statement errors
             const isPreparedStatementError = 
-                error?.code === '42P05' ||
+                error?.code === '42P05' ||  // prepared statement already exists
+                error?.code === '26000' ||  // prepared statement does not exist
                 error?.message?.includes('prepared statement') ||
                 error?.message?.includes('already exists') ||
-                error?.meta?.code === '42P05';
+                error?.message?.includes('does not exist') ||
+                error?.meta?.code === '42P05' ||
+                error?.meta?.code === '26000';
             
             if (isPreparedStatementError && attempt < maxRetries) {
                 console.log(`Detected prepared statement error on attempt ${attempt}, handling with middleware retry...`);
@@ -139,9 +144,11 @@ export async function executeQuery<T>(queryFn: () => Promise<T>): Promise<T> {
     } catch (error: any) {
         // Check for prepared statement errors
         const isPreparedStatementError = 
-            error?.code === '42P05' ||
+            error?.code === '42P05' ||  // prepared statement already exists
+            error?.code === '26000' ||  // prepared statement does not exist
             error?.message?.includes('prepared statement') ||
-            error?.message?.includes('already exists');
+            error?.message?.includes('already exists') ||
+            error?.message?.includes('does not exist');
         
         if (isPreparedStatementError) {
             console.log('Prepared statement conflict detected, attempting recovery...');
