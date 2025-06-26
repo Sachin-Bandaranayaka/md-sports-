@@ -1,6 +1,24 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
+// Helper function to transform transaction data for client consumption
+const transformTransactionForClient = (transaction: any): any => {
+    return {
+        id: transaction.id,
+        date: transaction.date,
+        description: transaction.description,
+        accountId: transaction.accountId,
+        accountName: transaction.account?.name || transaction.accountName,
+        toAccountId: transaction.toAccountId,
+        toAccountName: transaction.toAccount?.name || transaction.toAccountName,
+        type: transaction.type,
+        amount: Number(transaction.amount), // Convert Decimal to number
+        reference: transaction.reference,
+        category: transaction.category,
+        createdAt: transaction.createdAt
+    };
+};
+
 // GET: Fetch all transactions
 export async function GET(request: Request) {
     try {
@@ -45,25 +63,9 @@ export async function GET(request: Request) {
                 }, { status: 404 });
             }
 
-            // Format the response
-            const formattedTransaction = {
-                id: transaction.id,
-                date: transaction.date,
-                description: transaction.description,
-                accountId: transaction.accountId,
-                accountName: transaction.account.name,
-                toAccountId: transaction.toAccountId,
-                toAccountName: transaction.toAccount?.name,
-                type: transaction.type,
-                amount: transaction.amount,
-                reference: transaction.reference,
-                category: transaction.category,
-                createdAt: transaction.createdAt
-            };
-
             return NextResponse.json({
                 success: true,
-                data: formattedTransaction
+                data: transformTransactionForClient(transaction)
             });
         }
 
@@ -87,25 +89,9 @@ export async function GET(request: Request) {
             }
         });
 
-        // Format the response
-        const formattedTransactions = transactions.map(transaction => ({
-            id: transaction.id,
-            date: transaction.date,
-            description: transaction.description,
-            accountId: transaction.accountId,
-            accountName: transaction.account.name,
-            toAccountId: transaction.toAccountId,
-            toAccountName: transaction.toAccount?.name,
-            type: transaction.type,
-            amount: transaction.amount,
-            reference: transaction.reference,
-            category: transaction.category,
-            createdAt: transaction.createdAt
-        }));
-
         return NextResponse.json({
             success: true,
-            data: formattedTransactions
+            data: transactions.map(transformTransactionForClient)
         });
     } catch (error) {
         console.error('Error fetching transactions:', error);
@@ -225,7 +211,7 @@ export async function POST(request: Request) {
         return NextResponse.json({
             success: true,
             message: 'Transaction created successfully',
-            data: result
+            data: transformTransactionForClient(result)
         }, { status: 201 });
     } catch (error) {
         console.error('Error creating transaction:', error);
@@ -489,7 +475,7 @@ export async function PATCH(request: Request) {
         return NextResponse.json({
             success: true,
             message: 'Transaction updated successfully',
-            data: result
+            data: transformTransactionForClient(result)
         });
     } catch (error) {
         console.error('Error updating transaction:', error);

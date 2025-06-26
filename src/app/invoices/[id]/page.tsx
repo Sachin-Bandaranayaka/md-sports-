@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Printer, ArrowLeft, Edit, Trash2, CheckCircle, Clock, AlertTriangle, Download, Bell, Receipt } from 'lucide-react';
+import { Printer, ArrowLeft, Download, Bell, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 import { formatCurrency } from '@/utils/formatters';
 import { generateInvoicePDF } from '@/utils/pdfGenerator';
@@ -364,17 +364,6 @@ export default function InvoiceDetail() {
                             Print
                         </Button>
 
-                        {canManageInvoices() && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => router.push(`/invoices/edit/${invoice.id}`)}
-                            >
-                                <Edit className="w-4 h-4 mr-2" />
-                                Edit
-                            </Button>
-                        )}
-
                         <Button
                             variant="outline"
                             size="sm"
@@ -384,57 +373,6 @@ export default function InvoiceDetail() {
                             <Bell className="w-4 h-4 mr-2" />
                             {isSendingSms ? 'Sending...' : 'Send SMS'}
                         </Button>
-
-                        {invoice.status.toLowerCase() === 'pending' && (
-                            <Button
-                                variant="primary"
-                                size="sm"
-                                onClick={() => router.push(`/receipts/confirm/${invoice.id}`)}
-                            >
-                                <Receipt className="w-4 h-4 mr-2" />
-                                Confirm Receipt
-                            </Button>
-                        )}
-
-                        {invoice.status.toLowerCase() !== 'paid' && (
-                            <Button
-                                variant="primary"
-                                size="sm"
-                                onClick={() => router.push(`/payments/new?invoiceId=${invoice.id}`)}
-                            >
-                                Record Payment
-                            </Button>
-                        )}
-
-                        {canManageInvoices() && (
-                            confirmDelete ? (
-                                <>
-                                    <Button
-                                        variant="destructive"
-                                        size="sm"
-                                        onClick={handleDeleteInvoice}
-                                    >
-                                        Confirm Delete
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setConfirmDelete(false)}
-                                    >
-                                        Cancel
-                                    </Button>
-                                </>
-                            ) : (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setConfirmDelete(true)}
-                                >
-                                    <Trash2 className="w-4 h-4 mr-2" />
-                                    Delete
-                                </Button>
-                            )
-                        )}
 
                         <Button
                             variant="primary"

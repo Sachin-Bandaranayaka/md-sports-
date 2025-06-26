@@ -2,6 +2,16 @@ import { NextResponse, NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import { validateTokenPermission, getUserIdFromToken } from '@/lib/auth';
 
+// Helper function to transform account data for client consumption
+const transformAccountForClient = (account: any): any => {
+    return {
+        ...account,
+        balance: Number(account.balance), // Convert Decimal to number
+        parent: account.parent ? transformAccountForClient(account.parent) : null,
+        subAccounts: account.subAccounts ? account.subAccounts.map(transformAccountForClient) : []
+    };
+};
+
 // GET: Fetch all accounts or a single account by ID
 export async function GET(request: NextRequest) {
     try {
@@ -70,7 +80,7 @@ export async function GET(request: NextRequest) {
 
             return NextResponse.json({
                 success: true,
-                data: account
+                data: transformAccountForClient(account)
             });
         }
 
@@ -100,7 +110,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            data: accounts
+            data: accounts.map(transformAccountForClient)
         });
     } catch (error) {
         console.error('Error fetching accounts:', error);
@@ -175,7 +185,7 @@ export async function POST(request: Request) {
         return NextResponse.json({
             success: true,
             message: 'Account created successfully',
-            data: newAccount
+            data: transformAccountForClient(newAccount)
         }, { status: 201 });
     } catch (error) {
         console.error('Error creating account:', error);
@@ -274,7 +284,7 @@ export async function PATCH(request: Request) {
         return NextResponse.json({
             success: true,
             message: 'Account updated successfully',
-            data: updatedAccount
+            data: transformAccountForClient(updatedAccount)
         });
     } catch (error) {
         console.error('Error updating account:', error);

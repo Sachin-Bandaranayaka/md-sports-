@@ -288,37 +288,46 @@ export default function AccountDetails({ params }: { params: { id: string } }) {
                                                     {transaction.category}
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`flex items-center space-x-1 ${transaction.type === 'income'
-                                                        ? 'text-green-600'
-                                                        : transaction.type === 'expense'
-                                                            ? 'text-red-600'
-                                                            : transaction.type === 'withdrawal'
-                                                                ? 'text-orange-600'
-                                                                : 'text-purple-600'
-                                                        }`}>
-                                                        {transaction.type === 'income' ? (
-                                                            <ArrowUp className="w-4 h-4" />
-                                                        ) : transaction.type === 'expense' ? (
-                                                            <ArrowDown className="w-4 h-4" />
-                                                        ) : transaction.type === 'withdrawal' ? (
+                                                    <span className={`flex items-center space-x-1 ${
+                                                        transaction.type === 'income' || 
+                                                        (transaction.type === 'transfer' && transaction.toAccountId === parseInt(id))
+                                                            ? 'text-green-600'
+                                                            : transaction.type === 'expense'
+                                                                ? 'text-red-600'
+                                                                : transaction.type === 'withdrawal'
+                                                                    ? 'text-orange-600'
+                                                                    : 'text-red-600' // outgoing transfer
+                                                    }`}>
+                                                        {transaction.type === 'income' || 
+                                                         (transaction.type === 'transfer' && transaction.toAccountId === parseInt(id)) ? (
                                                             <ArrowUp className="w-4 h-4" />
                                                         ) : (
-                                                            <ArrowUp className="w-4 h-4" />
+                                                            <ArrowDown className="w-4 h-4" />
                                                         )}
                                                         <span>
-                                                            {transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}
+                                                            {transaction.type === 'transfer' 
+                                                                ? (transaction.toAccountId === parseInt(id) ? 'Transfer In' : 'Transfer Out')
+                                                                : transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)
+                                                            }
                                                         </span>
                                                     </span>
                                                 </td>
-                                                <td className={`px-6 py-4 font-medium ${transaction.type === 'income'
-                                                    ? 'text-green-600'
-                                                    : transaction.type === 'expense'
-                                                        ? 'text-red-600'
-                                                        : transaction.type === 'withdrawal'
-                                                            ? 'text-orange-600'
-                                                            : 'text-purple-600'
+                                                <td className={`px-6 py-4 font-medium ${
+                                                    transaction.type === 'income' || 
+                                                    (transaction.type === 'transfer' && transaction.toAccountId === parseInt(id))
+                                                        ? 'text-green-600'
+                                                        : 'text-red-600'
                                                     }`}>
-                                                    {transaction.type === 'income' ? '+' : '-'} Rs. {Number(transaction.amount).toLocaleString()}
+                                                    {/* Determine sign based on transaction type and account role */}
+                                                    {(() => {
+                                                        if (transaction.type === 'income') return '+';
+                                                        if (transaction.type === 'transfer') {
+                                                            // If this account is the destination (toAccountId), it's incoming (+)
+                                                            // If this account is the source (accountId), it's outgoing (-)
+                                                            return transaction.toAccountId === parseInt(id) ? '+' : '-';
+                                                        }
+                                                        return '-'; // expense, withdrawal
+                                                    })()} Rs. {Number(transaction.amount).toLocaleString()}
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <Button

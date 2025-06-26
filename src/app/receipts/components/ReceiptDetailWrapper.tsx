@@ -59,6 +59,69 @@ export default function ReceiptDetailWrapper({ receipt: initialReceipt }: Receip
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // Helper function to format date for input
+    const formatDateForInput = (date: string | Date): string => {
+        if (!date) return '';
+        
+        // If it's already a string, check if it's in ISO format
+        if (typeof date === 'string') {
+            // If it includes 'T', it's likely an ISO string
+            if (date.includes('T')) {
+                return date.substring(0, 10);
+            }
+            // Otherwise, assume it's already in YYYY-MM-DD format
+            return date;
+        }
+        
+        // If it's a Date object, convert to YYYY-MM-DD
+        if (date instanceof Date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        
+        // Fallback: try to parse it as a date
+        try {
+            const parsedDate = new Date(date);
+            const year = parsedDate.getFullYear();
+            const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
+            const day = String(parsedDate.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        } catch {
+            return '';
+        }
+    };
+
+    // Helper function to format address
+    const formatAddress = (address: string | null): string => {
+        if (!address) return 'N/A';
+        
+        // Try to parse as JSON
+        try {
+            const parsedAddress = JSON.parse(address);
+            const parts = [];
+            
+            if (parsedAddress.mainAddress && parsedAddress.mainAddress.trim()) {
+                parts.push(parsedAddress.mainAddress);
+            }
+            if (parsedAddress.city && parsedAddress.city.trim()) {
+                parts.push(parsedAddress.city);
+            }
+            if (parsedAddress.postalCode && parsedAddress.postalCode.trim()) {
+                parts.push(parsedAddress.postalCode);
+            }
+            if (parsedAddress.contactPerson && parsedAddress.contactPerson.trim()) {
+                parts.push(`Contact: ${parsedAddress.contactPerson}`);
+            }
+            
+            return parts.length > 0 ? parts.join(', ') : 'N/A';
+        } catch {
+            // If not JSON, return as is
+            return address.trim() || 'N/A';
+        }
+    };
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setReceipt((prev) => ({
@@ -210,7 +273,7 @@ export default function ReceiptDetailWrapper({ receipt: initialReceipt }: Receip
                                     <Input
                                         type="date"
                                         name="receiptDate"
-                                        value={receipt.receiptDate.substring(0, 10)}
+                                        value={formatDateForInput(receipt.receiptDate)}
                                         onChange={handleInputChange}
                                         className="w-full"
                                     />
@@ -385,7 +448,7 @@ export default function ReceiptDetailWrapper({ receipt: initialReceipt }: Receip
                                         <MapPin className="w-4 h-4" />
                                         Address
                                     </label>
-                                    <p className="text-gray-900">{receipt.payment.customer.address}</p>
+                                    <p className="text-gray-900">{formatAddress(receipt.payment.customer.address)}</p>
                                 </div>
                             )}
                         </div>
