@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -58,6 +58,51 @@ export default function ReceiptDetailWrapper({ receipt: initialReceipt }: Receip
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    
+    // New state for dropdowns
+    const [accounts, setAccounts] = useState<any[]>([]);
+    const [loadingAccounts, setLoadingAccounts] = useState(false);
+
+    // Payment method options
+    const paymentMethodOptions = ['Cash', 'Card', 'Bank Transfer', 'Cheque', 'Other'];
+
+    // Fetch accounts when editing starts
+    useEffect(() => {
+        if (isEditing && accounts.length === 0) {
+            fetchAccounts();
+        }
+    }, [isEditing]);
+
+    const fetchAccounts = async () => {
+        setLoadingAccounts(true);
+        try {
+            const response = await fetch('/api/accounting/accounts', {
+                credentials: 'include',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('accessToken') || localStorage.getItem('authToken')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch accounts');
+            }
+
+            const data = await response.json();
+            if (data.success) {
+                // Filter for asset and income accounts only
+                const filteredAccounts = data.data.filter((account: any) => 
+                    account.isActive && (account.type === 'asset' || account.type === 'income')
+                );
+                setAccounts(filteredAccounts);
+            }
+        } catch (error) {
+            console.error('Error fetching accounts:', error);
+            setError('Failed to load accounts for selection');
+        } finally {
+            setLoadingAccounts(false);
+        }
+    };
 
     // Helper function to format date for input
     const formatDateForInput = (date: string | Date): string => {
@@ -81,16 +126,7 @@ export default function ReceiptDetailWrapper({ receipt: initialReceipt }: Receip
             return `${year}-${month}-${day}`;
         }
         
-        // Fallback: try to parse it as a date
-        try {
-            const parsedDate = new Date(date);
-            const year = parsedDate.getFullYear();
-            const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
-            const day = String(parsedDate.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        } catch {
-            return '';
-        }
+        return '';
     };
 
     // Helper function to format address
@@ -117,17 +153,38 @@ export default function ReceiptDetailWrapper({ receipt: initialReceipt }: Receip
             
             return parts.length > 0 ? parts.join(', ') : 'N/A';
         } catch {
-            // If not JSON, return as is
-            return address.trim() || 'N/A';
+            // If not JSON, return as-is
+            return address;
         }
     };
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    // Handle input changes for editable fields only
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setReceipt((prev) => ({
-            ...prev,
-            [name]: value
-        }));
+        
+        if (name === 'notes') {
+            setReceipt(prev => ({ ...prev, notes: value }));
+        } else if (name === 'paymentMethod') {
+            setReceipt(prev => ({
+                ...prev,
+                payment: {
+                    ...prev.payment,
+                    paymentMethod: value
+                }
+            }));
+        } else if (name === 'accountId') {
+            const selectedAccount = accounts.find(acc => acc.id.toString() === value);
+            setReceipt(prev => ({
+                ...prev,
+                payment: {
+                    ...prev.payment,
+                    account: selectedAccount ? {
+                        id: selectedAccount.id,
+                        name: selectedAccount.name
+                    } : null
+                }
+            }));
+        }
     };
 
     const handleSave = async () => {
@@ -135,45 +192,51 @@ export default function ReceiptDetailWrapper({ receipt: initialReceipt }: Receip
         setError(null);
 
         try {
+            const updateData = {
+                notes: receipt.notes,
+                paymentMethod: receipt.payment.paymentMethod,
+                accountId: receipt.payment.account?.id
+            };
+
             const response = await fetch(`/api/receipts/${receipt.id}`, {
-                method: 'PUT',
+                method: 'PATCH',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('accessToken') || localStorage.getItem('authToken')}`
                 },
-                body: JSON.stringify({
-                    receiptDate: receipt.receiptDate,
-                    bankName: receipt.bankName,
-                    accountNumber: receipt.accountNumber,
-                    chequeNumber: receipt.chequeNumber,
-                    transactionId: receipt.transactionId,
-                    notes: receipt.notes
-                })
+                credentials: 'include',
+                body: JSON.stringify(updateData)
             });
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to update receipt');
+                throw new Error(errorData.message || 'Failed to update receipt');
             }
 
             const updatedReceipt = await response.json();
-            setReceipt(updatedReceipt);
-            setIsEditing(false);
-        } catch (err) {
-            console.error('Error updating receipt:', err);
-            setError(err instanceof Error ? err.message : 'An error occurred while updating the receipt');
+            
+            if (updatedReceipt.success) {
+                setReceipt(updatedReceipt.data);
+                setIsEditing(false);
+                // Show success message or redirect if needed
+            } else {
+                throw new Error(updatedReceipt.message || 'Failed to update receipt');
+            }
+        } catch (error) {
+            console.error('Error saving receipt:', error);
+            setError(error instanceof Error ? error.message : 'An error occurred while saving');
         } finally {
             setIsSaving(false);
         }
     };
 
     const cancelEdit = () => {
-        setReceipt(initialReceipt);
         setIsEditing(false);
+        setReceipt(initialReceipt); // Reset to original data
         setError(null);
     };
 
     const handlePrintView = () => {
-        // Open the printable version in a new tab
         window.open(`/receipts/${receipt.id}/print`, '_blank');
     };
 
@@ -269,17 +332,7 @@ export default function ReceiptDetailWrapper({ receipt: initialReceipt }: Receip
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Receipt Date
                                 </label>
-                                {isEditing ? (
-                                    <Input
-                                        type="date"
-                                        name="receiptDate"
-                                        value={formatDateForInput(receipt.receiptDate)}
-                                        onChange={handleInputChange}
-                                        className="w-full"
-                                    />
-                                ) : (
-                                    <p className="text-lg font-semibold text-gray-900">{formatDate(receipt.receiptDate)}</p>
-                                )}
+                                <p className="text-lg font-semibold text-gray-900">{formatDate(receipt.receiptDate)}</p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -307,13 +360,44 @@ export default function ReceiptDetailWrapper({ receipt: initialReceipt }: Receip
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Payment Method
                                 </label>
-                                <p className="text-gray-900 font-medium">{receipt.payment.paymentMethod}</p>
+                                {isEditing ? (
+                                    <select
+                                        name="paymentMethod"
+                                        value={receipt.payment.paymentMethod}
+                                        onChange={handleInputChange}
+                                        className="w-full"
+                                    >
+                                        {paymentMethodOptions.map((method) => (
+                                            <option key={method} value={method}>
+                                                {method}
+                                            </option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    <p className="text-gray-900 font-medium">{receipt.payment.paymentMethod}</p>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Account
                                 </label>
-                                <p className="text-gray-900 font-medium">{receipt.payment.account?.name || 'N/A'}</p>
+                                {isEditing ? (
+                                    <select
+                                        name="accountId"
+                                        value={receipt.payment.account?.id.toString() || ''}
+                                        onChange={handleInputChange}
+                                        className="w-full"
+                                    >
+                                        <option value="">Select an account</option>
+                                        {accounts.map((account) => (
+                                            <option key={account.id} value={account.id.toString()}>
+                                                {account.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    <p className="text-gray-900 font-medium">{receipt.payment.account?.name || 'N/A'}</p>
+                                )}
                             </div>
                             {receipt.payment.referenceNumber && (
                                 <div>
@@ -327,65 +411,25 @@ export default function ReceiptDetailWrapper({ receipt: initialReceipt }: Receip
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Bank Name
                                 </label>
-                                {isEditing ? (
-                                    <Input
-                                        type="text"
-                                        name="bankName"
-                                        value={receipt.bankName || ''}
-                                        onChange={handleInputChange}
-                                        placeholder="Enter bank name"
-                                    />
-                                ) : (
-                                    <p className="text-gray-900 font-medium">{receipt.bankName || 'N/A'}</p>
-                                )}
+                                <p className="text-gray-900 font-medium">{receipt.bankName || 'N/A'}</p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Account Number
                                 </label>
-                                {isEditing ? (
-                                    <Input
-                                        type="text"
-                                        name="accountNumber"
-                                        value={receipt.accountNumber || ''}
-                                        onChange={handleInputChange}
-                                        placeholder="Enter account number"
-                                    />
-                                ) : (
-                                    <p className="text-gray-900 font-medium">{receipt.accountNumber || 'N/A'}</p>
-                                )}
+                                <p className="text-gray-900 font-medium">{receipt.accountNumber || 'N/A'}</p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Cheque Number
                                 </label>
-                                {isEditing ? (
-                                    <Input
-                                        type="text"
-                                        name="chequeNumber"
-                                        value={receipt.chequeNumber || ''}
-                                        onChange={handleInputChange}
-                                        placeholder="Enter cheque number"
-                                    />
-                                ) : (
-                                    <p className="text-gray-900 font-medium">{receipt.chequeNumber || 'N/A'}</p>
-                                )}
+                                <p className="text-gray-900 font-medium">{receipt.chequeNumber || 'N/A'}</p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Transaction ID
                                 </label>
-                                {isEditing ? (
-                                    <Input
-                                        type="text"
-                                        name="transactionId"
-                                        value={receipt.transactionId || ''}
-                                        onChange={handleInputChange}
-                                        placeholder="Enter transaction ID"
-                                    />
-                                ) : (
-                                    <p className="text-gray-900 font-medium">{receipt.transactionId || 'N/A'}</p>
-                                )}
+                                <p className="text-gray-900 font-medium">{receipt.transactionId || 'N/A'}</p>
                             </div>
                         </div>
                     </div>

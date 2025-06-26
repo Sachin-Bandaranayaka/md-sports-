@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { AuditService } from '@/services/auditService';
+import { auditService } from '@/services/auditService';
 import { verifyToken } from '@/lib/auth';
 
 // Get a single receipt by ID
@@ -225,7 +225,6 @@ export async function DELETE(
         });
 
         // Log the deletion to the audit trail
-        const auditService = new AuditService();
         await auditService.softDelete(
             'Receipt',
             id,
@@ -239,6 +238,209 @@ export async function DELETE(
         console.error('Error deleting receipt:', error);
         return NextResponse.json(
             { error: 'Failed to delete receipt' },
+            { status: 500 }
+        );
+    }
+}
+
+// Update specific receipt fields (PATCH method for partial updates)
+export async function PATCH(
+    request: Request,
+    { params }: { params: { id: string } }
+) {
+    try {
+        const id = parseInt(params.id);
+
+        if (isNaN(id)) {
+            return NextResponse.json(
+                { success: false, message: 'Invalid receipt ID' },
+                { status: 400 }
+            );
+        }
+
+        const { notes, paymentMethod, accountId } = await request.json();
+
+        // Check if receipt exists
+        const existingReceipt = await prisma.receipt.findUnique({
+            where: { id },
+            include: { 
+                payment: {
+                    include: {
+                        account: true,
+                        customer: true,
+                        invoice: true
+                    }
+                }
+            }
+        });
+
+        if (!existingReceipt) {
+            return NextResponse.json(
+                { success: false, message: 'Receipt not found' },
+                { status: 404 }
+            );
+        }
+
+        // Get user ID from token for audit logging
+        const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+        let userId = 1; // Default system user ID
+        
+        if (token) {
+            try {
+                const decoded = await verifyToken(token);
+                if (decoded && decoded.userId) {
+                    userId = decoded.userId;
+                }
+            } catch (error) {
+                console.warn('Invalid token for audit logging, using default user ID');
+            }
+        }
+
+        // Perform updates in a transaction
+        const result = await prisma.$transaction(async (tx) => {
+            // Update the receipt notes
+            const updatedReceipt = await tx.receipt.update({
+                where: { id },
+                data: {
+                    ...(notes !== undefined && { notes })
+                }
+            });
+
+            // Update payment method and account if provided
+            let updatedPayment = existingReceipt.payment;
+            if (paymentMethod !== undefined || accountId !== undefined) {
+                const paymentUpdateData: any = {};
+                
+                if (paymentMethod !== undefined) {
+                    paymentUpdateData.paymentMethod = paymentMethod;
+                }
+                
+                if (accountId !== undefined) {
+                    // Validate the new account exists
+                    const newAccount = await tx.account.findUnique({
+                        where: { id: parseInt(accountId.toString()) }
+                    });
+                    
+                    if (!newAccount) {
+                        throw new Error('Selected account not found');
+                    }
+                    
+                    paymentUpdateData.accountId = parseInt(accountId.toString());
+                    
+                    // If account is changing, we need to adjust balances
+                    if (existingReceipt.payment.accountId !== parseInt(accountId.toString())) {
+                        const paymentAmount = existingReceipt.payment.amount;
+                        
+                        // Remove amount from old account
+                        if (existingReceipt.payment.accountId) {
+                            await tx.account.update({
+                                where: { id: existingReceipt.payment.accountId },
+                                data: {
+                                    balance: {
+                                        decrement: paymentAmount
+                                    }
+                                }
+                            });
+                        }
+                        
+                        // Add amount to new account
+                        await tx.account.update({
+                            where: { id: parseInt(accountId.toString()) },
+                            data: {
+                                balance: {
+                                    increment: paymentAmount
+                                }
+                            }
+                        });
+                        
+                        // Update the accounting transaction
+                        const whereClause: any = {
+                            reference: existingReceipt.receiptNumber,
+                            type: 'income'
+                        };
+                        
+                        if (existingReceipt.payment.accountId !== null) {
+                            whereClause.accountId = existingReceipt.payment.accountId;
+                        }
+                        
+                        const relatedTransaction = await tx.transaction.findFirst({
+                            where: whereClause
+                        });
+                        
+                        if (relatedTransaction && existingReceipt.payment.customer && existingReceipt.payment.invoice) {
+                            await tx.transaction.update({
+                                where: { id: relatedTransaction.id },
+                                data: {
+                                    accountId: parseInt(accountId.toString()),
+                                    description: `Payment received from ${existingReceipt.payment.customer.name} - Invoice ${existingReceipt.payment.invoice.invoiceNumber} (Account Updated)`
+                                }
+                            });
+                        }
+                    }
+                }
+                
+                updatedPayment = await tx.payment.update({
+                    where: { id: existingReceipt.paymentId },
+                    data: paymentUpdateData,
+                    include: {
+                        account: true,
+                        customer: true,
+                        invoice: true
+                    }
+                });
+            }
+
+            // Log the update in audit trail
+            await auditService.logAction({
+                action: 'UPDATE',
+                entity: 'Receipt',
+                entityId: id,
+                details: {
+                    receiptNumber: existingReceipt.receiptNumber,
+                    changes: {
+                        notes: notes !== undefined ? { old: existingReceipt.notes, new: notes } : undefined,
+                        paymentMethod: paymentMethod !== undefined ? { old: existingReceipt.payment.paymentMethod, new: paymentMethod } : undefined,
+                        accountId: accountId !== undefined ? { 
+                            old: existingReceipt.payment.accountId, 
+                            new: parseInt(accountId.toString()),
+                            oldAccountName: existingReceipt.payment.account?.name,
+                            newAccountName: accountId !== undefined ? (await tx.account.findUnique({ where: { id: parseInt(accountId.toString()) } }))?.name : undefined
+                        } : undefined
+                    }
+                },
+                userId
+            });
+
+            return {
+                ...updatedReceipt,
+                payment: updatedPayment
+            };
+        });
+
+        // Fetch the complete updated receipt with all relations
+        const completeReceipt = await prisma.receipt.findUnique({
+            where: { id },
+            include: {
+                payment: {
+                    include: {
+                        customer: true,
+                        invoice: true,
+                        account: true
+                    }
+                },
+                confirmedByUser: true
+            }
+        });
+
+        return NextResponse.json({
+            success: true,
+            message: 'Receipt updated successfully',
+            data: completeReceipt
+        });
+    } catch (error) {
+        console.error('Error updating receipt:', error);
+        return NextResponse.json(
+            { success: false, message: error instanceof Error ? error.message : 'Failed to update receipt' },
             { status: 500 }
         );
     }
