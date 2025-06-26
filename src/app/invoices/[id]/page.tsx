@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Printer, ArrowLeft, Download, Bell, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import { Printer, ArrowLeft, Download, Bell, CheckCircle, Clock, AlertTriangle, DollarSign } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 import { formatCurrency } from '@/utils/formatters';
 import { generateInvoicePDF } from '@/utils/pdfGenerator';
@@ -373,6 +373,18 @@ export default function InvoiceDetail() {
                             <Bell className="w-4 h-4 mr-2" />
                             {isSendingSms ? 'Sending...' : 'Send SMS'}
                         </Button>
+
+                        {/* Only show Record Payment button for unpaid invoices */}
+                        {(invoice.status.toLowerCase() === 'pending' || invoice.status.toLowerCase() === 'partial') && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => router.push(`/payments/simple?invoiceId=${invoice.id}`)}
+                            >
+                                <DollarSign className="w-4 h-4 mr-2" />
+                                Record Payment
+                            </Button>
+                        )}
 
                         <Button
                             variant="primary"
