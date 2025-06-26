@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { Search, Plus, Edit, Trash, FileText, ExternalLink } from 'lucide-react';
+import { Search, Plus, Edit, Trash, FileText, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
 import { SalesQuotation } from '@/types';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { usePermission } from '@/hooks/usePermission';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -36,12 +36,27 @@ const getExpiryCountdown = (expiryDate?: string): string => {
 
 export default function Quotations() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { isLoading: authLoading } = useAuth();
     const { canViewQuotations, canCreateQuotations, canEditQuotations } = usePermission();
     const [quotations, setQuotations] = useState<SalesQuotation[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+
+    // Initialize URL parameters
+    useEffect(() => {
+        const page = parseInt(searchParams.get('page') || '1', 10);
+        const search = searchParams.get('search') || '';
+        
+        setCurrentPage(page);
+        setSearchTerm(search);
+    }, [searchParams]);
 
     // Fetch quotations from API
     useEffect(() => {
@@ -60,8 +75,17 @@ export default function Quotations() {
             try {
                 setLoading(true);
 
-                // Fetch quotations
-                const quotationsResponse = await fetch('/api/quotations', {
+                // Build query parameters
+                const queryParams = new URLSearchParams();
+                queryParams.set('page', currentPage.toString());
+                queryParams.set('limit', '15');
+                
+                if (searchTerm.trim()) {
+                    queryParams.set('search', searchTerm.trim());
+                }
+
+                // Fetch quotations with pagination
+                const quotationsResponse = await fetch(`/api/quotations?${queryParams.toString()}`, {
                     credentials: 'include',
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('accessToken') || localStorage.getItem('authToken')}`,
@@ -73,9 +97,19 @@ export default function Quotations() {
                 if (!quotationsResponse.ok) {
                     throw new Error('Failed to fetch quotations');
                 }
-                const apiQuotations = await quotationsResponse.json();
-                console.log('[Quotations Page] API Response:', apiQuotations);
-                console.log('[Quotations Page] Number of quotations:', apiQuotations.length);
+                
+                const apiResponse = await quotationsResponse.json();
+                console.log('[Quotations Page] API Response:', apiResponse);
+
+                // Handle new API response format with pagination
+                const apiQuotations = apiResponse.quotations || apiResponse; // Fallback for backward compatibility
+                const pagination = apiResponse.pagination;
+
+                if (pagination) {
+                    setTotalPages(pagination.totalPages);
+                    setTotalCount(pagination.totalCount);
+                    console.log(`[Quotations Page] Pagination: page ${pagination.page} of ${pagination.totalPages}, total ${pagination.totalCount}`);
+                }
 
                 // Transform API data to match SalesQuotation frontend type
                 const transformedQuotations = apiQuotations.map((q: any) => ({
@@ -100,14 +134,40 @@ export default function Quotations() {
         };
 
         fetchData();
-    }, [authLoading]); // Only depend on authLoading, not canViewQuotations
+    }, [authLoading, currentPage, searchTerm]); // Depend on pagination and search state
 
-    // Filter quotations based on search term
-    const filteredQuotations = quotations.filter((quotation) =>
-        quotation.quotationNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (quotation.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        quotation.status?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Pagination handlers
+    const handlePageChange = (newPage: number) => {
+        if (newPage < 1 || newPage > totalPages) return;
+        
+        setCurrentPage(newPage);
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('page', newPage.toString());
+        router.push(`/quotations?${params.toString()}`);
+    };
+
+    const handleSearchChange = (value: string) => {
+        setSearchTerm(value);
+    };
+
+    // Debounced search effect
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            const params = new URLSearchParams();
+            if (searchTerm.trim()) {
+                params.set('search', searchTerm.trim());
+            }
+            params.set('page', '1'); // Reset to first page on new search
+            
+            // Only update URL if search term has actually changed
+            const currentSearch = searchParams.get('search') || '';
+            if (currentSearch !== searchTerm.trim()) {
+                router.push(`/quotations?${params.toString()}`);
+            }
+        }, 500);
+
+        return () => clearTimeout(timeoutId);
+    }, [searchTerm, router, searchParams]);
 
     const handleAddQuotation = () => {
         router.push('/quotations/create');
@@ -238,7 +298,7 @@ export default function Quotations() {
                             className="bg-white border border-gray-300 text-black text-sm rounded-lg focus:ring-primary focus:border-primary block w-full pl-10 p-2.5"
                             placeholder="Search quotations by number, customer or status..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => handleSearchChange(e.target.value)}
                         />
                     </div>
                 </div>
@@ -267,7 +327,7 @@ export default function Quotations() {
                 {/* Quotations table */}
                 {!loading && !error && (
                     <>
-                        {filteredQuotations.length === 0 ? (
+                        {quotations.length === 0 ? (
                             <div className="text-center py-8 bg-tertiary rounded-lg">
                                 <FileText className="mx-auto h-12 w-12 text-black opacity-40" />
                                 <h3 className="mt-2 text-lg font-medium text-black">No quotations found</h3>
@@ -306,7 +366,7 @@ export default function Quotations() {
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
-                                        {filteredQuotations.map((quotation) => (
+                                        {quotations.map((quotation: SalesQuotation) => (
                                             <tr key={quotation.id} className="hover:bg-gray-50">
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex items-center">
@@ -384,6 +444,69 @@ export default function Quotations() {
                                         ))}
                                     </tbody>
                                 </table>
+                            </div>
+                        )}
+
+                        {/* Pagination Controls */}
+                        {totalPages > 1 && !loading && (
+                            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                <div className="flex items-center text-sm text-gray-700">
+                                    <span>
+                                        Showing {((currentPage - 1) * 15) + 1} to {Math.min(currentPage * 15, totalCount)} of {totalCount} quotations
+                                    </span>
+                                </div>
+                                
+                                <div className="flex items-center space-x-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handlePageChange(currentPage - 1)}
+                                        disabled={currentPage === 1}
+                                        className="flex items-center"
+                                    >
+                                        <ChevronLeft className="w-4 h-4 mr-1" />
+                                        Previous
+                                    </Button>
+                                    
+                                    {/* Page Numbers */}
+                                    <div className="flex items-center space-x-1">
+                                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                            let pageNum;
+                                            if (totalPages <= 5) {
+                                                pageNum = i + 1;
+                                            } else if (currentPage <= 3) {
+                                                pageNum = i + 1;
+                                            } else if (currentPage >= totalPages - 2) {
+                                                pageNum = totalPages - 4 + i;
+                                            } else {
+                                                pageNum = currentPage - 2 + i;
+                                            }
+                                            
+                                            return (
+                                                <Button
+                                                    key={pageNum}
+                                                    variant={currentPage === pageNum ? "primary" : "outline"}
+                                                    size="sm"
+                                                    onClick={() => handlePageChange(pageNum)}
+                                                    className="min-w-[40px]"
+                                                >
+                                                    {pageNum}
+                                                </Button>
+                                            );
+                                        })}
+                                    </div>
+                                    
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handlePageChange(currentPage + 1)}
+                                        disabled={currentPage === totalPages}
+                                        className="flex items-center"
+                                    >
+                                        Next
+                                        <ChevronRight className="w-4 h-4 ml-1" />
+                                    </Button>
+                                </div>
                             </div>
                         )}
                     </>

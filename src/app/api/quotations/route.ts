@@ -7,7 +7,7 @@ import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
 
 type QuotationWhereInput = Prisma.QuotationWhereInput;
 
-// GET /api/quotations - Get all quotations
+// GET /api/quotations - Get quotations with pagination
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
@@ -34,6 +34,11 @@ export async function GET(request: NextRequest) {
 
         const isAdmin = hasPermission(permissions, 'admin:all');
         const shopIdFromUrl = searchParams.get('shopId');
+
+        // Pagination parameters
+        const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+        const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '15', 10))); // Max 50 items per page
+        const skip = (page - 1) * limit;
 
         // For quotations, we don't filter by shop since quotations are not shop-specific
         // Unlike invoices, quotations don't have shops assigned to them
@@ -65,6 +70,12 @@ export async function GET(request: NextRequest) {
 
         console.log('[Quotations API] Where clause:', JSON.stringify(whereClause, null, 2));
 
+        // Get total count for pagination
+        const totalCount = await prisma.quotation.count({
+            where: whereClause,
+        });
+
+        // Get paginated quotations
         const quotations = await prisma.quotation.findMany({
             where: whereClause,
             include: {
@@ -78,9 +89,11 @@ export async function GET(request: NextRequest) {
             orderBy: {
                 createdAt: 'desc',
             },
+            skip,
+            take: limit,
         });
 
-        console.log(`[Quotations API] Found ${quotations.length} quotations`);
+        console.log(`[Quotations API] Found ${quotations.length} quotations (page ${page} of ${Math.ceil(totalCount / limit)})`);
         if (quotations.length > 0) {
             console.log('[Quotations API] First quotation:', {
                 id: quotations[0].id,
@@ -89,7 +102,17 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        return NextResponse.json(quotations);
+        return NextResponse.json({
+            quotations,
+            pagination: {
+                page,
+                limit,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                hasNext: page < Math.ceil(totalCount / limit),
+                hasPrev: page > 1
+            }
+        });
     } catch (error) {
         console.error('Failed to fetch quotations:', error);
         return NextResponse.json({ error: 'Failed to fetch quotations' }, { status: 500 });

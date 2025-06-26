@@ -320,8 +320,8 @@ export default function CreateQuotation() {
     // Update totals based on items
     const updateTotals = (currentItems: Partial<QuotationItem>[]) => {
         const subtotal = currentItems.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
-        const discount = Number(formData.discount) || 0;
-        const total = subtotal - discount;
+        const discount = parseFloat(String(formData.discount)) || 0;
+        const total = Math.round((subtotal - discount) * 100) / 100; // Round to 2 decimal places
 
         setFormData(prev => ({
             ...prev,

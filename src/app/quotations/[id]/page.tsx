@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { ArrowLeft, Edit, Download, Calendar, User, FileText, Printer } from 'lucide-react';
+import { ArrowLeft, Download, Calendar, User, FileText, Printer } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 import QuotationTemplate from '@/components/templates/QuotationTemplate';
 import { SalesQuotation } from '@/types';
@@ -120,16 +120,6 @@ export default function ViewQuotation() {
                     <div className="bg-tertiary p-6 rounded-lg shadow-sm border border-gray-200">
                         {/* Action buttons */}
                         <div className="flex flex-wrap gap-2 mb-6">
-                            {canEditQuotations() && (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => router.push(`/quotations/${quotationId}/edit`)}
-                                >
-                                    <Edit className="w-4 h-4 mr-2" />
-                                    Edit
-                                </Button>
-                            )}
                             <Button
                                 variant="outline"
                                 size="sm"
@@ -164,11 +154,11 @@ export default function ViewQuotation() {
                                     unitPrice: item.price || 0,
                                     total: item.total || 0
                                 })),
-                                subtotal: quotation.total || 0,
-                                discount: 0,
-                                tax: 0,
+                                subtotal: quotation.subtotal || 0,
+                                discount: quotation.discount || 0,
+                                tax: quotation.tax || 0,
                                 total: quotation.total || 0,
-                                notes: '',
+                                notes: quotation.notes || '',
                                 termsAndConditions: 'Thank you for your business. This quotation is valid for 30 days from the issue date.'
                             }}
                         />
@@ -197,11 +187,11 @@ export default function ViewQuotation() {
                                     unitPrice: item.price || 0,
                                     total: item.total || 0
                                 })),
-                                subtotal: quotation.total || 0,
-                                discount: 0,
-                                tax: 0,
+                                subtotal: quotation.subtotal || 0,
+                                discount: quotation.discount || 0,
+                                tax: quotation.tax || 0,
                                 total: quotation.total || 0,
-                                notes: '',
+                                notes: quotation.notes || '',
                                 termsAndConditions: 'Thank you for your business. This quotation is valid for 30 days from the issue date.'
                             }}
                         />

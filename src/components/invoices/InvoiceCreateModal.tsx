@@ -539,7 +539,18 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
         }
         
         if (!validateForm()) {
+            isSubmittingRef.current = false;
             return;
+        }
+        
+        // Final credit limit check for wholesale customers
+        if (selectedCustomer && selectedCustomer.customerType === 'wholesale' && selectedCustomer.creditLimit) {
+            const finalTotal = formData.items.reduce((sum, item) => sum + item.total, 0);
+            if (finalTotal > selectedCustomer.creditLimit) {
+                alert(`The total invoice amount of LKR ${finalTotal.toLocaleString()} exceeds the customer's credit limit of LKR ${selectedCustomer.creditLimit.toLocaleString()}. Please remove some items or reduce quantities.`);
+                isSubmittingRef.current = false;
+                return;
+            }
         }
 
         setSubmitting(true);
@@ -548,7 +559,7 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
             console.log('Form data shopId type:', typeof formData.shopId);
             console.log('Form data shopId length:', formData.shopId?.length);
             
-            const invoiceData = {
+            const invoiceData: any = {
                 invoiceNumber: currentInvoiceNumber,
                 invoiceDate: formData.invoiceDate,
                 dueDate: formData.dueDate,
@@ -947,9 +958,9 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                                             {item.showProductDropdown && (
                                 <div className="fixed bg-white border border-gray-300 rounded-md shadow-lg z-[99999] max-h-48 overflow-y-auto min-w-[300px]" 
                                      style={{
-                                         top: itemProductDropdownRefs[item.id]?.current?.getBoundingClientRect().bottom + window.scrollY + 'px',
-                                         left: itemProductDropdownRefs[item.id]?.current?.getBoundingClientRect().left + window.scrollX + 'px',
-                                         width: itemProductDropdownRefs[item.id]?.current?.getBoundingClientRect().width + 'px'
+                                         top: (itemProductDropdownRefs[item.id]?.current?.getBoundingClientRect()?.bottom || 0) + window.scrollY + 'px',
+                                         left: (itemProductDropdownRefs[item.id]?.current?.getBoundingClientRect()?.left || 0) + window.scrollX + 'px',
+                                         width: (itemProductDropdownRefs[item.id]?.current?.getBoundingClientRect()?.width || 0) + 'px'
                                      }}>
                                                     {filteredProducts
                                                         .filter(product => 

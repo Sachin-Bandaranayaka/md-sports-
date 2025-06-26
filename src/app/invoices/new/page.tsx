@@ -425,9 +425,7 @@ export default function CreateInvoice() {
         if (selectedCustomer && selectedCustomer.customerType === 'wholesale' && selectedCustomer.creditLimit) {
             const finalTotal = formData.items.reduce((sum, item) => sum + item.total, 0);
             if (finalTotal > selectedCustomer.creditLimit) {
-                alert(`The total invoice amount of ${finalTotal} exceeds the customer\'s credit limit of ${selectedCustomer.creditLimit}. Please remove items or save as draft.`);
-                // Optionally, allow saving as draft or prevent submission entirely
-                // For now, we prevent submission by returning.
+                alert(`The total invoice amount of Rs. ${finalTotal.toLocaleString()} exceeds the customer\'s credit limit of Rs. ${selectedCustomer.creditLimit.toLocaleString()}. Please remove items or reduce quantities.`);
                 return;
             }
         }
@@ -480,7 +478,11 @@ export default function CreateInvoice() {
             router.refresh();
         } catch (error) {
             console.error('Error creating invoice:', error);
-            alert('Failed to create invoice. Please try again.');
+            if (error instanceof Error) {
+                alert(error.message);
+            } else {
+                alert('Failed to create invoice. Please try again.');
+            }
         } finally {
             setIsSubmitting(false);
         }

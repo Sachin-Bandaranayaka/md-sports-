@@ -117,7 +117,8 @@ export default function EditQuotation() {
                     ...quotationData,
                     date: quotationData.createdAt ? new Date(quotationData.createdAt).toISOString().split('T')[0] : quotationData.date,
                     expiryDate: quotationData.validUntil ? new Date(quotationData.validUntil).toISOString().split('T')[0] : quotationData.expiryDate,
-                    customerName: quotationData.customer?.name || quotationData.customerName
+                    customerName: quotationData.customer?.name || quotationData.customerName,
+                    discount: quotationData.discount || 0  // Ensure discount is properly loaded
                 };
                 setFormData(transformedData);
                 
@@ -309,8 +310,8 @@ export default function EditQuotation() {
     // Update totals based on items
     const updateTotals = (currentItems: Partial<QuotationItem>[]) => {
         const subtotal = currentItems.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
-        const discount = Number(formData.discount) || 0;
-        const total = subtotal - discount;
+        const discount = parseFloat(String(formData.discount)) || 0;
+        const total = Math.round((subtotal - discount) * 100) / 100; // Round to 2 decimal places
 
         setFormData(prev => ({
             ...prev,

@@ -16,6 +16,8 @@ interface Customer {
     address?: string | null;
     paymentType?: string | null;
     creditPeriod?: number | null;
+    customerType?: 'wholesale' | 'retail';
+    creditLimit?: number | null;
 }
 
 // Interface for Product in dropdown
@@ -90,14 +92,14 @@ interface ApiInvoice {
 export default function EditInvoice() {
     const router = useRouter();
     const params = useParams();
-    const { canEditInvoices } = usePermission();
+    const { canManageInvoices } = usePermission();
 
     // Redirect if user doesn't have edit permissions
     useEffect(() => {
-        if (!canEditInvoices()) {
+        if (!canManageInvoices()) {
             router.push('/invoices');
         }
-    }, [canEditInvoices, router]);
+    }, [canManageInvoices, router]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [customers, setCustomers] = useState<Customer[]>([]);
@@ -205,7 +207,22 @@ export default function EditInvoice() {
                     items
                 });
 
-                setSelectedCustomer(invoiceData.customer);
+                // Ensure we have customer type and credit limit
+                const customerWithDetails = invoiceData.customer;
+                if (!customerWithDetails.customerType || customerWithDetails.creditLimit === undefined) {
+                    // Fetch full customer details
+                    try {
+                        const customerResponse = await fetch(`/api/customers/${invoiceData.customerId}`);
+                        if (customerResponse.ok) {
+                            const fullCustomerData = await customerResponse.json();
+                            customerWithDetails.customerType = fullCustomerData.customerType;
+                            customerWithDetails.creditLimit = fullCustomerData.creditLimit;
+                        }
+                    } catch (error) {
+                        console.error('Error fetching full customer details:', error);
+                    }
+                }
+                setSelectedCustomer(customerWithDetails);
             } catch (error) {
                 console.error('Error fetching invoice:', error);
                 alert('Failed to load invoice data. Please try again.');
@@ -419,6 +436,15 @@ export default function EditInvoice() {
         const costPrice = currentProductCost;       // Cost for the new item
         const itemTotal = sellingPrice * quantity;
 
+        // Check credit limit for wholesale customers
+        if (selectedCustomer && selectedCustomer.customerType === 'wholesale' && selectedCustomer.creditLimit) {
+            const currentTotal = formData.items.reduce((sum, item) => sum + item.total, 0);
+            if (currentTotal + itemTotal > selectedCustomer.creditLimit) {
+                alert(`Adding this item would exceed the customer's credit limit of Rs. ${selectedCustomer.creditLimit.toLocaleString()}. Current total: Rs. ${currentTotal.toLocaleString()}`);
+                return;
+            }
+        }
+
         const newItem: InvoiceItem = {
             id: Date.now().toString(), // Temporary ID for UI
             productId: selectedProduct.id,
@@ -495,6 +521,16 @@ export default function EditInvoice() {
     // Handle form submission
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        // Final credit limit check for wholesale customers
+        if (selectedCustomer && selectedCustomer.customerType === 'wholesale' && selectedCustomer.creditLimit) {
+            const finalTotal = formData.items.reduce((sum, item) => sum + item.total, 0);
+            if (finalTotal > selectedCustomer.creditLimit) {
+                alert(`The total invoice amount of Rs. ${finalTotal.toLocaleString()} exceeds the customer's credit limit of Rs. ${selectedCustomer.creditLimit.toLocaleString()}. Please remove some items or reduce quantities.`);
+                return;
+            }
+        }
+        
         setIsSubmitting(true);
 
         try {
@@ -532,7 +568,7 @@ export default function EditInvoice() {
             if (!response.ok) {
                 const errorData = await response.json();
                 console.error('API error response:', errorData);
-                throw new Error(errorData.error || 'Failed to update invoice');
+                throw new Error(errorData.error || errorData.message || 'Failed to update invoice');
             }
 
             // Redirect to invoice detail page
@@ -540,7 +576,11 @@ export default function EditInvoice() {
             router.refresh();
         } catch (error) {
             console.error('Error updating invoice:', error);
-            alert('Failed to update invoice. Please try again.');
+            if (error instanceof Error) {
+                alert(error.message);
+            } else {
+                alert('Failed to update invoice. Please try again.');
+            }
         } finally {
             setIsSubmitting(false);
         }

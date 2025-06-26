@@ -458,15 +458,7 @@ function AccountingContent() {
                                                     >
                                                         <Edit className="w-4 h-4" />
                                                     </button>
-                                                    {!account.parentId && (
-                                                        <button
-                                                            className="text-purple-500 hover:text-purple-700"
-                                                            title="Add Sub-Account"
-                                                            onClick={() => handleAddSubAccount(String(account.id))}
-                                                        >
-                                                            <Plus className="w-4 h-4" />
-                                                        </button>
-                                                    )}
+
                                                     <button
                                                         className={`${account.isActive ? 'text-orange-500 hover:text-orange-700' : 'text-green-500 hover:text-green-700'}`}
                                                         title={account.isActive ? 'Deactivate' : 'Activate'}
