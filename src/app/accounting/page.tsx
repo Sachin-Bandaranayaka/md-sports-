@@ -89,8 +89,8 @@ function AccountingContent() {
         return matchesSearch && matchesType && matchesStartDate && matchesEndDate;
     });
 
-    // Filter accounts based on search term and tab type
-    const filteredAccounts = accounts.filter((account) => {
+    // Filter accounts based on search term and tab type, then organize hierarchically
+    const filteredAccountsFlat = accounts.filter((account) => {
         const matchesSearch = account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             account.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (account.description && account.description.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -102,7 +102,34 @@ function AccountingContent() {
         return matchesSearch && matchesTabType;
     });
 
+    // Organize accounts hierarchically - parents first, then their children
+    const organizeAccountsHierarchically = (accounts: Account[]) => {
+        const parentAccounts = accounts.filter(account => !account.parentId);
+        const childAccounts = accounts.filter(account => account.parentId);
+        
+        const organizedAccounts: Account[] = [];
+        
+        // For each parent account, add it and then its children
+        parentAccounts.forEach(parent => {
+            organizedAccounts.push(parent);
+            // Find and add children of this parent
+            const children = childAccounts.filter(child => child.parentId === parent.id);
+            children.forEach(child => {
+                organizedAccounts.push(child);
+            });
+        });
+        
+        // Add any orphaned child accounts (in case parent is filtered out)
+        childAccounts.forEach(child => {
+            if (!organizedAccounts.includes(child)) {
+                organizedAccounts.push(child);
+            }
+        });
+        
+        return organizedAccounts;
+    };
 
+    const filteredAccounts = organizeAccountsHierarchically(filteredAccountsFlat);
 
     const handleAddTransaction = () => {
         router.push('/accounting/add-transaction');
@@ -146,7 +173,8 @@ function AccountingContent() {
                     type: account.type,
                     balance: account.balance,
                     description: account.description,
-                    isActive: newStatus
+                    isActive: newStatus,
+                    parentId: account.parentId
                 });
 
                 if (!response.ok) {
@@ -356,16 +384,20 @@ function AccountingContent() {
                                     filteredAccounts.map((account) => (
                                         <tr
                                             key={account.id}
-                                            className="border-b hover:bg-gray-50"
+                                            className={`border-b hover:bg-gray-50 ${
+                                                account.parentId ? 'bg-gray-25' : ''
+                                            }`}
                                         >
                                             <td className="px-6 py-4 font-medium text-gray-900">
-                                                <div className="flex items-center">
+                                                <div className={`flex items-center ${account.parentId ? 'pl-6' : ''}`}>
                                                     {account.parentId && (
                                                         <span className="mr-2 text-gray-400">└─</span>
                                                     )}
                                                     <span
                                                         onClick={() => router.push(`/accounting/account/${account.id}`)}
-                                                        className="hover:underline hover:text-blue-600 cursor-pointer"
+                                                        className={`hover:underline hover:text-blue-600 cursor-pointer ${
+                                                            account.parentId ? 'text-gray-700 text-sm' : 'text-gray-900 font-medium'
+                                                        }`}
                                                     >
                                                         {account.name}
                                                     </span>

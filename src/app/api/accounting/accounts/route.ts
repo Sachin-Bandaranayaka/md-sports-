@@ -273,7 +273,7 @@ export async function PATCH(request: Request) {
                 balance: newBalance,
                 description,
                 isActive: isActive !== undefined ? isActive : existingAccount.isActive,
-                parentId: parentId ? parseInt(parentId, 10) : null
+                parentId: parentId !== undefined ? (parentId ? parseInt(parentId, 10) : null) : existingAccount.parentId
             },
             include: {
                 parent: true,

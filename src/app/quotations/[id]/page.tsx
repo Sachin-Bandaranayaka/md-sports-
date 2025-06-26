@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
-import { ArrowLeft, Edit, Copy, Download, Calendar, User, FileText, Printer } from 'lucide-react';
+import { ArrowLeft, Edit, Download, Calendar, User, FileText, Printer } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 import QuotationTemplate from '@/components/templates/QuotationTemplate';
 import { SalesQuotation } from '@/types';
@@ -70,39 +70,7 @@ export default function ViewQuotation() {
         fetchData();
     }, [quotationId]);
 
-    const handleDuplicateQuotation = async () => {
-        if (!quotation) return;
 
-        try {
-            // Create a copy of the quotation without the id and with a new date
-            const { id: _id, quotationNumber: _quotationNumber, createdAt: _createdAt, updatedAt: _updatedAt, ...quotationData } = quotation;
-
-            const duplicatedQuotation = {
-                ...quotationData,
-                date: new Date().toISOString().split('T')[0],
-                expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-            };
-
-            const response = await fetch('/api/quotations', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(duplicatedQuotation)
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to duplicate quotation');
-            }
-
-            const newQuotation = await response.json();
-            router.push(`/quotations/${newQuotation.id}`);
-            alert('Quotation duplicated successfully!');
-        } catch (err) {
-            console.error('Error duplicating quotation:', err);
-            alert('Failed to duplicate quotation. Please try again.');
-        }
-    };
 
     const handlePrintQuotation = useReactToPrint({
         contentRef: printRef,
@@ -162,14 +130,6 @@ export default function ViewQuotation() {
                                     Edit
                                 </Button>
                             )}
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleDuplicateQuotation}
-                            >
-                                <Copy className="w-4 h-4 mr-2" />
-                                Duplicate
-                            </Button>
                             <Button
                                 variant="outline"
                                 size="sm"

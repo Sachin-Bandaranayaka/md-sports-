@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
-import { ArrowLeft, Printer, Edit, Save, X, FileText, User, CreditCard, Calendar, Hash, Building, Phone, Mail, MapPin } from 'lucide-react';
+import { ArrowLeft, Edit, Save, X, FileText, User, CreditCard, Calendar, Hash, Building, Phone, Mail, MapPin } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/utils/formatters';
 
 interface ReceiptData {
@@ -236,9 +236,7 @@ export default function ReceiptDetailWrapper({ receipt: initialReceipt }: Receip
         setError(null);
     };
 
-    const handlePrintView = () => {
-        window.open(`/receipts/${receipt.id}/print`, '_blank');
-    };
+
 
     return (
         <div className="max-w-4xl mx-auto space-y-6">
@@ -263,24 +261,14 @@ export default function ReceiptDetailWrapper({ receipt: initialReceipt }: Receip
                         Back to Receipts
                     </Button>
                     {!isEditing && (
-                        <>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handlePrintView}
-                            >
-                                <Printer className="w-4 h-4 mr-2" />
-                                Print Receipt
-                            </Button>
-                            <Button
-                                variant="primary"
-                                size="sm"
-                                onClick={() => setIsEditing(true)}
-                            >
-                                <Edit className="w-4 h-4 mr-2" />
-                                Edit
-                            </Button>
-                        </>
+                        <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => setIsEditing(true)}
+                        >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Edit
+                        </Button>
                     )}
                     {isEditing && (
                         <>
