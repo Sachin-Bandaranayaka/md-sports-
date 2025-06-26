@@ -7,6 +7,7 @@ import { Search, Plus, Edit, Trash, FileText, ExternalLink } from 'lucide-react'
 import { SalesQuotation } from '@/types';
 import { useRouter } from 'next/navigation';
 import { usePermission } from '@/hooks/usePermission';
+import { useAuth } from '@/hooks/useAuth';
 
 const getExpiryCountdown = (expiryDate?: string): string => {
     if (!expiryDate) {
@@ -35,6 +36,7 @@ const getExpiryCountdown = (expiryDate?: string): string => {
 
 export default function Quotations() {
     const router = useRouter();
+    const { isLoading: authLoading } = useAuth();
     const { canViewQuotations, canCreateQuotations, canEditQuotations } = usePermission();
     const [quotations, setQuotations] = useState<SalesQuotation[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -43,6 +45,11 @@ export default function Quotations() {
 
     // Fetch quotations from API
     useEffect(() => {
+        // Wait for auth to load before checking permissions
+        if (authLoading) {
+            return;
+        }
+
         // No need to fetch if the user can't view quotations anyway
         if (!canViewQuotations()) {
             setLoading(false);
@@ -54,7 +61,13 @@ export default function Quotations() {
                 setLoading(true);
 
                 // Fetch quotations
-                const quotationsResponse = await fetch('/api/quotations');
+                const quotationsResponse = await fetch('/api/quotations', {
+                    credentials: 'include',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('accessToken') || localStorage.getItem('authToken')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
                 console.log('[Quotations Page] API Response status:', quotationsResponse.status);
                 
                 if (!quotationsResponse.ok) {
@@ -87,7 +100,7 @@ export default function Quotations() {
         };
 
         fetchData();
-    }, []);
+    }, [authLoading]); // Only depend on authLoading, not canViewQuotations
 
     // Filter quotations based on search term
     const filteredQuotations = quotations.filter((quotation) =>
@@ -122,8 +135,10 @@ export default function Quotations() {
             const response = await fetch('/api/quotations', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('accessToken') || localStorage.getItem('authToken')}`
                 },
+                credentials: 'include',
                 body: JSON.stringify(duplicatedQuotation)
             });
 
@@ -145,7 +160,12 @@ export default function Quotations() {
         if (confirm('Are you sure you want to delete this quotation? This action cannot be undone.')) {
             try {
                 const response = await fetch(`/api/quotations/${id}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    credentials: 'include',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('accessToken') || localStorage.getItem('authToken')}`,
+                        'Content-Type': 'application/json'
+                    }
                 });
 
                 if (!response.ok) {
@@ -161,6 +181,20 @@ export default function Quotations() {
     };
 
     // Check if user has permission to view quotations AFTER all hooks have been called
+    // Show loading while auth is still loading
+    if (authLoading) {
+        return (
+            <MainLayout>
+                <div className="p-6">
+                    <div className="text-center py-12">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+                        <p className="text-gray-600">Loading...</p>
+                    </div>
+                </div>
+            </MainLayout>
+        );
+    }
+
     if (!canViewQuotations()) {
         return (
             <MainLayout>
