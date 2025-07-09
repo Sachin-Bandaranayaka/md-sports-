@@ -47,8 +47,9 @@ export async function GET(request: NextRequest) {
       );
       return NextResponse.json({ items: history, total: history.length });
     } else {
-      // Get all audit entries (implement if needed)
-      return NextResponse.json({ items: [], total: 0 });
+      // Get all audit entries
+      const result = await auditService.getAuditEntries(entity, limit, offset);
+      return NextResponse.json(result);
     }
   } catch (error) {
     console.error('Error fetching audit trail:', error);

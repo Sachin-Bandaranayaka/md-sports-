@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Search, X, Loader2, Trash2 } from 'lucide-react';
+import { Search, Filter, Plus, X, Loader2, Trash2, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, History as HistoryIcon } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { authDelete, authFetch } from '@/utils/api';
 import AddInventoryModal from '@/components/inventory/AddInventoryModal';
@@ -801,7 +801,7 @@ export default function InventoryClientWrapper({
                                         className="rounded border-gray-300 text-primary focus:ring-primary"
                                     />
                                 </th>
-                                <th className="px-6 py-3">SKU</th>
+                                <th className="px-6 py-3 text-center" title="Product History">Histry</th>
                                 <th className="px-6 py-3">Product Name</th>
                                 <th className="px-6 py-3">Category</th>
                                 <th className="px-6 py-3">Stock</th>
@@ -832,8 +832,18 @@ export default function InventoryClientWrapper({
                                                 className="rounded border-gray-300 text-primary focus:ring-primary"
                                             />
                                         </td>
-                                        <td className="px-6 py-4 font-medium text-primary">
-                                            {item.sku}
+                                        <td className="px-6 py-4 text-center">
+                                            <button
+                                                type="button"
+                                                title="View History"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    router.push(`/inventory/${item.id}?tab=history`);
+                                                }}
+                                                className="text-primary hover:text-primary/80"
+                                            >
+                                                <HistoryIcon className="w-5 h-5" />
+                                            </button>
                                         </td>
                                         <td className="px-6 py-4">{item.name}</td>
                                         <td className="px-6 py-4">{item.category}</td>

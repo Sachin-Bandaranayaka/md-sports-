@@ -13,6 +13,7 @@ interface Customer {
     email?: string | null;
     phone?: string | null;
     address?: string | null;
+    due?: number;
     customerType: 'wholesale' | 'retail';
     creditLimit?: number | null;
     creditPeriod?: number | null;
@@ -715,7 +716,7 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due</th>
                                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Credit Limit / Period</th>
                                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Purchase</th>
                                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice Status</th>
@@ -750,7 +751,7 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                                         </span>
                                     </td>
                                     <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">{customer.phone || 'N/A'}</td>
-                                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">{customer.address || 'N/A'}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">{`Rs ${new Intl.NumberFormat('en-US').format(customer.due ?? 0)}`}</td>
                                     <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">
                                         {customer.customerType.toLowerCase() === 'wholesale' && customer.creditLimit !== undefined && customer.creditLimit !== null ? (
                                             <div>

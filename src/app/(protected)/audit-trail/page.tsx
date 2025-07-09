@@ -52,9 +52,9 @@ interface RecycleBinItem {
   entityId: number;
   originalData: any;
   deletedAt: string;
-  deletedBy: number;
+  deletedBy: string;
   deletedByUser?: {
-    id: number;
+    id: string;
     name: string;
     email: string;
   };
