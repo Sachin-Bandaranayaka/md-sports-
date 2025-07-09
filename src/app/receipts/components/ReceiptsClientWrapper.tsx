@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Eye, Edit, Search, ArrowUpDown, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
@@ -66,6 +66,16 @@ export default function ReceiptsClientWrapper({
     const [selectedReceipts, setSelectedReceipts] = useState<number[]>([]);
     const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
     const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
+
+    // Sync local state when props change (e.g., after search or pagination)
+    useEffect(() => {
+        setReceipts(initialReceipts);
+        setTotalPages(initialTotalPages);
+        setCurrentPage(initialCurrentPage);
+        setSearchQuery(initialSearch);
+        // Clear selection when data changes
+        setSelectedReceipts([]);
+    }, [initialReceipts, initialTotalPages, initialCurrentPage, initialSearch]);
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();

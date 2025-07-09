@@ -27,7 +27,7 @@ const ComponentSkeleton = ({ className = "h-64" }: { className?: string }) => (
 
 // Simple dashboard without dual modes or complex optimizations
 export default function DashboardPage() {
-    const { user, isLoading, isAuthenticated } = useAuth();
+    const { user, isLoading, isAuthenticated, accessToken } = useAuth();
     const router = useRouter();
     const { canViewDashboard } = usePermission();
     const [dashboardData, setDashboardData] = useState<{ recentTransfers: any[] } | null>(null);
@@ -80,8 +80,6 @@ export default function DashboardPage() {
             setDataLoading(true);
             setError(null);
 
-            const accessToken = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
-            
             const fetchHeaders: HeadersInit = {
                 'Content-Type': 'application/json',
             };
@@ -133,6 +131,18 @@ export default function DashboardPage() {
 
     // Initial data fetch
     useEffect(() => {
+        // Debug logging
+        console.log('Dashboard - Auth state:', { 
+            isAuthenticated, 
+            user: user ? {
+                id: user.id,
+                username: user.username,
+                roleName: user.roleName,
+                permissions: user.permissions
+            } : null,
+            canViewDashboard: canViewDashboard() 
+        });
+
         if (isAuthenticated && canViewDashboard()) {
             fetchDashboardData();
         } else if (isAuthenticated) {

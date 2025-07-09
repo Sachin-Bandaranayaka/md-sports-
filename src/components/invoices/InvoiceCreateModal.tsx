@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Plus, Trash2, Save, X } from 'lucide-react';
 // Removed framer-motion for better performance and simplicity
 import { useDebounce } from '@/hooks/useDebounce';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Customer {
     id: number;
@@ -78,6 +79,7 @@ interface InvoiceCreateModalProps {
     products: Product[];
     shops: Shop[];
     isLoading?: boolean;
+    onCustomersUpdate?: (customers: Customer[]) => void;
 }
 
 const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
@@ -89,8 +91,10 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
     customers = [],
     products = [],
     shops = [],
-    isLoading = false
+    isLoading = false,
+    onCustomersUpdate
 }) => {
+    const { accessToken } = useAuth();
     const [formData, setFormData] = useState<InvoiceFormData>({
         customerId: 0,
         customerName: '',
@@ -110,6 +114,11 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
     const [submitting, setSubmitting] = useState(false);
     const isSubmittingRef = useRef(false);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+    
+    // Debug: Track selectedCustomer changes
+    useEffect(() => {
+        console.log('selectedCustomer state changed to:', selectedCustomer);
+    }, [selectedCustomer]);
     const [customerSearch, setCustomerSearch] = useState('');
     const [productSearch, setProductSearch] = useState('');
     const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
@@ -134,6 +143,7 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
         creditPeriod: 0
     });
     const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
+    const [localCustomers, setLocalCustomers] = useState<Customer[]>(customers);
 
     // Generate invoice number function
     const generateInvoiceNumber = useCallback(() => {
@@ -159,6 +169,14 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
             }));
         }
     }, [isOpen, generateInvoiceNumber]);
+
+    // Initialize local customers from props only once
+    useEffect(() => {
+        if (customers.length > 0 && localCustomers.length === 0) {
+            console.log('Loading initial customers:', customers);
+            setLocalCustomers(customers);
+        }
+    }, [customers]);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -205,7 +223,7 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
     }, [formData.items]);
 
     const handleCustomerSelect = useCallback((customerId: string) => {
-        const customer = customers.find(c => c && c.id != null && c.id.toString() === customerId);
+        const customer = localCustomers.find(c => c && c.id != null && c.id.toString() === customerId);
         if (customer) {
             setSelectedCustomer(customer);
             
@@ -230,7 +248,7 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
             setShowCustomerDropdown(false);
         }
         setErrors(prev => ({ ...prev, customerId: '' }));
-    }, [customers, formData.invoiceDate]);
+    }, [localCustomers, formData.invoiceDate]);
 
     const handleAddLineItem = () => {
         if (!selectedProduct || quantity <= 0) {
@@ -367,14 +385,25 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
             });
 
             if (response.ok) {
-                const newCustomer = await response.json();
-                // Add to customers list and select it
+                const apiResponse = await response.json();
+                console.log('API response:', apiResponse);
+                
+                // Extract the actual customer data from the API response
+                const newCustomer = apiResponse.data || apiResponse;
+                console.log('Extracted customer data:', newCustomer);
+                
+                // Add to local customers list and select it immediately
+                const updatedCustomers = [...localCustomers, newCustomer];
+                setLocalCustomers(updatedCustomers);
                 setSelectedCustomer(newCustomer);
                 setFormData(prev => ({
                     ...prev,
                     customerId: newCustomer.id,
                     customerName: newCustomer.name
                 }));
+                
+                console.log('Selected customer set to:', newCustomer);
+                console.log('Form data updated with customer:', { id: newCustomer.id, name: newCustomer.name });
                 
                 // Reset quick customer form
                 setQuickCustomerData({
@@ -387,7 +416,12 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                 });
                 setShowQuickCustomerModal(false);
                 
-                // Notify parent component about the new customer
+                // Update parent's customers list if callback is provided
+                if (onCustomersUpdate) {
+                    onCustomersUpdate(updatedCustomers);
+                }
+                
+                // Notify parent component to update customers list (do this last to avoid state conflicts)
                 if (onCustomerCreated) {
                     onCustomerCreated(newCustomer);
                 }
@@ -435,7 +469,7 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
 
     // Memoized filtered customers based on debounced search
     const filteredCustomers = useMemo(() => {
-        const validCustomers = customers.filter(customer => customer && customer.id != null);
+        const validCustomers = localCustomers.filter(customer => customer && customer.id != null);
         
         if (!debouncedCustomerSearch.trim()) return validCustomers.slice(0, 50); // Limit initial results
         
@@ -445,7 +479,25 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
             customer.phone?.toLowerCase().includes(searchTerm) ||
             customer.address?.toLowerCase().includes(searchTerm)
         ).slice(0, 50); // Limit search results for performance
-    }, [customers, debouncedCustomerSearch]);
+    }, [localCustomers, debouncedCustomerSearch]);
+
+    // Enhanced search function that supports multiple words in any order
+    const enhancedProductSearch = useCallback((products: Product[], searchTerm: string) => {
+        if (!searchTerm.trim()) return products;
+        
+        // Enhanced search - supports multiple words in any order
+        const searchWords = searchTerm.toLowerCase().trim().split(/\s+/);
+        
+        return products.filter(product => {
+            const productName = product.name.toLowerCase();
+            const productSku = (product.sku || '').toLowerCase();
+            
+            // Each word must appear somewhere in the product name or SKU
+            return searchWords.every(word => 
+                productName.includes(word) || productSku.includes(word)
+            );
+        });
+    }, []);
 
     // Memoized filtered products based on debounced search and selected shop
     const filteredProducts = useMemo(() => {
@@ -456,21 +508,22 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
         let shopFilteredProducts = safeProducts;
         if (formData.shopId) {
             shopFilteredProducts = safeProducts.filter(product => {
-                if (!product.inventoryItems || !Array.isArray(product.inventoryItems)) return false;
+                if (!product.inventoryItems || !Array.isArray(product.inventoryItems)) {
+                    // If no inventory items, show product but with warning
+                    return true;
+                }
                 return product.inventoryItems.some(inv => 
                     inv.shopId === formData.shopId && inv.quantity > 0
                 );
             });
         }
         
-        if (!debouncedProductSearch.trim()) return shopFilteredProducts.slice(0, 50); // Limit initial results
+        if (!debouncedProductSearch.trim()) {
+            return shopFilteredProducts.slice(0, 50); // Limit initial results
+        }
         
-        const searchTerm = debouncedProductSearch.toLowerCase();
-        return shopFilteredProducts.filter(product =>
-            product.name.toLowerCase().includes(searchTerm) ||
-            product.sku?.toLowerCase().includes(searchTerm)
-        ).slice(0, 50); // Limit search results for performance
-    }, [products, debouncedProductSearch, formData.shopId]);
+        return enhancedProductSearch(shopFilteredProducts, debouncedProductSearch).slice(0, 50);
+    }, [products, debouncedProductSearch, formData.shopId, enhancedProductSearch]);
 
     const validateForm = useCallback((): boolean => {
         const newErrors: Record<string, string> = {};
@@ -589,24 +642,13 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
             console.log('Invoice number:', currentInvoiceNumber);
             console.log('Customer ID:', formData.customerId);
 
-            // Get authentication token from localStorage
-            // Priority: dev-token > accessToken > authToken
-            let token = localStorage.getItem('dev-token') || 
-                       localStorage.getItem('accessToken') || 
-                       localStorage.getItem('authToken');
+            // Get authentication token from useAuth hook
+            const token = accessToken;
             
-            // For development, check if we should use dev-token
-            if (!token || (token.startsWith('eyJ') && localStorage.getItem('dev-token'))) {
-                token = 'dev-token';
-                localStorage.setItem('accessToken', 'dev-token');
-                localStorage.setItem('authToken', 'dev-token');
-                console.log('🔧 Using development token');
-            }
-            
-            console.log('Auth token found:', token === 'dev-token' ? 'dev-token' : (token ? `${token.substring(0, 10)}...` : 'none'));
+            console.log('Auth token found:', token ? `${token.substring(0, 10)}...` : 'none');
             
             if (!token) {
-                throw new Error('No authentication token found. Please run setDevToken() in console for development.');
+                throw new Error('No authentication token found. Please log in.');
             }
 
             const headers = {
@@ -689,17 +731,18 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
         setQuantity(1);
         setCustomPrice(0);
         setProductStock(null);
+
         onClose();
     };
 
     // Memoized options for better performance
     const customerOptions = useMemo(() => 
-        Array.isArray(customers) ? customers
+        Array.isArray(localCustomers) ? localCustomers
             .filter(customer => customer && customer.id != null)
             .map(customer => ({
                 value: customer.id.toString(),
                 label: customer.name
-            })) : [], [customers]
+            })) : [], [localCustomers]
     );
 
     const productOptions = useMemo(() => 
@@ -771,11 +814,14 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                             <Label htmlFor="customer" className="text-black font-semibold">Customer *</Label>
                             <div className="flex gap-2">
                                 <div className="flex-1 relative">
-                                    {selectedCustomer ? (
+                                    {(() => {
+                                        console.log('Rendering customer field, selectedCustomer:', selectedCustomer);
+                                        return selectedCustomer;
+                                    })() ? (
                                         <div className="flex items-center justify-between w-full px-3 py-2 border border-gray-300 rounded-md bg-white">
                                             <div className="text-black">
-                                                <div className="font-medium">{selectedCustomer.name}</div>
-                                                <div className="text-sm text-gray-600">{selectedCustomer.phone} - {selectedCustomer.customerType}</div>
+                                                <div className="font-medium">{selectedCustomer?.name || 'No Name'}</div>
+                                                <div className="text-sm text-gray-600">{selectedCustomer?.phone || 'No Phone'} - {selectedCustomer?.customerType || 'No Type'}</div>
                                             </div>
                                             <Button
                                                 type="button"
@@ -962,12 +1008,15 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                                          left: (itemProductDropdownRefs[item.id]?.current?.getBoundingClientRect()?.left || 0) + window.scrollX + 'px',
                                          width: (itemProductDropdownRefs[item.id]?.current?.getBoundingClientRect()?.width || 0) + 'px'
                                      }}>
-                                                    {filteredProducts
-                                                        .filter(product => 
-                                                            !item.productSearch || 
-                                                            product.name.toLowerCase().includes(item.productSearch.toLowerCase()) ||
-                                                            product.sku?.toLowerCase().includes(item.productSearch.toLowerCase())
-                                                        )
+                                                    {enhancedProductSearch(products, item.productSearch || '')
+                                                        .filter(product => {
+                                                            // Filter by shop if selected
+                                                            if (!formData.shopId) return true;
+                                                            if (!product.inventoryItems || !Array.isArray(product.inventoryItems)) return true;
+                                                            return product.inventoryItems.some(inv => 
+                                                                inv.shopId === formData.shopId && inv.quantity > 0
+                                                            );
+                                                        })
                                                         .slice(0, 10)
                                                         .map(product => {
                                                             const stockInfo = product.inventoryItems?.find(inv => inv.shopId === formData.shopId);
@@ -1016,14 +1065,21 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                                                             );
                                                         })
                                                     }
-                                                    {filteredProducts
-                                                        .filter(product => 
-                                                            !item.productSearch || 
-                                                            product.name.toLowerCase().includes(item.productSearch.toLowerCase()) ||
-                                                            product.sku?.toLowerCase().includes(item.productSearch.toLowerCase())
-                                                        ).length === 0 && (
+                                                    {enhancedProductSearch(products, item.productSearch || '')
+                                                        .filter(product => {
+                                                            // Filter by shop if selected
+                                                            if (!formData.shopId) return true;
+                                                            if (!product.inventoryItems || !Array.isArray(product.inventoryItems)) return true;
+                                                            return product.inventoryItems.some(inv => 
+                                                                inv.shopId === formData.shopId && inv.quantity > 0
+                                                            );
+                                                        }).length === 0 && (
                                                         <div className="px-3 py-2 text-gray-500 text-center">
                                                             No products found
+                                                            {/* Debug info */}
+                                                            <div className="text-xs text-red-500 mt-1">
+                                                                Debug: {products.length} total products, Search: "{item.productSearch}", Shop: {formData.shopId || 'none'}
+                                                            </div>
                                                         </div>
                                                     )}
                                                 </div>

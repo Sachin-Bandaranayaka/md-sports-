@@ -5,12 +5,21 @@ import { X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/context/QueryProvider';
+import { useAuth } from '@/hooks/useAuth';
 
 interface NewProductModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
     onAddToInventory?: (productId: number, productName: string) => void;
+    cloneData?: {
+        name: string;
+        sku: string;
+        description?: string;
+        retailPrice: number;
+        categoryId?: number;
+        minStockLevel: number;
+    };
 }
 
 interface Category {
@@ -23,12 +32,13 @@ interface Shop {
     name: string;
 }
 
-export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInventory }: NewProductModalProps) {
+export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInventory, cloneData }: NewProductModalProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [categories, setCategories] = useState<Category[]>([]);
     const [categoriesLoading, setCategoriesLoading] = useState(true);
     const queryClient = useQueryClient();
+    const { accessToken } = useAuth();
 
     // Form fields
     const [name, setName] = useState('');
@@ -37,6 +47,20 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
     const [retailPrice, setRetailPrice] = useState('');
     const [categoryId, setCategoryId] = useState('');
     const [minStockLevel, setMinStockLevel] = useState('10');
+
+    // Initialize form with clone data if provided
+    useEffect(() => {
+        if (isOpen && cloneData) {
+            setName(cloneData.name + ' (Copy)');
+            setSku(''); // Clear SKU so user can generate a new one
+            setDescription(cloneData.description || '');
+            setRetailPrice(cloneData.retailPrice.toString());
+            setCategoryId(cloneData.categoryId ? cloneData.categoryId.toString() : '');
+            setMinStockLevel(cloneData.minStockLevel.toString());
+        } else if (isOpen && !cloneData) {
+            resetForm();
+        }
+    }, [isOpen, cloneData]);
 
     // Fetch categories when modal opens
     useEffect(() => {
@@ -83,6 +107,11 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
             return;
         }
 
+        if (!accessToken) {
+            setError('Please log in to create products');
+            return;
+        }
+
         try {
             setIsSubmitting(true);
 
@@ -91,7 +120,7 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                    'Authorization': `Bearer ${accessToken}`,
                 },
                 body: JSON.stringify({
                     name,
@@ -133,8 +162,7 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
         setName('');
         setSku('');
         setDescription('');
-        setRetailPrice('0');
-
+        setRetailPrice('');
         setCategoryId(categories.length > 0 ? categories[0].id.toString() : '');
         setMinStockLevel('10');
         setError(null);
@@ -146,7 +174,9 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
                 <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-                    <h2 className="text-xl font-semibold text-black">Add New Product</h2>
+                    <h2 className="text-xl font-semibold text-black">
+                        {cloneData ? 'Clone Product' : 'Add New Product'}
+                    </h2>
                     <button onClick={onClose} className="text-black hover:text-gray-600">
                         <X size={24} />
                     </button>
@@ -293,10 +323,10 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
                             {isSubmitting ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Creating...
+                                    {cloneData ? 'Cloning...' : 'Creating...'}
                                 </>
                             ) : (
-                                'Create Product'
+                                cloneData ? 'Clone Product' : 'Create Product'
                             )}
                         </Button>
                     </div>

@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/Button';
 import { Search, Plus, Edit, Trash, FileText, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
 import { SalesQuotation } from '@/types';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { usePermission } from '@/hooks/usePermission';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermission } from '@/hooks/usePermission';
 
 const getExpiryCountdown = (expiryDate?: string): string => {
     if (!expiryDate) {
@@ -37,7 +37,7 @@ const getExpiryCountdown = (expiryDate?: string): string => {
 export default function Quotations() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { isLoading: authLoading } = useAuth();
+    const { isLoading: authLoading, accessToken } = useAuth();
     const { canViewQuotations, canCreateQuotations, canEditQuotations } = usePermission();
     const [quotations, setQuotations] = useState<SalesQuotation[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -88,7 +88,7 @@ export default function Quotations() {
                 const quotationsResponse = await fetch(`/api/quotations?${queryParams.toString()}`, {
                     credentials: 'include',
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('accessToken') || localStorage.getItem('authToken')}`,
+                        'Authorization': `Bearer ${accessToken}`,
                         'Content-Type': 'application/json'
                     }
                 });
@@ -134,7 +134,7 @@ export default function Quotations() {
         };
 
         fetchData();
-    }, [authLoading, currentPage, searchTerm]); // Depend on pagination and search state
+    }, [authLoading, accessToken, currentPage, searchTerm]); // Depend on pagination and search state
 
     // Pagination handlers
     const handlePageChange = (newPage: number) => {
@@ -196,7 +196,7 @@ export default function Quotations() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('accessToken') || localStorage.getItem('authToken')}`
+                    'Authorization': `Bearer ${accessToken}`
                 },
                 credentials: 'include',
                 body: JSON.stringify(duplicatedQuotation)
@@ -223,7 +223,7 @@ export default function Quotations() {
                     method: 'DELETE',
                     credentials: 'include',
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('accessToken') || localStorage.getItem('authToken')}`,
+                        'Authorization': `Bearer ${accessToken}`,
                         'Content-Type': 'application/json'
                     }
                 });

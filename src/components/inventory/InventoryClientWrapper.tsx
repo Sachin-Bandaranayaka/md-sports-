@@ -6,6 +6,7 @@ import { Search, X, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { authDelete, authFetch } from '@/utils/api';
 import AddInventoryModal from '@/components/inventory/AddInventoryModal';
+import NewProductModal from '@/components/inventory/NewProductModal';
 import { useInventory } from '@/hooks/useQueries';
 import { useRealtime } from '@/hooks/useRealtime';
 import { debounce } from '@/lib/utils';
@@ -84,6 +85,15 @@ export default function InventoryClientWrapper({
     const [showFilterPanel, setShowFilterPanel] = useState(false);
     const [showAddInventoryModal, setShowAddInventoryModal] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<{ id: number, name: string } | null>(null);
+    const [showNewProductModal, setShowNewProductModal] = useState(false);
+    const [cloneData, setCloneData] = useState<{
+        name: string;
+        sku: string;
+        description?: string;
+        retailPrice: number;
+        categoryId?: number;
+        minStockLevel: number;
+    } | null>(null);
     const [pendingOperations, setPendingOperations] = useState<Set<string>>(new Set());
     // Local error state for manual operations
     const [localError, setLocalError] = useState<string | null>(null);
@@ -229,6 +239,25 @@ export default function InventoryClientWrapper({
     const handleAddInventory = () => {
         setSelectedProduct(null);
         setShowAddInventoryModal(true);
+    };
+
+    // Handle clone product
+    const handleCloneProduct = (product: InventoryItem) => {
+        setCloneData({
+            name: product.name,
+            sku: product.sku,
+            description: '', // We don't have description in inventory items
+            retailPrice: product.retailPrice,
+            categoryId: categories.find(cat => cat.name === product.category)?.id,
+            minStockLevel: 10 // Default value since we don't have this in inventory items
+        });
+        setShowNewProductModal(true);
+    };
+
+    const handleNewProductSuccess = () => {
+        setCloneData(null);
+        refetch();
+        setLastRefreshed(new Date());
     };
 
     // Toggle filter panel
@@ -823,16 +852,6 @@ export default function InventoryClientWrapper({
                                         <td className="px-6 py-4">
                                             <div className="flex space-x-2">
                                                 <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        navigateToProductDetails(item.id);
-                                                    }}
-                                                >
-                                                    View
-                                                </Button>
-                                                <Button
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={(e) => {
@@ -841,6 +860,16 @@ export default function InventoryClientWrapper({
                                                     }}
                                                 >
                                                     Edit
+                                                </Button>
+                                                <Button
+                                                    variant="secondary"
+                                                    size="sm"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleCloneProduct(item);
+                                                    }}
+                                                >
+                                                    Clone
                                                 </Button>
                                                 <Button
                                                     variant="destructive"
@@ -896,9 +925,15 @@ export default function InventoryClientWrapper({
                     <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                         <div>
                             <p className="text-sm text-black">
-                                Showing <span className="font-medium">{((currentPage - 1) * itemsPerPage) + 1}</span> to{' '}
-                                <span className="font-medium">{Math.min(currentPage * itemsPerPage, totalItems)}</span> of{' '}
-                                <span className="font-medium">{totalItems}</span> results
+                                {itemsPerPage === 0 ? (
+                                    <>Showing all <span className="font-medium">{totalItems}</span> results</>
+                                ) : (
+                                    <>
+                                        Showing <span className="font-medium">{((currentPage - 1) * itemsPerPage) + 1}</span> to{' '}
+                                        <span className="font-medium">{Math.min(currentPage * itemsPerPage, totalItems)}</span> of{' '}
+                                        <span className="font-medium">{totalItems}</span> results
+                                    </>
+                                )}
                             </p>
                         </div>
                         <div>
@@ -929,87 +964,90 @@ export default function InventoryClientWrapper({
                                     <option value="10">10</option>
                                     <option value="25">25</option>
                                     <option value="50">50</option>
+                                    <option value="0">Show All</option>
                                 </select>
                             </div>
                         </div>
-                        <div>
-                            <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px mr-16" aria-label="Pagination">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="rounded-l-md"
-                                    onClick={() => {
-                                        setCurrentPage(1);
-                                    }}
-                                    disabled={currentPage <= 1}
-                                >
-                                    First
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                        setCurrentPage(prev => Math.max(prev - 1, 1));
-                                    }}
-                                    disabled={currentPage <= 1}
-                                >
-                                    Previous
-                                </Button>
+                        {itemsPerPage !== 0 && (
+                            <div>
+                                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px mr-16" aria-label="Pagination">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="rounded-l-md"
+                                        onClick={() => {
+                                            setCurrentPage(1);
+                                        }}
+                                        disabled={currentPage <= 1}
+                                    >
+                                        First
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                            setCurrentPage(prev => Math.max(prev - 1, 1));
+                                        }}
+                                        disabled={currentPage <= 1}
+                                    >
+                                        Previous
+                                    </Button>
 
-                                {/* Page numbers */}
-                                <div className="flex items-center">
-                                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                                        // Show pages around current page
-                                        let pageNum;
-                                        if (totalPages <= 5) {
-                                            pageNum = i + 1;
-                                        } else if (currentPage <= 3) {
-                                            pageNum = i + 1;
-                                        } else if (currentPage >= totalPages - 2) {
-                                            pageNum = totalPages - 4 + i;
-                                        } else {
-                                            pageNum = currentPage - 2 + i;
-                                        }
+                                    {/* Page numbers */}
+                                    <div className="flex items-center">
+                                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                            // Show pages around current page
+                                            let pageNum;
+                                            if (totalPages <= 5) {
+                                                pageNum = i + 1;
+                                            } else if (currentPage <= 3) {
+                                                pageNum = i + 1;
+                                            } else if (currentPage >= totalPages - 2) {
+                                                pageNum = totalPages - 4 + i;
+                                            } else {
+                                                pageNum = currentPage - 2 + i;
+                                            }
 
-                                        return (
-                                            <Button
-                                                key={pageNum}
-                                                variant={currentPage === pageNum ? "default" : "outline"}
-                                                size="sm"
-                                                onClick={() => {
-                                                    setCurrentPage(pageNum);
-                                                }}
-                                                className="mx-1"
-                                            >
-                                                {pageNum}
-                                            </Button>
-                                        );
-                                    })}
-                                </div>
+                                            return (
+                                                <Button
+                                                    key={pageNum}
+                                                    variant={currentPage === pageNum ? "primary" : "outline"}
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setCurrentPage(pageNum);
+                                                    }}
+                                                    className="mx-1"
+                                                >
+                                                    {pageNum}
+                                                </Button>
+                                            );
+                                        })}
+                                    </div>
 
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                        setCurrentPage(prev => Math.min(prev + 1, totalPages));
-                                    }}
-                                    disabled={currentPage >= totalPages}
-                                >
-                                    Next
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="rounded-r-md"
-                                    onClick={() => {
-                                        setCurrentPage(totalPages);
-                                    }}
-                                    disabled={currentPage >= totalPages}
-                                >
-                                    Last
-                                </Button>
-                            </nav>
-                        </div>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                            setCurrentPage(prev => Math.min(prev + 1, totalPages));
+                                        }}
+                                        disabled={currentPage >= totalPages}
+                                    >
+                                        Next
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="rounded-r-md"
+                                        onClick={() => {
+                                            setCurrentPage(totalPages);
+                                        }}
+                                        disabled={currentPage >= totalPages}
+                                    >
+                                        Last
+                                    </Button>
+                                </nav>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -1020,6 +1058,17 @@ export default function InventoryClientWrapper({
                 onClose={() => setShowAddInventoryModal(false)}
                 onSuccess={handleInventoryAdded}
                 preselectedProduct={selectedProduct}
+            />
+
+            {/* New Product Modal (for cloning) */}
+            <NewProductModal
+                isOpen={showNewProductModal}
+                onClose={() => {
+                    setShowNewProductModal(false);
+                    setCloneData(null);
+                }}
+                onSuccess={handleNewProductSuccess}
+                cloneData={cloneData || undefined}
             />
         </>
     );

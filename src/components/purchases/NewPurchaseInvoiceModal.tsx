@@ -45,7 +45,7 @@ export default function NewPurchaseInvoiceModal({
         try {
             // Fetch products, categories, and shops in parallel
             const [productsRes, categoriesRes, shopsRes] = await Promise.all([
-                fetch('/api/products'),
+                fetch('/api/products?limit=10000'),
                 fetch('/api/products/categories'),
                 fetch('/api/shops')
             ]);

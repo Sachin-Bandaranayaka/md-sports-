@@ -2,6 +2,41 @@
  * Utility for making authenticated API requests
  */
 
+// Token provider - will be set by AuthProvider
+let tokenProvider: (() => string | null) | null = null;
+
+/**
+ * Set the token provider function
+ * This should be called by the AuthProvider to provide access to the current token
+ */
+export const setTokenProvider = (provider: () => string | null) => {
+    tokenProvider = provider;
+};
+
+/**
+ * Get the current authentication token
+ */
+const getAuthToken = (): string | null => {
+    // Use the token provider if available
+    if (tokenProvider) {
+        return tokenProvider();
+    }
+    
+    // Fallback to cookies only (not localStorage) for security
+    // This is only used during SSR or before the auth provider is initialized
+    if (typeof document !== 'undefined') {
+        // Try to get token from cookie (if server sets it as non-httpOnly for development)
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; accessToken=`);
+        if (parts.length === 2) {
+            const token = parts.pop()?.split(';').shift();
+            if (token) return token;
+        }
+    }
+    
+    return null;
+};
+
 /**
  * Get CSRF token from cookies
  */
@@ -18,9 +53,8 @@ export const getCsrfToken = (): string | undefined => {
  * Enhanced fetch function that automatically adds authentication token
  */
 export const authFetch = async (url: string, options: RequestInit = {}) => {
-    // Get token from localStorage (check both accessToken and authToken for compatibility)
-    const token = typeof window !== 'undefined' ? 
-        (localStorage.getItem('accessToken') || localStorage.getItem('authToken')) : null;
+    // Get token using the centralized method
+    const token = getAuthToken();
 
     if (!token) {
         console.warn('No auth token found for request to:', url);
@@ -29,8 +63,8 @@ export const authFetch = async (url: string, options: RequestInit = {}) => {
     }
 
     // Prepare headers with authentication
-    const headers = {
-        ...(options.headers || {}),
+    const headers: Record<string, string> = {
+        ...(options.headers as Record<string, string> || {}),
         'Authorization': token ? `Bearer ${token}` : '',
     };
 
@@ -60,7 +94,7 @@ export const authFetch = async (url: string, options: RequestInit = {}) => {
     // If unauthorized and not on the login page, redirect to login
     if (response.status === 401 && typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
         console.warn('Authentication error (401) for request to:', url);
-        localStorage.removeItem('authToken');
+        // Don't clear localStorage - let the auth provider handle this
         window.location.href = '/login';
         return response;
     }
@@ -133,8 +167,8 @@ export const setupFetchInterceptor = () => {
                 // Cast headers to any to allow string indexing
                 const headers = options.headers as any;
 
-                // Add authentication header if token exists (check both accessToken and authToken for compatibility)
-                const token = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
+                // Add authentication header if token exists
+                const token = getAuthToken();
                 if (token && !headers['Authorization']) {
                     headers['Authorization'] = `Bearer ${token}`;
                 }

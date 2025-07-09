@@ -22,7 +22,9 @@ export async function GET(request: NextRequest) {
 
       const { searchParams } = new URL(request.url);
       const page = parseInt(searchParams.get('page') || '1');
-      const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50); // Cap at 50
+      const limitParam = searchParams.get('limit');
+      // Handle "Show All" case - if limit is 0 or null, show all items
+      const limit = limitParam === '0' || limitParam === null ? 0 : Math.min(parseInt(limitParam || '10'), 50); // Cap at 50, unless showing all
       const search = searchParams.get('search') || '';
       const category = searchParams.get('category') || '';
       const status = searchParams.get('status') || '';
@@ -47,18 +49,46 @@ export async function GET(request: NextRequest) {
         return response;
       }
 
-      const offset = (page - 1) * limit;
+      const offset = limit === 0 ? 0 : (page - 1) * limit;
 
       // Build dynamic WHERE conditions
       const whereConditions: string[] = ['1=1']; // Always true base condition
       const queryParams: any[] = [];
       let paramIndex = 1;
 
-      // Search filter
+      // Enhanced search filter - supports multiple words in any order
       if (search) {
-        whereConditions.push(`(p.name ILIKE $${paramIndex} OR p.sku ILIKE $${paramIndex + 1})`);
-        queryParams.push(`%${search}%`, `%${search}%`);
-        paramIndex += 2;
+        const searchWords = search.toLowerCase().trim().split(/\s+/);
+        
+        if (searchWords.length === 1) {
+          // Single word search - search across name, SKU, and category
+          whereConditions.push(`(
+            LOWER(p.name) ILIKE $${paramIndex} OR 
+            LOWER(p.sku) ILIKE $${paramIndex + 1} OR 
+            LOWER(c.name) ILIKE $${paramIndex + 2}
+          )`);
+          queryParams.push(`%${searchWords[0]}%`, `%${searchWords[0]}%`, `%${searchWords[0]}%`);
+          paramIndex += 3;
+        } else {
+          // Multi-word search - each word must appear somewhere in the searchable fields
+          const wordConditions: string[] = [];
+          
+          searchWords.forEach(word => {
+            if (word.length > 0) {
+              wordConditions.push(`(
+                LOWER(p.name) ILIKE $${paramIndex} OR 
+                LOWER(p.sku) ILIKE $${paramIndex + 1} OR 
+                LOWER(c.name) ILIKE $${paramIndex + 2}
+              )`);
+              queryParams.push(`%${word}%`, `%${word}%`, `%${word}%`);
+              paramIndex += 3;
+            }
+          });
+          
+          if (wordConditions.length > 0) {
+            whereConditions.push(`(${wordConditions.join(' AND ')})`);
+          }
+        }
       }
 
       // Category filter
@@ -123,8 +153,11 @@ export async function GET(request: NextRequest) {
           }
 
           // Add ordering and pagination
-          inventoryQuery += ` ORDER BY name ASC LIMIT $${mainParamIndex} OFFSET $${mainParamIndex + 1}`;
-          mainQueryParams.push(limit, offset);
+          inventoryQuery += ` ORDER BY name ASC`;
+          if (limit > 0) {
+            inventoryQuery += ` LIMIT $${mainParamIndex} OFFSET $${mainParamIndex + 1}`;
+            mainQueryParams.push(limit, offset);
+          }
 
           return prisma.$queryRawUnsafe(inventoryQuery, ...mainQueryParams);
         }),
@@ -184,10 +217,10 @@ export async function GET(request: NextRequest) {
         success: true,
         data: formattedData,
         pagination: {
-          page,
+          page: limit === 0 ? 1 : page,
           limit,
           total,
-          totalPages: Math.ceil(total / limit)
+          totalPages: limit === 0 ? 1 : Math.ceil(total / limit)
         }
       };
 

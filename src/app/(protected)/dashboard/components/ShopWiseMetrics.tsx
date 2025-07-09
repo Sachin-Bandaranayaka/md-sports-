@@ -38,7 +38,7 @@ interface ShopWiseMetricsProps {
 }
 
 export default function ShopWiseMetrics({ startDate, endDate, refreshTrigger }: ShopWiseMetricsProps) {
-    const { user } = useAuth();
+    const { user, accessToken } = useAuth();
     const [data, setData] = useState<ShopWiseData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -59,8 +59,6 @@ export default function ShopWiseMetrics({ startDate, endDate, refreshTrigger }: 
             setIsLoading(true);
             setError(null);
 
-            const accessToken = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
-            
             const fetchHeaders: HeadersInit = {
                 'Content-Type': 'application/json',
             };

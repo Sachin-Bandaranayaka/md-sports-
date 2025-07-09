@@ -98,7 +98,7 @@ export default function NewPurchaseInvoiceForm({
         try {
             // Add timestamp to ensure cache busting
             const timestamp = Date.now();
-            const response = await fetch(`/api/products?t=${timestamp}`, {
+            const response = await fetch(`/api/products?t=${timestamp}&limit=10000`, {
                 cache: 'no-store', // Ensure fresh data
                 headers: {
                     'Cache-Control': 'no-cache, no-store, must-revalidate',

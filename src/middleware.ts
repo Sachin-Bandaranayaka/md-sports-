@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserIdFromToken, getShopIdFromToken } from '@/lib/auth';
+import { rateLimiter } from '@/lib/rateLimiter';
 
 // Generate UUID using Web Crypto API instead of Node.js crypto
 function generateUUID() {
@@ -89,18 +90,7 @@ async function addShopContext(req: NextRequest, response: NextResponse): Promise
     return response;
 }
 
-// In-memory store for rate limiting (use Redis in production)
-interface RateLimitStore {
-    [ip: string]: {
-        count: number;
-        resetTime: number;
-    };
-}
-
-// Rate limiting configuration
-const RATE_LIMIT_MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10);
-const RATE_LIMIT_WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10); // 1 minute
-const rateLimitStore: RateLimitStore = {};
+// Rate limiting configuration is now handled by lib/rateLimiter.ts
 
 // API routes that should be protected
 const API_ROUTES = [
@@ -126,21 +116,6 @@ const SKIP_PATHS = [
     '.css',
     '.js',
 ];
-
-// Function to clean up expired rate limit entries
-const cleanupRateLimitStore = () => {
-    const now = Date.now();
-    for (const ip in rateLimitStore) {
-        if (rateLimitStore[ip].resetTime < now) {
-            delete rateLimitStore[ip];
-        }
-    }
-};
-
-// Run cleanup every minute
-if (typeof setInterval !== 'undefined') {
-    setInterval(cleanupRateLimitStore, 60000);
-}
 
 export async function middleware(request: NextRequest) {
     const pathname = request.nextUrl.pathname;
@@ -193,40 +168,17 @@ export async function middleware(request: NextRequest) {
     // Get IP address from X-Forwarded-For header or remote address for rate limiting
     const ip = request.ip || 'unknown';
 
-    // Only rate limit specific API endpoints
-    const isRateLimitedRoute = API_ROUTES.some(route =>
-        pathname.startsWith(route)
-    );
+    const isRateLimitedRoute = API_ROUTES.some(route => pathname.startsWith(route));
 
     if (isRateLimitedRoute) {
-        // Apply rate limiting
-        const now = Date.now();
+        const rlResult = await rateLimiter.check(ip);
 
-        if (!rateLimitStore[ip]) {
-            rateLimitStore[ip] = {
-                count: 0,
-                resetTime: now + RATE_LIMIT_WINDOW_MS,
-            };
-        }
+        // Set rate-limit headers on every response (success or 429)
+        response.headers.set('X-RateLimit-Limit', rlResult.allowed ? rlResult.count.toString() : rlResult.count.toString());
+        response.headers.set('X-RateLimit-Remaining', rlResult.remaining.toString());
+        response.headers.set('X-RateLimit-Reset', rlResult.resetTimeMs.toString());
 
-        // Reset count if window has passed
-        if (rateLimitStore[ip].resetTime < now) {
-            rateLimitStore[ip] = {
-                count: 0,
-                resetTime: now + RATE_LIMIT_WINDOW_MS,
-            };
-        }
-
-        // Increment count
-        rateLimitStore[ip].count++;
-
-        // Set rate limiting headers
-        response.headers.set('X-RateLimit-Limit', RATE_LIMIT_MAX_REQUESTS.toString());
-        response.headers.set('X-RateLimit-Remaining', Math.max(0, RATE_LIMIT_MAX_REQUESTS - rateLimitStore[ip].count).toString());
-        response.headers.set('X-RateLimit-Reset', rateLimitStore[ip].resetTime.toString());
-
-        // Check if rate limit exceeded
-        if (rateLimitStore[ip].count > RATE_LIMIT_MAX_REQUESTS) {
+        if (!rlResult.allowed) {
             return new NextResponse(JSON.stringify({
                 success: false,
                 message: 'Too many requests, please try again later.'
@@ -234,10 +186,10 @@ export async function middleware(request: NextRequest) {
                 status: 429,
                 headers: {
                     'Content-Type': 'application/json',
-                    'Retry-After': '60',
-                    'X-RateLimit-Limit': RATE_LIMIT_MAX_REQUESTS.toString(),
+                    'Retry-After': Math.ceil((rlResult.resetTimeMs - Date.now()) / 1000).toString(),
+                    'X-RateLimit-Limit': rlResult.count.toString(),
                     'X-RateLimit-Remaining': '0',
-                    'X-RateLimit-Reset': rateLimitStore[ip].resetTime.toString(),
+                    'X-RateLimit-Reset': rlResult.resetTimeMs.toString(),
                 }
             });
         }

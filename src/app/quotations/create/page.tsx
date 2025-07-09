@@ -110,7 +110,7 @@ export default function CreateQuotation() {
                 }
 
                 // Fetch products for the form
-                const productsResponse = await fetch('/api/products');
+                const productsResponse = await fetch('/api/products?limit=10000');
                 if (!productsResponse.ok) {
                     throw new Error('Failed to fetch products');
                 }
@@ -457,10 +457,18 @@ export default function CreateQuotation() {
         setProductSearches(newProductSearches);
         
         // Filter products based on search
-        const filtered = products.filter(product => 
-            product.name.toLowerCase().includes(value.toLowerCase()) ||
-            product.sku?.toLowerCase().includes(value.toLowerCase())
-        );
+        // Enhanced search - supports multiple words in any order
+        const searchWords = value.toLowerCase().trim().split(/\s+/);
+        
+        const filtered = products.filter(product => {
+            const productName = product.name.toLowerCase();
+            const productSku = (product.sku || '').toLowerCase();
+            
+            // Each word must appear somewhere in the product name or SKU
+            return searchWords.every(word => 
+                productName.includes(word) || productSku.includes(word)
+            );
+        });
         
         const newFilteredProducts = [...filteredProducts];
         newFilteredProducts[index] = filtered;

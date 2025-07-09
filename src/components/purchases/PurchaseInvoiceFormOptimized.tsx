@@ -69,10 +69,19 @@ const ItemRow = React.memo(({
 
   const filteredProducts = useMemo(() => {
     if (!searchTerm) return products.slice(0, 10);
-    return products.filter(product =>
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.sku?.toLowerCase().includes(searchTerm.toLowerCase())
-    ).slice(0, 10);
+    
+    // Enhanced search - supports multiple words in any order
+    const searchWords = searchTerm.toLowerCase().trim().split(/\s+/);
+    
+    return products.filter(product => {
+      const productName = product.name.toLowerCase();
+      const productSku = (product.sku || '').toLowerCase();
+      
+      // Each word must appear somewhere in the product name or SKU
+      return searchWords.every(word => 
+        productName.includes(word) || productSku.includes(word)
+      );
+    }).slice(0, 10);
   }, [products, searchTerm]);
 
   const selectedProduct = useMemo(() => {

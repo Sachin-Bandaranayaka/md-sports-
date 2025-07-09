@@ -11,7 +11,9 @@ import {
     ArrowLeft,
     Filter,
     X,
-    ArrowUpDown
+    ArrowUpDown,
+    ChevronLeft,
+    ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/hooks/useAuth';
@@ -58,83 +60,36 @@ export default function InventoryDistribution() {
     const [error, setError] = useState<string | null>(null);
     const [showFilterPanel, setShowFilterPanel] = useState(false);
     const [viewMode, setViewMode] = useState<'product' | 'shop'>('product');
+    
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(20);
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, []); // Fetch once - all data comes in one optimized call
 
     const fetchData = async () => {
         setLoading(true);
         setError(null);
 
         try {
-            // Fetch all products with their inventory data
-            const productsResponse = await fetch('/api/products');
+            // Use the optimized inventory distribution endpoint (ONE API call!)
+            const response = await fetch('/api/inventory/distribution');
 
-            if (!productsResponse.ok) {
-                throw new Error('Failed to fetch products');
+            if (!response.ok) {
+                throw new Error('Failed to fetch inventory distribution data');
             }
 
-            const productsData = await productsResponse.json();
+            const data = await response.json();
 
-            if (!productsData.success) {
-                throw new Error(productsData.message || 'Failed to fetch products');
+            if (!data.success) {
+                throw new Error(data.message || 'Failed to fetch inventory distribution data');
             }
 
-            // Transform and collect all products with their inventory data
-            const transformedProducts: ProductStock[] = [];
-            const shopsMap = new Map<number, Shop>();
-
-            for (const product of productsData.data) {
-                // Fetch inventory levels for this product
-                const inventoryResponse = await fetch(`/api/products/${product.id}`);
-                const inventoryData = await inventoryResponse.json();
-
-                if (inventoryData.success) {
-                    const branchStock: ShopStock[] = [];
-                    let totalStock = 0;
-
-                    if (inventoryData.data.inventory) {
-                        // Build the shop list while processing inventory
-                        inventoryData.data.inventory.forEach((inv: any) => {
-                            totalStock += inv.quantity;
-
-                            // Add shop to the map if not already present
-                            if (!shopsMap.has(inv.shop_id)) {
-                                shopsMap.set(inv.shop_id, {
-                                    id: inv.shop_id,
-                                    name: inv.shop_name
-                                });
-                            }
-
-                            branchStock.push({
-                                shopId: inv.shop_id,
-                                shopName: inv.shop_name,
-                                quantity: inv.quantity,
-                                shopSpecificCost: parseFloat(inv.shop_specific_cost) || 0
-                            });
-                        });
-                    }
-
-                    transformedProducts.push({
-                        id: product.id,
-                        name: product.name,
-                        sku: product.sku || '',
-                        retailPrice: parseFloat(product.price) || 0,
-                        weightedAverageCost: parseFloat(product.weightedAverageCost) || 0,
-                        totalStock,
-                        branchStock
-                    });
-                }
-            }
-
-            // Convert the shops map to an array and sort by name
-            const shopsList = Array.from(shopsMap.values()).sort((a, b) =>
-                a.name.localeCompare(b.name)
-            );
-
-            setProducts(transformedProducts);
-            setShopList(shopsList);
+            // Data is already transformed by the backend - just set it!
+            setProducts(data.data.products);
+            setShopList(data.data.shops);
         } catch (err) {
             console.error('Error fetching data:', err);
             setError('Failed to load inventory distribution data. Please try again later.');
@@ -143,13 +98,18 @@ export default function InventoryDistribution() {
         }
     };
 
-    // Filter products based on search term
+    // Filter products based on search term - supports multiple words in any order
     const filteredProducts = products.filter(product => {
-        const matchesSearch = searchTerm === '' ||
-            product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            product.sku.toLowerCase().includes(searchTerm.toLowerCase());
-
-        return matchesSearch;
+        if (searchTerm === '') return true;
+        
+        const searchWords = searchTerm.toLowerCase().trim().split(/\s+/);
+        const productName = product.name.toLowerCase();
+        const productSku = product.sku.toLowerCase();
+        
+        // Each word must appear somewhere in the product name or SKU
+        return searchWords.every(word => 
+            productName.includes(word) || productSku.includes(word)
+        );
     });
 
     // Calculate total shop cost for a product in a specific shop
@@ -211,6 +171,7 @@ export default function InventoryDistribution() {
         setSortDirection('asc');
         setSelectedShopForSort(null);
         setShowFilterPanel(false);
+        setCurrentPage(1); // Reset to first page when clearing filters
     };
 
     // Calculate the lowest stock shop for a product
@@ -231,7 +192,238 @@ export default function InventoryDistribution() {
         );
     };
 
+    // Pagination logic for product-centric view
+    const totalItems = sortedProducts.length;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentProducts = sortedProducts.slice(startIndex, endIndex);
 
+    // Pagination logic for shop-centric view (paginate shops, not products)
+    const shopsPerPage = 5; // Show 5 shops per page
+    const totalShops = shopList.length;
+    const totalShopPages = Math.ceil(totalShops / shopsPerPage);
+    const shopStartIndex = (currentPage - 1) * shopsPerPage;
+    const shopEndIndex = shopStartIndex + shopsPerPage;
+    const currentShops = shopList.slice(shopStartIndex, shopEndIndex);
+
+    // Handle page change
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+    };
+
+    // Handle items per page change
+    const handleItemsPerPageChange = (items: number) => {
+        setItemsPerPage(items);
+        setCurrentPage(1); // Reset to first page when changing items per page
+    };
+
+    // Reset pagination when filters change or view mode changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, sortBy, sortDirection, selectedShopForSort, viewMode]);
+
+    // Pagination component for product-centric view
+    const ProductPaginationControls = () => {
+        const pageNumbers = [];
+        const maxVisiblePages = 5;
+        
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+        
+        if (endPage - startPage + 1 < maxVisiblePages) {
+            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            pageNumbers.push(i);
+        }
+
+        return (
+            <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6">
+                <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-700">
+                            {itemsPerPage >= totalItems ? 
+                                `Showing all ${totalItems} products` : 
+                                `Showing ${startIndex + 1} to ${Math.min(endIndex, totalItems)} of ${totalItems} products`
+                            }
+                        </span>
+                        <select
+                            value={itemsPerPage}
+                            onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                            className="border border-gray-300 rounded-md px-2 py-1 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary"
+                        >
+                            <option value={10}>10 per page</option>
+                            <option value={20}>20 per page</option>
+                            <option value={50}>50 per page</option>
+                            <option value={100}>100 per page</option>
+                            <option value={99999}>Show All</option>
+                        </select>
+                    </div>
+                    
+                    {itemsPerPage < totalItems && (
+                        <div className="flex items-center space-x-1">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handlePageChange(currentPage - 1)}
+                                disabled={currentPage === 1}
+                                className="text-gray-700"
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                                Previous
+                            </Button>
+                            
+                            {startPage > 1 && (
+                                <>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handlePageChange(1)}
+                                        className="text-gray-700"
+                                    >
+                                        1
+                                    </Button>
+                                    {startPage > 2 && <span className="px-2 text-gray-500">...</span>}
+                                </>
+                            )}
+                            
+                            {pageNumbers.map((page) => (
+                                <Button
+                                    key={page}
+                                    variant={currentPage === page ? "secondary" : "outline"}
+                                    size="sm"
+                                    onClick={() => handlePageChange(page)}
+                                    className={currentPage === page ? "text-white" : "text-gray-700"}
+                                >
+                                    {page}
+                                </Button>
+                            ))}
+                            
+                            {endPage < totalPages && (
+                                <>
+                                    {endPage < totalPages - 1 && <span className="px-2 text-gray-500">...</span>}
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handlePageChange(totalPages)}
+                                        className="text-gray-700"
+                                    >
+                                        {totalPages}
+                                    </Button>
+                                </>
+                            )}
+                            
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handlePageChange(currentPage + 1)}
+                                disabled={currentPage === totalPages}
+                                className="text-gray-700"
+                            >
+                                Next
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    // Pagination component for shop-centric view
+    const ShopPaginationControls = () => {
+        const pageNumbers = [];
+        const maxVisiblePages = 5;
+        
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(totalShopPages, startPage + maxVisiblePages - 1);
+        
+        if (endPage - startPage + 1 < maxVisiblePages) {
+            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            pageNumbers.push(i);
+        }
+
+        return (
+            <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6">
+                <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-700">
+                            Showing {shopStartIndex + 1} to {Math.min(shopEndIndex, totalShops)} of {totalShops} shops
+                        </span>
+                    </div>
+                    
+                    <div className="flex items-center space-x-1">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage === 1}
+                            className="text-gray-700"
+                        >
+                            <ChevronLeft className="h-4 w-4" />
+                            Previous
+                        </Button>
+                        
+                        {startPage > 1 && (
+                            <>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handlePageChange(1)}
+                                    className="text-gray-700"
+                                >
+                                    1
+                                </Button>
+                                {startPage > 2 && <span className="px-2 text-gray-500">...</span>}
+                            </>
+                        )}
+                        
+                        {pageNumbers.map((page) => (
+                            <Button
+                                key={page}
+                                variant={currentPage === page ? "secondary" : "outline"}
+                                size="sm"
+                                onClick={() => handlePageChange(page)}
+                                className={currentPage === page ? "text-white" : "text-gray-700"}
+                            >
+                                {page}
+                            </Button>
+                        ))}
+                        
+                        {endPage < totalShopPages && (
+                            <>
+                                {endPage < totalShopPages - 1 && <span className="px-2 text-gray-500">...</span>}
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handlePageChange(totalShopPages)}
+                                    className="text-gray-700"
+                                >
+                                    {totalShopPages}
+                                </Button>
+                            </>
+                        )}
+                        
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage === totalShopPages}
+                            className="text-gray-700"
+                        >
+                            Next
+                            <ChevronRight className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
 
     if (loading) {
         return (
@@ -455,7 +647,7 @@ export default function InventoryDistribution() {
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {sortedProducts.map(product => {
+                                {currentProducts.map(product => {
                                     const lowestStockShop = getLowestStockShop(product);
                                     const highestStockShop = getHighestStockShop(product);
 
@@ -545,11 +737,16 @@ export default function InventoryDistribution() {
                     </div>
                 )}
 
+                {/* Pagination for Product-Centric View */}
+                {viewMode === 'product' && sortedProducts.length > 0 && (
+                    <ProductPaginationControls />
+                )}
+
                 {/* Shop-Centric View */}
                 {viewMode === 'shop' && (
                     <div className="space-y-6">
                         {shopList.length > 0 ? (
-                            shopList.map(shop => (
+                            currentShops.map(shop => (
                                 <div key={shop.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
                                     <div className="flex items-center gap-2 p-2 border-b border-gray-200">
                                         <Store className="h-5 w-5 text-primary" />
@@ -671,6 +868,11 @@ export default function InventoryDistribution() {
                                 <h3 className="text-lg font-medium text-black mb-2">No shops found</h3>
                                 <p className="text-gray-500 mb-4">There are no shops in the system or you don't have access to any shops.</p>
                             </div>
+                        )}
+                        
+                        {/* Pagination for Shop-Centric View */}
+                        {shopList.length > 0 && totalShopPages > 1 && (
+                            <ShopPaginationControls />
                         )}
                     </div>
                 )}

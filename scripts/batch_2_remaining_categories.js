@@ -1,0 +1,387 @@
+const { PrismaClient } = require('@prisma/client');
+
+const prisma = new PrismaClient();
+
+// Updated counts after batch 1
+const currentCounts = {
+  'BAGS': 86,
+  'CLOTHS': 30,
+  'GRIPS': 25,
+  'NETS': 7,
+  'OTHER': 36,
+  'RACKETS': 94,
+  'SHOES': 133,
+  'SHUTTLECOCKS': 8,
+  'SOCKS': 7,
+  'STRINGS': 61,
+  'WRISTBANDS': 2
+};
+
+// Batch 2: Remaining categories from user's comprehensive dataset
+const batch2Dataset = `RACKETS	EXERGY RACKET
+RACKETS	FELET BLACK / ZFORCE / HH
+RACKETS	FELET TJ POWER / HH
+RACKETS	HUNDRED CULT 72 / 73 / HH
+RACKETS	HUNDRED JUNIOR RACKET
+RACKETS	HUNDRED JUNIOR RACKET 1000JR
+RACKETS	HUNDRED JUNIOR RACKET 200JR
+RACKETS	HUNDRED N-ERGY 80 / HH
+RACKETS	HUNDRED POWER TEK 1000 PRO
+RACKETS	HUNDRED POWERTEK 200
+RACKETS	HUNDRED POWERTEK 900 SERIES
+RACKETS	HUNDRED ROCK 78 / 79 RACKET
+RACKETS	HUNDRED ROCK 79 RACKET / HH
+RACKETS	HUNDRED ROCK 88 RACKET / HH
+RACKETS	HUNDRED SET RACKETS
+RACKETS	HUNDRED TRAINING 120/140
+RACKETS	LI NING 3D CALIBER 001
+RACKETS	LI NING 3D CALIBER 300 I / B
+RACKETS	LI NING 3D CALIBER 500
+RACKETS	LI NING 3D CALIBER 500 PRO
+RACKETS	LI NING 3D CALIBER 600 I / B
+RACKETS	LI NING 3D CALIBER 900B
+RACKETS	LI NING 3D CALIBER 900I
+RACKETS	LI NING 3D CALIBER X BOOST / HH
+RACKETS	LI NING AERONAUT 9000
+RACKETS	LI NING ARMOUR 252/232 / EB
+RACKETS	LI NING AX FORCE 10 / HH
+RACKETS	LI NING AX FORCE 100 / HH
+RACKETS	LI NING AX FORCE 20
+RACKETS	LI NING AX FORCE 40
+RACKETS	LI NING AX FORCE 50
+RACKETS	LI NING AX FORCE 60
+RACKETS	LI NING AX FORCE 70
+RACKETS	LI NING AX FORCE 80
+RACKETS	LI NING AX FORCE 90 / HH
+RACKETS	LI NING AX FORCE BIG BANG
+RACKETS	LI NING AX FORCE BLAST
+RACKETS	LI NING AX FORCE CANNON / HH
+RACKETS	LI NING AX FORCE CANNON PRO
+RACKETS	LI NING BLACKIRON / HH
+RACKETS	LI NING BLADE X 500
+RACKETS	LI NING BLADE X 73
+RACKETS	LI NING BLADE X 900
+RACKETS	LI NING BLADE X SONOR
+RACKETS	LI NING BLADEX SPIRAL
+RACKETS	LI NING G FORCE SUPERLITE MAX 9 / HH
+RACKETS	LI NING G FORCE X-5
+RACKETS	LI NING GOLD MEDAL RACKET
+RACKETS	LI NING HALBERTEC 2000
+RACKETS	LI NING HALBERTEC 5000
+RACKETS	LI NING HALBERTEC 8000
+RACKETS	LI NING HALBERTEC 9000
+RACKETS	LI NING HALBERTEC MOTOR
+RACKETS	LI NING HIGH CARBON 1000
+RACKETS	LI NING SUPERLITE MAX 10 / HH
+RACKETS	LI NING TECTONIC 1 / HH
+RACKETS	LI NING TECTONIC 3R
+RACKETS	LI NING TECTONIC 6
+RACKETS	LI NING TECTONIC 7
+RACKETS	LI NING TECTONIC 9 4U
+RACKETS	LI NING TURBO CHARGING Z BOOST / HH
+RACKETS	LI NING TURBO CHARGING Z DRIVE/ HH
+RACKETS	LI NING TURBOCHARGING MARSHAL
+RACKETS	LI NING WIND LITE SERIES
+RACKETS	LI NING WINDSTORM 700 SP
+RACKETS	LI NING WINDSTORM 72 / HH
+RACKETS	LI NING WINDSTORM 74
+RACKETS	LI NING WINDSTORM 75
+RACKETS	LI NING WINDSTORM 78S / HH
+RACKETS	LI NING WINDSTORM 79 / HH
+RACKETS	LI NING WINDSTORM NANO 790 LITE
+RACKETS	LI NING XIPHOS X-1
+RACKETS	MAXBOLT (BLACK / PEARL) FORCE II (MYS) / HH
+RACKETS	MAXBOLT ASSASIN / HH
+RACKETS	MAXBOLT ATTROID 3
+RACKETS	MAXBOLT BLACK (MYS)
+RACKETS	MAXBOLT BLADE
+RACKETS	MAXBOLT BLUEFLARE (MYS) / EB
+RACKETS	MAXBOLT BOLT 8 / HH
+RACKETS	MAXBOLT EXTREME 8 / EB
+RACKETS	MAXBOLT FORCE VX / EB
+RACKETS	MAXBOLT GALLANT FORCE
+RACKETS	MAXBOLT GALLANT SPEED (MYS) / HL
+RACKETS	MAXBOLT GALLANT TOUR / HH
+RACKETS	MAXBOLT METAL (MYS) / EB
+RACKETS	MAXBOLT MINI RACKETS
+RACKETS	MAXBOLT NANO TECH 10/11
+RACKETS	MAXBOLT NAVIGATOR II / HH
+RACKETS	MAXBOLT NEW TENO 12
+RACKETS	MAXBOLT NEZER / HH
+RACKETS	MAXBOLT PREDATOR(MYS)
+RACKETS	MAXBOLT RACKET 180G
+RACKETS	MAXBOLT RACKET 9JR BLUE
+RACKETS	MAXBOLT RACKET 9JR RED
+RACKETS	MAXBOLT RACKET BLACK WOVEN LTD / HH
+RACKETS	MAXBOLT RACKET COVER
+RACKETS	MAXBOLT RACKET GALLANT FORCE BLACK
+RACKETS	MAXBOLT RACKET SUPERSTAR 10
+RACKETS	MAXBOLT RALLY
+RACKETS	MAXBOLT RAPTOR 9
+RACKETS	MAXBOLT RAPTOR X 7 / HH
+RACKETS	MAXBOLT SPADE / HH
+RACKETS	MAXBOLT SUPERSTAR 11
+RACKETS	MAXBOLT SUPERSTAR ACE
+RACKETS	MAXBOLT SUPERSTAR LT / HH
+RACKETS	MAXBOLT SUPERSTAR NOVA
+RACKETS	MAXBOLT SUPERSTAR SWIFT
+RACKETS	MAXBOLT SUPREME DNA / HH
+RACKETS	MAXBOLT SWORD 3 / EB
+RACKETS	MAXBOLT THUNDER BOLT / EB
+RACKETS	MAXBOLT TRAINING RACKET 120G
+RACKETS	MAXBOLT WOVEN TEC 60 / EB
+RACKETS	MAXBOLT WOVEN TEC 90
+RACKETS	VICTOR AURA SPEED
+RACKETS	VICTOR IRON MAN
+RACKETS	VICTOR THRUSTER RYUGA
+RACKETS	WISH RACKET CLASSICAL 216 BEGINNER
+RACKETS	WISH RACKET CLASSICAL 316/317 / BEGINNER
+RACKETS	YONEX ARCSABER  LIGHT / EB
+RACKETS	YONEX ARCSABER 11 PLAY
+RACKETS	YONEX ARCSABER 11 PRO
+RACKETS	YONEX ARCSABER 7 PLAY / EB
+RACKETS	YONEX ARCSABER 7 PRO
+RACKETS	YONEX ASTROX 0.7DG
+RACKETS	YONEX ASTROX 100 GAME
+RACKETS	YONEX ASTROX 100ZZ 4U / HH
+RACKETS	YONEX ASTROX 1DG / HH
+RACKETS	YONEX ASTROX 22 F
+RACKETS	YONEX ASTROX 22 LT
+RACKETS	YONEX ASTROX 27I / 21I/ 43I/ 37I /45I LITE / HH
+RACKETS	YONEX ASTROX 3DG / HH
+RACKETS	YONEX ASTROX 77 PLAY
+RACKETS	YONEX ASTROX 77 PRO (4U) HH
+RACKETS	YONEX ASTROX 77 TOUR
+RACKETS	YONEX ASTROX 7DG / HH
+RACKETS	YONEX ASTROX 88 PLAY / HH
+RACKETS	YONEX ASTROX 88D GAME / HH
+RACKETS	YONEX ASTROX 88D PRO / HH
+RACKETS	YONEX ASTROX 88S PRO
+RACKETS	YONEX ASTROX 99 GAME
+RACKETS	YONEX ASTROX 99 play / HH
+RACKETS	YONEX ASTROX 99 PRO / HH
+RACKETS	YONEX ASTROX 99 TOUR
+RACKETS	YONEX ASTROX ATTACK 9
+RACKETS	YONEX ASTROX LITE 27i
+RACKETS	YONEX ASTROX LITE 37i
+RACKETS	YONEX ASTROX LITE 43i
+RACKETS	YONEX ASTROX LITE 45i
+RACKETS	YONEX ASTROX NEXTAGE
+RACKETS	YONEX ASTROX SMASH / HH
+RACKETS	YONEX DUORA Z STRIKE
+RACKETS	YONEX GR 303
+RACKETS	YONEX NANOFLARE 1000 GAME
+RACKETS	YONEX NANOFLARE 1000 PLAY
+RACKETS	YONEX NANOFLARE 1000 ZZ
+RACKETS	YONEX NANOFLARE 700
+RACKETS	YONEX NANOFLARE 700 PLAY
+RACKETS	YONEX NANOFLARE 700 PRO
+RACKETS	YONEX NANOFLARE 800 play
+RACKETS	YONEX NANOFLARE 800 PRO
+RACKETS	YONEX NANOFLARE NEXTAGE
+RACKETS	YONEX NANORAY  LIte / HL
+RACKETS	YONEX NANORAY 20
+RACKETS	YONEX NANORAY 9 / ACE
+RACKETS	YONEX VOLTRIC  LITE 40i
+RACKETS	YONEX VOLTRIC LITE 20I/25I/35i/37i/40i/47i / HH
+RACKETS	YONEX VOLTRIC LITE 35i
+RACKETS	YONEX VOLTRIC LITE 47i
+RACKETS	YOUNG GT / ENERGY
+RACKETS	APACS COMMANDER 80
+RACKETS	APACS RACKET
+RACKETS	APACS SATELLITE
+RACKETS	FELET TJ 1000
+RACKETS	FLEX RACKETS
+RACKETS	GONGKE K1/K3/K5
+RACKETS	HNDRD MEDAL MASTER
+RACKETS	HUNDRED BATTLE 900
+RACKETS	HUNDRED CULT 77
+RACKETS	HUNDRED CULT 79
+RACKETS	HUNDRED CULT 82
+RACKETS	HUNDRED FLUTTER FF ZOOM/ATTK
+RACKETS	HUNDRED GLORY
+RACKETS	HUNDRED PREDATOR 79
+RACKETS	HUNDRED PREDATOR 82
+RACKETS	HUNDRED PRIMEARMOUR RACKET
+RACKETS	HUNDRED VIPER ATTK RACKET
+RACKETS	LI -NING COMBAT-Z8
+RACKETS	LI NING 3D BREAKFREE 90 TD
+RACKETS	LI NING 3D CALIBER 300COMBAT
+RACKETS	LI NING 3D CALIBER 600 COMBAT
+RACKETS	LI NING 3D CALIBER 900 COMBAT
+RACKETS	LI NING AERONAUT 9000 D
+RACKETS	LI NING AIR FORCE
+RACKETS	LI NING AIR FORCE 77 G3
+RACKETS	LI NING AIR FORCE 78 G2
+RACKETS	LI NING AIR FORCE 79 G4
+RACKETS	LI NING BLADE X
+RACKETS	LI NING BLAZE 100
+RACKETS	LI NING CHALLENGER 15 BOOST
+RACKETS	LI NING G FORCE 120/150 / EB
+RACKETS	LI NING G FORCE LITE 3000
+RACKETS	LI NING G FORCE SUPERLITE
+RACKETS	LI NING G-TEK
+RACKETS	LI NING IGNITE 7
+RACKETS	LI NING JUNIOR RACKET
+RACKETS	LI NING SUPER FORCE 84
+RACKETS	LI NING SUPER SERIES 100
+RACKETS	LI NING TURBO CHARGING 40 (WHITE)
+RACKETS	LI NING TURBO CHARGING 50
+RACKETS	LI NING TURBO CHARGING 50 DRIVE
+RACKETS	LI NING TURBO CHARGING Z
+RACKETS	LI NING TURBO X G5
+RACKETS	MAXBOLT GALLENT SAKIKO WHITE
+RACKETS	MAXBOLT RACKET GALLANT FORCE BLUE
+RACKETS	MAXBOLT RACKET PREDATOR BLACK
+RACKETS	MAXBOLT RACKET PREDATOR WHITE
+RACKETS	MAXBOLT RACKET SUPERSTAR WHITE
+RACKETS	MAXBOLT WOVEN TECH 60 - PINK
+RACKETS	POWERMAX
+RACKETS	SUPER SERIES 900/800 / HH
+RACKETS	TURBO CHARGE N9II
+RACKETS	YONEX ASTROX 10 DG
+RACKETS	YONEX GR 202
+RACKETS	YONEX MUSCLE POWER 55`;
+
+function generateSKU(category, index) {
+  const categoryAbbrev = {
+    'GRIPS': 'GRP',
+    'STRINGS': 'STR',
+    'SOCKS': 'SOK',
+    'SHUTTLECOCKS': 'SHU',
+    'RACKETS': 'RAC',
+    'WRISTBANDS': 'WRS',
+    'OTHER': 'OTH',
+    'NETS': 'NET',
+    'SHOES': 'SHO',
+    'BAGS': 'BAG',
+    'CLOTHS': 'CLO'
+  };
+  
+  const abbrev = categoryAbbrev[category] || 'OTH';
+  const paddedIndex = String(index).padStart(4, '0');
+  return `${abbrev}${paddedIndex}`;
+}
+
+async function processBatch2() {
+  try {
+    console.log('🚀 Processing massive product dataset (Batch 2)...');
+    
+    // Get existing products to avoid duplicates
+    const existingProducts = await prisma.product.findMany({
+      select: { name: true }
+    });
+    const existingNames = new Set(existingProducts.map(p => p.name));
+    console.log(`📋 Found ${existingNames.size} existing products`);
+    
+    // Get categories and shops
+    const categories = await prisma.category.findMany();
+    const shops = await prisma.shop.findMany();
+    const defaultShopId = shops[0]?.id;
+    
+    if (!defaultShopId) {
+      throw new Error('No shops found!');
+    }
+    
+    // Parse the dataset
+    const lines = batch2Dataset.trim().split('\n');
+    const allProducts = [];
+    
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      
+      const parts = line.split('\t');
+      if (parts.length < 2) continue;
+      
+      const category = parts[0].trim();
+      const name = parts[1].trim();
+      
+      allProducts.push({ category, name });
+    }
+    
+    console.log(`📦 Parsed ${allProducts.length} products from batch 2 dataset`);
+    
+    // Filter out existing products
+    const newProducts = allProducts.filter(p => !existingNames.has(p.name));
+    console.log(`✨ Found ${newProducts.length} NEW products to add`);
+    console.log(`⏭️  Skipping ${allProducts.length - newProducts.length} existing products`);
+    
+    if (newProducts.length === 0) {
+      console.log('🎉 All products in batch 2 are already in the database!');
+      return;
+    }
+    
+    // Group by category
+    const productsByCategory = {};
+    for (const product of newProducts) {
+      if (!productsByCategory[product.category]) {
+        productsByCategory[product.category] = [];
+      }
+      productsByCategory[product.category].push(product);
+    }
+    
+    // Show what we'll be adding
+    console.log('\n📊 New products by category:');
+    for (const [cat, prods] of Object.entries(productsByCategory)) {
+      console.log(`  ${cat}: ${prods.length} new products`);
+    }
+    
+    let totalProcessed = 0;
+    const categoryCounter = { ...currentCounts };
+    
+    // Process each category
+    for (const [categoryName, products] of Object.entries(productsByCategory)) {
+      console.log(`\n📁 Processing ${categoryName}: ${products.length} products`);
+      
+      const category = categories.find(c => c.name === categoryName);
+      if (!category) {
+        console.log(`⚠️  Category ${categoryName} not found, skipping...`);
+        continue;
+      }
+      
+      for (let i = 0; i < products.length; i++) {
+        const product = products[i];
+        const currentCount = categoryCounter[categoryName] + i + 1;
+        const sku = generateSKU(categoryName, currentCount);
+        
+        try {
+          await prisma.product.create({
+            data: {
+              name: product.name,
+              sku: sku,
+              price: 0,
+              category: { connect: { id: category.id } },
+              shop: { connect: { id: defaultShopId } }
+            }
+          });
+          
+          console.log(`✅ ${sku}: ${product.name}`);
+          totalProcessed++;
+          
+        } catch (error) {
+          if (error.code === 'P2002') {
+            console.log(`⚠️  Duplicate: ${product.name}`);
+          } else {
+            console.log(`❌ Failed: ${product.name} - ${error.message}`);
+          }
+        }
+      }
+      
+      categoryCounter[categoryName] += products.length;
+    }
+    
+    console.log(`\n🎉 Successfully processed ${totalProcessed} NEW products in batch 2!`);
+    console.log('\n📊 Updated category counts:');
+    console.log(categoryCounter);
+    
+    const newTotal = Object.values(categoryCounter).reduce((sum, count) => sum + count, 0);
+    console.log(`\n📈 Total products in database: ${newTotal}`);
+    
+  } catch (error) {
+    console.error('❌ Error:', error);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+processBatch2(); 

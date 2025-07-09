@@ -35,6 +35,22 @@ export const generateRefreshToken = async (userId: string): Promise<string> => {
         // Log for debugging
         console.log('Generating refresh token for user ID:', userId);
 
+        // IMPORTANT: Revoke all existing non-expired refresh tokens for this user
+        // This ensures only one active session per user at a time
+        console.log('Revoking all existing refresh tokens for user before creating new one');
+        await safeQuery(
+            () => prisma.refreshToken.updateMany({
+                where: {
+                    userId,
+                    isRevoked: false,
+                    expiresAt: { gt: new Date() }
+                },
+                data: { isRevoked: true },
+            }),
+            null,
+            'Failed to revoke existing refresh tokens'
+        );
+
         // Generate a random token
         const token = generateSecureToken(40);
 
@@ -80,8 +96,6 @@ export const generateRefreshToken = async (userId: string): Promise<string> => {
         throw new Error('Failed to generate refresh token');
     }
 };
-
-
 
 /**
  * Verify a refresh token and return the associated user ID if valid

@@ -23,10 +23,25 @@ export async function GET(req: NextRequest) {
         }
 
         if (searchTerm) {
-            where.name = {
-                contains: searchTerm,
-                mode: 'insensitive'
-            };
+            const searchWords = searchTerm.toLowerCase().trim().split(/\s+/);
+            
+            if (searchWords.length === 1) {
+                // Single word search - search across name, SKU, and category
+                where.OR = [
+                    { name: { contains: searchWords[0], mode: 'insensitive' } },
+                    { sku: { contains: searchWords[0], mode: 'insensitive' } },
+                    { category: { name: { contains: searchWords[0], mode: 'insensitive' } } }
+                ];
+            } else {
+                // Multi-word search - each word must appear somewhere in the searchable fields
+                where.AND = searchWords.map(word => ({
+                    OR: [
+                        { name: { contains: word, mode: 'insensitive' } },
+                        { sku: { contains: word, mode: 'insensitive' } },
+                        { category: { name: { contains: word, mode: 'insensitive' } } }
+                    ]
+                }));
+            }
         }
 
         const products = await prisma.product.findMany({

@@ -245,7 +245,7 @@ export default function EditInvoice() {
                 }
 
                 // Fetch products
-                const productResponse = await fetch('/api/products');
+                const productResponse = await fetch('/api/products?limit=10000');
                 if (productResponse.ok) {
                     const productData = await productResponse.json();
                     setProducts(Array.isArray(productData.data) ? productData.data : []);
@@ -292,14 +292,23 @@ export default function EditInvoice() {
         );
     }, [customers, customerSearch]);
 
-    // Filter products based on search term
+    // Filter products based on search term - enhanced search with multiple words support
     const filteredProducts = useMemo(() => {
         if (!productSearch) return products;
         if (!Array.isArray(products)) return [];
-        return products.filter(product =>
-            product.name.toLowerCase().includes(productSearch.toLowerCase()) ||
-            (product.sku && product.sku.toLowerCase().includes(productSearch.toLowerCase()))
-        );
+        
+        // Enhanced search - supports multiple words in any order
+        const searchWords = productSearch.toLowerCase().trim().split(/\s+/);
+        
+        return products.filter(product => {
+            const productName = product.name.toLowerCase();
+            const productSku = (product.sku || '').toLowerCase();
+            
+            // Each word must appear somewhere in the product name or SKU
+            return searchWords.every(word => 
+                productName.includes(word) || productSku.includes(word)
+            );
+        });
     }, [products, productSearch]);
 
     // Handle form input changes

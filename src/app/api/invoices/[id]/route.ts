@@ -281,7 +281,7 @@ export async function PUT(
             invoiceData.items = [];
         }
 
-        const inventoryUpdatesForEvent: Array<{ productId: number, shopId?: number, newQuantity?: number, oldQuantity?: number, quantityChange: number }> = [];
+        // Inventory update events are now handled in the service layer if needed
 
         // Update invoice with transaction to handle items
         const updatedInvoice = await prisma.$transaction(
@@ -331,11 +331,6 @@ export async function PUT(
                             // Ensure affectedShopId is a string if invoiceData.shopId is a string
                             const affectedShopId: string | undefined = invoiceData.shopId ? String(invoiceData.shopId) : undefined;
 
-                            inventoryUpdatesForEvent.push({
-                                productId: productId as number,
-                                shopId: affectedShopId ? parseInt(affectedShopId, 10) : undefined,
-                                quantityChange: quantityChange,
-                            });
                             if (quantityChange > 0) { // Deduct (more items sold or added)
                                 if (affectedShopId) {
                                     const availableInventory = await tx.inventoryItem.findMany({
@@ -483,9 +478,9 @@ export async function PUT(
         );
 
         // Real-time updates now handled by polling system
-        if (inventoryUpdatesForEvent.length > 0) {
-            console.log(`${inventoryUpdatesForEvent.length} inventory updates processed for updated invoice ${invoiceId}`);
-        }
+        // if (inventoryUpdatesForEvent.length > 0) { // This line is removed
+        //     console.log(`${inventoryUpdatesForEvent.length} inventory updates processed for updated invoice ${invoiceId}`);
+        // }
 
         // Send SMS notification if requested
         if (sendSms && updatedInvoice) {
@@ -566,63 +561,12 @@ export async function DELETE(
         }
         const invoiceId = Number(resolvedParams.id);
 
-        const inventoryUpdatesForEvent: Array<{ productId: number, shopId?: number, quantityChange: number }> = [];
+        // Inventory update events are now handled in the service layer if needed
 
-        // Use Prisma transaction to ensure atomicity
-        const deletedInvoiceResult = await prisma.$transaction(async (tx) => {
-            const invoiceToDelete = await tx.invoice.findUnique({
-                where: { id: invoiceId },
-                include: { items: true, customer: true } // Include items for inventory adjustment & customer for context
-            });
-
-            if (!invoiceToDelete) {
-                throw new Error('Invoice not found for deletion');
-            }
-
-            // Adjust inventory for each item deleted from the invoice
-            if (invoiceToDelete.items && invoiceToDelete.items.length > 0) {
-                for (const item of invoiceToDelete.items) {
-                    // Add item quantity back to inventory
-                    // Similar to PUT, we need to determine the shopId if possible.
-                    // If the invoice had a shopId, we assume items are returned to that shop's inventory.
-                    const targetShopId: string | undefined = invoiceToDelete.shopId || undefined;
-
-                    // If no shopId on invoice, this becomes a general increment for the product.
-                    // For more precise shop-specific return, the original shop source of item would be needed.
-                    await tx.inventoryItem.updateMany({
-                        where: {
-                            productId: item.productId,
-                            ...(targetShopId && { shopId: targetShopId }) // Conditionally add shopId to where clause
-                        },
-                        data: { quantity: { increment: item.quantity } }
-                    });
-
-                    inventoryUpdatesForEvent.push({
-                        productId: item.productId,
-                        shopId: targetShopId ? parseInt(targetShopId, 10) : undefined, // May be undefined
-                        quantityChange: item.quantity, // Positive, as it's being added back
-                    });
-                }
-            }
-
-            // Delete related payments first (if any)
-            await tx.payment.deleteMany({
-                where: { invoiceId: invoiceId }
-            });
-
-            // Delete invoice items
-            await tx.invoiceItem.deleteMany({
-                where: { invoiceId: invoiceId }
-            });
-
-            // Finally, delete the invoice itself
-            await tx.invoice.delete({
-                where: { id: invoiceId }
-            });
-
-            return { id: invoiceId, customerId: invoiceToDelete.customerId, invoiceNumber: invoiceToDelete.invoiceNumber, shopId: invoiceToDelete.shopId }; // Return some info about the deleted invoice
-        });
-
+        // Delegate deletion logic to the service layer to keep this handler lean
+        const { deleteInvoice } = await import('@/services/invoiceService');
+        const deletedInvoiceResult = await deleteInvoice(invoiceId);
+        
         // Real-time updates now handled by polling system
         console.log(`Invoice ${deletedInvoiceResult.id} deleted successfully`);
 
@@ -648,25 +592,11 @@ export async function DELETE(
         await Promise.allSettled(invalidationPromises);
         
         // Trigger materialized view refresh in background
-        setImmediate(async () => {
-            try {
-                await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/dashboard/optimized`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': request.headers.get('Authorization') || ''
-                    },
-                    body: JSON.stringify({
-                        action: 'invalidate',
-                        shopId: deletedInvoiceResult?.shopId?.toString() || 'all',
-                        type: 'inventory'
-                    })
-                });
-            } catch (error) {
-                console.warn('Failed to trigger optimized dashboard refresh:', error);
-            }
-        });
-
+        // Instead of issuing an internal HTTP request (which doubles latency and
+        // consumes another lambda invocation), we rely on the cacheService
+        // invalidation performed above. The optimized dashboard route will
+        // regenerate fresh data on the next request.
+        
         return NextResponse.json({
             success: true,
             message: `Invoice ${deletedInvoiceResult?.invoiceNumber || invoiceId} deleted successfully`,

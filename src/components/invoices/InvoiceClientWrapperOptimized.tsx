@@ -380,6 +380,18 @@ export default function InvoiceClientWrapperOptimized({
         queryClient.invalidateQueries({ queryKey: ['invoices'] });
     }, [queryClient]);
 
+    const handleCustomerCreated = useCallback((newCustomer: any) => {
+        // Invalidate and refetch customers query to show the new customer immediately
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customers });
+        queryClient.refetchQueries({ queryKey: QUERY_KEYS.customers });
+        toast.success('Customer created successfully!');
+    }, [queryClient]);
+
+    const handleCustomersUpdate = useCallback((updatedCustomers: any[]) => {
+        // Update the React Query cache with the new customers list
+        queryClient.setQueryData(QUERY_KEYS.customers, updatedCustomers);
+    }, [queryClient]);
+
     // Memoized virtual list data
     const listData = useMemo(() => ({
         invoices: invoicesData?.invoices || [],
@@ -577,6 +589,8 @@ export default function InvoiceClientWrapperOptimized({
                 isOpen={isCreateModalOpen}
                 onClose={() => setIsCreateModalOpen(false)}
                 onSuccess={handleCreateSuccess}
+                onCustomerCreated={handleCustomerCreated}
+                onCustomersUpdate={handleCustomersUpdate}
                 customers={customers}
                 products={products}
                 shops={shops}

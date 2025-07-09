@@ -5,6 +5,7 @@ import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import { hasPermission as checkPermission } from '@/lib/utils/permissions';
 import { AuthenticatedUser as User } from '@/types/auth';
+import { setTokenProvider } from '@/utils/api';
 
 // Types
 interface AuthContextType {
@@ -36,13 +37,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
 
+    // Set up the token provider for the API utility
+    useEffect(() => {
+        setTokenProvider(() => accessToken);
+    }, [accessToken]);
+
     // Define logout function first to avoid hoisting issues
     const logout = useCallback(async (): Promise<void> => {
         setIsLoading(true);
         setUser(null);
         setAccessToken(null);
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('authToken');
         try {
             // Call the backend to invalidate the refresh token and clear cookies
             await api.post('/api/auth/logout');
@@ -59,7 +63,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         const requestInterceptor = api.interceptors.request.use(
             (config) => {
-                const currentToken = accessToken || localStorage.getItem('accessToken') || localStorage.getItem('authToken');
+                const currentToken = accessToken;
                 if (currentToken) {
                     config.headers.Authorization = `Bearer ${currentToken}`;
                 }
@@ -92,8 +96,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                             const newAccessToken = refreshResponse.data.accessToken;
                             setUser(refreshResponse.data.user);
                             setAccessToken(newAccessToken);
-                            localStorage.setItem('accessToken', newAccessToken);
-                            localStorage.setItem('authToken', newAccessToken); // Keep for compatibility if still used
 
                             console.log('Token refreshed successfully. New accessToken:', newAccessToken.substring(0, 10) + '...');
                             originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
@@ -139,74 +141,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const validateAuth = async () => {
             setIsLoading(true);
             try {
-                const storedAccessToken = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
-
-                if (storedAccessToken) {
-                    console.log('Found stored accessToken, validating with /api/auth/validate...');
+                // Don't use localStorage for authentication
+                // Instead, try to validate using the cookie-based refresh token
+                console.log('Validating authentication via refresh token...');
+                
+                try {
+                    // Try to refresh the token using the httpOnly refresh token cookie
+                    const response = await api.post('/api/auth/refresh', {}, {
+                        timeout: 10000, // 10 second timeout
+                    });
                     
-                    // Retry logic for validation to handle network issues during hard refresh
-                    let retryCount = 0;
-                    const maxRetries = 2;
-                    let validationSuccessful = false;
-                    
-                    while (retryCount <= maxRetries && !validationSuccessful) {
-                        try {
-                            const response = await api.get('/api/auth/validate', {
-                                headers: { Authorization: `Bearer ${storedAccessToken}` },
-                                timeout: 10000, // 10 second timeout
-                            });
-                            
-                            if (response.data.success) {
-                                setUser(response.data.user);
-                                setAccessToken(storedAccessToken);
-                                console.log('Stored accessToken is valid.');
-                                validationSuccessful = true;
-                            } else {
-                                console.warn('/api/auth/validate returned success:false, but not an error status.');
-                                break; // Don't retry for explicit validation failures
-                            }
-                        } catch (validationError: any) {
-                            console.log(`Validation attempt ${retryCount + 1} failed. Error status:`, validationError?.response?.status);
-                            
-                            // Handle different types of errors
-                            if (validationError.response?.status === 401) {
-                                // Token is invalid/expired - let interceptor handle refresh
-                                console.log('Token appears invalid, letting interceptor handle refresh...');
-                                break;
-                            } else if (validationError.code === 'ECONNABORTED' || validationError.code === 'NETWORK_ERROR' || !validationError.response) {
-                                // Network/timeout errors - retry
-                                retryCount++;
-                                if (retryCount <= maxRetries) {
-                                    console.log(`Network error detected, retrying in ${retryCount * 1000}ms...`);
-                                    await new Promise(resolve => setTimeout(resolve, retryCount * 1000));
-                                    continue;
-                                } else {
-                                    console.log('Max retries reached for network errors, assuming user is still authenticated');
-                                    // Don't clear auth state for network issues - assume user is still valid
-                                    setAccessToken(storedAccessToken);
-                                    validationSuccessful = true;
-                                }
-                            } else {
-                                // Other server errors (5xx) - don't clear auth immediately
-                                console.log('Server error during validation, assuming temporary issue');
-                                setAccessToken(storedAccessToken);
-                                validationSuccessful = true;
-                                break;
-                            }
-                        }
+                    if (response.data.success) {
+                        const userData = response.data.user;
+                        console.log('Auth validation - User data received:', {
+                            id: userData.id,
+                            username: userData.username,
+                            roleName: userData.roleName,
+                            permissions: userData.permissions?.length || 0
+                        });
+                        
+                        setUser(userData);
+                        setAccessToken(response.data.accessToken);
+                        console.log('Authentication validated via refresh token');
+                    } else {
+                        console.log('No valid session found');
                     }
-                } else {
-                    console.log('No stored accessToken found.');
-                    // No token, user is not logged in
+                } catch (error: any) {
+                    // Network error during validation
+                    if (error.code === 'ECONNABORTED' || error.code === 'NETWORK_ERROR' || !error.response) {
+                        console.log('Network error during validation, skipping');
+                    } else if (error.response?.status === 401 || error.response?.status === 400) {
+                        console.log('No valid refresh token, user needs to login');
+                        // Clear any cached user data
+                        setUser(null);
+                        setAccessToken(null);
+                    } else {
+                        console.error('Unexpected error during validation:', error);
+                    }
                 }
             } catch (error) {
-                // Catch-all for unexpected errors - be more lenient
                 console.error('Unexpected error in validateAuth:', error);
-                const storedAccessToken = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
-                if (storedAccessToken) {
-                    console.log('Keeping existing token despite validation error');
-                    setAccessToken(storedAccessToken);
-                }
             } finally {
                 setIsLoading(false);
             }
@@ -222,8 +196,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 const { accessToken: newAccessToken, user: userData } = response.data;
                 setUser(userData);
                 setAccessToken(newAccessToken);
-                localStorage.setItem('accessToken', newAccessToken);
-                localStorage.setItem('authToken', newAccessToken); // for compatibility
 
                 // The refreshToken should have been set as an httpOnly cookie by the /api/auth/login endpoint
                 console.log('Login successful. AccessToken set. RefreshToken should be in httpOnly cookie.');
@@ -236,8 +208,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(false);
         setUser(null);
         setAccessToken(null);
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('authToken');
         return false;
     };
 
@@ -261,18 +231,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return undefined;
     };
 
+    const value: AuthContextType = {
+        user,
+        accessToken,
+        isLoading,
+        isAuthenticated: !!user,
+        login,
+        logout,
+        hasPermission,
+        getUserPermissions
+    };
+
     return (
         <AuthContext.Provider
-            value={{
-                user,
-                accessToken,
-                isLoading,
-                isAuthenticated: !!user,
-                login,
-                logout,
-                hasPermission,
-                getUserPermissions,
-            }}
+            value={value}
         >
             {children}
         </AuthContext.Provider>

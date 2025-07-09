@@ -1,41 +1,83 @@
 'use client';
 
-import Script from 'next/script';
+import { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 
-export default function DevTools() {
-    // Only load dev tools in development mode
+export function DevTools() {
+    const [isOpen, setIsOpen] = useState(false);
+    const { user, login, logout } = useAuth();
+
     if (process.env.NODE_ENV !== 'development') {
         return null;
     }
 
+    const handleQuickLogin = async (role: 'admin' | 'shopStaff') => {
+        // Use the proper login flow instead of setting localStorage
+        if (role === 'admin') {
+            await login('admin@mssport.lk', 'password123'); // Use actual admin credentials
+        } else {
+            await login('sachin@gmail.com', 'password123'); // Use actual shop staff credentials
+        }
+    };
+
+    const handleLogout = async () => {
+        await logout();
+    };
+
     return (
-        <>
-            <Script id="dev-tools" strategy="afterInteractive">
-                {`
-          // Set a development token for testing
-          window.setDevToken = function() {
-              localStorage.setItem('accessToken', 'dev-token');
-              localStorage.setItem('authToken', 'dev-token');
-              console.log('✅ Development token set!');
-              console.log('⚠️ Warning: This bypasses authentication. For development only!');
-              console.log('To use: Reload the page and the dev token will be used for requests.');
-              return 'Dev token set';
-          }
+        <div className="fixed bottom-4 right-4 z-50">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-gray-700"
+            >
+                Dev Tools
+            </button>
 
-          // Clear the development token
-          window.clearDevToken = function() {
-              localStorage.removeItem('accessToken');
-              localStorage.removeItem('authToken');
-              console.log('✅ Token cleared!');
-              return 'Token cleared';
-          }
-
-          console.log('🔧 Development tools loaded!');
-          console.log('Usage:');
-          console.log('  - Run setDevToken() to set a development token');
-          console.log('  - Run clearDevToken() to clear the token');
-        `}
-            </Script>
-        </>
+            {isOpen && (
+                <div className="absolute bottom-12 right-0 bg-white border rounded-lg shadow-xl p-4 w-64">
+                    <h3 className="font-semibold mb-3">Development Tools</h3>
+                    
+                    <div className="space-y-2">
+                        {user ? (
+                            <>
+                                <p className="text-sm text-gray-600">
+                                    Logged in as: {user.username} ({user.roleName || 'Admin'})
+                                </p>
+                                <button
+                                    onClick={handleLogout}
+                                    className="w-full bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"
+                                >
+                                    Logout
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={() => handleQuickLogin('admin')}
+                                    className="w-full bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600"
+                                >
+                                    Login as Admin
+                                </button>
+                                <button
+                                    onClick={() => handleQuickLogin('shopStaff')}
+                                    className="w-full bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600"
+                                >
+                                    Login as Shop Staff
+                                </button>
+                            </>
+                        )}
+                        
+                        <hr className="my-2" />
+                        
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="w-full bg-gray-500 text-white px-3 py-1 rounded text-sm hover:bg-gray-600"
+                        >
+                            Reload Page
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 } 

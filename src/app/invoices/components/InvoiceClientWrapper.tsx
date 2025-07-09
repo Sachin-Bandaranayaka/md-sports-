@@ -245,8 +245,8 @@ export default function InvoiceClientWrapper({
                     setCustomers(customersWithType);
                 }
 
-                // Fetch products
-                const productsResponse = await fetch('/api/products');
+                // Fetch products with inventory data - this will include inventoryItems for all shops
+                const productsResponse = await fetch('/api/products?include=inventory&limit=10000');
                 if (productsResponse.ok) {
                     const productsData = await productsResponse.json();
                     // Handle the API response structure
@@ -440,6 +440,10 @@ export default function InvoiceClientWrapper({
     const handleCustomerCreated = useCallback(async (newCustomer: any) => {
         // Add the new customer to the customers list
         setCustomers(prev => [...prev, newCustomer]);
+    }, []);
+
+    const handleCustomersUpdate = useCallback((updatedCustomers: any[]) => {
+        setCustomers(updatedCustomers);
     }, []);
 
     const handleEditSuccess = async (updatedInvoice: any) => {
@@ -1067,6 +1071,7 @@ export default function InvoiceClientWrapper({
                 onClose={handleCloseModals}
                 onSave={handleCreateSuccess}
                 onCustomerCreated={handleCustomerCreated}
+                onCustomersUpdate={handleCustomersUpdate}
                 customers={customers}
                 products={products}
                 shops={shopsState}

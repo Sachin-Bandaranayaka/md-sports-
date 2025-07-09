@@ -31,6 +31,8 @@ export async function POST(req: NextRequest) {
         console.log('Refresh token request received', {
             hasCookieToken: !!cookieRefreshToken,
             hasTokenFromBody: !!tokenFromBody,
+            tokenSource: cookieRefreshToken ? 'cookie' : 'body',
+            tokenPreview: tokenToVerify ? tokenToVerify.substring(0, 10) + '...' : 'none'
         });
 
         if (!tokenToVerify) {
@@ -91,6 +93,15 @@ export async function POST(req: NextRequest) {
             }, { status: 401 });
         }
 
+        // Log user details to help debug session switching
+        console.log('Token refresh for user:', {
+            userId: user.id,
+            userName: user.name,
+            userEmail: user.email,
+            roleName: user.role?.name || user.roleName,
+            shopId: user.shopId
+        });
+
         // Handle case where user has no role assigned but may have direct permissions
         let permissions: string[] = [];
         
@@ -115,6 +126,7 @@ export async function POST(req: NextRequest) {
             username: user.name,
             email: user.email,
             roleId: user.roleId,
+            roleName: user.role?.name || user.roleName || null,
             permissions,
             shopId: user.shopId
         }, JWT_SECRET, { expiresIn: JWT_ACCESS_TOKEN_EXPIRES_IN } as any);
@@ -130,7 +142,7 @@ export async function POST(req: NextRequest) {
                 fullName: user.name,
                 email: user.email,
                 roleId: user.roleId,
-                roleName: user.role?.name || null,
+                roleName: user.role?.name || user.roleName || null,
                 shopId: user.shopId,
                 permissions
             }

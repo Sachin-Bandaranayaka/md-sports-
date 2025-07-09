@@ -24,8 +24,11 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
         const categoryId = searchParams.get('categoryId');
         const search = searchParams.get('search');
         const includeInactive = searchParams.get('includeInactive') === 'true';
+        const includeInventory = searchParams.get('include') === 'inventory';
         const page = parseInt(searchParams.get('page') || '1');
         const limit = parseInt(searchParams.get('limit') || '50');
+        // For very high limits (like "Show All"), use a reasonable maximum
+        const actualLimit = limit > 1000 ? 10000 : limit;
 
         console.log('Products API - Shop context:', {
             shopId: context.shopId,
@@ -68,7 +71,7 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
 
         // Apply shop-based filtering for inventory
         let products;
-        if (context.isFiltered && context.shopId) {
+        if (context.isFiltered && context.shopId && !includeInventory) {
             console.log(`Filtering products by shopId: ${context.shopId}`);
             products = await prisma.product.findMany({
                 where: {
@@ -105,10 +108,10 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
                     name: 'asc'
                 },
                 skip,
-                take: limit
+                take: actualLimit
             });
         } else {
-            console.log('Fetching all products (admin or no shop filter)');
+            console.log('Fetching all products (admin or no shop filter or include inventory)');
             products = await prisma.product.findMany({
                 where,
                 include: {
@@ -118,7 +121,7 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
                             name: true
                         }
                     },
-                    inventoryItems: {
+                    inventoryItems: includeInventory ? {
                         include: {
                             shop: {
                                 select: {
@@ -128,13 +131,13 @@ export const GET = ShopAccessControl.withShopAccess(async (request: NextRequest,
                                 }
                             }
                         }
-                    }
+                    } : false
                 },
                 orderBy: {
                     name: 'asc'
                 },
                 skip,
-                take: limit
+                take: actualLimit
             });
         }
 
