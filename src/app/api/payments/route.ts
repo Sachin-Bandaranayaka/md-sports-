@@ -1,10 +1,26 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { auditService } from '@/services/auditService';
+import { verifyToken } from '@/lib/auth';
 
 export async function POST(request: Request) {
     try {
         const paymentData = await request.json();
+
+        // Get user ID from token for audit logging
+        const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+        let userId: number | string | null = null;
+        if (token) {
+            try {
+                const decoded: any = await verifyToken(token);
+                if (decoded && decoded.userId) {
+                    userId = decoded.userId;
+                }
+            } catch (error) {
+                console.warn('Invalid token for audit logging, continuing without user');
+            }
+        }
 
         // Validate payment data
         if (!paymentData.invoiceId || !paymentData.customerId || !paymentData.amount || !paymentData.paymentMethod) {
@@ -60,6 +76,22 @@ export async function POST(request: Request) {
             },
             { status: 201 }
         );
+
+        // Log CREATE action in Audit Trail
+        await auditService.logAction({
+            action: 'CREATE',
+            entity: 'Payment',
+            entityId: payment.id,
+            userId: userId?.toString(),
+            details: {
+                invoiceId: paymentData.invoiceId,
+                customerId: paymentData.customerId,
+                amount: paymentData.amount,
+                paymentMethod: paymentData.paymentMethod,
+                accountId: paymentData.accountId || null,
+                referenceNumber: paymentData.referenceNumber || null,
+            },
+        });
     } catch (error) {
         console.error('Error recording payment:', error);
         return NextResponse.json(
@@ -76,6 +108,20 @@ export async function POST(request: Request) {
 // Update an existing payment and keep accounting in sync
 export async function PATCH(request: Request) {
     try {
+        // Get user from token for audit log later
+        const authHeader = request.headers.get('Authorization');
+        const token = authHeader?.startsWith('Bearer ') ? authHeader.replace('Bearer ', '') : undefined;
+        let userIdForUpdate: string | null = null;
+        if (token) {
+            try {
+                const decoded: any = await verifyToken(token);
+                if (decoded && decoded.userId) {
+                    userIdForUpdate = decoded.userId.toString();
+                }
+            } catch (e) {
+                console.warn('Invalid token for audit logging on payment update');
+            }
+        }
         const { searchParams } = new URL(request.url);
         const paymentId = searchParams.get('id');
 
@@ -231,6 +277,17 @@ export async function PATCH(request: Request) {
             }
 
             return updatedPayment;
+        });
+
+        // Log UPDATE action in Audit Trail
+        await auditService.logAction({
+            action: 'UPDATE',
+            entity: 'Payment',
+            entityId: result.id,
+            userId: userIdForUpdate ?? undefined,
+            details: {
+                changes: updateData,
+            },
         });
 
         return NextResponse.json({ success: true, data: result });

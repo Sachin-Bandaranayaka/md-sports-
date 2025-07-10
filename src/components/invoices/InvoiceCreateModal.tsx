@@ -65,6 +65,9 @@ interface InvoiceFormData {
     shopId: string;
     items: InvoiceItem[];
     subtotal: number;
+    discountType: 'amount' | 'percent';
+    discountValue: number;
+    discountAmount: number;
     tax: number;
     total: number;
 }
@@ -106,6 +109,9 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
         shopId: '',
         items: [],
         subtotal: 0,
+        discountType: 'amount',
+        discountValue: 0,
+        discountAmount: 0,
         tax: 0,
         total: 0
     });
@@ -212,15 +218,19 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
     // Calculate totals when items change
     useEffect(() => {
         const subtotal = formData.items.reduce((sum, item) => sum + item.total, 0);
-        const total = subtotal; // No tax
+        const discountAmt = formData.discountType === 'percent'
+            ? subtotal * (formData.discountValue / 100)
+            : formData.discountValue;
+        const total = subtotal - discountAmt;
 
         setFormData(prev => ({
             ...prev,
             subtotal,
+            discountAmount: discountAmt,
             tax: 0,
             total
         }));
-    }, [formData.items]);
+    }, [formData.items, formData.discountType, formData.discountValue]);
 
     const handleCustomerSelect = useCallback((customerId: string) => {
         const customer = localCustomers.find(c => c && c.id != null && c.id.toString() === customerId);
@@ -627,7 +637,10 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                     quantity: item.quantity,
                     price: item.price,
                     total: item.total
-                }))
+                })),
+                discountType: formData.discountType,
+                discountValue: formData.discountValue,
+                discountAmount: formData.discountAmount,
             };
             
             // Only include shopId if it's not empty
@@ -720,6 +733,9 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
             shopId: '',
             items: [],
             subtotal: 0,
+            discountType: 'amount',
+            discountValue: 0,
+            discountAmount: 0,
             tax: 0,
             total: 0
         });
@@ -733,6 +749,15 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
         setProductStock(null);
 
         onClose();
+    };
+
+    // --- Discount input handlers ---
+    const handleDiscountValueChange = (value: number) => {
+        setFormData(prev => ({...prev, discountValue: value}));
+    };
+
+    const handleDiscountTypeChange = (type: 'amount' | 'percent') => {
+        setFormData(prev => ({...prev, discountType: type}));
     };
 
     // Memoized options for better performance
@@ -1166,9 +1191,29 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                                 <span className="font-medium">Subtotal:</span>
                                 <span className="font-semibold">LKR {formData.subtotal.toFixed(2)}</span>
                             </div>
-                            <div className="flex justify-between font-bold text-lg border-t border-blue-300 pt-2 text-black">
-                                <span>Total:</span>
-                                <span>LKR {formData.total.toFixed(2)}</span>
+                            <div className="flex justify-between items-center py-2 border-t">
+                                <span className="font-medium flex items-center gap-2">
+                                    Discount:
+                                    <select
+                                        className="border p-1 text-sm"
+                                        value={formData.discountType}
+                                        onChange={(e)=>handleDiscountTypeChange(e.target.value as any)}
+                                    >
+                                        <option value="amount">Amount</option>
+                                        <option value="percent">Percent</option>
+                                    </select>
+                                    <Input
+                                        type="number"
+                                        className="w-24"
+                                        value={formData.discountValue}
+                                        onChange={(e)=>handleDiscountValueChange(parseFloat(e.target.value) || 0)}
+                                    />
+                                </span>
+                                <span className="font-semibold">LKR {formData.discountAmount.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-2 border-t">
+                                <span className="font-medium">Total:</span>
+                                <span className="font-bold text-lg">LKR {formData.total.toFixed(2)}</span>
                             </div>
                         </div>
                     </div>

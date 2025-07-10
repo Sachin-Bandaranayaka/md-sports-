@@ -3,6 +3,8 @@ import { revalidateTag, revalidatePath } from 'next/cache';
 import { PrismaClient } from '@prisma/client';
 import { getShopId } from '@/lib/utils/middleware';
 import { cacheService } from '@/lib/cache';
+import { auditService } from '@/services/auditService';
+import { verifyToken } from '@/lib/auth';
 
 import { safeQuery, prisma } from '@/lib/prisma';
 import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
@@ -202,6 +204,40 @@ export async function POST(request: NextRequest) {
         }
 
         console.log('Product created successfully with WAC:', product.weightedAverageCost);
+
+        // Determine userId from token for audit logging
+        const authHeader = request.headers.get('authorization');
+        let userId: string | undefined;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.slice(7);
+            try {
+                const decoded: any = await verifyToken(token);
+                if (decoded && decoded.userId) {
+                    userId = decoded.userId.toString();
+                } else if (decoded && decoded.sub) {
+                    userId = decoded.sub.toString();
+                }
+            } catch (err) {
+                console.warn('Invalid token for audit logging on product create');
+            }
+        }
+
+        // Log CREATE action
+        await auditService.logAction({
+            action: 'CREATE',
+            entity: 'Product',
+            entityId: product.id,
+            userId,
+            details: {
+                name: product.name,
+                sku: product.sku,
+                barcode: product.barcode,
+                description: product.description,
+                price: product.price,
+                categoryId: product.categoryId,
+                minStockLevel: product.minStockLevel,
+            },
+        });
 
         // Invalidate inventory cache
         await cacheService.invalidateInventory();

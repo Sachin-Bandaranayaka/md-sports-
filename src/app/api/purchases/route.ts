@@ -141,6 +141,38 @@ export async function POST(request: NextRequest) {
         // Extract items and distributions from the request
         const { items, distributions, totalAmount, paidAmount, date, dueDate, notes: _notes, ..._rest } = body;
 
+        // ===================== VALIDATION =====================
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            return NextResponse.json({ success: false, message: 'At least one purchase item is required' }, { status: 400 });
+        }
+
+        if (!distributions || !Array.isArray(distributions) || distributions.length !== items.length) {
+            return NextResponse.json({ success: false, message: 'Distribution for each item is required' }, { status: 400 });
+        }
+
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            const dist = distributions[i];
+
+            if (!dist || typeof dist !== 'object' || Object.keys(dist).length === 0) {
+                return NextResponse.json({ success: false, message: `Distribution for product ${item.productId} is missing` }, { status: 400 });
+            }
+
+            let totalDistributed = 0;
+            for (const qty of Object.values(dist)) {
+                const num = Number(qty);
+                if (isNaN(num) || num < 0) {
+                    return NextResponse.json({ success: false, message: `Invalid distributed quantity for product ${item.productId}` }, { status: 400 });
+                }
+                totalDistributed += num;
+            }
+
+            if (totalDistributed !== item.quantity) {
+                return NextResponse.json({ success: false, message: `Distributed quantity (${totalDistributed}) does not match purchased quantity (${item.quantity}) for product ${item.productId}` }, { status: 400 });
+            }
+        }
+        // =======================================================
+
         // Only include fields that exist in the Prisma schema
         const invoiceData: any = {
             invoiceNumber: body.invoiceNumber,
@@ -362,7 +394,7 @@ export async function POST(request: NextRequest) {
                         data: {
                             amount: parseFloat(body.paidAmount as unknown as string) || 0,
                             paymentMethod: body.paymentMethod || 'cash', // Default or from body
-                            invoice: { connect: { id: newInvoice.id } }
+                            invoice: { connect: { id: createdInvoice.id } }
                         }
                     });
                 }

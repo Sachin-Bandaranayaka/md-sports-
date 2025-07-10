@@ -98,6 +98,13 @@ export default function NewProductModal({ isOpen, onClose, onSuccess, onAddToInv
         setSku(`${prefix}${random}`);
     };
 
+    // Auto-generate SKU when the product name is provided and SKU is still empty
+    useEffect(() => {
+        if (name && sku === '') {
+            generateSku();
+        }
+    }, [name, sku]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);

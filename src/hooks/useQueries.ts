@@ -30,11 +30,26 @@ const fetchApi = async <T>(url: string, options?: RequestInit): Promise<T> => {
     ...options,
   });
 
+  // Try to parse JSON regardless of status
+  let parsed: any = null;
+  try {
+    parsed = await response.clone().json();
+  } catch (_) {
+    // Not JSON response
+  }
+
   if (!response.ok) {
+    // If backend supplied a message, surface it; otherwise generic
+    if (parsed && parsed.message) {
+      throw new Error(parsed.message);
+    }
+    if (parsed && parsed.error && parsed.error.message) {
+      throw new Error(parsed.error.message);
+    }
     throw new Error(`HTTP error! status: ${response.status}`);
   }
 
-  return response.json();
+  return parsed as T;
 };
 
 // Inventory Hooks
