@@ -365,6 +365,22 @@ export async function PATCH(
                                         })
                                     )
                             );
+                        } else {
+                            // action === 'cancel'
+                            // Return reserved inventory in source shop
+                            for (const item of transfer.transferItems) {
+                                await tx.inventoryItem.updateMany({
+                                    where: {
+                                        productId: item.productId,
+                                        shopId: transfer.fromShopId,
+                                    },
+                                    data: {
+                                        quantity: { increment: item.quantity },
+                                        updatedAt: new Date(),
+                                    },
+                                });
+                            }
+                            // No further updates required for destination inventory or WAC
                         }
 
                         // Update transfer status
@@ -641,14 +657,22 @@ export async function DELETE(
                             throw new Error('Only pending transfers can be deleted');
                         }
 
-                        // Delete transfer items and the transfer itself
-                        await tx.transferItem.deleteMany({
-                            where: { transferId: id }
-                        });
+                        // Return reserved inventory to source shop before deletion
+                        const items = await tx.transferItem.findMany({ where: { transferId: id } });
+                        for (const item of items) {
+                            await tx.inventoryItem.updateMany({
+                                where: {
+                                    productId: item.productId,
+                                    shopId: transfer.fromShopId
+                                },
+                                data: { quantity: { increment: item.quantity } }
+                            });
+                        }
 
-                        return await tx.inventoryTransfer.delete({
-                            where: { id }
-                        });
+                        // Delete transfer items and the transfer itself
+                        await tx.transferItem.deleteMany({ where: { transferId: id } });
+
+                        return await tx.inventoryTransfer.delete({ where: { id } });
                     },
                     { timeout: 30000 } // 30-second timeout
                 );

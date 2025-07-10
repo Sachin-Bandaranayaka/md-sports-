@@ -320,8 +320,8 @@ export default function CreateQuotation() {
     // Update totals based on items
     const updateTotals = (currentItems: Partial<QuotationItem>[]) => {
         const subtotal = currentItems.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
-        const discount = parseFloat(String(formData.discount)) || 0;
-        const total = Math.round((subtotal - discount) * 100) / 100; // Round to 2 decimal places
+        const discount = 0; // Discounts are no longer applied
+        const total = Math.round(subtotal * 100) / 100; // Round to 2 decimal places
 
         setFormData(prev => ({
             ...prev,
@@ -654,7 +654,7 @@ export default function CreateQuotation() {
                                     required
                                 />
                             </div>
-                            <div>
+                            <div className="hidden">
                                 <label className="block text-sm font-medium text-black mb-1">
                                     Discount Amount
                                 </label>
@@ -814,10 +814,12 @@ export default function CreateQuotation() {
                                     <span className="text-black">Subtotal:</span>
                                     <span className="text-black font-medium">{(formData.subtotal || 0).toLocaleString()}</span>
                                 </div>
-                                <div className="flex justify-between">
-                                    <span className="text-black">Discount:</span>
-                                    <span className="text-black font-medium">{(formData.discount || 0).toLocaleString()}</span>
-                                </div>
+                                {formData.discount && formData.discount > 0 && (
+                                  <div className="flex justify-between">
+                                      <span className="text-black">Discount:</span>
+                                      <span className="text-black font-medium">{formData.discount.toLocaleString()}</span>
+                                  </div>
+                                )}
                                 <div className="flex justify-between pt-2 border-t border-gray-200">
                                     <span className="text-black font-bold">Total:</span>
                                     <span className="text-black font-bold">{(formData.total || 0).toLocaleString()}</span>

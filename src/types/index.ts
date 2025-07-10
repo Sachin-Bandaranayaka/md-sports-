@@ -112,6 +112,36 @@ export interface SalesQuotation {
     createdAt: string;
 }
 
+// Sales Invoice types
+export interface InvoiceItem {
+    id: string | number;
+    productId: number;
+    productName: string;
+    quantity: number;
+    price: number;
+    costPrice?: number;
+    total: number;
+}
+
+export interface SalesInvoice {
+    id?: string | number;
+    invoiceNumber?: string;
+    customerId: number;
+    customerName?: string;
+    invoiceDate: string;
+    dueDate?: string;
+    paymentMethod: 'Cash' | 'Credit' | 'Card' | 'Bank';
+    status?: string;
+    shopId?: string | null;
+    items: InvoiceItem[];
+    subtotal: number;
+    discountValue: number;
+    discountType: InvoiceDiscountType;
+    total: number;
+    notes?: string;
+    createdAt?: string;
+}
+
 // Receipt types
 export interface ReceiptItem {
     id: string;
@@ -162,3 +192,6 @@ export interface Account {
     createdAt: string | Date;
     updatedAt?: string | Date;
 }
+
+// Invoice discount
+export type InvoiceDiscountType = 'amount' | 'percent';

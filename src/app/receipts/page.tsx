@@ -4,6 +4,7 @@ import ReceiptsClientWrapper from './components/ReceiptsClientWrapper';
 import { Metadata } from 'next';
 import { Loader2 } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
+import { Prisma } from '@prisma/client';
 
 // Simple loading component
 function LoadingSpinner() {
@@ -22,45 +23,60 @@ export const metadata: Metadata = {
 
 async function getReceipts(page = 1, limit = 10, search = '') {
     try {
-        // Get receipts with pagination
-        const receipts = await prisma.receipt.findMany({
-            where: search ? {
-                OR: [
-                    { receiptNumber: { contains: search, mode: 'insensitive' } },
-                    { payment: { referenceNumber: { contains: search, mode: 'insensitive' } } },
-                    { payment: { customer: { name: { contains: search, mode: 'insensitive' } } } }
-                ]
-            } : {},
-            include: {
-                payment: {
-                    include: {
-                        customer: true,
-                        invoice: true,
-                        account: true
-                    }
-                },
-                confirmedByUser: true
-            },
-            orderBy: { createdAt: 'desc' },
-            skip: (page - 1) * limit,
-            take: limit
-        });
 
-        // Get total count for pagination
-        const totalReceipts = await prisma.receipt.count({
-            where: search ? {
-                OR: [
-                    { receiptNumber: { contains: search, mode: 'insensitive' } },
-                    { payment: { referenceNumber: { contains: search, mode: 'insensitive' } } },
-                    { payment: { customer: { name: { contains: search, mode: 'insensitive' } } } }
-                ]
-            } : {}
-        });
+        // Build search filter once
+        const searchFilter: Prisma.ReceiptWhereInput = search ? {
+            OR: [
+                { receiptNumber: { contains: search, mode: Prisma.QueryMode.insensitive } },
+                { payment: { referenceNumber: { contains: search, mode: Prisma.QueryMode.insensitive } } },
+                { payment: { customer: { name: { contains: search, mode: Prisma.QueryMode.insensitive } } } },
+                { payment: { invoice: { invoiceNumber: { contains: search, mode: Prisma.QueryMode.insensitive } } } }
+            ]
+        } : {};
+
+        // Fetch list & count concurrently to reduce total latency
+        const [receipts, totalReceipts] = await prisma.$transaction([
+            prisma.receipt.findMany({
+                where: searchFilter,
+                include: {
+                    payment: {
+                        include: {
+                            customer: true,
+                            invoice: true,
+                            account: true
+                        }
+                    },
+                    confirmedByUser: true
+                },
+                orderBy: { createdAt: 'desc' },
+                skip: (page - 1) * limit,
+                take: limit
+            }),
+            prisma.receipt.count({ where: searchFilter })
+        ]) as [any[], number];
 
         // Convert receiptDate from Date to string to match the Receipt interface
         const formattedReceipts = receipts.map(receipt => ({
             ...receipt,
-            receiptDate: receipt.receiptDate.toISOString().split('T')[0] // Convert Date to YYYY-MM-DD string
+            receiptDate: receipt.receiptDate.toISOString().split('T')[0], // Convert Date to YYYY-MM-DD string
+            payment: {
+                ...receipt.payment,
+                // Limit nested objects to only the fields required by the client component
+                customer: {
+                    id: receipt.payment.customer?.id ?? 0,
+                    name: receipt.payment.customer?.name ?? 'Unknown'
+                },
+                invoice: {
+                    id: receipt.payment.invoice.id,
+                    invoiceNumber: receipt.payment.invoice.invoiceNumber
+                },
+                account: receipt.payment?.account
+                    ? {
+                          id: receipt.payment.account.id,
+                          name: receipt.payment.account.name
+                      }
+                    : null
+            }
         }));
 
         return {
@@ -95,7 +111,7 @@ export default async function ReceiptsPage({
 
                 <Suspense fallback={<LoadingSpinner />}>
                     <ReceiptsClientWrapper
-                        initialReceipts={receipts}
+                        initialReceipts={receipts as any}
                         initialTotalPages={totalPages}
                         initialCurrentPage={currentPage}
                         initialSearch={search}

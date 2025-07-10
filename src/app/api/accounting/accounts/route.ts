@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
 
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');
+        const summary = searchParams.get('summary');
 
         // Check if user is admin
         const adminPermission = await validateTokenPermission(request, 'admin:all');
@@ -84,20 +85,31 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        // Fetch all accounts with parent and sub-account relationships
-        let accounts = await prisma.account.findMany({
-            include: {
-                parent: true,
-                subAccounts: {
-                    orderBy: {
-                        name: 'asc'
-                    }
-                }
-            },
-            orderBy: {
-                name: 'asc'
-            }
-        });
+        let accounts;
+
+        if (summary === '1') {
+            // Lightweight fetch
+            accounts = await prisma.account.findMany({
+                select: {
+                    id: true,
+                    name: true,
+                    balance: true,
+                    type: true,
+                    parentId: true,
+                    isActive: true
+                },
+                orderBy: { name: 'asc' }
+            });
+        } else {
+            // Full fetch with relationships
+            accounts = await prisma.account.findMany({
+                include: {
+                    parent: true,
+                    subAccounts: { orderBy: { name: 'asc' } }
+                },
+                orderBy: { name: 'asc' }
+            });
+        }
 
         // Filter accounts for non-admin users based on allowedAccounts
         if (!isAdmin && user.allowedAccounts && user.allowedAccounts.length > 0) {

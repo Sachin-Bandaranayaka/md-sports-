@@ -97,18 +97,23 @@ const batchCompleteTransfers = async (transferIds: number[], userId: number) => 
       try {
         // Process each transfer item
         for (const item of transfer.items) {
-          // Update source inventory (decrease)
-          await tx.inventoryItem.update({
-            where: {
-              productId_shopId: {
-                productId: item.productId,
-                shopId: transfer.sourceShopId
+          // If we ever switch back to the old behaviour we can flip this flag.
+          const APPLY_SOURCE_DECREMENT = false;
+
+          if (APPLY_SOURCE_DECREMENT) {
+            // Update source inventory (decrease)
+            await tx.inventoryItem.update({
+              where: {
+                productId_shopId: {
+                  productId: item.productId,
+                  shopId: transfer.sourceShopId
+                }
+              },
+              data: {
+                quantity: { decrement: item.quantity }
               }
-            },
-            data: {
-              quantity: { decrement: item.quantity }
-            }
-          });
+            });
+          }
 
           // Find or create destination inventory
           const destinationInventory = await tx.inventoryItem.findUnique({

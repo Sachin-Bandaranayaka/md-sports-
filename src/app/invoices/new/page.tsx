@@ -59,6 +59,8 @@ interface InvoiceFormData {
     paymentMethod: 'Cash' | 'Credit' | 'Card' | 'Bank';
     items: InvoiceItem[];
     shopId: string | null; // Changed to string to match Shop model
+    discountType: 'amount' | 'percent';
+    discountValue: number;
 }
 
 export default function CreateInvoice() {
@@ -106,7 +108,9 @@ export default function CreateInvoice() {
         status: 'pending', // Will be determined based on customer
         paymentMethod: 'Cash',
         items: [],
-        shopId: null, // Initialize shopId
+        shopId: null,
+        discountType: 'amount',
+        discountValue: 0,
     });
 
     // Generate a unique invoice number based on current date
@@ -116,9 +120,16 @@ export default function CreateInvoice() {
     }, []);
 
     // Calculate invoice total based on line items
-    const invoiceTotal = useMemo(() => {
+    const invoiceSubtotal = useMemo(() => {
         return formData.items.reduce((sum, item) => sum + item.total, 0);
     }, [formData.items]);
+
+    const invoiceTotal = useMemo(() => {
+        const discountAmount = formData.discountType === 'percent'
+            ? (invoiceSubtotal * formData.discountValue) / 100
+            : formData.discountValue;
+        return Math.max(invoiceSubtotal - discountAmount, 0);
+    }, [invoiceSubtotal, formData.discountValue, formData.discountType]);
 
     // Fetch customers and shops on component mount
     useEffect(() => {
@@ -459,6 +470,8 @@ export default function CreateInvoice() {
                     total: item.total
                 })),
                 shopId: formData.shopId,
+                discountType: formData.discountType,
+                discountValue: formData.discountValue,
             };
 
             // Create invoice via API
@@ -802,12 +815,32 @@ export default function CreateInvoice() {
                                             <h3 className="font-semibold text-sm text-gray-900 mb-2">Invoice Summary</h3>
                                             <div className="flex justify-between text-sm text-gray-900">
                                                 <span>Subtotal:</span>
-                                                <span>Rs. {invoiceTotal.toLocaleString()}</span>
+                                                <span>Rs. {invoiceSubtotal.toLocaleString()}</span>
                                             </div>
                                             <div className="flex justify-between text-sm text-gray-900 mt-1">
                                                 <span>Tax (0%):</span>
                                                 <span>Rs. 0.00</span>
                                             </div>
+                                            <div className="flex items-center justify-between text-sm text-gray-900 mt-1">
+                                                 <div className="flex items-center gap-2">
+                                                     <label className="mr-1">Discount:</label>
+                                                     <select
+                                                         value={formData.discountType}
+                                                         onChange={(e) => setFormData(prev => ({ ...prev, discountType: e.target.value as 'amount' | 'percent' }))}
+                                                         className="border border-gray-300 rounded px-1 py-0.5 text-xs"
+                                                     >
+                                                         <option value="amount">Rs</option>
+                                                         <option value="percent">%</option>
+                                                     </select>
+                                                 </div>
+                                                 <input
+                                                     type="number"
+                                                     min="0"
+                                                     value={formData.discountValue}
+                                                     onChange={(e) => setFormData(prev => ({ ...prev, discountValue: parseFloat(e.target.value) || 0 }))}
+                                                     className="w-24 border border-gray-300 rounded px-1 py-0.5 text-right text-sm"
+                                                 />
+                                             </div>
                                             <div className="border-t mt-2 pt-2 flex justify-between font-semibold text-gray-900">
                                                 <span>Total:</span>
                                                 <span>Rs. {invoiceTotal.toLocaleString()}</span>

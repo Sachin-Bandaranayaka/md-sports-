@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useMemo } from 'react';
+import { useDebounce } from '@/hooks/useDebounce';
 import { useRouter, useSearchParams } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/Button';
@@ -19,8 +20,11 @@ function AccountingContent() {
         tabParam === 'expense-accounts' ? 'expense-accounts' : 'income-accounts'
     );
     const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearch = useDebounce(searchTerm, 300);
     const [typeFilter, setTypeFilter] = useState<Transaction['type'] | ''>('');
     const [startDate, setStartDate] = useState<string>('');
     const [endDate, setEndDate] = useState<string>('');
@@ -28,26 +32,26 @@ function AccountingContent() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Function to fetch accounts and transactions data
     const fetchData = async () => {
         setIsLoading(true);
         setError(null);
         try {
-            // Fetch accounts
-            const accountsResponse = await authGet('/api/accounting/accounts');
-            if (!accountsResponse.ok) {
-                throw new Error('Failed to fetch accounts');
-            }
-            const accountsData = await accountsResponse.json();
-            setAccounts(accountsData.data);
+            const [accountsRes, transactionsRes] = await Promise.all([
+                authGet('/api/accounting/accounts?summary=1'),
+                authGet(`/api/accounting/transactions?page=${page}&limit=50&q=${encodeURIComponent(debouncedSearch)}${typeFilter ? `&type=${typeFilter}` : ''}${startDate ? `&startDate=${startDate}` : ''}${endDate ? `&endDate=${endDate}` : ''}`)
+            ]);
 
-            // Fetch transactions
-            const transactionsResponse = await authGet('/api/accounting/transactions');
-            if (!transactionsResponse.ok) {
-                throw new Error('Failed to fetch transactions');
-            }
-            const transactionsData = await transactionsResponse.json();
+            if (!accountsRes.ok) throw new Error('Failed to fetch accounts');
+            if (!transactionsRes.ok) throw new Error('Failed to fetch transactions');
+
+            const accountsData = await accountsRes.json();
+            const transactionsData = await transactionsRes.json();
+
+            setAccounts(accountsData.data);
             setTransactions(transactionsData.data);
+            if (transactionsData.pagination) {
+                setTotalPages(transactionsData.pagination.totalPages);
+            }
         } catch (err) {
             console.error('Error fetching data:', err);
             setError(err instanceof Error ? err.message : 'An error occurred');
@@ -59,7 +63,8 @@ function AccountingContent() {
     // Fetch accounts and transactions data
     useEffect(() => {
         fetchData();
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [page, debouncedSearch, typeFilter, startDate, endDate]);
 
     // Update URL when tab changes
     useEffect(() => {
@@ -72,35 +77,19 @@ function AccountingContent() {
         router.replace(`/accounting?${newParams.toString()}`, { scroll: false });
     }, [activeTab, router, searchParams]);
 
-    // Filter transactions based on search term, type filter, and date range
-    const filteredTransactions = transactions.filter((transaction) => {
-        const matchesSearch =
-            transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            transaction.accountName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            transaction.category.toLowerCase().includes(searchTerm.toLowerCase());
-
-        const matchesType = typeFilter ? transaction.type === typeFilter : true;
-
-        // Date range filtering
-        const transactionDate = new Date(transaction.date);
-        const matchesStartDate = startDate ? transactionDate >= new Date(startDate) : true;
-        const matchesEndDate = endDate ? transactionDate <= new Date(endDate) : true;
-
-        return matchesSearch && matchesType && matchesStartDate && matchesEndDate;
-    });
+    // Server already filters transactions, so just memoize list
+    const filteredTransactions = transactions;
 
     // Filter accounts based on search term and tab type, then organize hierarchically
-    const filteredAccountsFlat = accounts.filter((account) => {
-        const matchesSearch = account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            account.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (account.description && account.description.toLowerCase().includes(searchTerm.toLowerCase()));
-        
-        const matchesTabType = activeTab === 'income-accounts' 
-            ? account.type === 'income' || account.type === 'asset'
-            : account.type === 'expense' || account.type === 'liability';
-        
-        return matchesSearch && matchesTabType;
-    });
+    const filteredAccountsFlat = useMemo(() => {
+        return accounts.filter((account) => {
+            const matchesSearch = account.name.toLowerCase().includes(debouncedSearch.toLowerCase());
+            const matchesTabType = activeTab === 'income-accounts' 
+                ? account.type === 'income' || account.type === 'asset'
+                : account.type === 'expense' || account.type === 'liability';
+            return matchesSearch && matchesTabType;
+        });
+    }, [accounts, debouncedSearch, activeTab]);
 
     // Organize accounts hierarchically - parents first, then their children
     const organizeAccountsHierarchically = (accounts: Account[]) => {
@@ -129,7 +118,7 @@ function AccountingContent() {
         return organizedAccounts;
     };
 
-    const filteredAccounts = organizeAccountsHierarchically(filteredAccountsFlat);
+    const filteredAccounts = useMemo(() => organizeAccountsHierarchically(filteredAccountsFlat), [filteredAccountsFlat]);
 
     const handleAddTransaction = () => {
         router.push('/accounting/add-transaction');
@@ -215,6 +204,7 @@ function AccountingContent() {
         setTypeFilter('');
         setStartDate('');
         setEndDate('');
+        setPage(1);
     };
 
     // Loading state

@@ -227,34 +227,30 @@ export default function InvoiceClientWrapper({
         }
     }, [sortBy, dateSortOrder, dueStatusSortOrder]);
 
-    // Fetch customers and products on component mount for better performance
+    // Lazy-load customers & products ONLY when create/edit modal is opened
     useEffect(() => {
+        const shouldFetch = (isCreateModalOpen || isEditModalOpen) && accessToken;
+        if (!shouldFetch) return;
+
         const fetchCustomersAndProducts = async () => {
-            if (!accessToken) return;
-            
             try {
-                // Fetch customers (let the fetch interceptor handle auth headers)
+                // Fetch customers
                 const customersResponse = await fetch('/api/customers');
                 if (customersResponse.ok) {
                     const customersData = await customersResponse.json();
-                    // Add default customerType if not present
-                    const customersWithType = customersData.map((customer: any) => ({
-                        ...customer,
-                        customerType: customer.customerType || 'retail' as 'wholesale' | 'retail'
+                    const customersWithType = customersData.map((c: any) => ({
+                        ...c,
+                        customerType: c.customerType || ('retail' as 'wholesale' | 'retail'),
                     }));
                     setCustomers(customersWithType);
                 }
 
-                // Fetch products with inventory data - this will include inventoryItems for all shops
-                const productsResponse = await fetch('/api/products?include=inventory&limit=10000');
+                // Fetch a first page of products (100 per default) – more will be lazy-loaded inside the modal autocomplete if needed
+                const productsResponse = await fetch('/api/products?include=inventory&limit=100');
                 if (productsResponse.ok) {
                     const productsData = await productsResponse.json();
-                    // Handle the API response structure
-                    if (productsData.success && productsData.data) {
-                        setProducts(productsData.data);
-                    } else {
-                        setProducts(productsData);
-                    }
+                    const normalised = productsData.success && productsData.data ? productsData.data : productsData;
+                    setProducts(normalised);
                 }
             } catch (err) {
                 console.error('Error fetching customers and products:', err);
@@ -262,7 +258,7 @@ export default function InvoiceClientWrapper({
         };
 
         fetchCustomersAndProducts();
-    }, [accessToken]); // Run when accessToken becomes available
+    }, [accessToken, isCreateModalOpen, isEditModalOpen]);
 
     const handleFilterChange = () => {
         const params = new URLSearchParams(searchParams);
@@ -355,28 +351,23 @@ export default function InvoiceClientWrapper({
         setError(null);
 
         try {
-            const deletePromises = Array.from(selectedInvoices).map(invoiceId => 
-                fetch(`/api/invoices/${invoiceId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': accessToken ? `Bearer ${accessToken}` : '',
-                    }
-                })
-            );
+            const response = await fetch('/api/invoices/bulk-delete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': accessToken ? `Bearer ${accessToken}` : '',
+                },
+                body: JSON.stringify({ ids: Array.from(selectedInvoices) }),
+            });
 
-            const results = await Promise.allSettled(deletePromises);
-            
-            // Check for any failures
-            const failures = results.filter(result => result.status === 'rejected');
-            
-            if (failures.length > 0) {
-                throw new Error(`Failed to delete ${failures.length} invoice(s)`);
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.message || 'Bulk delete failed');
             }
 
-            // Clear selection
+            // Success: clear selection & refresh list
             handleClearSelection();
-            
-            router.refresh(); // Refresh data
+            router.refresh();
         } catch (err: any) {
             console.error('Error deleting invoices:', err);
             setError(err.message || 'Failed to delete some invoices');

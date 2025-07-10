@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import MainLayout from '@/components/layout/MainLayout';
 import {
@@ -318,9 +318,28 @@ const StatCard = ({
 export default function ProductDetail() {
     const params = useParams();
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const initialTab = searchParams?.get('tab') ?? 'details';
+    const [activeTab, setActiveTab] = useState(initialTab);
+
+    // Keep URL in sync when tab changes
+    useEffect(() => {
+        // Prevent pushing duplicate states for same tab
+        const currentTabInUrl = searchParams?.get('tab') ?? 'details';
+        if (currentTabInUrl !== activeTab) {
+            const newParams = new URLSearchParams(searchParams?.toString());
+            if (activeTab === 'details') {
+                newParams.delete('tab');
+            } else {
+                newParams.set('tab', activeTab);
+            }
+            router.replace(`?${newParams.toString()}`, { scroll: false });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeTab]);
+
     const [product, setProduct] = useState<ProductDetail | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('details');
     const [productHistory, setProductHistory] = useState<ProductHistoryEvent[]>([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 

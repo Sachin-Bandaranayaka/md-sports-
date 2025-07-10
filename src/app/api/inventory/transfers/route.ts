@@ -246,16 +246,34 @@ export async function POST(req: NextRequest) {
 
         const result = await safeQuery(
             async () => {
-                // Create transfer and items in a transaction
-                const transfer = await prisma.$transaction(
+                const newTransfer = await prisma.$transaction(
                     async (tx) => {
-                        // Create the transfer record
-                        const newTransfer = await tx.inventoryTransfer.create({
+                        // 1. Reserve inventory in source shop
+                        for (const item of items) {
+                            const productIdNum = parseInt(item.productId);
+                            const qtyNum = parseInt(item.quantity);
+
+                            const inventory = await tx.inventoryItem.findFirst({
+                                where: { productId: productIdNum, shopId: sourceShopId }
+                            });
+
+                            if (!inventory || inventory.quantity < qtyNum) {
+                                throw new Error(`Insufficient stock for product ${productIdNum} in source shop`);
+                            }
+
+                            await tx.inventoryItem.update({
+                                where: { id: inventory.id },
+                                data: { quantity: { decrement: qtyNum } }
+                            });
+                        }
+
+                        // 2. Insert transfer & items
+                        return await tx.inventoryTransfer.create({
                             data: {
                                 fromShopId: sourceShopId,
                                 toShopId: destinationShopId,
                                 fromUserId: userId,
-                                toUserId: userId, // Using the same user for both as we don't have separate users in the UI yet
+                                toUserId: userId,
                                 status: 'pending',
                                 transferItems: {
                                     create: items.map((item: TransferItem) => ({
@@ -265,13 +283,11 @@ export async function POST(req: NextRequest) {
                                 }
                             }
                         });
-
-                        return newTransfer;
                     },
-                    { timeout: 30000 } // 30-second timeout
+                    { timeout: 30000 }
                 );
 
-                return transfer;
+                return newTransfer;
             },
             null,
             'Failed to create inventory transfer'

@@ -129,13 +129,13 @@ export default function InventoryDistribution() {
             compareResult = a.totalStock - b.totalStock;
         } else if (sortBy === 'sku') {
             compareResult = a.sku.localeCompare(b.sku);
-        } else if (sortBy === 'shopStock' && selectedShopForSort) {
+        } else if (sortBy === 'shopStock' && (selectedShopForSort ?? null) === (shopId ?? null)) {
             const aShopStock = a.branchStock.find(branch => branch.shopId === selectedShopForSort);
             const bShopStock = b.branchStock.find(branch => branch.shopId === selectedShopForSort);
             const aQuantity = aShopStock ? aShopStock.quantity : 0;
             const bQuantity = bShopStock ? bShopStock.quantity : 0;
             compareResult = aQuantity - bQuantity;
-        } else if (sortBy === 'shopTotalCost' && selectedShopForSort) {
+        } else if (sortBy === 'shopTotalCost' && (selectedShopForSort ?? null) === (shopId ?? null)) {
             const aTotalCost = getTotalShopCost(a, selectedShopForSort);
             const bTotalCost = getTotalShopCost(b, selectedShopForSort);
             compareResult = aTotalCost - bTotalCost;
@@ -153,7 +153,7 @@ export default function InventoryDistribution() {
 
     // Handle sort
     const handleSort = (column: string, shopId?: number) => {
-        if (sortBy === column && selectedShopForSort === shopId) {
+        if (sortBy === column && (selectedShopForSort ?? null) === (shopId ?? null)) {
             setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
         } else {
             setSortBy(column);

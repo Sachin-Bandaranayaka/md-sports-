@@ -1,2 +1,24 @@
-<testsuites id="" name="" tests="0" failures="0" skipped="0" errors="0" time="5.229735000000001">
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="jest tests" tests="1" failures="1" errors="0" time="0.158">
+  <testsuite name="Inventory transfer reservation flow" errors="0" failures="1" skipped="0" timestamp="2025-07-09T17:14:13" time="0.132" tests="1">
+    <testcase classname="Inventory transfer reservation flow" name="reservation, cancel, complete flow" time="0">
+      <failure>TypeError: Cannot read properties of undefined (reading &apos;create&apos;)
+    at Object.create (/Users/sachin/Documents/md-sports-/tests/integration/inventoryTransfer.test.ts:102:37)
+    at Promise.then.completed (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusHook (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:281:40)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at _runTestsForDescribeBlock (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:95:7)
+    at _runTestsForDescribeBlock (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:121:9)
+    at run (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/Users/sachin/Documents/md-sports-/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/Users/sachin/Documents/md-sports-/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="" name="Test execution failure: could be caused by test hooks like &apos;afterAll&apos;." time="0">
+      <failure>{&quot;message&quot;:&quot;&quot;,&quot;stack&quot;:&quot;TypeError: Cannot read properties of undefined (reading &apos;deleteMany&apos;)\n    at Object.deleteMany (/Users/sachin/Documents/md-sports-/tests/integration/inventoryTransfer.test.ts:118:32)\n    at Promise.then.completed (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/utils.js:298:28)\n    at new Promise (&lt;anonymous&gt;)\n    at callAsyncCircusFn (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/utils.js:231:10)\n    at _callCircusHook (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:281:40)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at _runTestsForDescribeBlock (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:154:7)\n    at _runTestsForDescribeBlock (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:121:9)\n    at run (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:71:3)\n    at runAndTransformResultsToJestFormat (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)\n    at jestAdapter (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)\n    at runTestInternal (/Users/sachin/Documents/md-sports-/node_modules/jest-runner/build/runTest.js:367:16)\n    at runTest (/Users/sachin/Documents/md-sports-/node_modules/jest-runner/build/runTest.js:444:34)&quot;}</failure>
+    </testcase>
+  </testsuite>
 </testsuites>

@@ -148,12 +148,7 @@ const QuotationTemplate: React.FC<QuotationTemplateProps> = ({
                             <span className="text-black">Subtotal</span>
                             <span className="text-black">{formatCurrency(quotation.subtotal)}</span>
                         </div>
-                        {quotation.discount > 0 && (
-                            <div className="flex justify-between py-1 text-sm print:text-xs">
-                                <span className="text-black">Discount</span>
-                                <span className="text-black">-{formatCurrency(quotation.discount)}</span>
-                            </div>
-                        )}
+                        {/* Discount removed */}
                         {quotation.tax > 0 && (
                             <div className="flex justify-between py-1 text-sm print:text-xs">
                                 <span className="text-black">Tax</span>

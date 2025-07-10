@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 // Helper function to transform transaction data for client consumption
 const transformTransactionForClient = (transaction: any): any => {
@@ -19,79 +20,103 @@ const transformTransactionForClient = (transaction: any): any => {
     };
 };
 
-// GET: Fetch all transactions
+// GET: Fetch transactions (paginated & filtered)
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
-        const type = searchParams.get('type');
-        const accountId = searchParams.get('accountId');
+
+        // Single-record fetch by id keeps behaviour (cheap path)
         const id = searchParams.get('id');
-
-        // Build filter conditions
-        const where: any = {};
-
-        if (type) {
-            where.type = type;
-        }
-
-        if (accountId) {
-            where.accountId = parseInt(accountId, 10);
-        }
-
         if (id) {
-            // If ID is provided, fetch a single transaction
             const transaction = await prisma.transaction.findUnique({
                 where: { id: parseInt(id, 10) },
-                include: {
-                    account: {
-                        select: {
-                            name: true
-                        }
-                    },
-                    toAccount: {
-                        select: {
-                            name: true
-                        }
-                    }
+                select: {
+                    id: true,
+                    date: true,
+                    description: true,
+                    accountId: true,
+                    toAccountId: true,
+                    amount: true,
+                    reference: true,
+                    type: true,
+                    category: true,
+                    createdAt: true,
+                    account: { select: { name: true } },
+                    toAccount: { select: { name: true } }
                 }
             });
 
             if (!transaction) {
-                return NextResponse.json({
-                    success: false,
-                    message: 'Transaction not found'
-                }, { status: 404 });
+                return NextResponse.json({ success: false, message: 'Transaction not found' }, { status: 404 });
             }
 
-            return NextResponse.json({
-                success: true,
-                data: transformTransactionForClient(transaction)
-            });
+            return NextResponse.json({ success: true, data: transformTransactionForClient(transaction) });
         }
 
-        // Get transactions with account names
-        const transactions = await prisma.transaction.findMany({
-            where,
-            orderBy: {
-                date: 'desc'
-            },
-            include: {
-                account: {
-                    select: {
-                        name: true
-                    }
-                },
-                toAccount: {
-                    select: {
-                        name: true
-                    }
+        // Pagination & filters
+        const page = parseInt(searchParams.get('page') || '1', 10);
+        const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 200);
+        const skip = (page - 1) * limit;
+
+        const type = searchParams.get('type');
+        const accountId = searchParams.get('accountId');
+        const q = searchParams.get('q') || '';
+        const startDate = searchParams.get('startDate');
+        const endDate = searchParams.get('endDate');
+
+        const where: Prisma.TransactionWhereInput = {};
+
+        if (type) where.type = type;
+        if (accountId) where.accountId = parseInt(accountId, 10);
+
+        if (q) {
+            where.OR = [
+                { description: { contains: q, mode: 'insensitive' } },
+                { category: { contains: q, mode: 'insensitive' } },
+                { account: { name: { contains: q, mode: 'insensitive' } } }
+            ];
+        }
+
+        if (startDate || endDate) {
+            where.date = {};
+            if (startDate) (where.date as any).gte = new Date(startDate);
+            if (endDate) (where.date as any).lte = new Date(endDate);
+        }
+
+        // Fetch paginated data
+        const [transactions, totalCount] = await Promise.all([
+            prisma.transaction.findMany({
+                where,
+                orderBy: { date: 'desc' },
+                skip,
+                take: limit,
+                select: {
+                    id: true,
+                    date: true,
+                    description: true,
+                    accountId: true,
+                    toAccountId: true,
+                    amount: true,
+                    reference: true,
+                    type: true,
+                    category: true,
+                    createdAt: true,
+                    account: { select: { name: true } },
+                    toAccount: { select: { name: true } }
                 }
-            }
-        });
+            }),
+            prisma.transaction.count({ where })
+        ]);
 
         return NextResponse.json({
             success: true,
-            data: transactions.map(transformTransactionForClient)
+            data: transactions.map(transformTransactionForClient),
+            pagination: {
+                page,
+                limit,
+                total: totalCount,
+                totalPages: Math.ceil(totalCount / limit)
+            }
         });
     } catch (error) {
         console.error('Error fetching transactions:', error);

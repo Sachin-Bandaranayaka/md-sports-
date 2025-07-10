@@ -145,16 +145,6 @@ async function fetchInvoicesData({
                             location: true
                         }
                     },
-                    payments: {
-                        where: {
-                            receipt: {
-                                isNot: null
-                            }
-                        },
-                        select: {
-                            amount: true
-                        }
-                    },
                     _count: {
                         select: { items: true },
                     },
@@ -205,6 +195,22 @@ async function fetchInvoicesData({
             }),
         ]);
 
+        // Fetch totalPaid per invoice via payment groupBy (only receipts counted)
+        const invoiceIds = invoicesFromDB.map(inv => inv.id);
+        const paymentsGrouped = invoiceIds.length > 0 ? await prisma.payment.groupBy({
+            by: ['invoiceId'],
+            where: {
+                invoiceId: { in: invoiceIds },
+                receipt: { isNot: null }
+            },
+            _sum: { amount: true }
+        }) : [];
+
+        const paidMap = new Map<number, number>();
+        paymentsGrouped.forEach(p => {
+            paidMap.set(p.invoiceId as unknown as number, p._sum.amount ?? 0);
+        });
+
         const formattedInvoices: Invoice[] = invoicesFromDB.map(inv => {
             const createdDate = new Date(inv.createdAt);
             let displayDueDate = inv.dueDate ? new Date(inv.dueDate).toISOString().split('T')[0] : '';
@@ -214,7 +220,7 @@ async function fetchInvoicesData({
                 displayDueDate = tempDueDate.toISOString().split('T')[0];
             }
 
-            const totalPaid = inv.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
+            const totalPaid = paidMap.get(inv.id as unknown as number) || 0;
             const dueAmount = Math.max(0, inv.total - totalPaid);
 
             return {
@@ -266,7 +272,7 @@ async function fetchInvoicesData({
 export default async function InvoicesList({
     searchParams,
 }: {
-    searchParams: Promise<{ 
+    searchParams: { 
         page?: string;
         status?: string;
         paymentMethod?: string;
@@ -274,7 +280,7 @@ export default async function InvoicesList({
         timePeriod?: string;
         sortBy?: string;
         shopId?: string;
-    }>;
+    };
 }) {
     const cookieStore = await cookies();
     const token = cookieStore.get('accessToken')?.value;
@@ -287,8 +293,7 @@ export default async function InvoicesList({
         }
     }
 
-    const resolvedSearchParams = await searchParams;
-    const { page, status, paymentMethod, search, timePeriod, sortBy, shopId } = resolvedSearchParams;
+    const { page, status, paymentMethod, search, timePeriod, sortBy, shopId } = searchParams;
 
     const appliedShopId = userShopId || shopId;
 
