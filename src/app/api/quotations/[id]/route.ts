@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifyToken, extractToken } from '@/lib/auth';
 import { hasPermission } from '@/lib/utils/permissions';
+import { AuditService } from '@/services/auditService';
 
 // GET /api/quotations/[id] - Get a specific quotation
 export async function GET(
@@ -227,6 +228,24 @@ export async function PUT(
             });
         });
 
+        const auditService = AuditService.getInstance();
+        const changes: Record<string, { old: any; new: any }> = {};
+        (Object.keys(dataToUpdate) as (keyof typeof existingQuotation)[]).forEach(key => {
+            if (existingQuotation[key] !== updatedQuotation?.[key]) {
+                changes[key] = { old: existingQuotation[key], new: updatedQuotation?.[key] };
+            }
+        });
+
+        if (Object.keys(changes).length > 0 || items) {
+            await auditService.logAction({
+                userId: payload.sub,
+                action: 'UPDATE',
+                entity: 'Quotation',
+                entityId: quotationId,
+                details: { ...changes, itemsUpdated: !!items }
+            });
+        }
+
         return NextResponse.json(updatedQuotation);
     } catch (error: any) { // Catch specific error types if needed
         console.error(`Error updating quotation:`, error);
@@ -304,27 +323,15 @@ export async function DELETE(
         
         // No need to check shop access for quotations as they don't have shops assigned
 
-        // Delete quotation and items in a transaction
-        await prisma.$transaction(async (tx) => {
-            // Delete associated items
-            await tx.quotationItem.deleteMany({
-                where: {
-                    quotationId: quotationId
-                }
-            });
-
-            // Delete the quotation
-            await tx.quotation.delete({
-                where: {
-                    id: quotationId
-                }
-            });
+        const auditService = AuditService.getInstance();
+        const quotationData = await prisma.quotation.findUnique({
+            where: { id: quotationId },
+            include: { items: true, customer: true }
         });
 
-        return NextResponse.json(
-            { message: 'Quotation deleted successfully' },
-            { status: 200 }
-        );
+        await auditService.softDelete('Quotation', quotationId, quotationData, Number(payload.sub), true);
+        return NextResponse.json({ message: 'Quotation soft deleted successfully' }, { status: 200 });
+
     } catch (error) {
         console.error(`Error deleting quotation:`, error);
         return NextResponse.json(

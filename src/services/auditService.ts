@@ -88,7 +88,7 @@ export class AuditService {
     entity: string,
     entityId: number,
     originalData: any,
-    userId: number,
+    userId: string, // Changed to string
     canRecover: boolean = true
   ): Promise<void> {
     await this.logAction({
@@ -99,7 +99,7 @@ export class AuditService {
       originalData,
       isDeleted: true,
       deletedAt: new Date(),
-      deletedBy: userId.toString(),
+      deletedBy: userId, // No toString needed
       canRecover,
       details: {
         type: 'soft_delete',

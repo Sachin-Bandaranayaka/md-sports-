@@ -60,6 +60,9 @@ export default function InventoryDistribution() {
     const [error, setError] = useState<string | null>(null);
     const [showFilterPanel, setShowFilterPanel] = useState(false);
     const [viewMode, setViewMode] = useState<'product' | 'shop'>('product');
+
+    // Toggle to hide SKU columns throughout the page
+    const showSkuColumn = false;
     
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
@@ -129,13 +132,13 @@ export default function InventoryDistribution() {
             compareResult = a.totalStock - b.totalStock;
         } else if (sortBy === 'sku') {
             compareResult = a.sku.localeCompare(b.sku);
-        } else if (sortBy === 'shopStock' && (selectedShopForSort ?? null) === (shopId ?? null)) {
+        } else if (sortBy === 'shopStock' && selectedShopForSort !== null) {
             const aShopStock = a.branchStock.find(branch => branch.shopId === selectedShopForSort);
             const bShopStock = b.branchStock.find(branch => branch.shopId === selectedShopForSort);
             const aQuantity = aShopStock ? aShopStock.quantity : 0;
             const bQuantity = bShopStock ? bShopStock.quantity : 0;
             compareResult = aQuantity - bQuantity;
-        } else if (sortBy === 'shopTotalCost' && (selectedShopForSort ?? null) === (shopId ?? null)) {
+        } else if (sortBy === 'shopTotalCost' && selectedShopForSort !== null) {
             const aTotalCost = getTotalShopCost(a, selectedShopForSort);
             const bTotalCost = getTotalShopCost(b, selectedShopForSort);
             compareResult = aTotalCost - bTotalCost;
@@ -522,7 +525,7 @@ export default function InventoryDistribution() {
                                     }}
                                 >
                                     <option value="name">Product Name</option>
-                                    <option value="sku">SKU</option>
+                                    {showSkuColumn && (<option value="sku">SKU</option>)}
                                     <option value="totalStock">Total Stock</option>
                                     <option value="shopStock">Shop Stock Quantity</option>
                                     {canViewCosts && (
@@ -569,7 +572,7 @@ export default function InventoryDistribution() {
                                 <tr>
                                     <th
                                         scope="col"
-                                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer w-1/2 min-w-[200px]"
                                         onClick={() => handleSort('name')}
                                     >
                                         <div className="flex items-center">
@@ -579,18 +582,20 @@ export default function InventoryDistribution() {
                                             )}
                                         </div>
                                     </th>
-                                    <th
-                                        scope="col"
-                                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                                        onClick={() => handleSort('sku')}
-                                    >
-                                        <div className="flex items-center">
-                                            SKU
-                                            {sortBy === 'sku' && (
-                                                <ArrowUpDown className="ml-1 h-4 w-4" />
-                                            )}
-                                        </div>
-                                    </th>
+                                    {showSkuColumn && (
+                                        <th
+                                            scope="col"
+                                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                                            onClick={() => handleSort('sku')}
+                                        >
+                                            <div className="flex items-center">
+                                                SKU
+                                                {sortBy === 'sku' && (
+                                                    <ArrowUpDown className="ml-1 h-4 w-4" />
+                                                )}
+                                            </div>
+                                        </th>
+                                    )}
 
                                     <th
                                         scope="col"
@@ -653,12 +658,14 @@ export default function InventoryDistribution() {
 
                                     return (
                                         <tr key={product.id} className="hover:bg-gray-50">
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black">
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black w-1/2 min-w-[200px]">
                                                 {product.name}
                                             </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-black">
-                                                {product.sku}
-                                            </td>
+                                            {showSkuColumn && (
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-black">
+                                                    {product.sku}
+                                                </td>
+                                            )}
 
                                             <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black">
                                                 {product.totalStock}
@@ -760,9 +767,11 @@ export default function InventoryDistribution() {
                                                     <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                         Product
                                                     </th>
-                                                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        SKU
-                                                    </th>
+                                                    {showSkuColumn && (
+                                                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                            SKU
+                                                        </th>
+                                                    )}
 
                                                     <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                         Quantity
@@ -802,9 +811,11 @@ export default function InventoryDistribution() {
                                                                 <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black">
                                                                     {product.name}
                                                                 </td>
-                                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-black">
-                                                                    {product.sku}
-                                                                </td>
+                                                                {showSkuColumn && (
+                                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-black">
+                                                                        {product.sku}
+                                                                    </td>
+                                                                )}
 
                                                                 <td className="px-4 py-3 whitespace-nowrap text-sm text-black">
                                                                     {quantity}

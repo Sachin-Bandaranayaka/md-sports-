@@ -67,7 +67,7 @@ interface AuditHistoryItem {
   action: string;
   entity: string;
   entityId?: number;
-  details?: any;
+  details?: Record<string, any> | undefined;
   createdAt: string;
   user?: {
     id: number;
@@ -525,7 +525,15 @@ export default function AuditTrailPage() {
                         </TableCell>
                         <TableCell>
                           <div className="max-w-xs truncate">
-                            {item.details ? JSON.stringify(item.details) : 'No details'}
+                            {item.details && Object.keys(item.details).length > 0 ? (
+                              <ul className="list-none p-0 m-0">
+                                {Object.entries(item.details).map(([key, value]) => (
+                                  <li key={key} className="text-sm">
+                                    <span className="font-medium">{key}:</span> {typeof value === 'object' ? JSON.stringify(value) : value}
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : 'No details'}
                           </div>
                         </TableCell>
                       </TableRow>

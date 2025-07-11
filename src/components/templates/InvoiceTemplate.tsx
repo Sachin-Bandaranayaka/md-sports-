@@ -146,6 +146,11 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
     const paidAmount = invoice.payments?.reduce((sum, payment) => {
         return payment.receipt ? sum + (Number(payment.amount) || 0) : sum;
     }, 0) || 0;
+
+    // Calculate subtotal (sum of line totals before discount) and discount applied
+    const subtotalBeforeDiscount = invoice.items.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
+    const discountAmount = Math.max(0, subtotalBeforeDiscount - invoice.total);
+
     const remainingBalance = invoice.total - paidAmount;
 
     // Calculate due date (30 days after creation)
@@ -300,7 +305,22 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
             <div className="flex justify-end mb-4 print:mb-3">
                 <div className="w-60 print:w-48">
                     <div className="border-t border-gray-300 pt-2 print:pt-1">
+                        {/* Sub-total */}
                         <div className="flex justify-between py-1 text-sm print:text-xs">
+                            <span className="text-black">Sub-total</span>
+                            <span className="text-black">{formatCurrency(subtotalBeforeDiscount)}</span>
+                        </div>
+
+                        {/* Discount row */}
+                        {discountAmount > 0 && (
+                            <div className="flex justify-between py-1 text-sm print:text-xs">
+                                <span className="text-black">Discount</span>
+                                <span className="text-black">-{formatCurrency(discountAmount)}</span>
+                            </div>
+                        )}
+
+                        {/* Total after discount */}
+                        <div className="flex justify-between py-1 text-sm print:text-xs border-t border-gray-300 mt-1 pt-1">
                             <span className="text-black font-bold">Total</span>
                             <span className="text-black font-bold">{formatCurrency(invoice.total)}</span>
                         </div>

@@ -81,7 +81,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             (response) => response,
             async (error) => {
                 const originalRequest = error.config;
-                if ((error.response?.status === 401) && !originalRequest._retry) { // Only retry on 401 for token refresh
+                // Avoid infinite loop: do NOT attempt to refresh if the failed request *is* the refresh endpoint itself
+                const isRefreshEndpoint = originalRequest?.url?.includes('/api/auth/refresh');
+
+                if ((error.response?.status === 401) && !originalRequest._retry && !isRefreshEndpoint) { // Only retry on 401 for token refresh and not already retried, and skip if refresh itself failed
                     originalRequest._retry = true;
                     try {
                         console.log('Access Token expired or invalid, attempting to refresh via /api/auth/refresh...');

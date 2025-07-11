@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     }
 
     const decoded = await verifyToken(token);
-    if (!decoded || !decoded.userId) {
+    if (!decoded || !decoded.sub) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
@@ -25,7 +25,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await auditService.recoverItem(auditLogId, decoded.userId);
+    const userId = decoded.sub as string;
+    const result = await auditService.recoverItem(auditLogId, userId);
 
     if (!result.success) {
       return NextResponse.json(
@@ -63,7 +64,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const decoded = await verifyToken(token);
-    if (!decoded || !decoded.userId) {
+    if (!decoded || !decoded.sub) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 

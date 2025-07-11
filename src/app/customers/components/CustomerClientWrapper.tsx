@@ -91,6 +91,9 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
     const [currentPage, setCurrentPage] = useState(initialCurrentPage);
     const [totalPages, setTotalPages] = useState(initialTotalPages);
 
+    // Toggle to show/hide Customer ID column
+    const showCustomerIdColumn = false;
+
     // Selection and bulk delete state
     const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
     const [selectAll, setSelectAll] = useState<boolean>(false);
@@ -712,7 +715,9 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                                         className="rounded border-gray-300 text-primary focus:ring-primary"
                                     />
                                 </th>
-                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer ID</th>
+                                {showCustomerIdColumn && (
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer ID</th>
+                                )}
                                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
@@ -739,7 +744,9 @@ export default function CustomerClientWrapper({ initialCustomers, initialTotalPa
                                             className="rounded border-gray-300 text-primary focus:ring-primary"
                                         />
                                     </td>
-                                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">{customer.id}</td>
+                                    {showCustomerIdColumn && (
+                                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">{customer.id}</td>
+                                    )}
                                     <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">
                                         <button onClick={() => router.push(`/customers/${customer.id}`)} className="text-indigo-600 hover:text-indigo-900 hover:underline">
                                             {customer.name}

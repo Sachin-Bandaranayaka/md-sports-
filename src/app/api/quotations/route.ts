@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { verifyToken, extractToken } from '@/lib/auth';
 import { hasPermission } from '@/lib/utils/permissions';
 import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
+import { AuditService } from '@/services/auditService';
 
 type QuotationWhereInput = Prisma.QuotationWhereInput;
 
@@ -257,6 +258,27 @@ export async function POST(request: NextRequest) {
                     }
                 }
             });
+        });
+
+        // After transaction
+        const auditService = AuditService.getInstance();
+        let userId: string | null = payload.sub || null;
+
+        if (!quotation) {
+            throw new Error('Quotation creation failed');
+        }
+
+        await auditService.logAction({
+            userId,
+            action: 'CREATE',
+            entity: 'Quotation',
+            entityId: quotation.id,
+            details: {
+                quotationNumber: quotation.quotationNumber || '',
+                customerId: quotation.customerId || null,
+                total: quotation.total || 0,
+                itemsCount: quotation.items?.length || 0
+            }
         });
 
         return NextResponse.json(quotation, { status: 201 });

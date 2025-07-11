@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { AuditService } from './auditService';
 
 export interface DeletedInvoiceResult {
   id: number;
@@ -12,46 +13,33 @@ export interface DeletedInvoiceResult {
  * Returns a lightweight object with useful metadata for further follow-up
  * (cache invalidation, notifications, etc.).
  */
-export async function deleteInvoice(invoiceId: number): Promise<DeletedInvoiceResult> {
-  return prisma.$transaction(async (tx) => {
-    const invoiceToDelete = await tx.invoice.findUnique({
-      where: { id: invoiceId },
-      include: {
-        items: true,
-        customer: true,
-      },
-    });
-
-    if (!invoiceToDelete) {
-      throw new Error('Invoice not found for deletion');
-    }
-
-    // Adjust inventory for each item removed from the invoice.
-    if (invoiceToDelete.items && invoiceToDelete.items.length > 0) {
-      for (const item of invoiceToDelete.items) {
-        const targetShopId: string | undefined = invoiceToDelete.shopId || undefined;
-
-        await tx.inventoryItem.updateMany({
-          where: {
-            productId: item.productId,
-            ...(targetShopId && { shopId: targetShopId }),
-          },
-          data: { quantity: { increment: item.quantity } },
-        });
-      }
-    }
-
-    // Cascade delete payments first
-    await tx.payment.deleteMany({ where: { invoiceId } });
-    await tx.invoiceItem.deleteMany({ where: { invoiceId } });
-
-    await tx.invoice.delete({ where: { id: invoiceId } });
-
-    return {
-      id: invoiceId,
-      customerId: invoiceToDelete.customerId,
-      invoiceNumber: invoiceToDelete.invoiceNumber,
-      shopId: invoiceToDelete.shopId,
-    };
+export async function deleteInvoice(invoiceId: number, userId: number): Promise<DeletedInvoiceResult> {
+  const auditService = AuditService.getInstance();
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    include: { items: true, customer: true }
   });
+
+  if (!invoice) {
+    throw new Error('Invoice not found');
+  }
+
+  await auditService.softDelete('Invoice', invoiceId, invoice, userId, true);
+
+  // Adjust inventory as before
+  if (invoice.items.length > 0) {
+    for (const item of invoice.items) {
+      await prisma.inventoryItem.updateMany({
+        where: { productId: item.productId, ...(invoice.shopId && { shopId: invoice.shopId }) },
+        data: { quantity: { increment: item.quantity } }
+      });
+    }
+  }
+
+  return {
+    id: invoiceId,
+    customerId: invoice.customerId,
+    invoiceNumber: invoice.invoiceNumber,
+    shopId: invoice.shopId
+  };
 } 

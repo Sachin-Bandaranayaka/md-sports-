@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/utils/middleware';
 import { prisma } from '@/lib/prisma';
 import { AuditService } from '@/services/auditService';
+import { verifyToken } from '@/lib/auth';
 
 export async function GET() {
     try {
         // Get IDs of soft-deleted customers
-        const auditService = new AuditService();
+        const auditService = AuditService.getInstance();
         const deletedCustomerIds = await auditService.getDeletedEntityIds('Customer');
 
         // Fetch customers from database using Prisma
@@ -109,6 +110,36 @@ export async function POST(request: NextRequest) {
                 creditPeriod: creditPeriod,
                 // taxId and notes are removed as they are not in the Customer model
                 // The JSON blob for address is removed
+            }
+        });
+
+        // Get token for audit logging
+        const token = request.headers.get('authorization')?.replace('Bearer ', '');
+        let userId: number | null = null;
+        if (token) {
+            try {
+                const decoded = await verifyToken(token);
+                userId = decoded?.userId ? Number(decoded.userId) : null;
+            } catch (error) {
+                console.warn('Failed to get userId for audit logging');
+            }
+        }
+
+        // Log CREATE action
+        const auditService = AuditService.getInstance();
+        await auditService.logAction({
+            userId,
+            action: 'CREATE',
+            entity: 'Customer',
+            entityId: customer.id,
+            details: {
+                name: customer.name,
+                email: customer.email,
+                phone: customer.phone,
+                address: customer.address,
+                customerType: customer.customerType,
+                creditLimit: customer.creditLimit,
+                creditPeriod: customer.creditPeriod
             }
         });
 

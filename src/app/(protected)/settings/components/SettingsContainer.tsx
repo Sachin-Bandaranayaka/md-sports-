@@ -5,16 +5,21 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Loader2 } from 'lucide-react';
 import UsersList from '@/components/settings/UsersList';
+import { saveAs } from 'file-saver';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function SettingsContainer() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { accessToken } = useAuth();
     const [activeTab, setActiveTab] = useState('general');
     const [isSaving, setIsSaving] = useState(false);
     const [settings, setSettings] = useState<Record<string, string>>({});
     const [testSmsStatus, setTestSmsStatus] = useState<{ success?: boolean; message?: string } | null>(null);
     const [testSmsPhone, setTestSmsPhone] = useState('');
     const [testAiStatus, setTestAiStatus] = useState<{ success?: boolean; message?: string } | null>(null);
+    const [isBackingUp, setIsBackingUp] = useState(false);
+    const [backupStatus, setBackupStatus] = useState<{ success?: boolean; message?: string } | null>(null);
 
     // Set the active tab from URL query parameter if present
     useEffect(() => {
@@ -257,6 +262,33 @@ export default function SettingsContainer() {
         }
     };
 
+    const handleBackup = async () => {
+        setIsBackingUp(true);
+        setBackupStatus({ message: 'Generating backup...' });
+
+        console.log('Initiating backup request with accessToken:', accessToken ? `${accessToken.substring(0, 20)}...` : 'null');
+
+        try {
+            const response = await fetch('/api/backup', {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                },
+            });
+            if (!response.ok) {
+                throw new Error('Failed to generate backup');
+            }
+            const data = await response.json();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            saveAs(blob, 'mssports-backup.json');
+            setBackupStatus({ success: true, message: 'Backup generated and downloaded successfully!' });
+        } catch (error) {
+            console.error('Backup error:', error);
+            setBackupStatus({ success: false, message: 'Failed to generate backup. Please try again.' });
+        } finally {
+            setIsBackingUp(false);
+        }
+    };
+
     return (
         <div className="bg-tertiary p-6 rounded-lg shadow-sm border border-gray-200">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">System Settings</h2>
@@ -426,6 +458,29 @@ export default function SettingsContainer() {
                             </label>
                             <p className="text-xs text-gray-500">Enable maintenance mode to restrict system access</p>
                         </div>
+                    </div>
+
+                    <div className="space-y-6">
+                        <h3 className="text-lg font-medium text-gray-900">Database Backup</h3>
+                        <p className="text-gray-500">
+                            Generate a backup of your database data.
+                        </p>
+
+                        <div className="flex justify-start">
+                            <button
+                                className={`px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 ${isBackingUp ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                onClick={handleBackup}
+                                disabled={isBackingUp}
+                            >
+                                {isBackingUp ? 'Generating...' : 'Generate Backup'}
+                            </button>
+                        </div>
+
+                        {backupStatus && (
+                            <div className={`p-3 rounded-md ${backupStatus.success ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+                                {backupStatus.message}
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex justify-end mt-6">

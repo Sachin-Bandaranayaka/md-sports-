@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { smsService } from '@/services/smsService';
 import { validateTokenPermission, getUserIdFromToken } from '@/lib/auth';
 import { cacheService } from '@/lib/cache';
+import { AuditService } from '@/services/auditService';
 
 export async function GET(
     request: NextRequest,
@@ -522,6 +523,24 @@ export async function PUT(
         ];
         await Promise.all(invalidationPromises);
 
+        const auditService = new AuditService();
+        const changes = {}; // Compare existingInvoice and updatedInvoice
+        Object.keys(dataToUpdate).forEach(key => {
+            if (existingInvoice[key] !== updatedInvoice[key]) {
+                changes[key] = { old: existingInvoice[key], new: updatedInvoice[key] };
+            }
+        });
+
+        if (Object.keys(changes).length > 0) {
+            await auditService.logAction({
+                userId,
+                action: 'UPDATE',
+                entity: 'Invoice',
+                entityId: invoiceId,
+                details: changes
+            });
+        }
+
         return NextResponse.json({
             success: true,
             message: 'Invoice updated successfully',
@@ -541,13 +560,13 @@ export async function PUT(
 }
 
 export async function DELETE(
-    request: Request,
+    request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         // Validate token and permissions
-        const hasSalesDelete = await validateTokenPermission(request as NextRequest, 'sales:delete');
-        const hasInvoiceManage = await validateTokenPermission(request as NextRequest, 'invoice:manage');
+        const hasSalesDelete = await validateTokenPermission(request, 'sales:delete');
+        const hasInvoiceManage = await validateTokenPermission(request, 'invoice:manage');
 
         if (!hasSalesDelete.isValid && !hasInvoiceManage.isValid) {
             return NextResponse.json({ 
@@ -561,11 +580,17 @@ export async function DELETE(
         }
         const invoiceId = Number(resolvedParams.id);
 
+        // Get userId
+        const userId = await getUserIdFromToken(request);
+        if (!userId) {
+            return NextResponse.json({ error: 'User not found' }, { status: 401 });
+        }
+
         // Inventory update events are now handled in the service layer if needed
 
         // Delegate deletion logic to the service layer to keep this handler lean
         const { deleteInvoice } = await import('@/services/invoiceService');
-        const deletedInvoiceResult = await deleteInvoice(invoiceId);
+        const deletedInvoiceResult = await deleteInvoice(invoiceId, Number(userId));
         
         // Real-time updates now handled by polling system
         console.log(`Invoice ${deletedInvoiceResult.id} deleted successfully`);

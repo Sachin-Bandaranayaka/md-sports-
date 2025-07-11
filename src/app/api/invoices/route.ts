@@ -8,6 +8,7 @@ import { measureAsync } from '@/lib/performance';
 import { cacheService, CACHE_CONFIG } from '@/lib/cache';
 // Note: smsService import commented out as it may not be available
 // import { smsService } from '@/lib/sms';
+import { AuditService } from '@/services/auditService';
 
 // Helper function to retry on prepared statement errors
 async function retryOnPreparedStatementError<T>(queryFn: () => Promise<T>, maxRetries: number = 3): Promise<T> {
@@ -557,11 +558,16 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
 
                             const profitMargin = calculatedTotalInvoiceAmount > 0 ? (totalProfit / calculatedTotalInvoiceAmount) * 100 : 0;
 
-                            // Update invoice with profit information
+                            // Apply discount if provided
+                            let netTotal = calculatedTotalInvoiceAmount;
+                            if (invoiceDetails.discountAmount && invoiceDetails.discountAmount > 0) {
+                                netTotal = calculatedTotalInvoiceAmount - invoiceDetails.discountAmount;
+                            }
+
                             await tx.invoice.update({
                                 where: { id: createdInvoice.id },
                                 data: {
-                                    total: calculatedTotalInvoiceAmount, // Use server-calculated total
+                                    total: netTotal,
                                     totalProfit: totalProfit,
                                     profitMargin: profitMargin
                                 }
@@ -687,6 +693,22 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
                 cacheService.invalidateInvoices(),
                 cacheService.invalidateInventory()
             ]);
+
+            const auditService = AuditService.getInstance();
+            await auditService.logAction({
+                userId,
+                action: 'CREATE',
+                entity: 'Invoice',
+                entityId: invoice!.id,
+                details: {
+                    invoiceNumber: invoice!.invoiceNumber,
+                    customerId: invoice!.customerId,
+                    total: invoice!.total,
+                    status: invoice!.status,
+                    shopId: invoice!.shopId,
+                    itemsCount: invoice!.items.length
+                }
+            });
 
             return NextResponse.json(
                 { success: true, message: 'Invoice created successfully', data: invoice },

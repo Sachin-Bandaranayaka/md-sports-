@@ -253,7 +253,11 @@ export default function Payments() {
                             >
                                 <option value="all">All Accounts</option>
                                 {accounts
-                                    .filter(account => account.type === 'expense' || account.name.toLowerCase().includes('expense'))
+                                    .filter(account => {
+                                        const typeMatch = account.type && account.type.toString().toLowerCase() === 'expense';
+                                        const nameMatch = account.name && account.name.toLowerCase().includes('expense');
+                                        return typeMatch || nameMatch;
+                                    })
                                     .map((account) => (
                                         <option key={account.id} value={account.id}>
                                             {account.name}

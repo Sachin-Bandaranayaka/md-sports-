@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { AuditService } from '@/services/auditService';
 import { verifyToken } from '@/lib/auth';
 import { requirePermission } from '@/lib/utils/middleware';
+import { NextRequest } from 'next/server';
 
 export async function GET(
     request: Request,
@@ -64,7 +65,7 @@ export async function GET(
 }
 
 export async function PUT(
-    request: Request,
+    request: NextRequest,
     context: { params: { id: string } }
 ) {
     // Check for 'customer:update' permission
@@ -86,6 +87,18 @@ export async function PUT(
                 },
                 { status: 400 }
             );
+        }
+
+        const token = request.headers.get('authorization')?.replace('Bearer ', '');
+        if (!token) {
+            console.log('No token provided in request headers');
+            return NextResponse.json({ error: 'No token provided' }, { status: 401 });
+        }
+
+        const decoded = await verifyToken(token);
+        if (!decoded || !decoded.sub) {
+            console.log('Invalid token: missing decoded or sub');
+            return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
         }
 
         const body = await request.json();
@@ -191,12 +204,40 @@ export async function PUT(
             }
         }
 
+        // Fetch existing customer for change detection
+        const existingCustomer = await prisma.customer.findUnique({
+            where: { id }
+        });
+
+        if (!existingCustomer) {
+            return NextResponse.json({ success: false, message: 'Customer not found' }, { status: 404 });
+        }
+
         const updatedCustomer = await prisma.customer.update({
             where: {
                 id: id
             },
             data: customerUpdateData
         });
+
+        // Calculate changes for audit log
+        const changes: Record<string, { old: any; new: any }> = {};
+        (Object.keys(customerUpdateData) as (keyof typeof existingCustomer)[]).forEach(key => {
+            if (existingCustomer[key] !== updatedCustomer[key]) {
+                changes[key] = { old: existingCustomer[key], new: updatedCustomer[key] };
+            }
+        });
+
+        if (Object.keys(changes).length > 0) {
+            const auditService = AuditService.getInstance();
+            await auditService.logAction({
+                userId: decoded.sub, // Assuming decoded from earlier in the file
+                action: 'UPDATE',
+                entity: 'Customer',
+                entityId: id,
+                details: changes
+            });
+        }
 
         // Revalidate the customers page to refresh data
         const { revalidatePath } = await import('next/cache');
@@ -221,7 +262,7 @@ export async function PUT(
 }
 
 export async function DELETE(
-    request: Request,
+    request: NextRequest,
     context: { params: { id: string } }
 ) {
     // Check for 'customer:delete' permission
@@ -234,18 +275,14 @@ export async function DELETE(
         // Verify token and get user
         const token = request.headers.get('authorization')?.replace('Bearer ', '');
         if (!token) {
-            return NextResponse.json(
-                { success: false, message: 'No token provided' },
-                { status: 401 }
-            );
+            console.log('No token provided in DELETE request');
+            return NextResponse.json( { success: false, message: 'No token provided' }, { status: 401 } );
         }
 
         const decoded = await verifyToken(token);
-        if (!decoded) {
-            return NextResponse.json(
-                { success: false, message: 'Invalid token' },
-                { status: 401 }
-            );
+        if (!decoded || !decoded.sub) {
+            console.log('Invalid token in DELETE: missing decoded or sub');
+            return NextResponse.json( { success: false, message: 'Invalid token' }, { status: 401 } );
         }
 
         // Get params from context and ensure it's resolved
@@ -284,13 +321,13 @@ export async function DELETE(
         // The customer will be moved to recycle bin and can be recovered if needed
 
         // Use audit service for soft delete
-        const auditService = new AuditService();
+        const auditService = AuditService.getInstance();
         await auditService.softDelete(
             'Customer',
             id,
             customer,
-            decoded.userId,
-            true // canRecover
+            decoded.sub, // string UUID
+            true
         );
 
         return NextResponse.json({
