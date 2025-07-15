@@ -329,7 +329,7 @@ export async function DELETE(
             include: { items: true, customer: true }
         });
 
-        await auditService.softDelete('Quotation', quotationId, quotationData, Number(payload.sub), true);
+        await auditService.softDelete('Quotation', quotationId, quotationData, payload.sub as string, true);
         return NextResponse.json({ message: 'Quotation soft deleted successfully' }, { status: 200 });
 
     } catch (error) {

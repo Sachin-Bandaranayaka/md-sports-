@@ -1,0 +1,234 @@
+e86bc15705835a001fc8ef3500f0d388
+"use strict";
+
+/* istanbul ignore next */
+function cov_21g9gd4nv4() {
+  var path = "/Users/sachin/Documents/md-sports-/src/components/ui/AccessDenied.tsx";
+  var hash = "a865e777e83ac6a61ed4662feb3db553a0186f2c";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/Users/sachin/Documents/md-sports-/src/components/ui/AccessDenied.tsx",
+    statementMap: {
+      "0": {
+        start: {
+          line: 2,
+          column: 0
+        },
+        end: {
+          line: 4,
+          column: 3
+        }
+      },
+      "1": {
+        start: {
+          line: 5,
+          column: 0
+        },
+        end: {
+          line: 10,
+          column: 3
+        }
+      },
+      "2": {
+        start: {
+          line: 8,
+          column: 8
+        },
+        end: {
+          line: 8,
+          column: 28
+        }
+      },
+      "3": {
+        start: {
+          line: 11,
+          column: 20
+        },
+        end: {
+          line: 11,
+          column: 48
+        }
+      },
+      "4": {
+        start: {
+          line: 12,
+          column: 21
+        },
+        end: {
+          line: 12,
+          column: 44
+        }
+      },
+      "5": {
+        start: {
+          line: 14,
+          column: 4
+        },
+        end: {
+          line: 33,
+          column: 7
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "(anonymous_0)",
+        decl: {
+          start: {
+            line: 7,
+            column: 9
+          },
+          end: {
+            line: 7,
+            column: 10
+          }
+        },
+        loc: {
+          start: {
+            line: 7,
+            column: 20
+          },
+          end: {
+            line: 9,
+            column: 5
+          }
+        },
+        line: 7
+      },
+      "1": {
+        name: "AccessDenied",
+        decl: {
+          start: {
+            line: 13,
+            column: 9
+          },
+          end: {
+            line: 13,
+            column: 21
+          }
+        },
+        loc: {
+          start: {
+            line: 13,
+            column: 53
+          },
+          end: {
+            line: 34,
+            column: 1
+          }
+        },
+        line: 13
+      }
+    },
+    branchMap: {
+      "0": {
+        loc: {
+          start: {
+            line: 13,
+            column: 24
+          },
+          end: {
+            line: 13,
+            column: 49
+          }
+        },
+        type: "default-arg",
+        locations: [{
+          start: {
+            line: 13,
+            column: 34
+          },
+          end: {
+            line: 13,
+            column: 49
+          }
+        }],
+        line: 13
+      }
+    },
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0
+    },
+    f: {
+      "0": 0,
+      "1": 0
+    },
+    b: {
+      "0": [0]
+    },
+    inputSourceMap: {
+      version: 3,
+      sources: ["/Users/sachin/Documents/md-sports-/src/components/ui/AccessDenied.tsx"],
+      sourcesContent: ["import { Shield } from 'lucide-react';\n\nexport function AccessDenied({ message = \"Access Denied\" }: { message?: string }) {\n  return (\n    <div className=\"flex flex-col items-center justify-center text-center p-8 rounded-lg bg-gray-50 border-2 border-dashed border-gray-200 h-full\">\n      <Shield className=\"w-16 h-16 text-red-500 mb-4\" />\n      <h2 className=\"text-2xl font-bold text-gray-800 mb-2\">Access Restricted</h2>\n      <p className=\"text-gray-600\">{message}</p>\n      <p className=\"text-sm text-gray-500 mt-4\">\n        You do not have the necessary permissions to view this page. \n        If you believe this is an error, please contact your system administrator.\n      </p>\n    </div>\n  );\n} "],
+      names: ["AccessDenied", "message", "div", "className", "Shield", "h2", "p"],
+      mappings: ";;;;+BAEgBA;;;eAAAA;;;;6BAFO;AAEhB,SAASA,aAAa,EAAEC,UAAU,eAAe,EAAwB;IAC9E,qBACE,sBAACC;QAAIC,WAAU;;0BACb,qBAACC,mBAAM;gBAACD,WAAU;;0BAClB,qBAACE;gBAAGF,WAAU;0BAAwC;;0BACtD,qBAACG;gBAAEH,WAAU;0BAAiBF;;0BAC9B,qBAACK;gBAAEH,WAAU;0BAA6B;;;;AAMhD"
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "a865e777e83ac6a61ed4662feb3db553a0186f2c"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_21g9gd4nv4 = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_21g9gd4nv4();
+cov_21g9gd4nv4().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+/* istanbul ignore next */
+cov_21g9gd4nv4().s[1]++;
+Object.defineProperty(exports, "AccessDenied", {
+  enumerable: true,
+  get: function () {
+    /* istanbul ignore next */
+    cov_21g9gd4nv4().f[0]++;
+    cov_21g9gd4nv4().s[2]++;
+    return AccessDenied;
+  }
+});
+const _jsxruntime =
+/* istanbul ignore next */
+(cov_21g9gd4nv4().s[3]++, require("react/jsx-runtime"));
+const _lucidereact =
+/* istanbul ignore next */
+(cov_21g9gd4nv4().s[4]++, require("lucide-react"));
+function AccessDenied({
+  message =
+  /* istanbul ignore next */
+  (cov_21g9gd4nv4().b[0][0]++, "Access Denied")
+}) {
+  /* istanbul ignore next */
+  cov_21g9gd4nv4().f[1]++;
+  cov_21g9gd4nv4().s[5]++;
+  return /*#__PURE__*/(0, _jsxruntime.jsxs)("div", {
+    className: "flex flex-col items-center justify-center text-center p-8 rounded-lg bg-gray-50 border-2 border-dashed border-gray-200 h-full",
+    children: [/*#__PURE__*/(0, _jsxruntime.jsx)(_lucidereact.Shield, {
+      className: "w-16 h-16 text-red-500 mb-4"
+    }), /*#__PURE__*/(0, _jsxruntime.jsx)("h2", {
+      className: "text-2xl font-bold text-gray-800 mb-2",
+      children: "Access Restricted"
+    }), /*#__PURE__*/(0, _jsxruntime.jsx)("p", {
+      className: "text-gray-600",
+      children: message
+    }), /*#__PURE__*/(0, _jsxruntime.jsx)("p", {
+      className: "text-sm text-gray-500 mt-4",
+      children: "You do not have the necessary permissions to view this page. If you believe this is an error, please contact your system administrator."
+    })]
+  });
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJBY2Nlc3NEZW5pZWQiLCJtZXNzYWdlIiwiY292XzIxZzlnZDRudjQiLCJiIiwiZiIsInMiLCJfanN4cnVudGltZSIsImpzeHMiLCJjbGFzc05hbWUiLCJqc3giLCJfbHVjaWRlcmVhY3QiLCJTaGllbGQiXSwic291cmNlcyI6WyIvVXNlcnMvc2FjaGluL0RvY3VtZW50cy9tZC1zcG9ydHMtL3NyYy9jb21wb25lbnRzL3VpL0FjY2Vzc0RlbmllZC50c3giXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHsgU2hpZWxkIH0gZnJvbSAnbHVjaWRlLXJlYWN0JztcblxuZXhwb3J0IGZ1bmN0aW9uIEFjY2Vzc0RlbmllZCh7IG1lc3NhZ2UgPSBcIkFjY2VzcyBEZW5pZWRcIiB9OiB7IG1lc3NhZ2U/OiBzdHJpbmcgfSkge1xuICByZXR1cm4gKFxuICAgIDxkaXYgY2xhc3NOYW1lPVwiZmxleCBmbGV4LWNvbCBpdGVtcy1jZW50ZXIganVzdGlmeS1jZW50ZXIgdGV4dC1jZW50ZXIgcC04IHJvdW5kZWQtbGcgYmctZ3JheS01MCBib3JkZXItMiBib3JkZXItZGFzaGVkIGJvcmRlci1ncmF5LTIwMCBoLWZ1bGxcIj5cbiAgICAgIDxTaGllbGQgY2xhc3NOYW1lPVwidy0xNiBoLTE2IHRleHQtcmVkLTUwMCBtYi00XCIgLz5cbiAgICAgIDxoMiBjbGFzc05hbWU9XCJ0ZXh0LTJ4bCBmb250LWJvbGQgdGV4dC1ncmF5LTgwMCBtYi0yXCI+QWNjZXNzIFJlc3RyaWN0ZWQ8L2gyPlxuICAgICAgPHAgY2xhc3NOYW1lPVwidGV4dC1ncmF5LTYwMFwiPnttZXNzYWdlfTwvcD5cbiAgICAgIDxwIGNsYXNzTmFtZT1cInRleHQtc20gdGV4dC1ncmF5LTUwMCBtdC00XCI+XG4gICAgICAgIFlvdSBkbyBub3QgaGF2ZSB0aGUgbmVjZXNzYXJ5IHBlcm1pc3Npb25zIHRvIHZpZXcgdGhpcyBwYWdlLiBcbiAgICAgICAgSWYgeW91IGJlbGlldmUgdGhpcyBpcyBhbiBlcnJvciwgcGxlYXNlIGNvbnRhY3QgeW91ciBzeXN0ZW0gYWRtaW5pc3RyYXRvci5cbiAgICAgIDwvcD5cbiAgICA8L2Rpdj5cbiAgKTtcbn0gIl0sIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7OytCQUVnQjs7Ozs7O1dBQUFBLFlBQUE7Ozs7Ozs7O2tDQUZPO0FBRWhCLFNBQVNBLGFBQWE7RUFBRUMsT0FBQTtFQUFBO0VBQUEsQ0FBQUMsY0FBQSxHQUFBQyxDQUFBLFVBQVUsZUFBZTtBQUFBLENBQXdCO0VBQUE7RUFBQUQsY0FBQSxHQUFBRSxDQUFBO0VBQUFGLGNBQUEsR0FBQUcsQ0FBQTtFQUM5RSxvQkFDRSxJQUFBQyxXQUFBLENBQUFDLElBQUEsRUFBQztJQUFJQyxTQUFBLEVBQVU7NEJBQ2IsSUFBQUYsV0FBQSxDQUFBRyxHQUFBLEVBQUNDLFlBQUEsQ0FBQUMsTUFBTTtNQUFDSCxTQUFBLEVBQVU7cUJBQ2xCLElBQUFGLFdBQUEsQ0FBQUcsR0FBQSxFQUFDO01BQUdELFNBQUEsRUFBVTtnQkFBd0M7cUJBQ3RELElBQUFGLFdBQUEsQ0FBQUcsR0FBQSxFQUFDO01BQUVELFNBQUEsRUFBVTtnQkFBaUJQO3FCQUM5QixJQUFBSyxXQUFBLENBQUFHLEdBQUEsRUFBQztNQUFFRCxTQUFBLEVBQVU7Z0JBQTZCOzs7QUFNaEQiLCJpZ25vcmVMaXN0IjpbXX0=

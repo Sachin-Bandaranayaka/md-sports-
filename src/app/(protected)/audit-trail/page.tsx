@@ -379,7 +379,7 @@ export default function AuditTrailPage() {
                           Permanently Delete ({selectedItems.length})
                         </Button>
                       </AlertDialogTrigger>
-                      <AlertDialogContent>
+                      <AlertDialogContent className="bg-white">
                         <AlertDialogHeader>
                           <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                           <AlertDialogDescription>
@@ -467,7 +467,7 @@ export default function AuditTrailPage() {
                                   Delete
                                 </Button>
                               </AlertDialogTrigger>
-                              <AlertDialogContent>
+                              <AlertDialogContent className="bg-white">
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Permanently Delete Item?</AlertDialogTitle>
                                   <AlertDialogDescription>

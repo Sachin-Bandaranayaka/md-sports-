@@ -1,0 +1,480 @@
+200815309b180872c2039128a54e9791
+"use client";
+"use strict";
+
+/* istanbul ignore next */
+function cov_2lq0nesyaj() {
+  var path = "/Users/sachin/Documents/md-sports-/src/components/ApiInitializer.tsx";
+  var hash = "be2422a8686fd8b8efa9b83fcce36b38402d82d9";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/Users/sachin/Documents/md-sports-/src/components/ApiInitializer.tsx",
+    statementMap: {
+      "0": {
+        start: {
+          line: 3,
+          column: 0
+        },
+        end: {
+          line: 5,
+          column: 3
+        }
+      },
+      "1": {
+        start: {
+          line: 6,
+          column: 0
+        },
+        end: {
+          line: 14,
+          column: 3
+        }
+      },
+      "2": {
+        start: {
+          line: 12,
+          column: 8
+        },
+        end: {
+          line: 12,
+          column: 30
+        }
+      },
+      "3": {
+        start: {
+          line: 15,
+          column: 15
+        },
+        end: {
+          line: 15,
+          column: 31
+        }
+      },
+      "4": {
+        start: {
+          line: 16,
+          column: 13
+        },
+        end: {
+          line: 16,
+          column: 36
+        }
+      },
+      "5": {
+        start: {
+          line: 18,
+          column: 46
+        },
+        end: {
+          line: 18,
+          column: 73
+        }
+      },
+      "6": {
+        start: {
+          line: 19,
+          column: 4
+        },
+        end: {
+          line: 38,
+          column: 7
+        }
+      },
+      "7": {
+        start: {
+          line: 21,
+          column: 30
+        },
+        end: {
+          line: 31,
+          column: 9
+        }
+      },
+      "8": {
+        start: {
+          line: 22,
+          column: 12
+        },
+        end: {
+          line: 30,
+          column: 13
+        }
+      },
+      "9": {
+        start: {
+          line: 23,
+          column: 16
+        },
+        end: {
+          line: 29,
+          column: 17
+        }
+      },
+      "10": {
+        start: {
+          line: 25,
+          column: 20
+        },
+        end: {
+          line: 25,
+          column: 54
+        }
+      },
+      "11": {
+        start: {
+          line: 26,
+          column: 20
+        },
+        end: {
+          line: 26,
+          column: 43
+        }
+      },
+      "12": {
+        start: {
+          line: 28,
+          column: 20
+        },
+        end: {
+          line: 28,
+          column: 80
+        }
+      },
+      "13": {
+        start: {
+          line: 33,
+          column: 22
+        },
+        end: {
+          line: 33,
+          column: 52
+        }
+      },
+      "14": {
+        start: {
+          line: 35,
+          column: 8
+        },
+        end: {
+          line: 35,
+          column: 39
+        }
+      },
+      "15": {
+        start: {
+          line: 35,
+          column: 19
+        },
+        end: {
+          line: 35,
+          column: 38
+        }
+      },
+      "16": {
+        start: {
+          line: 40,
+          column: 4
+        },
+        end: {
+          line: 40,
+          column: 16
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "(anonymous_0)",
+        decl: {
+          start: {
+            line: 11,
+            column: 9
+          },
+          end: {
+            line: 11,
+            column: 10
+          }
+        },
+        loc: {
+          start: {
+            line: 11,
+            column: 20
+          },
+          end: {
+            line: 13,
+            column: 5
+          }
+        },
+        line: 11
+      },
+      "1": {
+        name: "ApiInitializer",
+        decl: {
+          start: {
+            line: 17,
+            column: 9
+          },
+          end: {
+            line: 17,
+            column: 23
+          }
+        },
+        loc: {
+          start: {
+            line: 17,
+            column: 26
+          },
+          end: {
+            line: 41,
+            column: 1
+          }
+        },
+        line: 17
+      },
+      "2": {
+        name: "(anonymous_2)",
+        decl: {
+          start: {
+            line: 19,
+            column: 26
+          },
+          end: {
+            line: 19,
+            column: 27
+          }
+        },
+        loc: {
+          start: {
+            line: 19,
+            column: 30
+          },
+          end: {
+            line: 36,
+            column: 5
+          }
+        },
+        line: 19
+      },
+      "3": {
+        name: "(anonymous_3)",
+        decl: {
+          start: {
+            line: 21,
+            column: 30
+          },
+          end: {
+            line: 21,
+            column: 31
+          }
+        },
+        loc: {
+          start: {
+            line: 21,
+            column: 34
+          },
+          end: {
+            line: 31,
+            column: 9
+          }
+        },
+        line: 21
+      },
+      "4": {
+        name: "(anonymous_4)",
+        decl: {
+          start: {
+            line: 35,
+            column: 15
+          },
+          end: {
+            line: 35,
+            column: 16
+          }
+        },
+        loc: {
+          start: {
+            line: 35,
+            column: 19
+          },
+          end: {
+            line: 35,
+            column: 38
+          }
+        },
+        line: 35
+      }
+    },
+    branchMap: {
+      "0": {
+        loc: {
+          start: {
+            line: 22,
+            column: 12
+          },
+          end: {
+            line: 30,
+            column: 13
+          }
+        },
+        type: "if",
+        locations: [{
+          start: {
+            line: 22,
+            column: 12
+          },
+          end: {
+            line: 30,
+            column: 13
+          }
+        }, {
+          start: {
+            line: undefined,
+            column: undefined
+          },
+          end: {
+            line: undefined,
+            column: undefined
+          }
+        }],
+        line: 22
+      }
+    },
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0,
+      "9": 0,
+      "10": 0,
+      "11": 0,
+      "12": 0,
+      "13": 0,
+      "14": 0,
+      "15": 0,
+      "16": 0
+    },
+    f: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0
+    },
+    b: {
+      "0": [0, 0]
+    },
+    inputSourceMap: {
+      version: 3,
+      sources: ["/Users/sachin/Documents/md-sports-/src/components/ApiInitializer.tsx"],
+      sourcesContent: ["'use client';\n\nimport { useEffect, useState } from 'react';\nimport { setupFetchInterceptor } from '@/utils/api';\n\n/**\n * Component that initializes API-related utilities\n * This includes setting up the fetch interceptor for CSRF tokens\n */\nexport default function ApiInitializer() {\n    const [isInitialized, setIsInitialized] = useState(false);\n\n    useEffect(() => {\n        // Delay initialization to prioritize page rendering\n        const initializeApi = () => {\n            if (!isInitialized) {\n                try {\n                    // Initialize fetch interceptor to handle CSRF tokens\n                    setupFetchInterceptor();\n                    setIsInitialized(true);\n                } catch (error) {\n                    console.error('Failed to initialize API utilities:', error);\n                }\n            }\n        };\n\n        // Initialize after a short delay to not block page rendering\n        const timer = setTimeout(initializeApi, 200);\n\n        // Clean up timer if component unmounts\n        return () => clearTimeout(timer);\n    }, [isInitialized]);\n\n    // This component doesn't render anything\n    return null;\n} "],
+      names: ["ApiInitializer", "isInitialized", "setIsInitialized", "useState", "useEffect", "initializeApi", "setupFetchInterceptor", "error", "console", "timer", "setTimeout", "clearTimeout"],
+      mappings: "AAAA;;;;;+BAKA;;;CAGC,GACD;;;eAAwBA;;;uBAPY;qBACE;AAMvB,SAASA;IACpB,MAAM,CAACC,eAAeC,iBAAiB,GAAGC,IAAAA,eAAQ,EAAC;IAEnDC,IAAAA,gBAAS,EAAC;QACN,oDAAoD;QACpD,MAAMC,gBAAgB;YAClB,IAAI,CAACJ,eAAe;gBAChB,IAAI;oBACA,qDAAqD;oBACrDK,IAAAA,0BAAqB;oBACrBJ,iBAAiB;gBACrB,EAAE,OAAOK,OAAO;oBACZC,QAAQD,KAAK,CAAC,uCAAuCA;gBACzD;YACJ;QACJ;QAEA,6DAA6D;QAC7D,MAAME,QAAQC,WAAWL,eAAe;QAExC,uCAAuC;QACvC,OAAO,IAAMM,aAAaF;IAC9B,GAAG;QAACR;KAAc;IAElB,yCAAyC;IACzC,OAAO;AACX"
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "be2422a8686fd8b8efa9b83fcce36b38402d82d9"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_2lq0nesyaj = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_2lq0nesyaj();
+cov_2lq0nesyaj().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+/* istanbul ignore next */
+cov_2lq0nesyaj().s[1]++;
+Object.defineProperty(exports,
+/**
+* Component that initializes API-related utilities
+* This includes setting up the fetch interceptor for CSRF tokens
+*/
+"default", {
+  enumerable: true,
+  get: function () {
+    /* istanbul ignore next */
+    cov_2lq0nesyaj().f[0]++;
+    cov_2lq0nesyaj().s[2]++;
+    return ApiInitializer;
+  }
+});
+const _react =
+/* istanbul ignore next */
+(cov_2lq0nesyaj().s[3]++, require("react"));
+const _api =
+/* istanbul ignore next */
+(cov_2lq0nesyaj().s[4]++, require("../utils/api"));
+function ApiInitializer() {
+  /* istanbul ignore next */
+  cov_2lq0nesyaj().f[1]++;
+  const [isInitialized, setIsInitialized] =
+  /* istanbul ignore next */
+  (cov_2lq0nesyaj().s[5]++, (0, _react.useState)(false));
+  /* istanbul ignore next */
+  cov_2lq0nesyaj().s[6]++;
+  (0, _react.useEffect)(() => {
+    /* istanbul ignore next */
+    cov_2lq0nesyaj().f[2]++;
+    cov_2lq0nesyaj().s[7]++;
+    // Delay initialization to prioritize page rendering
+    const initializeApi = () => {
+      /* istanbul ignore next */
+      cov_2lq0nesyaj().f[3]++;
+      cov_2lq0nesyaj().s[8]++;
+      if (!isInitialized) {
+        /* istanbul ignore next */
+        cov_2lq0nesyaj().b[0][0]++;
+        cov_2lq0nesyaj().s[9]++;
+        try {
+          /* istanbul ignore next */
+          cov_2lq0nesyaj().s[10]++;
+          // Initialize fetch interceptor to handle CSRF tokens
+          (0, _api.setupFetchInterceptor)();
+          /* istanbul ignore next */
+          cov_2lq0nesyaj().s[11]++;
+          setIsInitialized(true);
+        } catch (error) {
+          /* istanbul ignore next */
+          cov_2lq0nesyaj().s[12]++;
+          console.error("Failed to initialize API utilities:", error);
+        }
+      } else
+      /* istanbul ignore next */
+      {
+        cov_2lq0nesyaj().b[0][1]++;
+      }
+    };
+    // Initialize after a short delay to not block page rendering
+    const timer =
+    /* istanbul ignore next */
+    (cov_2lq0nesyaj().s[13]++, setTimeout(initializeApi, 200));
+    // Clean up timer if component unmounts
+    /* istanbul ignore next */
+    cov_2lq0nesyaj().s[14]++;
+    return () => {
+      /* istanbul ignore next */
+      cov_2lq0nesyaj().f[4]++;
+      cov_2lq0nesyaj().s[15]++;
+      return clearTimeout(timer);
+    };
+  }, [isInitialized]);
+  // This component doesn't render anything
+  /* istanbul ignore next */
+  cov_2lq0nesyaj().s[16]++;
+  return null;
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJBcGlJbml0aWFsaXplciIsImNvdl8ybHEwbmVzeWFqIiwiZiIsImlzSW5pdGlhbGl6ZWQiLCJzZXRJc0luaXRpYWxpemVkIiwicyIsIl9yZWFjdCIsInVzZVN0YXRlIiwidXNlRWZmZWN0IiwiaW5pdGlhbGl6ZUFwaSIsImIiLCJfYXBpIiwic2V0dXBGZXRjaEludGVyY2VwdG9yIiwiZXJyb3IiLCJjb25zb2xlIiwidGltZXIiLCJzZXRUaW1lb3V0IiwiY2xlYXJUaW1lb3V0Il0sInNvdXJjZXMiOlsiL1VzZXJzL3NhY2hpbi9Eb2N1bWVudHMvbWQtc3BvcnRzLS9zcmMvY29tcG9uZW50cy9BcGlJbml0aWFsaXplci50c3giXSwic291cmNlc0NvbnRlbnQiOlsiJ3VzZSBjbGllbnQnO1xuXG5pbXBvcnQgeyB1c2VFZmZlY3QsIHVzZVN0YXRlIH0gZnJvbSAncmVhY3QnO1xuaW1wb3J0IHsgc2V0dXBGZXRjaEludGVyY2VwdG9yIH0gZnJvbSAnQC91dGlscy9hcGknO1xuXG4vKipcbiAqIENvbXBvbmVudCB0aGF0IGluaXRpYWxpemVzIEFQSS1yZWxhdGVkIHV0aWxpdGllc1xuICogVGhpcyBpbmNsdWRlcyBzZXR0aW5nIHVwIHRoZSBmZXRjaCBpbnRlcmNlcHRvciBmb3IgQ1NSRiB0b2tlbnNcbiAqL1xuZXhwb3J0IGRlZmF1bHQgZnVuY3Rpb24gQXBpSW5pdGlhbGl6ZXIoKSB7XG4gICAgY29uc3QgW2lzSW5pdGlhbGl6ZWQsIHNldElzSW5pdGlhbGl6ZWRdID0gdXNlU3RhdGUoZmFsc2UpO1xuXG4gICAgdXNlRWZmZWN0KCgpID0+IHtcbiAgICAgICAgLy8gRGVsYXkgaW5pdGlhbGl6YXRpb24gdG8gcHJpb3JpdGl6ZSBwYWdlIHJlbmRlcmluZ1xuICAgICAgICBjb25zdCBpbml0aWFsaXplQXBpID0gKCkgPT4ge1xuICAgICAgICAgICAgaWYgKCFpc0luaXRpYWxpemVkKSB7XG4gICAgICAgICAgICAgICAgdHJ5IHtcbiAgICAgICAgICAgICAgICAgICAgLy8gSW5pdGlhbGl6ZSBmZXRjaCBpbnRlcmNlcHRvciB0byBoYW5kbGUgQ1NSRiB0b2tlbnNcbiAgICAgICAgICAgICAgICAgICAgc2V0dXBGZXRjaEludGVyY2VwdG9yKCk7XG4gICAgICAgICAgICAgICAgICAgIHNldElzSW5pdGlhbGl6ZWQodHJ1ZSk7XG4gICAgICAgICAgICAgICAgfSBjYXRjaCAoZXJyb3IpIHtcbiAgICAgICAgICAgICAgICAgICAgY29uc29sZS5lcnJvcignRmFpbGVkIHRvIGluaXRpYWxpemUgQVBJIHV0aWxpdGllczonLCBlcnJvcik7XG4gICAgICAgICAgICAgICAgfVxuICAgICAgICAgICAgfVxuICAgICAgICB9O1xuXG4gICAgICAgIC8vIEluaXRpYWxpemUgYWZ0ZXIgYSBzaG9ydCBkZWxheSB0byBub3QgYmxvY2sgcGFnZSByZW5kZXJpbmdcbiAgICAgICAgY29uc3QgdGltZXIgPSBzZXRUaW1lb3V0KGluaXRpYWxpemVBcGksIDIwMCk7XG5cbiAgICAgICAgLy8gQ2xlYW4gdXAgdGltZXIgaWYgY29tcG9uZW50IHVubW91bnRzXG4gICAgICAgIHJldHVybiAoKSA9PiBjbGVhclRpbWVvdXQodGltZXIpO1xuICAgIH0sIFtpc0luaXRpYWxpemVkXSk7XG5cbiAgICAvLyBUaGlzIGNvbXBvbmVudCBkb2Vzbid0IHJlbmRlciBhbnl0aGluZ1xuICAgIHJldHVybiBudWxsO1xufSAiXSwibWFwcGluZ3MiOiJBQUFBOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7O0FBS0E7Ozs7QUFJQTs7Ozs7O1dBQXdCQSxjQUFBOzs7OztrQ0FQWTs7O2tDQUNFO0FBTXZCLFNBQVNBLGVBQUE7RUFBQTtFQUFBQyxjQUFBLEdBQUFDLENBQUE7RUFDcEIsTUFBTSxDQUFDQyxhQUFBLEVBQWVDLGdCQUFBLENBQWlCO0VBQUE7RUFBQSxDQUFBSCxjQUFBLEdBQUFJLENBQUEsT0FBRyxJQUFBQyxNQUFBLENBQUFDLFFBQVEsRUFBQztFQUFBO0VBQUFOLGNBQUEsR0FBQUksQ0FBQTtFQUVuRCxJQUFBQyxNQUFBLENBQUFFLFNBQVMsRUFBQztJQUFBO0lBQUFQLGNBQUEsR0FBQUMsQ0FBQTtJQUFBRCxjQUFBLEdBQUFJLENBQUE7SUFDTjtJQUNBLE1BQU1JLGFBQUEsR0FBZ0JBLENBQUE7TUFBQTtNQUFBUixjQUFBLEdBQUFDLENBQUE7TUFBQUQsY0FBQSxHQUFBSSxDQUFBO01BQ2xCLElBQUksQ0FBQ0YsYUFBQSxFQUFlO1FBQUE7UUFBQUYsY0FBQSxHQUFBUyxDQUFBO1FBQUFULGNBQUEsR0FBQUksQ0FBQTtRQUNoQixJQUFJO1VBQUE7VUFBQUosY0FBQSxHQUFBSSxDQUFBO1VBQ0E7VUFDQSxJQUFBTSxJQUFBLENBQUFDLHFCQUFxQjtVQUFBO1VBQUFYLGNBQUEsR0FBQUksQ0FBQTtVQUNyQkQsZ0JBQUEsQ0FBaUI7UUFDckIsRUFBRSxPQUFPUyxLQUFBLEVBQU87VUFBQTtVQUFBWixjQUFBLEdBQUFJLENBQUE7VUFDWlMsT0FBQSxDQUFRRCxLQUFLLENBQUMsdUNBQXVDQSxLQUFBO1FBQ3pEO01BQ0o7TUFBQTtNQUFBO1FBQUFaLGNBQUEsR0FBQVMsQ0FBQTtNQUFBO0lBQ0o7SUFFQTtJQUNBLE1BQU1LLEtBQUE7SUFBQTtJQUFBLENBQUFkLGNBQUEsR0FBQUksQ0FBQSxRQUFRVyxVQUFBLENBQVdQLGFBQUEsRUFBZTtJQUV4QztJQUFBO0lBQUFSLGNBQUEsR0FBQUksQ0FBQTtJQUNBLE9BQU8sTUFBTTtNQUFBO01BQUFKLGNBQUEsR0FBQUMsQ0FBQTtNQUFBRCxjQUFBLEdBQUFJLENBQUE7TUFBQSxPQUFBWSxZQUFBLENBQWFGLEtBQUE7SUFBQTtFQUM5QixHQUFHLENBQUNaLGFBQUEsQ0FBYztFQUVsQjtFQUFBO0VBQUFGLGNBQUEsR0FBQUksQ0FBQTtFQUNBLE9BQU87QUFDWCIsImlnbm9yZUxpc3QiOltdfQ==

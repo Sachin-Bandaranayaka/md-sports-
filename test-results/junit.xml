@@ -1,24 +1,71 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="1" failures="1" errors="0" time="0.158">
-  <testsuite name="Inventory transfer reservation flow" errors="0" failures="1" skipped="0" timestamp="2025-07-09T17:14:13" time="0.132" tests="1">
-    <testcase classname="Inventory transfer reservation flow" name="reservation, cancel, complete flow" time="0">
-      <failure>TypeError: Cannot read properties of undefined (reading &apos;create&apos;)
-    at Object.create (/Users/sachin/Documents/md-sports-/tests/integration/inventoryTransfer.test.ts:102:37)
-    at Promise.then.completed (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/utils.js:298:28)
-    at new Promise (&lt;anonymous&gt;)
-    at callAsyncCircusFn (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusHook (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:281:40)
-    at processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at _runTestsForDescribeBlock (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:95:7)
-    at _runTestsForDescribeBlock (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:121:9)
-    at run (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/Users/sachin/Documents/md-sports-/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/Users/sachin/Documents/md-sports-/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+<testsuites name="jest tests" tests="32" failures="0" errors="0" time="0.634">
+  <testsuite name="Purchase Invoice Forms - Distribution Validation" errors="0" failures="0" skipped="0" timestamp="2025-07-15T19:01:57" time="0.469" tests="13">
+    <testcase classname="Purchase Invoice Forms - Distribution Validation › Form Validation" name="should show error when no supplier is selected" time="0.061">
     </testcase>
-    <testcase classname="" name="Test execution failure: could be caused by test hooks like &apos;afterAll&apos;." time="0">
-      <failure>{&quot;message&quot;:&quot;&quot;,&quot;stack&quot;:&quot;TypeError: Cannot read properties of undefined (reading &apos;deleteMany&apos;)\n    at Object.deleteMany (/Users/sachin/Documents/md-sports-/tests/integration/inventoryTransfer.test.ts:118:32)\n    at Promise.then.completed (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/utils.js:298:28)\n    at new Promise (&lt;anonymous&gt;)\n    at callAsyncCircusFn (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/utils.js:231:10)\n    at _callCircusHook (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:281:40)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at _runTestsForDescribeBlock (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:154:7)\n    at _runTestsForDescribeBlock (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:121:9)\n    at run (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:71:3)\n    at runAndTransformResultsToJestFormat (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)\n    at jestAdapter (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)\n    at runTestInternal (/Users/sachin/Documents/md-sports-/node_modules/jest-runner/build/runTest.js:367:16)\n    at runTest (/Users/sachin/Documents/md-sports-/node_modules/jest-runner/build/runTest.js:444:34)&quot;}</failure>
+    <testcase classname="Purchase Invoice Forms - Distribution Validation › Form Validation" name="should disable submit button when no items are added" time="0.013">
+    </testcase>
+    <testcase classname="Purchase Invoice Forms - Distribution Validation › Form Validation" name="should show error when no shops are configured" time="0.023">
+    </testcase>
+    <testcase classname="Purchase Invoice Forms - Distribution Validation › Distribution Status Indicators" name="should show &quot;Not distributed&quot; status initially" time="0.009">
+    </testcase>
+    <testcase classname="Purchase Invoice Forms - Distribution Validation › Distribution Status Indicators" name="should show &quot;Partial distributed&quot; status" time="0.021">
+    </testcase>
+    <testcase classname="Purchase Invoice Forms - Distribution Validation › Distribution Status Indicators" name="should show &quot;Fully distributed&quot; status" time="0.027">
+    </testcase>
+    <testcase classname="Purchase Invoice Forms - Distribution Validation › Distribution Status Indicators" name="should show &quot;Over-distributed&quot; status" time="0.02">
+    </testcase>
+    <testcase classname="Purchase Invoice Forms - Distribution Validation › Validation Summary" name="should show validation error when items are not distributed" time="0.008">
+    </testcase>
+    <testcase classname="Purchase Invoice Forms - Distribution Validation › Validation Summary" name="should show validation success when all items are distributed" time="0.02">
+    </testcase>
+    <testcase classname="Purchase Invoice Forms - Distribution Validation › Submit Button State" name="should disable submit button when validation fails" time="0.008">
+    </testcase>
+    <testcase classname="Purchase Invoice Forms - Distribution Validation › Submit Button State" name="should enable submit button when validation passes" time="0.029">
+    </testcase>
+    <testcase classname="Purchase Invoice Forms - Distribution Validation › Submit Button State" name="should successfully submit when all validations pass" time="0.036">
+    </testcase>
+    <testcase classname="Purchase Invoice Forms - Distribution Validation › Multiple Items Validation" name="should validate all items before allowing submission" time="0.049">
+    </testcase>
+  </testsuite>
+  <testsuite name="Purchase Invoice Distribution Validation" errors="0" failures="0" skipped="0" timestamp="2025-07-15T19:01:58" time="0.035" tests="19">
+    <testcase classname="Purchase Invoice Distribution Validation › validateDistributions" name="should return valid when all items are properly distributed" time="0">
+    </testcase>
+    <testcase classname="Purchase Invoice Distribution Validation › validateDistributions" name="should return invalid when no items exist" time="0">
+    </testcase>
+    <testcase classname="Purchase Invoice Distribution Validation › validateDistributions" name="should return invalid when no shops are configured" time="0">
+    </testcase>
+    <testcase classname="Purchase Invoice Distribution Validation › validateDistributions" name="should return invalid when item has no distribution" time="0.001">
+    </testcase>
+    <testcase classname="Purchase Invoice Distribution Validation › validateDistributions" name="should return invalid when distributed quantity is less than required" time="0">
+    </testcase>
+    <testcase classname="Purchase Invoice Distribution Validation › validateDistributions" name="should return invalid when distributed quantity exceeds required" time="0">
+    </testcase>
+    <testcase classname="Purchase Invoice Distribution Validation › validateDistributions" name="should handle missing distribution arrays gracefully" time="0">
+    </testcase>
+    <testcase classname="Purchase Invoice Distribution Validation › validateDistributions" name="should handle string quantities in distributions" time="0">
+    </testcase>
+    <testcase classname="Purchase Invoice Distribution Validation › validateDistributions" name="should handle invalid/NaN quantities in distributions" time="0">
+    </testcase>
+    <testcase classname="Purchase Invoice Distribution Validation › getItemDistributionStatus" name="should return &quot;complete&quot; when item is fully distributed" time="0.002">
+    </testcase>
+    <testcase classname="Purchase Invoice Distribution Validation › getItemDistributionStatus" name="should return &quot;none&quot; when item has no distribution" time="0.001">
+    </testcase>
+    <testcase classname="Purchase Invoice Distribution Validation › getItemDistributionStatus" name="should return &quot;partial&quot; when item is partially distributed" time="0">
+    </testcase>
+    <testcase classname="Purchase Invoice Distribution Validation › getItemDistributionStatus" name="should return &quot;over&quot; when item is over-distributed" time="0">
+    </testcase>
+    <testcase classname="Purchase Invoice Distribution Validation › getItemDistributionStatus" name="should return &quot;none&quot; when item index is invalid" time="0">
+    </testcase>
+    <testcase classname="Purchase Invoice Distribution Validation › getItemDistributionStatus" name="should handle missing distribution for item index" time="0">
+    </testcase>
+    <testcase classname="Purchase Invoice Distribution Validation › getItemDistributionStatus" name="should handle zero quantity items" time="0">
+    </testcase>
+    <testcase classname="Purchase Invoice Distribution Validation › Edge Cases" name="should handle empty arrays" time="0">
+    </testcase>
+    <testcase classname="Purchase Invoice Distribution Validation › Edge Cases" name="should handle null/undefined inputs gracefully" time="0">
+    </testcase>
+    <testcase classname="Purchase Invoice Distribution Validation › Edge Cases" name="should handle items with missing productName" time="0">
     </testcase>
   </testsuite>
 </testsuites>

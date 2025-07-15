@@ -1,0 +1,699 @@
+71ab7cdc644f0cf383151a80d38c0a53
+"use strict";
+
+/* istanbul ignore next */
+function cov_1wi3s5z7i8() {
+  var path = "/Users/sachin/Documents/md-sports-/src/app/api/sms/route.ts";
+  var hash = "989033bf0d912643202dc948128b65ca8348aea6";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/Users/sachin/Documents/md-sports-/src/app/api/sms/route.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 2,
+          column: 0
+        },
+        end: {
+          line: 4,
+          column: 3
+        }
+      },
+      "1": {
+        start: {
+          line: 5,
+          column: 0
+        },
+        end: {
+          line: 10,
+          column: 3
+        }
+      },
+      "2": {
+        start: {
+          line: 8,
+          column: 8
+        },
+        end: {
+          line: 8,
+          column: 20
+        }
+      },
+      "3": {
+        start: {
+          line: 11,
+          column: 16
+        },
+        end: {
+          line: 11,
+          column: 38
+        }
+      },
+      "4": {
+        start: {
+          line: 12,
+          column: 20
+        },
+        end: {
+          line: 12,
+          column: 60
+        }
+      },
+      "5": {
+        start: {
+          line: 13,
+          column: 20
+        },
+        end: {
+          line: 13,
+          column: 59
+        }
+      },
+      "6": {
+        start: {
+          line: 16,
+          column: 28
+        },
+        end: {
+          line: 16,
+          column: 92
+        }
+      },
+      "7": {
+        start: {
+          line: 17,
+          column: 4
+        },
+        end: {
+          line: 19,
+          column: 5
+        }
+      },
+      "8": {
+        start: {
+          line: 18,
+          column: 8
+        },
+        end: {
+          line: 18,
+          column: 31
+        }
+      },
+      "9": {
+        start: {
+          line: 20,
+          column: 4
+        },
+        end: {
+          line: 70,
+          column: 5
+        }
+      },
+      "10": {
+        start: {
+          line: 21,
+          column: 21
+        },
+        end: {
+          line: 21,
+          column: 37
+        }
+      },
+      "11": {
+        start: {
+          line: 22,
+          column: 32
+        },
+        end: {
+          line: 22,
+          column: 36
+        }
+      },
+      "12": {
+        start: {
+          line: 24,
+          column: 8
+        },
+        end: {
+          line: 31,
+          column: 9
+        }
+      },
+      "13": {
+        start: {
+          line: 25,
+          column: 12
+        },
+        end: {
+          line: 30,
+          column: 15
+        }
+      },
+      "14": {
+        start: {
+          line: 33,
+          column: 8
+        },
+        end: {
+          line: 33,
+          column: 44
+        }
+      },
+      "15": {
+        start: {
+          line: 35,
+          column: 8
+        },
+        end: {
+          line: 42,
+          column: 9
+        }
+      },
+      "16": {
+        start: {
+          line: 36,
+          column: 12
+        },
+        end: {
+          line: 41,
+          column: 15
+        }
+      },
+      "17": {
+        start: {
+          line: 44,
+          column: 25
+        },
+        end: {
+          line: 47,
+          column: 10
+        }
+      },
+      "18": {
+        start: {
+          line: 48,
+          column: 8
+        },
+        end: {
+          line: 61,
+          column: 9
+        }
+      },
+      "19": {
+        start: {
+          line: 49,
+          column: 12
+        },
+        end: {
+          line: 53,
+          column: 15
+        }
+      },
+      "20": {
+        start: {
+          line: 55,
+          column: 12
+        },
+        end: {
+          line: 60,
+          column: 15
+        }
+      },
+      "21": {
+        start: {
+          line: 63,
+          column: 8
+        },
+        end: {
+          line: 63,
+          column: 51
+        }
+      },
+      "22": {
+        start: {
+          line: 64,
+          column: 8
+        },
+        end: {
+          line: 69,
+          column: 11
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "(anonymous_0)",
+        decl: {
+          start: {
+            line: 7,
+            column: 9
+          },
+          end: {
+            line: 7,
+            column: 10
+          }
+        },
+        loc: {
+          start: {
+            line: 7,
+            column: 20
+          },
+          end: {
+            line: 9,
+            column: 5
+          }
+        },
+        line: 7
+      },
+      "1": {
+        name: "POST",
+        decl: {
+          start: {
+            line: 14,
+            column: 15
+          },
+          end: {
+            line: 14,
+            column: 19
+          }
+        },
+        loc: {
+          start: {
+            line: 14,
+            column: 25
+          },
+          end: {
+            line: 71,
+            column: 1
+          }
+        },
+        line: 14
+      }
+    },
+    branchMap: {
+      "0": {
+        loc: {
+          start: {
+            line: 17,
+            column: 4
+          },
+          end: {
+            line: 19,
+            column: 5
+          }
+        },
+        type: "if",
+        locations: [{
+          start: {
+            line: 17,
+            column: 4
+          },
+          end: {
+            line: 19,
+            column: 5
+          }
+        }, {
+          start: {
+            line: undefined,
+            column: undefined
+          },
+          end: {
+            line: undefined,
+            column: undefined
+          }
+        }],
+        line: 17
+      },
+      "1": {
+        loc: {
+          start: {
+            line: 24,
+            column: 8
+          },
+          end: {
+            line: 31,
+            column: 9
+          }
+        },
+        type: "if",
+        locations: [{
+          start: {
+            line: 24,
+            column: 8
+          },
+          end: {
+            line: 31,
+            column: 9
+          }
+        }, {
+          start: {
+            line: undefined,
+            column: undefined
+          },
+          end: {
+            line: undefined,
+            column: undefined
+          }
+        }],
+        line: 24
+      },
+      "2": {
+        loc: {
+          start: {
+            line: 24,
+            column: 12
+          },
+          end: {
+            line: 24,
+            column: 27
+          }
+        },
+        type: "binary-expr",
+        locations: [{
+          start: {
+            line: 24,
+            column: 12
+          },
+          end: {
+            line: 24,
+            column: 15
+          }
+        }, {
+          start: {
+            line: 24,
+            column: 19
+          },
+          end: {
+            line: 24,
+            column: 27
+          }
+        }],
+        line: 24
+      },
+      "3": {
+        loc: {
+          start: {
+            line: 35,
+            column: 8
+          },
+          end: {
+            line: 42,
+            column: 9
+          }
+        },
+        type: "if",
+        locations: [{
+          start: {
+            line: 35,
+            column: 8
+          },
+          end: {
+            line: 42,
+            column: 9
+          }
+        }, {
+          start: {
+            line: undefined,
+            column: undefined
+          },
+          end: {
+            line: undefined,
+            column: undefined
+          }
+        }],
+        line: 35
+      },
+      "4": {
+        loc: {
+          start: {
+            line: 48,
+            column: 8
+          },
+          end: {
+            line: 61,
+            column: 9
+          }
+        },
+        type: "if",
+        locations: [{
+          start: {
+            line: 48,
+            column: 8
+          },
+          end: {
+            line: 61,
+            column: 9
+          }
+        }, {
+          start: {
+            line: 54,
+            column: 15
+          },
+          end: {
+            line: 61,
+            column: 9
+          }
+        }],
+        line: 48
+      },
+      "5": {
+        loc: {
+          start: {
+            line: 48,
+            column: 12
+          },
+          end: {
+            line: 48,
+            column: 59
+          }
+        },
+        type: "binary-expr",
+        locations: [{
+          start: {
+            line: 48,
+            column: 12
+          },
+          end: {
+            line: 48,
+            column: 34
+          }
+        }, {
+          start: {
+            line: 48,
+            column: 38
+          },
+          end: {
+            line: 48,
+            column: 59
+          }
+        }],
+        line: 48
+      }
+    },
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0,
+      "9": 0,
+      "10": 0,
+      "11": 0,
+      "12": 0,
+      "13": 0,
+      "14": 0,
+      "15": 0,
+      "16": 0,
+      "17": 0,
+      "18": 0,
+      "19": 0,
+      "20": 0,
+      "21": 0,
+      "22": 0
+    },
+    f: {
+      "0": 0,
+      "1": 0
+    },
+    b: {
+      "0": [0, 0],
+      "1": [0, 0],
+      "2": [0, 0],
+      "3": [0, 0],
+      "4": [0, 0],
+      "5": [0, 0]
+    },
+    inputSourceMap: {
+      version: 3,
+      sources: ["/Users/sachin/Documents/md-sports-/src/app/api/sms/route.ts"],
+      sourcesContent: ["import { NextRequest, NextResponse } from 'next/server';\nimport { requirePermission } from '@/lib/utils/middleware';\nimport { smsService } from '@/services/smsService';\n\n// POST: Send a custom SMS message\nexport async function POST(req: NextRequest) {\n    // Check for 'settings:manage' permission\n    const permissionError = await requirePermission('settings:manage')(req);\n    if (permissionError) {\n        return permissionError;\n    }\n\n    try {\n        const data = await req.json();\n        const { to, message } = data;\n\n        // Validate input\n        if (!to || !message) {\n            return NextResponse.json(\n                { success: false, message: 'Recipient phone number and message are required' },\n                { status: 400 }\n            );\n        }\n\n        // Initialize SMS service if needed\n        await smsService.init();\n\n        // Check if SMS service is configured\n        if (!smsService.isConfigured()) {\n            return NextResponse.json(\n                { success: false, message: 'SMS service is not configured or is disabled' },\n                { status: 400 }\n            );\n        }\n\n        // Send SMS\n        const response = await smsService.sendSMS({ to, message });\n\n        if (response.status >= 200 && response.status < 300) {\n            return NextResponse.json({\n                success: true,\n                message: 'SMS sent successfully',\n                data: response.data\n            });\n        } else {\n            return NextResponse.json(\n                { success: false, message: response.message },\n                { status: response.status }\n            );\n        }\n    } catch (error) {\n        console.error('Error sending SMS:', error);\n        return NextResponse.json(\n            { success: false, message: 'Failed to send SMS' },\n            { status: 500 }\n        );\n    }\n} "],
+      names: ["POST", "req", "permissionError", "requirePermission", "data", "json", "to", "message", "NextResponse", "success", "status", "smsService", "init", "isConfigured", "response", "sendSMS", "error", "console"],
+      mappings: ";;;;+BAKsBA;;;eAAAA;;;wBALoB;4BACR;4BACP;AAGpB,eAAeA,KAAKC,GAAgB;IACvC,yCAAyC;IACzC,MAAMC,kBAAkB,MAAMC,IAAAA,6BAAiB,EAAC,mBAAmBF;IACnE,IAAIC,iBAAiB;QACjB,OAAOA;IACX;IAEA,IAAI;QACA,MAAME,OAAO,MAAMH,IAAII,IAAI;QAC3B,MAAM,EAAEC,EAAE,EAAEC,OAAO,EAAE,GAAGH;QAExB,iBAAiB;QACjB,IAAI,CAACE,MAAM,CAACC,SAAS;YACjB,OAAOC,oBAAY,CAACH,IAAI,CACpB;gBAAEI,SAAS;gBAAOF,SAAS;YAAkD,GAC7E;gBAAEG,QAAQ;YAAI;QAEtB;QAEA,mCAAmC;QACnC,MAAMC,sBAAU,CAACC,IAAI;QAErB,qCAAqC;QACrC,IAAI,CAACD,sBAAU,CAACE,YAAY,IAAI;YAC5B,OAAOL,oBAAY,CAACH,IAAI,CACpB;gBAAEI,SAAS;gBAAOF,SAAS;YAA+C,GAC1E;gBAAEG,QAAQ;YAAI;QAEtB;QAEA,WAAW;QACX,MAAMI,WAAW,MAAMH,sBAAU,CAACI,OAAO,CAAC;YAAET;YAAIC;QAAQ;QAExD,IAAIO,SAASJ,MAAM,IAAI,OAAOI,SAASJ,MAAM,GAAG,KAAK;YACjD,OAAOF,oBAAY,CAACH,IAAI,CAAC;gBACrBI,SAAS;gBACTF,SAAS;gBACTH,MAAMU,SAASV,IAAI;YACvB;QACJ,OAAO;YACH,OAAOI,oBAAY,CAACH,IAAI,CACpB;gBAAEI,SAAS;gBAAOF,SAASO,SAASP,OAAO;YAAC,GAC5C;gBAAEG,QAAQI,SAASJ,MAAM;YAAC;QAElC;IACJ,EAAE,OAAOM,OAAO;QACZC,QAAQD,KAAK,CAAC,sBAAsBA;QACpC,OAAOR,oBAAY,CAACH,IAAI,CACpB;YAAEI,SAAS;YAAOF,SAAS;QAAqB,GAChD;YAAEG,QAAQ;QAAI;IAEtB;AACJ"
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "989033bf0d912643202dc948128b65ca8348aea6"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_1wi3s5z7i8 = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_1wi3s5z7i8();
+cov_1wi3s5z7i8().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+/* istanbul ignore next */
+cov_1wi3s5z7i8().s[1]++;
+Object.defineProperty(exports, "POST", {
+  enumerable: true,
+  get: function () {
+    /* istanbul ignore next */
+    cov_1wi3s5z7i8().f[0]++;
+    cov_1wi3s5z7i8().s[2]++;
+    return POST;
+  }
+});
+const _server =
+/* istanbul ignore next */
+(cov_1wi3s5z7i8().s[3]++, require("next/server"));
+const _middleware =
+/* istanbul ignore next */
+(cov_1wi3s5z7i8().s[4]++, require("../../../lib/utils/middleware"));
+const _smsService =
+/* istanbul ignore next */
+(cov_1wi3s5z7i8().s[5]++, require("../../../services/smsService"));
+async function POST(req) {
+  /* istanbul ignore next */
+  cov_1wi3s5z7i8().f[1]++;
+  // Check for 'settings:manage' permission
+  const permissionError =
+  /* istanbul ignore next */
+  (cov_1wi3s5z7i8().s[6]++, await (0, _middleware.requirePermission)("settings:manage")(req));
+  /* istanbul ignore next */
+  cov_1wi3s5z7i8().s[7]++;
+  if (permissionError) {
+    /* istanbul ignore next */
+    cov_1wi3s5z7i8().b[0][0]++;
+    cov_1wi3s5z7i8().s[8]++;
+    return permissionError;
+  } else
+  /* istanbul ignore next */
+  {
+    cov_1wi3s5z7i8().b[0][1]++;
+  }
+  cov_1wi3s5z7i8().s[9]++;
+  try {
+    const data =
+    /* istanbul ignore next */
+    (cov_1wi3s5z7i8().s[10]++, await req.json());
+    const {
+      to,
+      message
+    } =
+    /* istanbul ignore next */
+    (cov_1wi3s5z7i8().s[11]++, data);
+    // Validate input
+    /* istanbul ignore next */
+    cov_1wi3s5z7i8().s[12]++;
+    if (
+    /* istanbul ignore next */
+    (cov_1wi3s5z7i8().b[2][0]++, !to) ||
+    /* istanbul ignore next */
+    (cov_1wi3s5z7i8().b[2][1]++, !message)) {
+      /* istanbul ignore next */
+      cov_1wi3s5z7i8().b[1][0]++;
+      cov_1wi3s5z7i8().s[13]++;
+      return _server.NextResponse.json({
+        success: false,
+        message: "Recipient phone number and message are required"
+      }, {
+        status: 400
+      });
+    } else
+    /* istanbul ignore next */
+    {
+      cov_1wi3s5z7i8().b[1][1]++;
+    }
+    // Initialize SMS service if needed
+    cov_1wi3s5z7i8().s[14]++;
+    await _smsService.smsService.init();
+    // Check if SMS service is configured
+    /* istanbul ignore next */
+    cov_1wi3s5z7i8().s[15]++;
+    if (!_smsService.smsService.isConfigured()) {
+      /* istanbul ignore next */
+      cov_1wi3s5z7i8().b[3][0]++;
+      cov_1wi3s5z7i8().s[16]++;
+      return _server.NextResponse.json({
+        success: false,
+        message: "SMS service is not configured or is disabled"
+      }, {
+        status: 400
+      });
+    } else
+    /* istanbul ignore next */
+    {
+      cov_1wi3s5z7i8().b[3][1]++;
+    }
+    // Send SMS
+    const response =
+    /* istanbul ignore next */
+    (cov_1wi3s5z7i8().s[17]++, await _smsService.smsService.sendSMS({
+      to,
+      message
+    }));
+    /* istanbul ignore next */
+    cov_1wi3s5z7i8().s[18]++;
+    if (
+    /* istanbul ignore next */
+    (cov_1wi3s5z7i8().b[5][0]++, response.status >= 200) &&
+    /* istanbul ignore next */
+    (cov_1wi3s5z7i8().b[5][1]++, response.status < 300)) {
+      /* istanbul ignore next */
+      cov_1wi3s5z7i8().b[4][0]++;
+      cov_1wi3s5z7i8().s[19]++;
+      return _server.NextResponse.json({
+        success: true,
+        message: "SMS sent successfully",
+        data: response.data
+      });
+    } else {
+      /* istanbul ignore next */
+      cov_1wi3s5z7i8().b[4][1]++;
+      cov_1wi3s5z7i8().s[20]++;
+      return _server.NextResponse.json({
+        success: false,
+        message: response.message
+      }, {
+        status: response.status
+      });
+    }
+  } catch (error) {
+    /* istanbul ignore next */
+    cov_1wi3s5z7i8().s[21]++;
+    console.error("Error sending SMS:", error);
+    /* istanbul ignore next */
+    cov_1wi3s5z7i8().s[22]++;
+    return _server.NextResponse.json({
+      success: false,
+      message: "Failed to send SMS"
+    }, {
+      status: 500
+    });
+  }
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfMXdpM3M1ejdpOCIsImFjdHVhbENvdmVyYWdlIiwicyIsIlBPU1QiLCJyZXEiLCJmIiwicGVybWlzc2lvbkVycm9yIiwiX21pZGRsZXdhcmUiLCJyZXF1aXJlUGVybWlzc2lvbiIsImIiLCJkYXRhIiwianNvbiIsInRvIiwibWVzc2FnZSIsIl9zZXJ2ZXIiLCJOZXh0UmVzcG9uc2UiLCJzdWNjZXNzIiwic3RhdHVzIiwiX3Ntc1NlcnZpY2UiLCJzbXNTZXJ2aWNlIiwiaW5pdCIsImlzQ29uZmlndXJlZCIsInJlc3BvbnNlIiwic2VuZFNNUyIsImVycm9yIiwiY29uc29sZSJdLCJzb3VyY2VzIjpbIi9Vc2Vycy9zYWNoaW4vRG9jdW1lbnRzL21kLXNwb3J0cy0vc3JjL2FwcC9hcGkvc21zL3JvdXRlLnRzIl0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCB7IE5leHRSZXF1ZXN0LCBOZXh0UmVzcG9uc2UgfSBmcm9tICduZXh0L3NlcnZlcic7XG5pbXBvcnQgeyByZXF1aXJlUGVybWlzc2lvbiB9IGZyb20gJ0AvbGliL3V0aWxzL21pZGRsZXdhcmUnO1xuaW1wb3J0IHsgc21zU2VydmljZSB9IGZyb20gJ0Avc2VydmljZXMvc21zU2VydmljZSc7XG5cbi8vIFBPU1Q6IFNlbmQgYSBjdXN0b20gU01TIG1lc3NhZ2VcbmV4cG9ydCBhc3luYyBmdW5jdGlvbiBQT1NUKHJlcTogTmV4dFJlcXVlc3QpIHtcbiAgICAvLyBDaGVjayBmb3IgJ3NldHRpbmdzOm1hbmFnZScgcGVybWlzc2lvblxuICAgIGNvbnN0IHBlcm1pc3Npb25FcnJvciA9IGF3YWl0IHJlcXVpcmVQZXJtaXNzaW9uKCdzZXR0aW5nczptYW5hZ2UnKShyZXEpO1xuICAgIGlmIChwZXJtaXNzaW9uRXJyb3IpIHtcbiAgICAgICAgcmV0dXJuIHBlcm1pc3Npb25FcnJvcjtcbiAgICB9XG5cbiAgICB0cnkge1xuICAgICAgICBjb25zdCBkYXRhID0gYXdhaXQgcmVxLmpzb24oKTtcbiAgICAgICAgY29uc3QgeyB0bywgbWVzc2FnZSB9ID0gZGF0YTtcblxuICAgICAgICAvLyBWYWxpZGF0ZSBpbnB1dFxuICAgICAgICBpZiAoIXRvIHx8ICFtZXNzYWdlKSB7XG4gICAgICAgICAgICByZXR1cm4gTmV4dFJlc3BvbnNlLmpzb24oXG4gICAgICAgICAgICAgICAgeyBzdWNjZXNzOiBmYWxzZSwgbWVzc2FnZTogJ1JlY2lwaWVudCBwaG9uZSBudW1iZXIgYW5kIG1lc3NhZ2UgYXJlIHJlcXVpcmVkJyB9LFxuICAgICAgICAgICAgICAgIHsgc3RhdHVzOiA0MDAgfVxuICAgICAgICAgICAgKTtcbiAgICAgICAgfVxuXG4gICAgICAgIC8vIEluaXRpYWxpemUgU01TIHNlcnZpY2UgaWYgbmVlZGVkXG4gICAgICAgIGF3YWl0IHNtc1NlcnZpY2UuaW5pdCgpO1xuXG4gICAgICAgIC8vIENoZWNrIGlmIFNNUyBzZXJ2aWNlIGlzIGNvbmZpZ3VyZWRcbiAgICAgICAgaWYgKCFzbXNTZXJ2aWNlLmlzQ29uZmlndXJlZCgpKSB7XG4gICAgICAgICAgICByZXR1cm4gTmV4dFJlc3BvbnNlLmpzb24oXG4gICAgICAgICAgICAgICAgeyBzdWNjZXNzOiBmYWxzZSwgbWVzc2FnZTogJ1NNUyBzZXJ2aWNlIGlzIG5vdCBjb25maWd1cmVkIG9yIGlzIGRpc2FibGVkJyB9LFxuICAgICAgICAgICAgICAgIHsgc3RhdHVzOiA0MDAgfVxuICAgICAgICAgICAgKTtcbiAgICAgICAgfVxuXG4gICAgICAgIC8vIFNlbmQgU01TXG4gICAgICAgIGNvbnN0IHJlc3BvbnNlID0gYXdhaXQgc21zU2VydmljZS5zZW5kU01TKHsgdG8sIG1lc3NhZ2UgfSk7XG5cbiAgICAgICAgaWYgKHJlc3BvbnNlLnN0YXR1cyA+PSAyMDAgJiYgcmVzcG9uc2Uuc3RhdHVzIDwgMzAwKSB7XG4gICAgICAgICAgICByZXR1cm4gTmV4dFJlc3BvbnNlLmpzb24oe1xuICAgICAgICAgICAgICAgIHN1Y2Nlc3M6IHRydWUsXG4gICAgICAgICAgICAgICAgbWVzc2FnZTogJ1NNUyBzZW50IHN1Y2Nlc3NmdWxseScsXG4gICAgICAgICAgICAgICAgZGF0YTogcmVzcG9uc2UuZGF0YVxuICAgICAgICAgICAgfSk7XG4gICAgICAgIH0gZWxzZSB7XG4gICAgICAgICAgICByZXR1cm4gTmV4dFJlc3BvbnNlLmpzb24oXG4gICAgICAgICAgICAgICAgeyBzdWNjZXNzOiBmYWxzZSwgbWVzc2FnZTogcmVzcG9uc2UubWVzc2FnZSB9LFxuICAgICAgICAgICAgICAgIHsgc3RhdHVzOiByZXNwb25zZS5zdGF0dXMgfVxuICAgICAgICAgICAgKTtcbiAgICAgICAgfVxuICAgIH0gY2F0Y2ggKGVycm9yKSB7XG4gICAgICAgIGNvbnNvbGUuZXJyb3IoJ0Vycm9yIHNlbmRpbmcgU01TOicsIGVycm9yKTtcbiAgICAgICAgcmV0dXJuIE5leHRSZXNwb25zZS5qc29uKFxuICAgICAgICAgICAgeyBzdWNjZXNzOiBmYWxzZSwgbWVzc2FnZTogJ0ZhaWxlZCB0byBzZW5kIFNNUycgfSxcbiAgICAgICAgICAgIHsgc3RhdHVzOiA1MDAgfVxuICAgICAgICApO1xuICAgIH1cbn0gIl0sIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7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

@@ -69,6 +69,17 @@ export async function GET(request: NextRequest) {
             };
         }
 
+        // Get IDs of soft-deleted quotations and exclude them
+        const auditService = AuditService.getInstance();
+        const deletedQuotationIds = await auditService.getDeletedEntityIds('Quotation');
+
+        // Add soft delete filter to where clause
+        if (deletedQuotationIds.length > 0) {
+            whereClause.id = {
+                notIn: deletedQuotationIds
+            };
+        }
+
         console.log('[Quotations API] Where clause:', JSON.stringify(whereClause, null, 2));
 
         // Get total count for pagination

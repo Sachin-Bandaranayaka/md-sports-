@@ -1,0 +1,179 @@
+48fe8f51a71a3716e9fff189690ea18e
+"use strict";
+
+/* istanbul ignore next */
+function cov_1zi25thxm2() {
+  var path = "/Users/sachin/Documents/md-sports-/src/app/receipts/edit/[id]/page.tsx";
+  var hash = "dda2efa6a37b472485d7589f053a00d312ca4c29";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/Users/sachin/Documents/md-sports-/src/app/receipts/edit/[id]/page.tsx",
+    statementMap: {
+      "0": {
+        start: {
+          line: 2,
+          column: 0
+        },
+        end: {
+          line: 4,
+          column: 3
+        }
+      },
+      "1": {
+        start: {
+          line: 5,
+          column: 0
+        },
+        end: {
+          line: 10,
+          column: 3
+        }
+      },
+      "2": {
+        start: {
+          line: 8,
+          column: 8
+        },
+        end: {
+          line: 8,
+          column: 31
+        }
+      },
+      "3": {
+        start: {
+          line: 11,
+          column: 20
+        },
+        end: {
+          line: 11,
+          column: 46
+        }
+      },
+      "4": {
+        start: {
+          line: 15,
+          column: 4
+        },
+        end: {
+          line: 15,
+          column: 63
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "(anonymous_0)",
+        decl: {
+          start: {
+            line: 7,
+            column: 9
+          },
+          end: {
+            line: 7,
+            column: 10
+          }
+        },
+        loc: {
+          start: {
+            line: 7,
+            column: 20
+          },
+          end: {
+            line: 9,
+            column: 5
+          }
+        },
+        line: 7
+      },
+      "1": {
+        name: "EditReceiptPage",
+        decl: {
+          start: {
+            line: 12,
+            column: 9
+          },
+          end: {
+            line: 12,
+            column: 24
+          }
+        },
+        loc: {
+          start: {
+            line: 12,
+            column: 37
+          },
+          end: {
+            line: 16,
+            column: 1
+          }
+        },
+        line: 12
+      }
+    },
+    branchMap: {},
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0
+    },
+    f: {
+      "0": 0,
+      "1": 0
+    },
+    b: {},
+    inputSourceMap: {
+      version: 3,
+      sources: ["/Users/sachin/Documents/md-sports-/src/app/receipts/edit/[id]/page.tsx"],
+      sourcesContent: ["import { redirect } from 'next/navigation';\n\ninterface PageProps {\n    params: {\n        id: string;\n    };\n}\n\nexport default function EditReceiptPage({ params }: PageProps) {\n    // Since the edit functionality is built into the detail page,\n    // redirect to the detail page\n    redirect(`/receipts/${params.id}/detail`);\n} "],
+      names: ["EditReceiptPage", "params", "redirect", "id"],
+      mappings: ";;;;+BAQA;;;eAAwBA;;;4BARC;AAQV,SAASA,gBAAgB,EAAEC,MAAM,EAAa;IACzD,8DAA8D;IAC9D,8BAA8B;IAC9BC,IAAAA,oBAAQ,EAAC,CAAC,UAAU,EAAED,OAAOE,EAAE,CAAC,OAAO,CAAC;AAC5C"
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "dda2efa6a37b472485d7589f053a00d312ca4c29"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_1zi25thxm2 = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_1zi25thxm2();
+cov_1zi25thxm2().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+/* istanbul ignore next */
+cov_1zi25thxm2().s[1]++;
+Object.defineProperty(exports, "default", {
+  enumerable: true,
+  get: function () {
+    /* istanbul ignore next */
+    cov_1zi25thxm2().f[0]++;
+    cov_1zi25thxm2().s[2]++;
+    return EditReceiptPage;
+  }
+});
+const _navigation =
+/* istanbul ignore next */
+(cov_1zi25thxm2().s[3]++, require("next/navigation"));
+function EditReceiptPage({
+  params
+}) {
+  /* istanbul ignore next */
+  cov_1zi25thxm2().f[1]++;
+  cov_1zi25thxm2().s[4]++;
+  // Since the edit functionality is built into the detail page,
+  // redirect to the detail page
+  (0, _navigation.redirect)(`/receipts/${params.id}/detail`);
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfMXppMjV0aHhtMiIsImFjdHVhbENvdmVyYWdlIiwicyIsIkVkaXRSZWNlaXB0UGFnZSIsInBhcmFtcyIsImYiLCJfbmF2aWdhdGlvbiIsInJlZGlyZWN0IiwiaWQiXSwic291cmNlcyI6WyIvVXNlcnMvc2FjaGluL0RvY3VtZW50cy9tZC1zcG9ydHMtL3NyYy9hcHAvcmVjZWlwdHMvZWRpdC9baWRdL3BhZ2UudHN4Il0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCB7IHJlZGlyZWN0IH0gZnJvbSAnbmV4dC9uYXZpZ2F0aW9uJztcblxuaW50ZXJmYWNlIFBhZ2VQcm9wcyB7XG4gICAgcGFyYW1zOiB7XG4gICAgICAgIGlkOiBzdHJpbmc7XG4gICAgfTtcbn1cblxuZXhwb3J0IGRlZmF1bHQgZnVuY3Rpb24gRWRpdFJlY2VpcHRQYWdlKHsgcGFyYW1zIH06IFBhZ2VQcm9wcykge1xuICAgIC8vIFNpbmNlIHRoZSBlZGl0IGZ1bmN0aW9uYWxpdHkgaXMgYnVpbHQgaW50byB0aGUgZGV0YWlsIHBhZ2UsXG4gICAgLy8gcmVkaXJlY3QgdG8gdGhlIGRldGFpbCBwYWdlXG4gICAgcmVkaXJlY3QoYC9yZWNlaXB0cy8ke3BhcmFtcy5pZH0vZGV0YWlsYCk7XG59ICJdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7O0lBWUE7SUFBQUEsY0FBQSxZQUFBQSxDQUFBO01BQUEsT0FBQUMsY0FBQTtJQUFBO0VBQUE7RUFBQSxPQUFBQSxjQUFBO0FBQUE7QUFBQUQsY0FBQTtBQUFBQSxjQUFBLEdBQUFFLENBQUE7Ozs7OzsrQkFKQTs7Ozs7O1dBQXdCQyxlQUFBOzs7OztrQ0FSQztBQVFWLFNBQVNBLGdCQUFnQjtFQUFFQztBQUFNLENBQWE7RUFBQTtFQUFBSixjQUFBLEdBQUFLLENBQUE7RUFBQUwsY0FBQSxHQUFBRSxDQUFBO0VBQ3pEO0VBQ0E7RUFDQSxJQUFBSSxXQUFBLENBQUFDLFFBQVEsRUFBQyxhQUFhSCxNQUFBLENBQU9JLEVBQUUsU0FBUztBQUM1QyIsImlnbm9yZUxpc3QiOltdfQ==

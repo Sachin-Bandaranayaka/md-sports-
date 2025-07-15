@@ -1,0 +1,757 @@
+696b96dd8a70680cffecf4afde7dab72
+/**
+ * Permission Constants
+ * 
+ * Centralized permission definitions for the application.
+ * Use these constants instead of hardcoded strings to ensure consistency
+ * and enable better TypeScript support.
+ */"use strict";
+
+/* istanbul ignore next */
+function cov_djshe31a4() {
+  var path = "/Users/sachin/Documents/md-sports-/src/lib/constants/permissions.ts";
+  var hash = "ce6f443ca578f18b3ce9099ea27909062e88e412";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/Users/sachin/Documents/md-sports-/src/lib/constants/permissions.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 8,
+          column: 0
+        },
+        end: {
+          line: 10,
+          column: 3
+        }
+      },
+      "1": {
+        start: {
+          line: 12,
+          column: 4
+        },
+        end: {
+          line: 15,
+          column: 7
+        }
+      },
+      "2": {
+        start: {
+          line: 12,
+          column: 24
+        },
+        end: {
+          line: 15,
+          column: 7
+        }
+      },
+      "3": {
+        start: {
+          line: 17,
+          column: 0
+        },
+        end: {
+          line: 33,
+          column: 3
+        }
+      },
+      "4": {
+        start: {
+          line: 19,
+          column: 8
+        },
+        end: {
+          line: 19,
+          column: 31
+        }
+      },
+      "5": {
+        start: {
+          line: 22,
+          column: 8
+        },
+        end: {
+          line: 22,
+          column: 27
+        }
+      },
+      "6": {
+        start: {
+          line: 25,
+          column: 8
+        },
+        end: {
+          line: 25,
+          column: 37
+        }
+      },
+      "7": {
+        start: {
+          line: 28,
+          column: 8
+        },
+        end: {
+          line: 28,
+          column: 40
+        }
+      },
+      "8": {
+        start: {
+          line: 31,
+          column: 8
+        },
+        end: {
+          line: 31,
+          column: 33
+        }
+      },
+      "9": {
+        start: {
+          line: 34,
+          column: 20
+        },
+        end: {
+          line: 245,
+          column: 1
+        }
+      },
+      "10": {
+        start: {
+          line: 246,
+          column: 30
+        },
+        end: {
+          line: 301,
+          column: 1
+        }
+      },
+      "11": {
+        start: {
+          line: 303,
+          column: 26
+        },
+        end: {
+          line: 313,
+          column: 5
+        }
+      },
+      "12": {
+        start: {
+          line: 314,
+          column: 4
+        },
+        end: {
+          line: 314,
+          column: 67
+        }
+      },
+      "13": {
+        start: {
+          line: 314,
+          column: 41
+        },
+        end: {
+          line: 314,
+          column: 65
+        }
+      },
+      "14": {
+        start: {
+          line: 317,
+          column: 4
+        },
+        end: {
+          line: 317,
+          column: 43
+        }
+      },
+      "15": {
+        start: {
+          line: 319,
+          column: 24
+        },
+        end: {
+          line: 319,
+          column: 50
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "_export",
+        decl: {
+          start: {
+            line: 11,
+            column: 9
+          },
+          end: {
+            line: 11,
+            column: 16
+          }
+        },
+        loc: {
+          start: {
+            line: 11,
+            column: 30
+          },
+          end: {
+            line: 16,
+            column: 1
+          }
+        },
+        line: 11
+      },
+      "1": {
+        name: "(anonymous_1)",
+        decl: {
+          start: {
+            line: 18,
+            column: 21
+          },
+          end: {
+            line: 18,
+            column: 22
+          }
+        },
+        loc: {
+          start: {
+            line: 18,
+            column: 32
+          },
+          end: {
+            line: 20,
+            column: 5
+          }
+        },
+        line: 18
+      },
+      "2": {
+        name: "(anonymous_2)",
+        decl: {
+          start: {
+            line: 21,
+            column: 17
+          },
+          end: {
+            line: 21,
+            column: 18
+          }
+        },
+        loc: {
+          start: {
+            line: 21,
+            column: 28
+          },
+          end: {
+            line: 23,
+            column: 5
+          }
+        },
+        line: 21
+      },
+      "3": {
+        name: "(anonymous_3)",
+        decl: {
+          start: {
+            line: 24,
+            column: 27
+          },
+          end: {
+            line: 24,
+            column: 28
+          }
+        },
+        loc: {
+          start: {
+            line: 24,
+            column: 38
+          },
+          end: {
+            line: 26,
+            column: 5
+          }
+        },
+        line: 24
+      },
+      "4": {
+        name: "(anonymous_4)",
+        decl: {
+          start: {
+            line: 27,
+            column: 30
+          },
+          end: {
+            line: 27,
+            column: 31
+          }
+        },
+        loc: {
+          start: {
+            line: 27,
+            column: 41
+          },
+          end: {
+            line: 29,
+            column: 5
+          }
+        },
+        line: 27
+      },
+      "5": {
+        name: "(anonymous_5)",
+        decl: {
+          start: {
+            line: 30,
+            column: 23
+          },
+          end: {
+            line: 30,
+            column: 24
+          }
+        },
+        loc: {
+          start: {
+            line: 30,
+            column: 34
+          },
+          end: {
+            line: 32,
+            column: 5
+          }
+        },
+        line: 30
+      },
+      "6": {
+        name: "isValidPermission",
+        decl: {
+          start: {
+            line: 302,
+            column: 9
+          },
+          end: {
+            line: 302,
+            column: 26
+          }
+        },
+        loc: {
+          start: {
+            line: 302,
+            column: 39
+          },
+          end: {
+            line: 315,
+            column: 1
+          }
+        },
+        line: 302
+      },
+      "7": {
+        name: "(anonymous_7)",
+        decl: {
+          start: {
+            line: 314,
+            column: 30
+          },
+          end: {
+            line: 314,
+            column: 31
+          }
+        },
+        loc: {
+          start: {
+            line: 314,
+            column: 41
+          },
+          end: {
+            line: 314,
+            column: 65
+          }
+        },
+        line: 314
+      },
+      "8": {
+        name: "getPermissionsByCategory",
+        decl: {
+          start: {
+            line: 316,
+            column: 9
+          },
+          end: {
+            line: 316,
+            column: 33
+          }
+        },
+        loc: {
+          start: {
+            line: 316,
+            column: 44
+          },
+          end: {
+            line: 318,
+            column: 1
+          }
+        },
+        line: 316
+      }
+    },
+    branchMap: {},
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0,
+      "9": 0,
+      "10": 0,
+      "11": 0,
+      "12": 0,
+      "13": 0,
+      "14": 0,
+      "15": 0
+    },
+    f: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0
+    },
+    b: {},
+    inputSourceMap: {
+      version: 3,
+      sources: ["/Users/sachin/Documents/md-sports-/src/lib/constants/permissions.ts"],
+      sourcesContent: ["/**\n * Permission Constants\n * \n * Centralized permission definitions for the application.\n * Use these constants instead of hardcoded strings to ensure consistency\n * and enable better TypeScript support.\n */\n\nexport const PERMISSIONS = {\n  // Sales permissions\n  SALES_VIEW: 'sales:view' as const,\n  SALES_CREATE: 'sales:create' as const,\n  SALES_EDIT: 'sales:edit' as const,\n  SALES_DELETE: 'sales:delete' as const,\n  SALES_MANAGE: 'sales:manage' as const,\n  SALES_UPDATE: 'sales:update' as const,\n\n  // Inventory permissions\n  INVENTORY_VIEW: 'inventory:view' as const,\n  INVENTORY_CREATE: 'inventory:create' as const,\n  INVENTORY_EDIT: 'inventory:edit' as const,\n  INVENTORY_DELETE: 'inventory:delete' as const,\n  INVENTORY_MANAGE: 'inventory:manage' as const,\n  INVENTORY_TRANSFER: 'inventory:transfer' as const,\n  INVENTORY_ADJUST: 'inventory:adjust' as const,\n  INVENTORY_UPDATE: 'inventory:update' as const,\n\n  // User permissions (plural)\n  USERS_VIEW: 'users:view' as const,\n  USERS_CREATE: 'users:create' as const,\n  USERS_EDIT: 'users:edit' as const,\n  USERS_DELETE: 'users:delete' as const,\n  USERS_MANAGE: 'users:manage' as const,\n\n  // User permissions (singular)\n  USER_VIEW: 'user:view' as const,\n  USER_CREATE: 'user:create' as const,\n  USER_EDIT: 'user:edit' as const,\n  USER_DELETE: 'user:delete' as const,\n  USER_MANAGE: 'user:manage' as const,\n  USER_UPDATE: 'user:update' as const,\n\n  // Shop permissions\n  SHOP_VIEW: 'shop:view' as const,\n  SHOP_CREATE: 'shop:create' as const,\n  SHOP_EDIT: 'shop:edit' as const,\n  SHOP_DELETE: 'shop:delete' as const,\n  SHOP_MANAGE: 'shop:manage' as const,\n  SHOP_ASSIGNED_ONLY: 'shop:assigned_only' as const,\n  SHOP_DISTRIBUTION_VIEW: 'shop:distribution:view' as const,\n\n  // Customer permissions (plural)\n  CUSTOMERS_VIEW: 'customers:view' as const,\n  CUSTOMERS_CREATE: 'customers:create' as const,\n  CUSTOMERS_EDIT: 'customers:edit' as const,\n  CUSTOMERS_DELETE: 'customers:delete' as const,\n\n  // Customer permissions (singular)\n  CUSTOMER_VIEW: 'customer:view' as const,\n  CUSTOMER_CREATE: 'customer:create' as const,\n  CUSTOMER_EDIT: 'customer:edit' as const,\n  CUSTOMER_DELETE: 'customer:delete' as const,\n\n  // Supplier permissions (plural)\n  SUPPLIERS_VIEW: 'suppliers:view' as const,\n  SUPPLIERS_CREATE: 'suppliers:create' as const,\n  SUPPLIERS_EDIT: 'suppliers:edit' as const,\n  SUPPLIERS_DELETE: 'suppliers:delete' as const,\n\n  // Supplier permissions (singular)\n  SUPPLIER_VIEW: 'supplier:view' as const,\n  SUPPLIER_CREATE: 'supplier:create' as const,\n  SUPPLIER_EDIT: 'supplier:edit' as const,\n  SUPPLIER_DELETE: 'supplier:delete' as const,\n\n  // Purchase permissions (plural)\n  PURCHASES_VIEW: 'purchases:view' as const,\n  PURCHASES_CREATE: 'purchases:create' as const,\n  PURCHASES_EDIT: 'purchases:edit' as const,\n  PURCHASES_DELETE: 'purchases:delete' as const,\n\n  // Purchase permissions (singular)\n  PURCHASE_VIEW: 'purchase:view' as const,\n  PURCHASE_CREATE: 'purchase:create' as const,\n  PURCHASE_EDIT: 'purchase:edit' as const,\n  PURCHASE_DELETE: 'purchase:delete' as const,\n\n  // Quotation permissions (plural)\n  QUOTATIONS_VIEW: 'quotations:view' as const,\n  QUOTATIONS_CREATE: 'quotations:create' as const,\n  QUOTATIONS_EDIT: 'quotations:edit' as const,\n  QUOTATIONS_DELETE: 'quotations:delete' as const,\n\n  // Quotation permissions (singular)\n  QUOTATION_VIEW: 'quotation:view' as const,\n  QUOTATION_CREATE: 'quotation:create' as const,\n  QUOTATION_EDIT: 'quotation:edit' as const,\n  QUOTATION_DELETE: 'quotation:delete' as const,\n\n  // Report permissions (plural)\n  REPORTS_VIEW: 'reports:view' as const,\n  REPORTS_CREATE: 'reports:create' as const,\n  REPORTS_EXPORT: 'reports:export' as const,\n\n  // Report permissions (singular)\n  REPORT_VIEW: 'report:view' as const,\n  REPORT_CREATE: 'report:create' as const,\n  REPORT_EXPORT: 'report:export' as const,\n\n  // Accounting permissions\n  ACCOUNTING_VIEW: 'accounting:view' as const,\n  ACCOUNTING_CREATE: 'accounting:create' as const,\n  ACCOUNTING_EDIT: 'accounting:edit' as const,\n  ACCOUNTING_DELETE: 'accounting:delete' as const,\n\n  // Settings permissions\n  SETTINGS_VIEW: 'settings:view' as const,\n  SETTINGS_EDIT: 'settings:edit' as const,\n  SETTINGS_MANAGE: 'settings:manage' as const,\n\n  // Dashboard permissions\n  DASHBOARD_VIEW: 'dashboard:view' as const,\n  VIEW_SALES: 'view_sales' as const,\n  MANAGE_DASHBOARD: 'manage_dashboard' as const,\n\n  // Product permissions (plural)\n  PRODUCTS_VIEW: 'products:view' as const,\n  PRODUCTS_CREATE: 'products:create' as const,\n  PRODUCTS_EDIT: 'products:edit' as const,\n  PRODUCTS_DELETE: 'products:delete' as const,\n\n  // Product permissions (singular)\n  PRODUCT_VIEW: 'product:view' as const,\n  PRODUCT_CREATE: 'product:create' as const,\n  PRODUCT_EDIT: 'product:edit' as const,\n  PRODUCT_DELETE: 'product:delete' as const,\n  PRODUCT_UPDATE: 'product:update' as const,\n\n  // Product permissions (alternative format)\n  READ_PRODUCTS: 'read:products' as const,\n  WRITE_PRODUCTS: 'write:products' as const,\n\n  // Category permissions (plural)\n  CATEGORIES_VIEW: 'categories:view' as const,\n  CATEGORIES_CREATE: 'categories:create' as const,\n  CATEGORIES_EDIT: 'categories:edit' as const,\n  CATEGORIES_DELETE: 'categories:delete' as const,\n\n  // Category permissions (singular)\n  CATEGORY_VIEW: 'category:view' as const,\n  CATEGORY_CREATE: 'category:create' as const,\n  CATEGORY_EDIT: 'category:edit' as const,\n  CATEGORY_DELETE: 'category:delete' as const,\n  CATEGORY_UPDATE: 'category:update' as const,\n\n  // Brand permissions (plural)\n  BRANDS_VIEW: 'brands:view' as const,\n  BRANDS_CREATE: 'brands:create' as const,\n  BRANDS_EDIT: 'brands:edit' as const,\n  BRANDS_DELETE: 'brands:delete' as const,\n\n  // Brand permissions (singular)\n  BRAND_VIEW: 'brand:view' as const,\n  BRAND_CREATE: 'brand:create' as const,\n  BRAND_EDIT: 'brand:edit' as const,\n  BRAND_DELETE: 'brand:delete' as const,\n\n  // Transfer permissions (plural)\n  TRANSFERS_VIEW: 'transfers:view' as const,\n  TRANSFERS_CREATE: 'transfers:create' as const,\n  TRANSFERS_EDIT: 'transfers:edit' as const,\n  TRANSFERS_DELETE: 'transfers:delete' as const,\n\n  // Transfer permissions (singular)\n  TRANSFER_VIEW: 'transfer:view' as const,\n  TRANSFER_CREATE: 'transfer:create' as const,\n  TRANSFER_EDIT: 'transfer:edit' as const,\n  TRANSFER_DELETE: 'transfer:delete' as const,\n\n  // Invoice permissions\n  INVOICE_VIEW: 'invoice:view' as const,\n  INVOICE_CREATE: 'invoice:create' as const,\n  INVOICE_EDIT: 'invoice:edit' as const,\n  INVOICE_DELETE: 'invoice:delete' as const,\n  READ_INVOICES: 'read:invoices' as const,\n  WRITE_INVOICES: 'write:invoices' as const,\n\n  // Legacy dashboard permissions\n  VIEW_TRANSFERS: 'view_transfers' as const,\n\n  // Shop update permission\n  SHOP_UPDATE: 'shop:update' as const,\n\n  // Customer update permission\n  CUSTOMER_UPDATE: 'customer:update' as const,\n\n  // Health check permission\n  HEALTH_CHECK: 'health:check' as const,\n\n  // Dashboard shops permission\n  DASHBOARD_SHOPS: 'dashboard:shops' as const,\n\n  // Inventory shop permission\n  INVENTORY_SHOP: 'inventory:shop' as const,\n\n  // Transfer stats permission\n  TRANSFERS_STATS: 'transfers:stats' as const,\n\n  // Transfer list and detail permissions\n  TRANSFERS_LIST: 'transfers:list' as const,\n  TRANSFERS_DETAIL: 'transfers:detail' as const,\n\n  // Dashboard specific permissions\n  DASHBOARD_SUMMARY: 'dashboard:summary' as const,\n  DASHBOARD_INVENTORY: 'dashboard:inventory' as const,\n  DASHBOARD_ALL: 'dashboard:all' as const,\n\n  // Sales create shop permission\n  SALES_CREATE_SHOP: 'sales:create:shop' as const,\n\n  // Generic write permission\n  WRITE: 'write' as const,\n\n  // Realtime permissions\n  REALTIME_UPDATES: 'realtime:updates' as const,\n  REALTIME_LAST_POLL: 'realtime:last_poll' as const,\n  REALTIME_NOTIFICATIONS: 'realtime:notifications' as const,\n\n  // Inventory specific permissions\n  INVENTORY_CATEGORY: 'inventory:category' as const,\n  INVENTORY_SEARCH: 'inventory:search' as const,\n  INVENTORY_ANALYTICS: 'inventory:analytics' as const,\n  INVENTORY_SUMMARY: 'inventory:summary' as const,\n  INVENTORY_ITEM: 'inventory:item' as const,\n\n  // List permissions\n  CUSTOMERS_LIST: 'customers:list' as const,\n  PRODUCTS_LIST: 'products:list' as const,\n  INVOICES_LIST: 'invoices:list' as const,\n  CATEGORIES_LIST: 'categories:list' as const,\n  SHOPS_LIST: 'shops:list' as const,\n\n  // Stats permissions\n  INVOICES_STATS: 'invoices:stats' as const,\n\n  // Quotation manage permission\n  QUOTATION_MANAGE: 'quotation:manage' as const,\n\n  // Shop view costs permission\n  SHOP_VIEW_COSTS: 'shop:view_costs' as const,\n\n  // Payment permissions\n  PAYMENT_RECORD: 'payment:record' as const,\n  PAYMENT_VIEW: 'payment:view' as const,\n\n  // Receipt permissions\n  RECEIPT_VIEW: 'receipt:view' as const,\n\n  // Audit permissions\n  AUDIT_VIEW: 'audit:view' as const,\n\n  // CSS class (not a real permission but appears in code)\n  HOVER_UNDERLINE: 'hover:underline' as const,\n\n  // Admin permissions\n  ADMIN_ALL: 'admin:all' as const,\n  WILDCARD: '*' as const,\n  LEGACY_ALL: 'ALL' as const,\n} as const;\n\n/**\n * Type representing all valid permission values\n */\nexport type Permission = typeof PERMISSIONS[keyof typeof PERMISSIONS];\n\n/**\n * Permission categories for easier management\n */\nexport const PERMISSION_CATEGORIES = {\n  SALES: [\n    PERMISSIONS.SALES_VIEW,\n    PERMISSIONS.SALES_CREATE,\n    PERMISSIONS.SALES_EDIT,\n    PERMISSIONS.SALES_DELETE,\n    PERMISSIONS.SALES_MANAGE\n  ],\n  INVENTORY: [\n    PERMISSIONS.INVENTORY_VIEW,\n    PERMISSIONS.INVENTORY_CREATE,\n    PERMISSIONS.INVENTORY_EDIT,\n    PERMISSIONS.INVENTORY_DELETE,\n    PERMISSIONS.INVENTORY_MANAGE\n  ],\n  QUOTATIONS: [\n    PERMISSIONS.QUOTATIONS_VIEW,\n    PERMISSIONS.QUOTATIONS_CREATE,\n    PERMISSIONS.QUOTATIONS_EDIT,\n    PERMISSIONS.QUOTATIONS_DELETE\n  ],\n  PRODUCTS: [\n    PERMISSIONS.PRODUCTS_VIEW,\n    PERMISSIONS.PRODUCTS_CREATE,\n    PERMISSIONS.PRODUCTS_EDIT,\n    PERMISSIONS.PRODUCTS_DELETE\n  ],\n  USERS: [\n    PERMISSIONS.USERS_VIEW,\n    PERMISSIONS.USERS_CREATE,\n    PERMISSIONS.USERS_EDIT,\n    PERMISSIONS.USERS_DELETE\n  ],\n  REPORTS: [\n    PERMISSIONS.REPORTS_VIEW,\n    PERMISSIONS.REPORTS_CREATE\n  ],\n  SETTINGS: [\n    PERMISSIONS.SETTINGS_VIEW,\n    PERMISSIONS.SETTINGS_EDIT\n  ],\n  ACCOUNTING: [\n    PERMISSIONS.ACCOUNTING_VIEW,\n    PERMISSIONS.ACCOUNTING_EDIT\n  ],\n  SHOP: [\n    PERMISSIONS.SHOP_VIEW,\n    PERMISSIONS.SHOP_MANAGE,\n    PERMISSIONS.SHOP_ASSIGNED_ONLY\n  ],\n  ADMIN: [\n    PERMISSIONS.ADMIN_ALL,\n    PERMISSIONS.LEGACY_ALL,\n    PERMISSIONS.WILDCARD\n  ]\n} as const;\n\n/**\n * Validates if a permission string follows the correct format\n * @param permission - The permission string to validate\n * @returns boolean indicating if the permission is valid\n */\nexport function isValidPermission(permission: string): boolean {\n  const validPatterns = [\n    /^[a-z]+:[a-z]+$/,           // module:action (e.g., sales:view)\n    /^[a-z]+:[a-z]+:[a-z]+$/,   // module:submodule:action (e.g., shop:distribution:view)\n    /^[a-z]+:[a-z_]+$/,         // module:action_with_underscore (e.g., shop:assigned_only)\n    /^[a-z_]+:[a-z_]+$/,        // legacy format with underscores\n    /^[a-z_]+$/,                // legacy single word permissions (e.g., view_dashboard)\n    /^[a-z]+:[a-z]+$/,          // read:products format\n    /^\\*$/,                     // wildcard\n    /^admin:all$/,              // admin permission\n    /^ALL$/                     // legacy admin permission\n  ];\n  \n  return validPatterns.some(pattern => pattern.test(permission));\n}\n\n/**\n * Helper function to get all permissions in a category\n */\nexport function getPermissionsByCategory(category: keyof typeof PERMISSION_CATEGORIES): readonly Permission[] {\n  return PERMISSION_CATEGORIES[category];\n}\n\n/**\n * All valid permissions as an array\n */\nexport const ALL_PERMISSIONS = Object.values(PERMISSIONS) as Permission[];"],
+      names: ["ALL_PERMISSIONS", "PERMISSIONS", "PERMISSION_CATEGORIES", "getPermissionsByCategory", "isValidPermission", "SALES_VIEW", "SALES_CREATE", "SALES_EDIT", "SALES_DELETE", "SALES_MANAGE", "SALES_UPDATE", "INVENTORY_VIEW", "INVENTORY_CREATE", "INVENTORY_EDIT", "INVENTORY_DELETE", "INVENTORY_MANAGE", "INVENTORY_TRANSFER", "INVENTORY_ADJUST", "INVENTORY_UPDATE", "USERS_VIEW", "USERS_CREATE", "USERS_EDIT", "USERS_DELETE", "USERS_MANAGE", "USER_VIEW", "USER_CREATE", "USER_EDIT", "USER_DELETE", "USER_MANAGE", "USER_UPDATE", "SHOP_VIEW", "SHOP_CREATE", "SHOP_EDIT", "SHOP_DELETE", "SHOP_MANAGE", "SHOP_ASSIGNED_ONLY", "SHOP_DISTRIBUTION_VIEW", "CUSTOMERS_VIEW", "CUSTOMERS_CREATE", "CUSTOMERS_EDIT", "CUSTOMERS_DELETE", "CUSTOMER_VIEW", "CUSTOMER_CREATE", "CUSTOMER_EDIT", "CUSTOMER_DELETE", "SUPPLIERS_VIEW", "SUPPLIERS_CREATE", "SUPPLIERS_EDIT", "SUPPLIERS_DELETE", "SUPPLIER_VIEW", "SUPPLIER_CREATE", "SUPPLIER_EDIT", "SUPPLIER_DELETE", "PURCHASES_VIEW", "PURCHASES_CREATE", "PURCHASES_EDIT", "PURCHASES_DELETE", "PURCHASE_VIEW", "PURCHASE_CREATE", "PURCHASE_EDIT", "PURCHASE_DELETE", "QUOTATIONS_VIEW", "QUOTATIONS_CREATE", "QUOTATIONS_EDIT", "QUOTATIONS_DELETE", "QUOTATION_VIEW", "QUOTATION_CREATE", "QUOTATION_EDIT", "QUOTATION_DELETE", "REPORTS_VIEW", "REPORTS_CREATE", "REPORTS_EXPORT", "REPORT_VIEW", "REPORT_CREATE", "REPORT_EXPORT", "ACCOUNTING_VIEW", "ACCOUNTING_CREATE", "ACCOUNTING_EDIT", "ACCOUNTING_DELETE", "SETTINGS_VIEW", "SETTINGS_EDIT", "SETTINGS_MANAGE", "DASHBOARD_VIEW", "VIEW_SALES", "MANAGE_DASHBOARD", "PRODUCTS_VIEW", "PRODUCTS_CREATE", "PRODUCTS_EDIT", "PRODUCTS_DELETE", "PRODUCT_VIEW", "PRODUCT_CREATE", "PRODUCT_EDIT", "PRODUCT_DELETE", "PRODUCT_UPDATE", "READ_PRODUCTS", "WRITE_PRODUCTS", "CATEGORIES_VIEW", "CATEGORIES_CREATE", "CATEGORIES_EDIT", "CATEGORIES_DELETE", "CATEGORY_VIEW", "CATEGORY_CREATE", "CATEGORY_EDIT", "CATEGORY_DELETE", "CATEGORY_UPDATE", "BRANDS_VIEW", "BRANDS_CREATE", "BRANDS_EDIT", "BRANDS_DELETE", "BRAND_VIEW", "BRAND_CREATE", "BRAND_EDIT", "BRAND_DELETE", "TRANSFERS_VIEW", "TRANSFERS_CREATE", "TRANSFERS_EDIT", "TRANSFERS_DELETE", "TRANSFER_VIEW", "TRANSFER_CREATE", "TRANSFER_EDIT", "TRANSFER_DELETE", "INVOICE_VIEW", "INVOICE_CREATE", "INVOICE_EDIT", "INVOICE_DELETE", "READ_INVOICES", "WRITE_INVOICES", "VIEW_TRANSFERS", "SHOP_UPDATE", "CUSTOMER_UPDATE", "HEALTH_CHECK", "DASHBOARD_SHOPS", "INVENTORY_SHOP", "TRANSFERS_STATS", "TRANSFERS_LIST", "TRANSFERS_DETAIL", "DASHBOARD_SUMMARY", "DASHBOARD_INVENTORY", "DASHBOARD_ALL", "SALES_CREATE_SHOP", "WRITE", "REALTIME_UPDATES", "REALTIME_LAST_POLL", "REALTIME_NOTIFICATIONS", "INVENTORY_CATEGORY", "INVENTORY_SEARCH", "INVENTORY_ANALYTICS", "INVENTORY_SUMMARY", "INVENTORY_ITEM", "CUSTOMERS_LIST", "PRODUCTS_LIST", "INVOICES_LIST", "CATEGORIES_LIST", "SHOPS_LIST", "INVOICES_STATS", "QUOTATION_MANAGE", "SHOP_VIEW_COSTS", "PAYMENT_RECORD", "PAYMENT_VIEW", "RECEIPT_VIEW", "AUDIT_VIEW", "HOVER_UNDERLINE", "ADMIN_ALL", "WILDCARD", "LEGACY_ALL", "SALES", "INVENTORY", "QUOTATIONS", "PRODUCTS", "USERS", "REPORTS", "SETTINGS", "ACCOUNTING", "SHOP", "ADMIN", "permission", "validPatterns", "some", "pattern", "test", "category", "Object", "values"],
+      mappings: "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"
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "ce6f443ca578f18b3ce9099ea27909062e88e412"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_djshe31a4 = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_djshe31a4();
+cov_djshe31a4().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+function _export(target, all) {
+  /* istanbul ignore next */
+  cov_djshe31a4().f[0]++;
+  cov_djshe31a4().s[1]++;
+  for (var name in all) {
+    /* istanbul ignore next */
+    cov_djshe31a4().s[2]++;
+    Object.defineProperty(target, name, {
+      enumerable: true,
+      get: all[name]
+    });
+  }
+}
+/* istanbul ignore next */
+cov_djshe31a4().s[3]++;
+_export(exports, {
+  ALL_PERMISSIONS: function () {
+    /* istanbul ignore next */
+    cov_djshe31a4().f[1]++;
+    cov_djshe31a4().s[4]++;
+    return ALL_PERMISSIONS;
+  },
+  PERMISSIONS: function () {
+    /* istanbul ignore next */
+    cov_djshe31a4().f[2]++;
+    cov_djshe31a4().s[5]++;
+    return PERMISSIONS;
+  },
+  PERMISSION_CATEGORIES: function () {
+    /* istanbul ignore next */
+    cov_djshe31a4().f[3]++;
+    cov_djshe31a4().s[6]++;
+    return PERMISSION_CATEGORIES;
+  },
+  getPermissionsByCategory: function () {
+    /* istanbul ignore next */
+    cov_djshe31a4().f[4]++;
+    cov_djshe31a4().s[7]++;
+    return getPermissionsByCategory;
+  },
+  isValidPermission: function () {
+    /* istanbul ignore next */
+    cov_djshe31a4().f[5]++;
+    cov_djshe31a4().s[8]++;
+    return isValidPermission;
+  }
+});
+const PERMISSIONS =
+/* istanbul ignore next */
+(cov_djshe31a4().s[9]++, {
+  // Sales permissions
+  SALES_VIEW: "sales:view",
+  SALES_CREATE: "sales:create",
+  SALES_EDIT: "sales:edit",
+  SALES_DELETE: "sales:delete",
+  SALES_MANAGE: "sales:manage",
+  SALES_UPDATE: "sales:update",
+  // Inventory permissions
+  INVENTORY_VIEW: "inventory:view",
+  INVENTORY_CREATE: "inventory:create",
+  INVENTORY_EDIT: "inventory:edit",
+  INVENTORY_DELETE: "inventory:delete",
+  INVENTORY_MANAGE: "inventory:manage",
+  INVENTORY_TRANSFER: "inventory:transfer",
+  INVENTORY_ADJUST: "inventory:adjust",
+  INVENTORY_UPDATE: "inventory:update",
+  // User permissions (plural)
+  USERS_VIEW: "users:view",
+  USERS_CREATE: "users:create",
+  USERS_EDIT: "users:edit",
+  USERS_DELETE: "users:delete",
+  USERS_MANAGE: "users:manage",
+  // User permissions (singular)
+  USER_VIEW: "user:view",
+  USER_CREATE: "user:create",
+  USER_EDIT: "user:edit",
+  USER_DELETE: "user:delete",
+  USER_MANAGE: "user:manage",
+  USER_UPDATE: "user:update",
+  // Shop permissions
+  SHOP_VIEW: "shop:view",
+  SHOP_CREATE: "shop:create",
+  SHOP_EDIT: "shop:edit",
+  SHOP_DELETE: "shop:delete",
+  SHOP_MANAGE: "shop:manage",
+  SHOP_ASSIGNED_ONLY: "shop:assigned_only",
+  SHOP_DISTRIBUTION_VIEW: "shop:distribution:view",
+  // Customer permissions (plural)
+  CUSTOMERS_VIEW: "customers:view",
+  CUSTOMERS_CREATE: "customers:create",
+  CUSTOMERS_EDIT: "customers:edit",
+  CUSTOMERS_DELETE: "customers:delete",
+  // Customer permissions (singular)
+  CUSTOMER_VIEW: "customer:view",
+  CUSTOMER_CREATE: "customer:create",
+  CUSTOMER_EDIT: "customer:edit",
+  CUSTOMER_DELETE: "customer:delete",
+  // Supplier permissions (plural)
+  SUPPLIERS_VIEW: "suppliers:view",
+  SUPPLIERS_CREATE: "suppliers:create",
+  SUPPLIERS_EDIT: "suppliers:edit",
+  SUPPLIERS_DELETE: "suppliers:delete",
+  // Supplier permissions (singular)
+  SUPPLIER_VIEW: "supplier:view",
+  SUPPLIER_CREATE: "supplier:create",
+  SUPPLIER_EDIT: "supplier:edit",
+  SUPPLIER_DELETE: "supplier:delete",
+  // Purchase permissions (plural)
+  PURCHASES_VIEW: "purchases:view",
+  PURCHASES_CREATE: "purchases:create",
+  PURCHASES_EDIT: "purchases:edit",
+  PURCHASES_DELETE: "purchases:delete",
+  // Purchase permissions (singular)
+  PURCHASE_VIEW: "purchase:view",
+  PURCHASE_CREATE: "purchase:create",
+  PURCHASE_EDIT: "purchase:edit",
+  PURCHASE_DELETE: "purchase:delete",
+  // Quotation permissions (plural)
+  QUOTATIONS_VIEW: "quotations:view",
+  QUOTATIONS_CREATE: "quotations:create",
+  QUOTATIONS_EDIT: "quotations:edit",
+  QUOTATIONS_DELETE: "quotations:delete",
+  // Quotation permissions (singular)
+  QUOTATION_VIEW: "quotation:view",
+  QUOTATION_CREATE: "quotation:create",
+  QUOTATION_EDIT: "quotation:edit",
+  QUOTATION_DELETE: "quotation:delete",
+  // Report permissions (plural)
+  REPORTS_VIEW: "reports:view",
+  REPORTS_CREATE: "reports:create",
+  REPORTS_EXPORT: "reports:export",
+  // Report permissions (singular)
+  REPORT_VIEW: "report:view",
+  REPORT_CREATE: "report:create",
+  REPORT_EXPORT: "report:export",
+  // Accounting permissions
+  ACCOUNTING_VIEW: "accounting:view",
+  ACCOUNTING_CREATE: "accounting:create",
+  ACCOUNTING_EDIT: "accounting:edit",
+  ACCOUNTING_DELETE: "accounting:delete",
+  // Settings permissions
+  SETTINGS_VIEW: "settings:view",
+  SETTINGS_EDIT: "settings:edit",
+  SETTINGS_MANAGE: "settings:manage",
+  // Dashboard permissions
+  DASHBOARD_VIEW: "dashboard:view",
+  VIEW_SALES: "view_sales",
+  MANAGE_DASHBOARD: "manage_dashboard",
+  // Product permissions (plural)
+  PRODUCTS_VIEW: "products:view",
+  PRODUCTS_CREATE: "products:create",
+  PRODUCTS_EDIT: "products:edit",
+  PRODUCTS_DELETE: "products:delete",
+  // Product permissions (singular)
+  PRODUCT_VIEW: "product:view",
+  PRODUCT_CREATE: "product:create",
+  PRODUCT_EDIT: "product:edit",
+  PRODUCT_DELETE: "product:delete",
+  PRODUCT_UPDATE: "product:update",
+  // Product permissions (alternative format)
+  READ_PRODUCTS: "read:products",
+  WRITE_PRODUCTS: "write:products",
+  // Category permissions (plural)
+  CATEGORIES_VIEW: "categories:view",
+  CATEGORIES_CREATE: "categories:create",
+  CATEGORIES_EDIT: "categories:edit",
+  CATEGORIES_DELETE: "categories:delete",
+  // Category permissions (singular)
+  CATEGORY_VIEW: "category:view",
+  CATEGORY_CREATE: "category:create",
+  CATEGORY_EDIT: "category:edit",
+  CATEGORY_DELETE: "category:delete",
+  CATEGORY_UPDATE: "category:update",
+  // Brand permissions (plural)
+  BRANDS_VIEW: "brands:view",
+  BRANDS_CREATE: "brands:create",
+  BRANDS_EDIT: "brands:edit",
+  BRANDS_DELETE: "brands:delete",
+  // Brand permissions (singular)
+  BRAND_VIEW: "brand:view",
+  BRAND_CREATE: "brand:create",
+  BRAND_EDIT: "brand:edit",
+  BRAND_DELETE: "brand:delete",
+  // Transfer permissions (plural)
+  TRANSFERS_VIEW: "transfers:view",
+  TRANSFERS_CREATE: "transfers:create",
+  TRANSFERS_EDIT: "transfers:edit",
+  TRANSFERS_DELETE: "transfers:delete",
+  // Transfer permissions (singular)
+  TRANSFER_VIEW: "transfer:view",
+  TRANSFER_CREATE: "transfer:create",
+  TRANSFER_EDIT: "transfer:edit",
+  TRANSFER_DELETE: "transfer:delete",
+  // Invoice permissions
+  INVOICE_VIEW: "invoice:view",
+  INVOICE_CREATE: "invoice:create",
+  INVOICE_EDIT: "invoice:edit",
+  INVOICE_DELETE: "invoice:delete",
+  READ_INVOICES: "read:invoices",
+  WRITE_INVOICES: "write:invoices",
+  // Legacy dashboard permissions
+  VIEW_TRANSFERS: "view_transfers",
+  // Shop update permission
+  SHOP_UPDATE: "shop:update",
+  // Customer update permission
+  CUSTOMER_UPDATE: "customer:update",
+  // Health check permission
+  HEALTH_CHECK: "health:check",
+  // Dashboard shops permission
+  DASHBOARD_SHOPS: "dashboard:shops",
+  // Inventory shop permission
+  INVENTORY_SHOP: "inventory:shop",
+  // Transfer stats permission
+  TRANSFERS_STATS: "transfers:stats",
+  // Transfer list and detail permissions
+  TRANSFERS_LIST: "transfers:list",
+  TRANSFERS_DETAIL: "transfers:detail",
+  // Dashboard specific permissions
+  DASHBOARD_SUMMARY: "dashboard:summary",
+  DASHBOARD_INVENTORY: "dashboard:inventory",
+  DASHBOARD_ALL: "dashboard:all",
+  // Sales create shop permission
+  SALES_CREATE_SHOP: "sales:create:shop",
+  // Generic write permission
+  WRITE: "write",
+  // Realtime permissions
+  REALTIME_UPDATES: "realtime:updates",
+  REALTIME_LAST_POLL: "realtime:last_poll",
+  REALTIME_NOTIFICATIONS: "realtime:notifications",
+  // Inventory specific permissions
+  INVENTORY_CATEGORY: "inventory:category",
+  INVENTORY_SEARCH: "inventory:search",
+  INVENTORY_ANALYTICS: "inventory:analytics",
+  INVENTORY_SUMMARY: "inventory:summary",
+  INVENTORY_ITEM: "inventory:item",
+  // List permissions
+  CUSTOMERS_LIST: "customers:list",
+  PRODUCTS_LIST: "products:list",
+  INVOICES_LIST: "invoices:list",
+  CATEGORIES_LIST: "categories:list",
+  SHOPS_LIST: "shops:list",
+  // Stats permissions
+  INVOICES_STATS: "invoices:stats",
+  // Quotation manage permission
+  QUOTATION_MANAGE: "quotation:manage",
+  // Shop view costs permission
+  SHOP_VIEW_COSTS: "shop:view_costs",
+  // Payment permissions
+  PAYMENT_RECORD: "payment:record",
+  PAYMENT_VIEW: "payment:view",
+  // Receipt permissions
+  RECEIPT_VIEW: "receipt:view",
+  // Audit permissions
+  AUDIT_VIEW: "audit:view",
+  // CSS class (not a real permission but appears in code)
+  HOVER_UNDERLINE: "hover:underline",
+  // Admin permissions
+  ADMIN_ALL: "admin:all",
+  WILDCARD: "*",
+  LEGACY_ALL: "ALL"
+});
+const PERMISSION_CATEGORIES =
+/* istanbul ignore next */
+(cov_djshe31a4().s[10]++, {
+  SALES: [PERMISSIONS.SALES_VIEW, PERMISSIONS.SALES_CREATE, PERMISSIONS.SALES_EDIT, PERMISSIONS.SALES_DELETE, PERMISSIONS.SALES_MANAGE],
+  INVENTORY: [PERMISSIONS.INVENTORY_VIEW, PERMISSIONS.INVENTORY_CREATE, PERMISSIONS.INVENTORY_EDIT, PERMISSIONS.INVENTORY_DELETE, PERMISSIONS.INVENTORY_MANAGE],
+  QUOTATIONS: [PERMISSIONS.QUOTATIONS_VIEW, PERMISSIONS.QUOTATIONS_CREATE, PERMISSIONS.QUOTATIONS_EDIT, PERMISSIONS.QUOTATIONS_DELETE],
+  PRODUCTS: [PERMISSIONS.PRODUCTS_VIEW, PERMISSIONS.PRODUCTS_CREATE, PERMISSIONS.PRODUCTS_EDIT, PERMISSIONS.PRODUCTS_DELETE],
+  USERS: [PERMISSIONS.USERS_VIEW, PERMISSIONS.USERS_CREATE, PERMISSIONS.USERS_EDIT, PERMISSIONS.USERS_DELETE],
+  REPORTS: [PERMISSIONS.REPORTS_VIEW, PERMISSIONS.REPORTS_CREATE],
+  SETTINGS: [PERMISSIONS.SETTINGS_VIEW, PERMISSIONS.SETTINGS_EDIT],
+  ACCOUNTING: [PERMISSIONS.ACCOUNTING_VIEW, PERMISSIONS.ACCOUNTING_EDIT],
+  SHOP: [PERMISSIONS.SHOP_VIEW, PERMISSIONS.SHOP_MANAGE, PERMISSIONS.SHOP_ASSIGNED_ONLY],
+  ADMIN: [PERMISSIONS.ADMIN_ALL, PERMISSIONS.LEGACY_ALL, PERMISSIONS.WILDCARD]
+});
+function isValidPermission(permission) {
+  /* istanbul ignore next */
+  cov_djshe31a4().f[6]++;
+  const validPatterns =
+  /* istanbul ignore next */
+  (cov_djshe31a4().s[11]++, [/^[a-z]+:[a-z]+$/, /^[a-z]+:[a-z]+:[a-z]+$/, /^[a-z]+:[a-z_]+$/, /^[a-z_]+:[a-z_]+$/, /^[a-z_]+$/, /^[a-z]+:[a-z]+$/, /^\*$/, /^admin:all$/, /^ALL$/ // legacy admin permission
+  ]);
+  /* istanbul ignore next */
+  cov_djshe31a4().s[12]++;
+  return validPatterns.some(pattern => {
+    /* istanbul ignore next */
+    cov_djshe31a4().f[7]++;
+    cov_djshe31a4().s[13]++;
+    return pattern.test(permission);
+  });
+}
+function getPermissionsByCategory(category) {
+  /* istanbul ignore next */
+  cov_djshe31a4().f[8]++;
+  cov_djshe31a4().s[14]++;
+  return PERMISSION_CATEGORIES[category];
+}
+const ALL_PERMISSIONS =
+/* istanbul ignore next */
+(cov_djshe31a4().s[15]++, Object.values(PERMISSIONS));
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfZGpzaGUzMWE0IiwicGF0aCIsImhhc2giLCJnbG9iYWwiLCJGdW5jdGlvbiIsImdjdiIsImNvdmVyYWdlRGF0YSIsInN0YXRlbWVudE1hcCIsInN0YXJ0IiwibGluZSIsImNvbHVtbiIsImVuZCIsImZuTWFwIiwibmFtZSIsImRlY2wiLCJsb2MiLCJicmFuY2hNYXAiLCJzIiwiZiIsImIiLCJpbnB1dFNvdXJjZU1hcCIsInZlcnNpb24iLCJzb3VyY2VzIiwic291cmNlc0NvbnRlbnQiLCJuYW1lcyIsIm1hcHBpbmdzIiwiX2NvdmVyYWdlU2NoZW1hIiwiY292ZXJhZ2UiLCJhY3R1YWxDb3ZlcmFnZSIsIkFMTF9QRVJNSVNTSU9OUyIsIlBFUk1JU1NJT05TIiwiUEVSTUlTU0lPTl9DQVRFR09SSUVTIiwiZ2V0UGVybWlzc2lvbnNCeUNhdGVnb3J5IiwiaXNWYWxpZFBlcm1pc3Npb24iLCJTQUxFU19WSUVXIiwiU0FMRVNfQ1JFQVRFIiwiU0FMRVNfRURJVCIsIlNBTEVTX0RFTEVURSIsIlNBTEVTX01BTkFHRSIsIlNBTEVTX1VQREFURSIsIklOVkVOVE9SWV9WSUVXIiwiSU5WRU5UT1JZX0NSRUFURSIsIklOVkVOVE9SWV9FRElUIiwiSU5WRU5UT1JZX0RFTEVURSIsIklOVkVOVE9SWV9NQU5BR0UiLCJJTlZFTlRPUllfVFJBTlNGRVIiLCJJTlZFTlRPUllfQURKVVNUIiwiSU5WRU5UT1JZX1VQREFURSIsIlVTRVJTX1ZJRVciLCJVU0VSU19DUkVBVEUiLCJVU0VSU19FRElUIiwiVVNFUlNfREVMRVRFIiwiVVNFUlNfTUFOQUdFIiwiVVNFUl9WSUVXIiwiVVNFUl9DUkVBVEUiLCJVU0VSX0VESVQiLCJVU0VSX0RFTEVURSIsIlVTRVJfTUFOQUdFIiwiVVNFUl9VUERBVEUiLCJTSE9QX1ZJRVciLCJTSE9QX0NSRUFURSIsIlNIT1BfRURJVCIsIlNIT1BfREVMRVRFIiwiU0hPUF9NQU5BR0UiLCJTSE9QX0FTU0lHTkVEX09OTFkiLCJTSE9QX0RJU1RSSUJVVElPTl9WSUVXIiwiQ1VTVE9NRVJTX1ZJRVciLCJDVVNUT01FUlNfQ1JFQVRFIiwiQ1VTVE9NRVJTX0VESVQiLCJDVVNUT01FUlNfREVMRVRFIiwiQ1VTVE9NRVJfVklFVyIsIkNVU1RPTUVSX0NSRUFURSIsIkNVU1RPTUVSX0VESVQiLCJDVVNUT01FUl9ERUxFVEUiLCJTVVBQTElFUlNfVklFVyIsIlNVUFBMSUVSU19DUkVBVEUiLCJTVVBQTElFUlNfRURJVCIsIlNVUFBMSUVSU19ERUxFVEUiLCJTVVBQTElFUl9WSUVXIiwiU1VQUExJRVJfQ1JFQVRFIiwiU1VQUExJRVJfRURJVCIsIlNVUFBMSUVSX0RFTEVURSIsIlBVUkNIQVNFU19WSUVXIiwiUFVSQ0hBU0VTX0NSRUFURSIsIlBVUkNIQVNFU19FRElUIiwiUFVSQ0hBU0VTX0RFTEVURSIsIlBVUkNIQVNFX1ZJRVciLCJQVVJDSEFTRV9DUkVBVEUiLCJQVVJDSEFTRV9FRElUIiwiUFVSQ0hBU0VfREVMRVRFIiwiUVVPVEFUSU9OU19WSUVXIiwiUVVPVEFUSU9OU19DUkVBVEUiLCJRVU9UQVRJT05TX0VESVQiLCJRVU9UQVRJT05TX0RFTEVURSIsIlFVT1RBVElPTl9WSUVXIiwiUVVPVEFUSU9OX0NSRUFURSIsIlFVT1RBVElPTl9FRElUIiwiUVVPVEFUSU9OX0RFTEVURSIsIlJFUE9SVFNfVklFVyIsIlJFUE9SVFNfQ1JFQVRFIiwiUkVQT1JUU19FWFBPUlQiLCJSRVBPUlRfVklFVyIsIlJFUE9SVF9DUkVBVEUiLCJSRVBPUlRfRVhQT1JUIiwiQUNDT1VOVElOR19WSUVXIiwiQUNDT1VOVElOR19DUkVBVEUiLCJBQ0NPVU5USU5HX0VESVQiLCJBQ0NPVU5USU5HX0RFTEVURSIsIlNFVFRJTkdTX1ZJRVciLCJTRVRUSU5HU19FRElUIiwiU0VUVElOR1NfTUFOQUdFIiwiREFTSEJPQVJEX1ZJRVciLCJWSUVXX1NBTEVTIiwiTUFOQUdFX0RBU0hCT0FSRCIsIlBST0RVQ1RTX1ZJRVciLCJQUk9EVUNUU19DUkVBVEUiLCJQUk9EVUNUU19FRElUIiwiUFJPRFVDVFNfREVMRVRFIiwiUFJPRFVDVF9WSUVXIiwiUFJPRFVDVF9DUkVBVEUiLCJQUk9EVUNUX0VESVQiLCJQUk9EVUNUX0RFTEVURSIsIlBST0RVQ1RfVVBEQVRFIiwiUkVBRF9QUk9EVUNUUyIsIldSSVRFX1BST0RVQ1RTIiwiQ0FURUdPUklFU19WSUVXIiwiQ0FURUdPUklFU19DUkVBVEUiLCJDQVRFR09SSUVTX0VESVQiLCJDQVRFR09SSUVTX0RFTEVURSIsIkNBVEVHT1JZX1ZJRVciLCJDQVRFR09SWV9DUkVBVEUiLCJDQVRFR09SWV9FRElUIiwiQ0FURUdPUllfREVMRVRFIiwiQ0FURUdPUllfVVBEQVRFIiwiQlJBTkRTX1ZJRVciLCJCUkFORFNfQ1JFQVRFIiwiQlJBTkRTX0VESVQiLCJCUkFORFNfREVMRVRFIiwiQlJBTkRfVklFVyIsIkJSQU5EX0NSRUFURSIsIkJSQU5EX0VESVQiLCJCUkFORF9ERUxFVEUiLCJUUkFOU0ZFUlNfVklFVyIsIlRSQU5TRkVSU19DUkVBVEUiLCJUUkFOU0ZFUlNfRURJVCIsIlRSQU5TRkVSU19ERUxFVEUiLCJUUkFOU0ZFUl9WSUVXIiwiVFJBTlNGRVJfQ1JFQVRFIiwiVFJBTlNGRVJfRURJVCIsIlRSQU5TRkVSX0RFTEVURSIsIklOVk9JQ0VfVklFVyIsIklOVk9JQ0VfQ1JFQVRFIiwiSU5WT0lDRV9FRElUIiwiSU5WT0lDRV9ERUxFVEUiLCJSRUFEX0lOVk9JQ0VTIiwiV1JJVEVfSU5WT0lDRVMiLCJWSUVXX1RSQU5TRkVSUyIsIlNIT1BfVVBEQVRFIiwiQ1VTVE9NRVJfVVBEQVRFIiwiSEVBTFRIX0NIRUNLIiwiREFTSEJPQVJEX1NIT1BTIiwiSU5WRU5UT1JZX1NIT1AiLCJUUkFOU0ZFUlNfU1RBVFMiLCJUUkFOU0ZFUlNfTElTVCIsIlRSQU5TRkVSU19ERVRBSUwiLCJEQVNIQk9BUkRfU1VNTUFSWSIsIkRBU0hCT0FSRF9JTlZFTlRPUlkiLCJEQVNIQk9BUkRfQUxMIiwiU0FMRVNfQ1JFQVRFX1NIT1AiLCJXUklURSIsIlJFQUxUSU1FX1VQREFURVMiLCJSRUFMVElNRV9MQVNUX1BPTEwiLCJSRUFMVElNRV9OT1RJRklDQVRJT05TIiwiSU5WRU5UT1JZX0NBVEVHT1JZIiwiSU5WRU5UT1JZX1NFQVJDSCIsIklOVkVOVE9SWV9BTkFMWVRJQ1MiLCJJTlZFTlRPUllfU1VNTUFSWSIsIklOVkVOVE9SWV9JVEVNIiwiQ1VTVE9NRVJTX0xJU1QiLCJQUk9EVUNUU19MSVNUIiwiSU5WT0lDRVNfTElTVCIsIkNBVEVHT1JJRVNfTElTVCIsIlNIT1BTX0xJU1QiLCJJTlZPSUNFU19TVEFUUyIsIlFVT1RBVElPTl9NQU5BR0UiLCJTSE9QX1ZJRVdfQ09TVFMiLCJQQVlNRU5UX1JFQ09SRCIsIlBBWU1FTlRfVklFVyIsIlJFQ0VJUFRfVklFVyIsIkFVRElUX1ZJRVciLCJIT1ZFUl9VTkRFUkxJTkUiLCJBRE1JTl9BTEwiLCJXSUxEQ0FSRCIsIkxFR0FDWV9BTEwiLCJTQUxFUyIsIklOVkVOVE9SWSIsIlFVT1RBVElPTlMiLCJQUk9EVUNUUyIsIlVTRVJTIiwiUkVQT1JUUyIsIlNFVFRJTkdTIiwiQUNDT1VOVElORyIsIlNIT1AiLCJBRE1JTiIsInBlcm1pc3Npb24iLCJ2YWxpZFBhdHRlcm5zIiwic29tZSIsInBhdHRlcm4iLCJ0ZXN0IiwiY2F0ZWdvcnkiLCJPYmplY3QiLCJ2YWx1ZXMiXSwic291cmNlcyI6WyIvVXNlcnMvc2FjaGluL0RvY3VtZW50cy9tZC1zcG9ydHMtL3NyYy9saWIvY29uc3RhbnRzL3Blcm1pc3Npb25zLnRzIl0sInNvdXJjZXNDb250ZW50IjpbIi8qKlxuICogUGVybWlzc2lvbiBDb25zdGFudHNcbiAqIFxuICogQ2VudHJhbGl6ZWQgcGVybWlzc2lvbiBkZWZpbml0aW9ucyBmb3IgdGhlIGFwcGxpY2F0aW9uLlxuICogVXNlIHRoZXNlIGNvbnN0YW50cyBpbnN0ZWFkIG9mIGhhcmRjb2RlZCBzdHJpbmdzIHRvIGVuc3VyZSBjb25zaXN0ZW5jeVxuICogYW5kIGVuYWJsZSBiZXR0ZXIgVHlwZVNjcmlwdCBzdXBwb3J0LlxuICovXG5cbmV4cG9ydCBjb25zdCBQRVJNSVNTSU9OUyA9IHtcbiAgLy8gU2FsZXMgcGVybWlzc2lvbnNcbiAgU0FMRVNfVklFVzogJ3NhbGVzOnZpZXcnIGFzIGNvbnN0LFxuICBTQUxFU19DUkVBVEU6ICdzYWxlczpjcmVhdGUnIGFzIGNvbnN0LFxuICBTQUxFU19FRElUOiAnc2FsZXM6ZWRpdCcgYXMgY29uc3QsXG4gIFNBTEVTX0RFTEVURTogJ3NhbGVzOmRlbGV0ZScgYXMgY29uc3QsXG4gIFNBTEVTX01BTkFHRTogJ3NhbGVzOm1hbmFnZScgYXMgY29uc3QsXG4gIFNBTEVTX1VQREFURTogJ3NhbGVzOnVwZGF0ZScgYXMgY29uc3QsXG5cbiAgLy8gSW52ZW50b3J5IHBlcm1pc3Npb25zXG4gIElOVkVOVE9SWV9WSUVXOiAnaW52ZW50b3J5OnZpZXcnIGFzIGNvbnN0LFxuICBJTlZFTlRPUllfQ1JFQVRFOiAnaW52ZW50b3J5OmNyZWF0ZScgYXMgY29uc3QsXG4gIElOVkVOVE9SWV9FRElUOiAnaW52ZW50b3J5OmVkaXQnIGFzIGNvbnN0LFxuICBJTlZFTlRPUllfREVMRVRFOiAnaW52ZW50b3J5OmRlbGV0ZScgYXMgY29uc3QsXG4gIElOVkVOVE9SWV9NQU5BR0U6ICdpbnZlbnRvcnk6bWFuYWdlJyBhcyBjb25zdCxcbiAgSU5WRU5UT1JZX1RSQU5TRkVSOiAnaW52ZW50b3J5OnRyYW5zZmVyJyBhcyBjb25zdCxcbiAgSU5WRU5UT1JZX0FESlVTVDogJ2ludmVudG9yeTphZGp1c3QnIGFzIGNvbnN0LFxuICBJTlZFTlRPUllfVVBEQVRFOiAnaW52ZW50b3J5OnVwZGF0ZScgYXMgY29uc3QsXG5cbiAgLy8gVXNlciBwZXJtaXNzaW9ucyAocGx1cmFsKVxuICBVU0VSU19WSUVXOiAndXNlcnM6dmlldycgYXMgY29uc3QsXG4gIFVTRVJTX0NSRUFURTogJ3VzZXJzOmNyZWF0ZScgYXMgY29uc3QsXG4gIFVTRVJTX0VESVQ6ICd1c2VyczplZGl0JyBhcyBjb25zdCxcbiAgVVNFUlNfREVMRVRFOiAndXNlcnM6ZGVsZXRlJyBhcyBjb25zdCxcbiAgVVNFUlNfTUFOQUdFOiAndXNlcnM6bWFuYWdlJyBhcyBjb25zdCxcblxuICAvLyBVc2VyIHBlcm1pc3Npb25zIChzaW5ndWxhcilcbiAgVVNFUl9WSUVXOiAndXNlcjp2aWV3JyBhcyBjb25zdCxcbiAgVVNFUl9DUkVBVEU6ICd1c2VyOmNyZWF0ZScgYXMgY29uc3QsXG4gIFVTRVJfRURJVDogJ3VzZXI6ZWRpdCcgYXMgY29uc3QsXG4gIFVTRVJfREVMRVRFOiAndXNlcjpkZWxldGUnIGFzIGNvbnN0LFxuICBVU0VSX01BTkFHRTogJ3VzZXI6bWFuYWdlJyBhcyBjb25zdCxcbiAgVVNFUl9VUERBVEU6ICd1c2VyOnVwZGF0ZScgYXMgY29uc3QsXG5cbiAgLy8gU2hvcCBwZXJtaXNzaW9uc1xuICBTSE9QX1ZJRVc6ICdzaG9wOnZpZXcnIGFzIGNvbnN0LFxuICBTSE9QX0NSRUFURTogJ3Nob3A6Y3JlYXRlJyBhcyBjb25zdCxcbiAgU0hPUF9FRElUOiAnc2hvcDplZGl0JyBhcyBjb25zdCxcbiAgU0hPUF9ERUxFVEU6ICdzaG9wOmRlbGV0ZScgYXMgY29uc3QsXG4gIFNIT1BfTUFOQUdFOiAnc2hvcDptYW5hZ2UnIGFzIGNvbnN0LFxuICBTSE9QX0FTU0lHTkVEX09OTFk6ICdzaG9wOmFzc2lnbmVkX29ubHknIGFzIGNvbnN0LFxuICBTSE9QX0RJU1RSSUJVVElPTl9WSUVXOiAnc2hvcDpkaXN0cmlidXRpb246dmlldycgYXMgY29uc3QsXG5cbiAgLy8gQ3VzdG9tZXIgcGVybWlzc2lvbnMgKHBsdXJhbClcbiAgQ1VTVE9NRVJTX1ZJRVc6ICdjdXN0b21lcnM6dmlldycgYXMgY29uc3QsXG4gIENVU1RPTUVSU19DUkVBVEU6ICdjdXN0b21lcnM6Y3JlYXRlJyBhcyBjb25zdCxcbiAgQ1VTVE9NRVJTX0VESVQ6ICdjdXN0b21lcnM6ZWRpdCcgYXMgY29uc3QsXG4gIENVU1RPTUVSU19ERUxFVEU6ICdjdXN0b21lcnM6ZGVsZXRlJyBhcyBjb25zdCxcblxuICAvLyBDdXN0b21lciBwZXJtaXNzaW9ucyAoc2luZ3VsYXIpXG4gIENVU1RPTUVSX1ZJRVc6ICdjdXN0b21lcjp2aWV3JyBhcyBjb25zdCxcbiAgQ1VTVE9NRVJfQ1JFQVRFOiAnY3VzdG9tZXI6Y3JlYXRlJyBhcyBjb25zdCxcbiAgQ1VTVE9NRVJfRURJVDogJ2N1c3RvbWVyOmVkaXQnIGFzIGNvbnN0LFxuICBDVVNUT01FUl9ERUxFVEU6ICdjdXN0b21lcjpkZWxldGUnIGFzIGNvbnN0LFxuXG4gIC8vIFN1cHBsaWVyIHBlcm1pc3Npb25zIChwbHVyYWwpXG4gIFNVUFBMSUVSU19WSUVXOiAnc3VwcGxpZXJzOnZpZXcnIGFzIGNvbnN0LFxuICBTVVBQTElFUlNfQ1JFQVRFOiAnc3VwcGxpZXJzOmNyZWF0ZScgYXMgY29uc3QsXG4gIFNVUFBMSUVSU19FRElUOiAnc3VwcGxpZXJzOmVkaXQnIGFzIGNvbnN0LFxuICBTVVBQTElFUlNfREVMRVRFOiAnc3VwcGxpZXJzOmRlbGV0ZScgYXMgY29uc3QsXG5cbiAgLy8gU3VwcGxpZXIgcGVybWlzc2lvbnMgKHNpbmd1bGFyKVxuICBTVVBQTElFUl9WSUVXOiAnc3VwcGxpZXI6dmlldycgYXMgY29uc3QsXG4gIFNVUFBMSUVSX0NSRUFURTogJ3N1cHBsaWVyOmNyZWF0ZScgYXMgY29uc3QsXG4gIFNVUFBMSUVSX0VESVQ6ICdzdXBwbGllcjplZGl0JyBhcyBjb25zdCxcbiAgU1VQUExJRVJfREVMRVRFOiAnc3VwcGxpZXI6ZGVsZXRlJyBhcyBjb25zdCxcblxuICAvLyBQdXJjaGFzZSBwZXJtaXNzaW9ucyAocGx1cmFsKVxuICBQVVJDSEFTRVNfVklFVzogJ3B1cmNoYXNlczp2aWV3JyBhcyBjb25zdCxcbiAgUFVSQ0hBU0VTX0NSRUFURTogJ3B1cmNoYXNlczpjcmVhdGUnIGFzIGNvbnN0LFxuICBQVVJDSEFTRVNfRURJVDogJ3B1cmNoYXNlczplZGl0JyBhcyBjb25zdCxcbiAgUFVSQ0hBU0VTX0RFTEVURTogJ3B1cmNoYXNlczpkZWxldGUnIGFzIGNvbnN0LFxuXG4gIC8vIFB1cmNoYXNlIHBlcm1pc3Npb25zIChzaW5ndWxhcilcbiAgUFVSQ0hBU0VfVklFVzogJ3B1cmNoYXNlOnZpZXcnIGFzIGNvbnN0LFxuICBQVVJDSEFTRV9DUkVBVEU6ICdwdXJjaGFzZTpjcmVhdGUnIGFzIGNvbnN0LFxuICBQVVJDSEFTRV9FRElUOiAncHVyY2hhc2U6ZWRpdCcgYXMgY29uc3QsXG4gIFBVUkNIQVNFX0RFTEVURTogJ3B1cmNoYXNlOmRlbGV0ZScgYXMgY29uc3QsXG5cbiAgLy8gUXVvdGF0aW9uIHBlcm1pc3Npb25zIChwbHVyYWwpXG4gIFFVT1RBVElPTlNfVklFVzogJ3F1b3RhdGlvbnM6dmlldycgYXMgY29uc3QsXG4gIFFVT1RBVElPTlNfQ1JFQVRFOiAncXVvdGF0aW9uczpjcmVhdGUnIGFzIGNvbnN0LFxuICBRVU9UQVRJT05TX0VESVQ6ICdxdW90YXRpb25zOmVkaXQnIGFzIGNvbnN0LFxuICBRVU9UQVRJT05TX0RFTEVURTogJ3F1b3RhdGlvbnM6ZGVsZXRlJyBhcyBjb25zdCxcblxuICAvLyBRdW90YXRpb24gcGVybWlzc2lvbnMgKHNpbmd1bGFyKVxuICBRVU9UQVRJT05fVklFVzogJ3F1b3RhdGlvbjp2aWV3JyBhcyBjb25zdCxcbiAgUVVPVEFUSU9OX0NSRUFURTogJ3F1b3RhdGlvbjpjcmVhdGUnIGFzIGNvbnN0LFxuICBRVU9UQVRJT05fRURJVDogJ3F1b3RhdGlvbjplZGl0JyBhcyBjb25zdCxcbiAgUVVPVEFUSU9OX0RFTEVURTogJ3F1b3RhdGlvbjpkZWxldGUnIGFzIGNvbnN0LFxuXG4gIC8vIFJlcG9ydCBwZXJtaXNzaW9ucyAocGx1cmFsKVxuICBSRVBPUlRTX1ZJRVc6ICdyZXBvcnRzOnZpZXcnIGFzIGNvbnN0LFxuICBSRVBPUlRTX0NSRUFURTogJ3JlcG9ydHM6Y3JlYXRlJyBhcyBjb25zdCxcbiAgUkVQT1JUU19FWFBPUlQ6ICdyZXBvcnRzOmV4cG9ydCcgYXMgY29uc3QsXG5cbiAgLy8gUmVwb3J0IHBlcm1pc3Npb25zIChzaW5ndWxhcilcbiAgUkVQT1JUX1ZJRVc6ICdyZXBvcnQ6dmlldycgYXMgY29uc3QsXG4gIFJFUE9SVF9DUkVBVEU6ICdyZXBvcnQ6Y3JlYXRlJyBhcyBjb25zdCxcbiAgUkVQT1JUX0VYUE9SVDogJ3JlcG9ydDpleHBvcnQnIGFzIGNvbnN0LFxuXG4gIC8vIEFjY291bnRpbmcgcGVybWlzc2lvbnNcbiAgQUNDT1VOVElOR19WSUVXOiAnYWNjb3VudGluZzp2aWV3JyBhcyBjb25zdCxcbiAgQUNDT1VOVElOR19DUkVBVEU6ICdhY2NvdW50aW5nOmNyZWF0ZScgYXMgY29uc3QsXG4gIEFDQ09VTlRJTkdfRURJVDogJ2FjY291bnRpbmc6ZWRpdCcgYXMgY29uc3QsXG4gIEFDQ09VTlRJTkdfREVMRVRFOiAnYWNjb3VudGluZzpkZWxldGUnIGFzIGNvbnN0LFxuXG4gIC8vIFNldHRpbmdzIHBlcm1pc3Npb25zXG4gIFNFVFRJTkdTX1ZJRVc6ICdzZXR0aW5nczp2aWV3JyBhcyBjb25zdCxcbiAgU0VUVElOR1NfRURJVDogJ3NldHRpbmdzOmVkaXQnIGFzIGNvbnN0LFxuICBTRVRUSU5HU19NQU5BR0U6ICdzZXR0aW5nczptYW5hZ2UnIGFzIGNvbnN0LFxuXG4gIC8vIERhc2hib2FyZCBwZXJtaXNzaW9uc1xuICBEQVNIQk9BUkRfVklFVzogJ2Rhc2hib2FyZDp2aWV3JyBhcyBjb25zdCxcbiAgVklFV19TQUxFUzogJ3ZpZXdfc2FsZXMnIGFzIGNvbnN0LFxuICBNQU5BR0VfREFTSEJPQVJEOiAnbWFuYWdlX2Rhc2hib2FyZCcgYXMgY29uc3QsXG5cbiAgLy8gUHJvZHVjdCBwZXJtaXNzaW9ucyAocGx1cmFsKVxuICBQUk9EVUNUU19WSUVXOiAncHJvZHVjdHM6dmlldycgYXMgY29uc3QsXG4gIFBST0RVQ1RTX0NSRUFURTogJ3Byb2R1Y3RzOmNyZWF0ZScgYXMgY29uc3QsXG4gIFBST0RVQ1RTX0VESVQ6ICdwcm9kdWN0czplZGl0JyBhcyBjb25zdCxcbiAgUFJPRFVDVFNfREVMRVRFOiAncHJvZHVjdHM6ZGVsZXRlJyBhcyBjb25zdCxcblxuICAvLyBQcm9kdWN0IHBlcm1pc3Npb25zIChzaW5ndWxhcilcbiAgUFJPRFVDVF9WSUVXOiAncHJvZHVjdDp2aWV3JyBhcyBjb25zdCxcbiAgUFJPRFVDVF9DUkVBVEU6ICdwcm9kdWN0OmNyZWF0ZScgYXMgY29uc3QsXG4gIFBST0RVQ1RfRURJVDogJ3Byb2R1Y3Q6ZWRpdCcgYXMgY29uc3QsXG4gIFBST0RVQ1RfREVMRVRFOiAncHJvZHVjdDpkZWxldGUnIGFzIGNvbnN0LFxuICBQUk9EVUNUX1VQREFURTogJ3Byb2R1Y3Q6dXBkYXRlJyBhcyBjb25zdCxcblxuICAvLyBQcm9kdWN0IHBlcm1pc3Npb25zIChhbHRlcm5hdGl2ZSBmb3JtYXQpXG4gIFJFQURfUFJPRFVDVFM6ICdyZWFkOnByb2R1Y3RzJyBhcyBjb25zdCxcbiAgV1JJVEVfUFJPRFVDVFM6ICd3cml0ZTpwcm9kdWN0cycgYXMgY29uc3QsXG5cbiAgLy8gQ2F0ZWdvcnkgcGVybWlzc2lvbnMgKHBsdXJhbClcbiAgQ0FURUdPUklFU19WSUVXOiAnY2F0ZWdvcmllczp2aWV3JyBhcyBjb25zdCxcbiAgQ0FURUdPUklFU19DUkVBVEU6ICdjYXRlZ29yaWVzOmNyZWF0ZScgYXMgY29uc3QsXG4gIENBVEVHT1JJRVNfRURJVDogJ2NhdGVnb3JpZXM6ZWRpdCcgYXMgY29uc3QsXG4gIENBVEVHT1JJRVNfREVMRVRFOiAnY2F0ZWdvcmllczpkZWxldGUnIGFzIGNvbnN0LFxuXG4gIC8vIENhdGVnb3J5IHBlcm1pc3Npb25zIChzaW5ndWxhcilcbiAgQ0FURUdPUllfVklFVzogJ2NhdGVnb3J5OnZpZXcnIGFzIGNvbnN0LFxuICBDQVRFR09SWV9DUkVBVEU6ICdjYXRlZ29yeTpjcmVhdGUnIGFzIGNvbnN0LFxuICBDQVRFR09SWV9FRElUOiAnY2F0ZWdvcnk6ZWRpdCcgYXMgY29uc3QsXG4gIENBVEVHT1JZX0RFTEVURTogJ2NhdGVnb3J5OmRlbGV0ZScgYXMgY29uc3QsXG4gIENBVEVHT1JZX1VQREFURTogJ2NhdGVnb3J5OnVwZGF0ZScgYXMgY29uc3QsXG5cbiAgLy8gQnJhbmQgcGVybWlzc2lvbnMgKHBsdXJhbClcbiAgQlJBTkRTX1ZJRVc6ICdicmFuZHM6dmlldycgYXMgY29uc3QsXG4gIEJSQU5EU19DUkVBVEU6ICdicmFuZHM6Y3JlYXRlJyBhcyBjb25zdCxcbiAgQlJBTkRTX0VESVQ6ICdicmFuZHM6ZWRpdCcgYXMgY29uc3QsXG4gIEJSQU5EU19ERUxFVEU6ICdicmFuZHM6ZGVsZXRlJyBhcyBjb25zdCxcblxuICAvLyBCcmFuZCBwZXJtaXNzaW9ucyAoc2luZ3VsYXIpXG4gIEJSQU5EX1ZJRVc6ICdicmFuZDp2aWV3JyBhcyBjb25zdCxcbiAgQlJBTkRfQ1JFQVRFOiAnYnJhbmQ6Y3JlYXRlJyBhcyBjb25zdCxcbiAgQlJBTkRfRURJVDogJ2JyYW5kOmVkaXQnIGFzIGNvbnN0LFxuICBCUkFORF9ERUxFVEU6ICdicmFuZDpkZWxldGUnIGFzIGNvbnN0LFxuXG4gIC8vIFRyYW5zZmVyIHBlcm1pc3Npb25zIChwbHVyYWwpXG4gIFRSQU5TRkVSU19WSUVXOiAndHJhbnNmZXJzOnZpZXcnIGFzIGNvbnN0LFxuICBUUkFOU0ZFUlNfQ1JFQVRFOiAndHJhbnNmZXJzOmNyZWF0ZScgYXMgY29uc3QsXG4gIFRSQU5TRkVSU19FRElUOiAndHJhbnNmZXJzOmVkaXQnIGFzIGNvbnN0LFxuICBUUkFOU0ZFUlNfREVMRVRFOiAndHJhbnNmZXJzOmRlbGV0ZScgYXMgY29uc3QsXG5cbiAgLy8gVHJhbnNmZXIgcGVybWlzc2lvbnMgKHNpbmd1bGFyKVxuICBUUkFOU0ZFUl9WSUVXOiAndHJhbnNmZXI6dmlldycgYXMgY29uc3QsXG4gIFRSQU5TRkVSX0NSRUFURTogJ3RyYW5zZmVyOmNyZWF0ZScgYXMgY29uc3QsXG4gIFRSQU5TRkVSX0VESVQ6ICd0cmFuc2ZlcjplZGl0JyBhcyBjb25zdCxcbiAgVFJBTlNGRVJfREVMRVRFOiAndHJhbnNmZXI6ZGVsZXRlJyBhcyBjb25zdCxcblxuICAvLyBJbnZvaWNlIHBlcm1pc3Npb25zXG4gIElOVk9JQ0VfVklFVzogJ2ludm9pY2U6dmlldycgYXMgY29uc3QsXG4gIElOVk9JQ0VfQ1JFQVRFOiAnaW52b2ljZTpjcmVhdGUnIGFzIGNvbnN0LFxuICBJTlZPSUNFX0VESVQ6ICdpbnZvaWNlOmVkaXQnIGFzIGNvbnN0LFxuICBJTlZPSUNFX0RFTEVURTogJ2ludm9pY2U6ZGVsZXRlJyBhcyBjb25zdCxcbiAgUkVBRF9JTlZPSUNFUzogJ3JlYWQ6aW52b2ljZXMnIGFzIGNvbnN0LFxuICBXUklURV9JTlZPSUNFUzogJ3dyaXRlOmludm9pY2VzJyBhcyBjb25zdCxcblxuICAvLyBMZWdhY3kgZGFzaGJvYXJkIHBlcm1pc3Npb25zXG4gIFZJRVdfVFJBTlNGRVJTOiAndmlld190cmFuc2ZlcnMnIGFzIGNvbnN0LFxuXG4gIC8vIFNob3AgdXBkYXRlIHBlcm1pc3Npb25cbiAgU0hPUF9VUERBVEU6ICdzaG9wOnVwZGF0ZScgYXMgY29uc3QsXG5cbiAgLy8gQ3VzdG9tZXIgdXBkYXRlIHBlcm1pc3Npb25cbiAgQ1VTVE9NRVJfVVBEQVRFOiAnY3VzdG9tZXI6dXBkYXRlJyBhcyBjb25zdCxcblxuICAvLyBIZWFsdGggY2hlY2sgcGVybWlzc2lvblxuICBIRUFMVEhfQ0hFQ0s6ICdoZWFsdGg6Y2hlY2snIGFzIGNvbnN0LFxuXG4gIC8vIERhc2hib2FyZCBzaG9wcyBwZXJtaXNzaW9uXG4gIERBU0hCT0FSRF9TSE9QUzogJ2Rhc2hib2FyZDpzaG9wcycgYXMgY29uc3QsXG5cbiAgLy8gSW52ZW50b3J5IHNob3AgcGVybWlzc2lvblxuICBJTlZFTlRPUllfU0hPUDogJ2ludmVudG9yeTpzaG9wJyBhcyBjb25zdCxcblxuICAvLyBUcmFuc2ZlciBzdGF0cyBwZXJtaXNzaW9uXG4gIFRSQU5TRkVSU19TVEFUUzogJ3RyYW5zZmVyczpzdGF0cycgYXMgY29uc3QsXG5cbiAgLy8gVHJhbnNmZXIgbGlzdCBhbmQgZGV0YWlsIHBlcm1pc3Npb25zXG4gIFRSQU5TRkVSU19MSVNUOiAndHJhbnNmZXJzOmxpc3QnIGFzIGNvbnN0LFxuICBUUkFOU0ZFUlNfREVUQUlMOiAndHJhbnNmZXJzOmRldGFpbCcgYXMgY29uc3QsXG5cbiAgLy8gRGFzaGJvYXJkIHNwZWNpZmljIHBlcm1pc3Npb25zXG4gIERBU0hCT0FSRF9TVU1NQVJZOiAnZGFzaGJvYXJkOnN1bW1hcnknIGFzIGNvbnN0LFxuICBEQVNIQk9BUkRfSU5WRU5UT1JZOiAnZGFzaGJvYXJkOmludmVudG9yeScgYXMgY29uc3QsXG4gIERBU0hCT0FSRF9BTEw6ICdkYXNoYm9hcmQ6YWxsJyBhcyBjb25zdCxcblxuICAvLyBTYWxlcyBjcmVhdGUgc2hvcCBwZXJtaXNzaW9uXG4gIFNBTEVTX0NSRUFURV9TSE9QOiAnc2FsZXM6Y3JlYXRlOnNob3AnIGFzIGNvbnN0LFxuXG4gIC8vIEdlbmVyaWMgd3JpdGUgcGVybWlzc2lvblxuICBXUklURTogJ3dyaXRlJyBhcyBjb25zdCxcblxuICAvLyBSZWFsdGltZSBwZXJtaXNzaW9uc1xuICBSRUFMVElNRV9VUERBVEVTOiAncmVhbHRpbWU6dXBkYXRlcycgYXMgY29uc3QsXG4gIFJFQUxUSU1FX0xBU1RfUE9MTDogJ3JlYWx0aW1lOmxhc3RfcG9sbCcgYXMgY29uc3QsXG4gIFJFQUxUSU1FX05PVElGSUNBVElPTlM6ICdyZWFsdGltZTpub3RpZmljYXRpb25zJyBhcyBjb25zdCxcblxuICAvLyBJbnZlbnRvcnkgc3BlY2lmaWMgcGVybWlzc2lvbnNcbiAgSU5WRU5UT1JZX0NBVEVHT1JZOiAnaW52ZW50b3J5OmNhdGVnb3J5JyBhcyBjb25zdCxcbiAgSU5WRU5UT1JZX1NFQVJDSDogJ2ludmVudG9yeTpzZWFyY2gnIGFzIGNvbnN0LFxuICBJTlZFTlRPUllfQU5BTFlUSUNTOiAnaW52ZW50b3J5OmFuYWx5dGljcycgYXMgY29uc3QsXG4gIElOVkVOVE9SWV9TVU1NQVJZOiAnaW52ZW50b3J5OnN1bW1hcnknIGFzIGNvbnN0LFxuICBJTlZFTlRPUllfSVRFTTogJ2ludmVudG9yeTppdGVtJyBhcyBjb25zdCxcblxuICAvLyBMaXN0IHBlcm1pc3Npb25zXG4gIENVU1RPTUVSU19MSVNUOiAnY3VzdG9tZXJzOmxpc3QnIGFzIGNvbnN0LFxuICBQUk9EVUNUU19MSVNUOiAncHJvZHVjdHM6bGlzdCcgYXMgY29uc3QsXG4gIElOVk9JQ0VTX0xJU1Q6ICdpbnZvaWNlczpsaXN0JyBhcyBjb25zdCxcbiAgQ0FURUdPUklFU19MSVNUOiAnY2F0ZWdvcmllczpsaXN0JyBhcyBjb25zdCxcbiAgU0hPUFNfTElTVDogJ3Nob3BzOmxpc3QnIGFzIGNvbnN0LFxuXG4gIC8vIFN0YXRzIHBlcm1pc3Npb25zXG4gIElOVk9JQ0VTX1NUQVRTOiAnaW52b2ljZXM6c3RhdHMnIGFzIGNvbnN0LFxuXG4gIC8vIFF1b3RhdGlvbiBtYW5hZ2UgcGVybWlzc2lvblxuICBRVU9UQVRJT05fTUFOQUdFOiAncXVvdGF0aW9uOm1hbmFnZScgYXMgY29uc3QsXG5cbiAgLy8gU2hvcCB2aWV3IGNvc3RzIHBlcm1pc3Npb25cbiAgU0hPUF9WSUVXX0NPU1RTOiAnc2hvcDp2aWV3X2Nvc3RzJyBhcyBjb25zdCxcblxuICAvLyBQYXltZW50IHBlcm1pc3Npb25zXG4gIFBBWU1FTlRfUkVDT1JEOiAncGF5bWVudDpyZWNvcmQnIGFzIGNvbnN0LFxuICBQQVlNRU5UX1ZJRVc6ICdwYXltZW50OnZpZXcnIGFzIGNvbnN0LFxuXG4gIC8vIFJlY2VpcHQgcGVybWlzc2lvbnNcbiAgUkVDRUlQVF9WSUVXOiAncmVjZWlwdDp2aWV3JyBhcyBjb25zdCxcblxuICAvLyBBdWRpdCBwZXJtaXNzaW9uc1xuICBBVURJVF9WSUVXOiAnYXVkaXQ6dmlldycgYXMgY29uc3QsXG5cbiAgLy8gQ1NTIGNsYXNzIChub3QgYSByZWFsIHBlcm1pc3Npb24gYnV0IGFwcGVhcnMgaW4gY29kZSlcbiAgSE9WRVJfVU5ERVJMSU5FOiAnaG92ZXI6dW5kZXJsaW5lJyBhcyBjb25zdCxcblxuICAvLyBBZG1pbiBwZXJtaXNzaW9uc1xuICBBRE1JTl9BTEw6ICdhZG1pbjphbGwnIGFzIGNvbnN0LFxuICBXSUxEQ0FSRDogJyonIGFzIGNvbnN0LFxuICBMRUdBQ1lfQUxMOiAnQUxMJyBhcyBjb25zdCxcbn0gYXMgY29uc3Q7XG5cbi8qKlxuICogVHlwZSByZXByZXNlbnRpbmcgYWxsIHZhbGlkIHBlcm1pc3Npb24gdmFsdWVzXG4gKi9cbmV4cG9ydCB0eXBlIFBlcm1pc3Npb24gPSB0eXBlb2YgUEVSTUlTU0lPTlNba2V5b2YgdHlwZW9mIFBFUk1JU1NJT05TXTtcblxuLyoqXG4gKiBQZXJtaXNzaW9uIGNhdGVnb3JpZXMgZm9yIGVhc2llciBtYW5hZ2VtZW50XG4gKi9cbmV4cG9ydCBjb25zdCBQRVJNSVNTSU9OX0NBVEVHT1JJRVMgPSB7XG4gIFNBTEVTOiBbXG4gICAgUEVSTUlTU0lPTlMuU0FMRVNfVklFVyxcbiAgICBQRVJNSVNTSU9OUy5TQUxFU19DUkVBVEUsXG4gICAgUEVSTUlTU0lPTlMuU0FMRVNfRURJVCxcbiAgICBQRVJNSVNTSU9OUy5TQUxFU19ERUxFVEUsXG4gICAgUEVSTUlTU0lPTlMuU0FMRVNfTUFOQUdFXG4gIF0sXG4gIElOVkVOVE9SWTogW1xuICAgIFBFUk1JU1NJT05TLklOVkVOVE9SWV9WSUVXLFxuICAgIFBFUk1JU1NJT05TLklOVkVOVE9SWV9DUkVBVEUsXG4gICAgUEVSTUlTU0lPTlMuSU5WRU5UT1JZX0VESVQsXG4gICAgUEVSTUlTU0lPTlMuSU5WRU5UT1JZX0RFTEVURSxcbiAgICBQRVJNSVNTSU9OUy5JTlZFTlRPUllfTUFOQUdFXG4gIF0sXG4gIFFVT1RBVElPTlM6IFtcbiAgICBQRVJNSVNTSU9OUy5RVU9UQVRJT05TX1ZJRVcsXG4gICAgUEVSTUlTU0lPTlMuUVVPVEFUSU9OU19DUkVBVEUsXG4gICAgUEVSTUlTU0lPTlMuUVVPVEFUSU9OU19FRElULFxuICAgIFBFUk1JU1NJT05TLlFVT1RBVElPTlNfREVMRVRFXG4gIF0sXG4gIFBST0RVQ1RTOiBbXG4gICAgUEVSTUlTU0lPTlMuUFJPRFVDVFNfVklFVyxcbiAgICBQRVJNSVNTSU9OUy5QUk9EVUNUU19DUkVBVEUsXG4gICAgUEVSTUlTU0lPTlMuUFJPRFVDVFNfRURJVCxcbiAgICBQRVJNSVNTSU9OUy5QUk9EVUNUU19ERUxFVEVcbiAgXSxcbiAgVVNFUlM6IFtcbiAgICBQRVJNSVNTSU9OUy5VU0VSU19WSUVXLFxuICAgIFBFUk1JU1NJT05TLlVTRVJTX0NSRUFURSxcbiAgICBQRVJNSVNTSU9OUy5VU0VSU19FRElULFxuICAgIFBFUk1JU1NJT05TLlVTRVJTX0RFTEVURVxuICBdLFxuICBSRVBPUlRTOiBbXG4gICAgUEVSTUlTU0lPTlMuUkVQT1JUU19WSUVXLFxuICAgIFBFUk1JU1NJT05TLlJFUE9SVFNfQ1JFQVRFXG4gIF0sXG4gIFNFVFRJTkdTOiBbXG4gICAgUEVSTUlTU0lPTlMuU0VUVElOR1NfVklFVyxcbiAgICBQRVJNSVNTSU9OUy5TRVRUSU5HU19FRElUXG4gIF0sXG4gIEFDQ09VTlRJTkc6IFtcbiAgICBQRVJNSVNTSU9OUy5BQ0NPVU5USU5HX1ZJRVcsXG4gICAgUEVSTUlTU0lPTlMuQUNDT1VOVElOR19FRElUXG4gIF0sXG4gIFNIT1A6IFtcbiAgICBQRVJNSVNTSU9OUy5TSE9QX1ZJRVcsXG4gICAgUEVSTUlTU0lPTlMuU0hPUF9NQU5BR0UsXG4gICAgUEVSTUlTU0lPTlMuU0hPUF9BU1NJR05FRF9PTkxZXG4gIF0sXG4gIEFETUlOOiBbXG4gICAgUEVSTUlTU0lPTlMuQURNSU5fQUxMLFxuICAgIFBFUk1JU1NJT05TLkxFR0FDWV9BTEwsXG4gICAgUEVSTUlTU0lPTlMuV0lMRENBUkRcbiAgXVxufSBhcyBjb25zdDtcblxuLyoqXG4gKiBWYWxpZGF0ZXMgaWYgYSBwZXJtaXNzaW9uIHN0cmluZyBmb2xsb3dzIHRoZSBjb3JyZWN0IGZvcm1hdFxuICogQHBhcmFtIHBlcm1pc3Npb24gLSBUaGUgcGVybWlzc2lvbiBzdHJpbmcgdG8gdmFsaWRhdGVcbiAqIEByZXR1cm5zIGJvb2xlYW4gaW5kaWNhdGluZyBpZiB0aGUgcGVybWlzc2lvbiBpcyB2YWxpZFxuICovXG5leHBvcnQgZnVuY3Rpb24gaXNWYWxpZFBlcm1pc3Npb24ocGVybWlzc2lvbjogc3RyaW5nKTogYm9vbGVhbiB7XG4gIGNvbnN0IHZhbGlkUGF0dGVybnMgPSBbXG4gICAgL15bYS16XSs6W2Etel0rJC8sICAgICAgICAgICAvLyBtb2R1bGU6YWN0aW9uIChlLmcuLCBzYWxlczp2aWV3KVxuICAgIC9eW2Etel0rOlthLXpdKzpbYS16XSskLywgICAvLyBtb2R1bGU6c3VibW9kdWxlOmFjdGlvbiAoZS5nLiwgc2hvcDpkaXN0cmlidXRpb246dmlldylcbiAgICAvXlthLXpdKzpbYS16X10rJC8sICAgICAgICAgLy8gbW9kdWxlOmFjdGlvbl93aXRoX3VuZGVyc2NvcmUgKGUuZy4sIHNob3A6YXNzaWduZWRfb25seSlcbiAgICAvXlthLXpfXSs6W2Etel9dKyQvLCAgICAgICAgLy8gbGVnYWN5IGZvcm1hdCB3aXRoIHVuZGVyc2NvcmVzXG4gICAgL15bYS16X10rJC8sICAgICAgICAgICAgICAgIC8vIGxlZ2FjeSBzaW5nbGUgd29yZCBwZXJtaXNzaW9ucyAoZS5nLiwgdmlld19kYXNoYm9hcmQpXG4gICAgL15bYS16XSs6W2Etel0rJC8sICAgICAgICAgIC8vIHJlYWQ6cHJvZHVjdHMgZm9ybWF0XG4gICAgL15cXCokLywgICAgICAgICAgICAgICAgICAgICAvLyB3aWxkY2FyZFxuICAgIC9eYWRtaW46YWxsJC8sICAgICAgICAgICAgICAvLyBhZG1pbiBwZXJtaXNzaW9uXG4gICAgL15BTEwkLyAgICAgICAgICAgICAgICAgICAgIC8vIGxlZ2FjeSBhZG1pbiBwZXJtaXNzaW9uXG4gIF07XG4gIFxuICByZXR1cm4gdmFsaWRQYXR0ZXJucy5zb21lKHBhdHRlcm4gPT4gcGF0dGVybi50ZXN0KHBlcm1pc3Npb24pKTtcbn1cblxuLyoqXG4gKiBIZWxwZXIgZnVuY3Rpb24gdG8gZ2V0IGFsbCBwZXJtaXNzaW9ucyBpbiBhIGNhdGVnb3J5XG4gKi9cbmV4cG9ydCBmdW5jdGlvbiBnZXRQZXJtaXNzaW9uc0J5Q2F0ZWdvcnkoY2F0ZWdvcnk6IGtleW9mIHR5cGVvZiBQRVJNSVNTSU9OX0NBVEVHT1JJRVMpOiByZWFkb25seSBQZXJtaXNzaW9uW10ge1xuICByZXR1cm4gUEVSTUlTU0lPTl9DQVRFR09SSUVTW2NhdGVnb3J5XTtcbn1cblxuLyoqXG4gKiBBbGwgdmFsaWQgcGVybWlzc2lvbnMgYXMgYW4gYXJyYXlcbiAqL1xuZXhwb3J0IGNvbnN0IEFMTF9QRVJNSVNTSU9OUyA9IE9iamVjdC52YWx1ZXMoUEVSTUlTU0lPTlMpIGFzIFBlcm1pc3Npb25bXTsiXSwibWFwcGluZ3MiOiJBQUFBOzs7Ozs7R0FNQzs7QUFBQTtBQUFBLFNBQUFBLGNBQUE7RUFBQSxJQUFBQyxJQUFBO0VBQUEsSUFBQUMsSUFBQTtFQUFBLElBQUFDLE1BQUEsT0FBQUMsUUFBQTtFQUFBLElBQUFDLEdBQUE7RUFBQSxJQUFBQyxZQUFBO0lBQUFMLElBQUE7SUFBQU0sWUFBQTtNQUFBO1FBQUFDLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO0lBQUE7SUFBQUUsS0FBQTtNQUFBO1FBQUFDLElBQUE7UUFBQUMsSUFBQTtVQUFBTixLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFBO1VBQUFDLEdBQUE7WUFBQUYsSUFBQTtZQUFBQyxNQUFBO1VBQUE7UUFBQTtRQUFBSyxHQUFBO1VBQUFQLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFELElBQUE7TUFBQTtNQUFBO1FBQUFJLElBQUE7UUFBQUMsSUFBQTtVQUFBTixLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFBO1VBQUFDLEdBQUE7WUFBQUYsSUFBQTtZQUFBQyxNQUFBO1VBQUE7UUFBQTtRQUFBSyxHQUFBO1VBQUFQLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFELElBQUE7TUFBQTtNQUFBO1FBQUFJLElBQUE7UUFBQUMsSUFBQTtVQUFBTixLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFBO1VBQUFDLEdBQUE7WUFBQUYsSUFBQTtZQUFBQyxNQUFBO1VBQUE7UUFBQTtRQUFBSyxHQUFBO1VBQUFQLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFELElBQUE7TUFBQTtNQUFBO1FBQUFJLElBQUE7UUFBQUMsSUFBQTtVQUFBTixLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFBO1VBQUFDLEdBQUE7WUFBQUYsSUFBQTtZQUFBQyxNQUFBO1VBQUE7UUFBQTtRQUFBSyxHQUFBO1VBQUFQLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFELElBQUE7TUFBQTtNQUFBO1FBQUFJLElBQUE7UUFBQUMsSUFBQTtVQUFBTixLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFBO1VBQUFDLEdBQUE7WUFBQUYsSUFBQTtZQUFBQyxNQUFBO1VBQUE7UUFBQTtRQUFBSyxHQUFBO1VBQUFQLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFELElBQUE7TUFBQTtNQUFBO1FBQUFJLElBQUE7UUFBQUMsSUFBQTtVQUFBTixLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFBO1VBQUFDLEdBQUE7WUFBQUYsSUFBQTtZQUFBQyxNQUFBO1VBQUE7UUFBQTtRQUFBSyxHQUFBO1VBQUFQLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFELElBQUE7TUFBQTtNQUFBO1FBQUFJLElBQUE7UUFBQUMsSUFBQTtVQUFBTixLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFBO1VBQUFDLEdBQUE7WUFBQUYsSUFBQTtZQUFBQyxNQUFBO1VBQUE7UUFBQTtRQUFBSyxHQUFBO1VBQUFQLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFELElBQUE7TUFBQTtNQUFBO1FBQUFJLElBQUE7UUFBQUMsSUFBQTtVQUFBTixLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFBO1VBQUFDLEdBQUE7WUFBQUYsSUFBQTtZQUFBQyxNQUFBO1VBQUE7UUFBQTtRQUFBSyxHQUFBO1VBQUFQLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFELElBQUE7TUFBQTtNQUFBO1FBQUFJLElBQUE7UUFBQUMsSUFBQTtVQUFBTixLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFB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
