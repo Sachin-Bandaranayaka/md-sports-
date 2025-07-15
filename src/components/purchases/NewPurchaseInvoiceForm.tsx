@@ -9,6 +9,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PurchaseInvoice, Supplier, Product, Category, Shop } from '@/types';
 import { useCreatePurchaseInvoice, useProducts, useSuppliersOptimized } from '@/hooks/useQueries';
 
+interface PurchaseInvoiceFormData extends Partial<PurchaseInvoice> {
+    totalAmount?: number;
+    paidAmount?: number;
+}
+
 const cardVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
@@ -81,7 +86,7 @@ export default function NewPurchaseInvoiceForm({
         return `PI-${year}${month}${day}-${random}`;
     }, []);
 
-    const [formData, setFormData] = useState<Partial<PurchaseInvoice>>({
+    const [formData, setFormData] = useState<PurchaseInvoiceFormData>({
         invoiceNumber: generateInvoiceNumber(),
         date: new Date().toISOString().split('T')[0],
         dueDate: '',
@@ -215,6 +220,24 @@ export default function NewPurchaseInvoiceForm({
         return Object.values(itemDistributions[itemIndex]).reduce((sum, qty) => sum + Number(qty), 0);
     };
 
+    const getItemDistributionStatus = (itemIndex: number) => {
+        if (!formData.items || !formData.items[itemIndex]) return { status: 'none', message: 'No item' };
+        
+        const item = formData.items[itemIndex];
+        const requiredQty = Number(item.quantity);
+        const distributedQty = getTotalDistributedForItem(itemIndex);
+        
+        if (distributedQty === 0) {
+            return { status: 'none', message: 'Not distributed' };
+        } else if (distributedQty < requiredQty) {
+            return { status: 'partial', message: `${distributedQty}/${requiredQty} distributed` };
+        } else if (distributedQty === requiredQty) {
+            return { status: 'complete', message: 'Fully distributed' };
+        } else {
+            return { status: 'over', message: `Over-distributed: ${distributedQty}/${requiredQty}` };
+        }
+    };
+
     const handleCreateNewProduct = async () => {
         if (!newProductData.name || !newProductData.categoryId || newProductData.price <= 0 || newProductData.weightedAverageCost <= 0) {
             setNewProductModalError('Name, Category, Purchase Price, and Retail Price are required.');
@@ -248,6 +271,44 @@ export default function NewPurchaseInvoiceForm({
         }
     };
 
+    // Helper function to validate distributions
+    const validateDistributions = () => {
+        if (!formData.items || formData.items.length === 0) return { isValid: false, error: 'No items to validate' };
+        
+        if (shops.length === 0) {
+            return { isValid: false, error: 'No shops available for distribution. Please configure at least one shop before creating purchase invoices.' };
+        }
+
+        for (let i = 0; i < formData.items.length; i++) {
+            const item = formData.items[i];
+            const distribution = itemDistributions[i] || {};
+            
+            // Calculate total distributed quantity for this item
+            const totalDistributed = Object.values(distribution).reduce((sum, qty) => {
+                const num = Number(qty) || 0;
+                return sum + num;
+            }, 0);
+            
+            const requiredQuantity = Number(item.quantity);
+            
+            if (totalDistributed === 0) {
+                return { 
+                    isValid: false, 
+                    error: `Product "${item.productName || `Product ${item.productId}`}" has no distribution set. Please distribute all quantities to shops.` 
+                };
+            }
+            
+            if (totalDistributed !== requiredQuantity) {
+                return { 
+                    isValid: false, 
+                    error: `Product "${item.productName || `Product ${item.productId}`}" distribution mismatch. Required: ${requiredQuantity}, Distributed: ${totalDistributed}` 
+                };
+            }
+        }
+        
+        return { isValid: true, error: null };
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -268,6 +329,13 @@ export default function NewPurchaseInvoiceForm({
 
         if (invalidItems.length > 0) {
             setError('Please ensure all items have a product, quantity, and price.');
+            return;
+        }
+
+        // Validate distributions
+        const { isValid, error } = validateDistributions();
+        if (!isValid) {
+            setError(error || 'An unexpected error occurred during distribution validation.');
             return;
         }
 
@@ -321,7 +389,8 @@ export default function NewPurchaseInvoiceForm({
                 onSuccess();
             } else {
                 // Otherwise redirect to the purchase invoices list
-                router.push('/purchases?success=true&action=created&id=' + createdInvoice.id);
+                const invoiceId = (createdInvoice as any)?.data?.id || (createdInvoice as any)?.id || 'unknown';
+                router.push('/purchases?success=true&action=created&id=' + invoiceId);
             }
 
         } catch (err) {
@@ -428,13 +497,29 @@ export default function NewPurchaseInvoiceForm({
                                 <label className="block text-xs font-medium text-gray-600 mb-1">Subtotal</label>
                                 <input type="text" value={(Number(item.quantity) * Number(item.price)).toFixed(2)} readOnly className="block w-full rounded-md border border-gray-300 shadow-sm bg-gray-100 sm:text-sm text-gray-700 p-2 cursor-default" />
                             </div>
-                            <div className="md:col-span-2 flex items-end space-x-2">
-                                <Button type="button" variant="outline" size="sm" onClick={() => handleOpenDistributionModal(index)} className="w-full flex items-center justify-center text-xs py-2" disabled={!item.productId || !item.quantity || Number(item.quantity) <= 0}>
-                                    <Store className="w-3 h-3 mr-1" /> Distribute
-                                </Button>
-                                <Button type="button" variant="danger_outline" size="icon_sm" onClick={() => handleRemoveItem(index)} className="h-9 w-9 flex-shrink-0">
-                                    <Trash className="w-4 h-4" />
-                                </Button>
+                            <div className="md:col-span-2 flex flex-col space-y-1">
+                                <div className="flex items-center space-x-2">
+                                    <Button type="button" variant="outline" size="sm" onClick={() => handleOpenDistributionModal(index)} className="flex-1 flex items-center justify-center text-xs py-2" disabled={!item.productId || !item.quantity || Number(item.quantity) <= 0}>
+                                        <Store className="w-3 h-3 mr-1" /> Distribute
+                                    </Button>
+                                    <Button type="button" variant="destructive" size="icon" onClick={() => handleRemoveItem(index)} className="h-9 w-9 flex-shrink-0">
+                                        <Trash className="w-4 h-4" />
+                                    </Button>
+                                </div>
+                                {/* Distribution Status Indicator */}
+                                {(() => {
+                                    const status = getItemDistributionStatus(index);
+                                    return (
+                                        <div className={`text-xs px-2 py-1 rounded-md text-center ${
+                                            status.status === 'complete' ? 'bg-green-100 text-green-700' :
+                                            status.status === 'partial' ? 'bg-yellow-100 text-yellow-700' :
+                                            status.status === 'over' ? 'bg-red-100 text-red-700' :
+                                            'bg-gray-100 text-gray-600'
+                                        }`}>
+                                            {status.message}
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         </motion.div>
                     ))}
@@ -531,6 +616,51 @@ export default function NewPurchaseInvoiceForm({
                     </motion.div>
                 </AnimatePresence>
             )}
+            
+            {/* Validation Summary */}
+            {formData.items && formData.items.length > 0 && (
+                <div className="mt-6">
+                    {(() => {
+                        const { isValid, error } = validateDistributions();
+                        if (!isValid) {
+                            return (
+                                <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                                    <div className="flex items-center">
+                                        <Info className="w-5 h-5 text-red-600 mr-2" />
+                                        <div>
+                                            <h4 className="text-sm font-medium text-red-800">Distribution Required</h4>
+                                            <p className="text-sm text-red-700 mt-1">{error}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        }
+                        
+                        // Show success state when all validations pass
+                        const allItemsDistributed = formData.items.every((_, index) => {
+                            const status = getItemDistributionStatus(index);
+                            return status.status === 'complete';
+                        });
+                        
+                        if (allItemsDistributed && formData.items.length > 0) {
+                            return (
+                                <div className="bg-green-50 border border-green-200 rounded-md p-4">
+                                    <div className="flex items-center">
+                                        <Info className="w-5 h-5 text-green-600 mr-2" />
+                                        <div>
+                                            <h4 className="text-sm font-medium text-green-800">Ready to Submit</h4>
+                                            <p className="text-sm text-green-700 mt-1">All items are properly distributed to shops.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        }
+                        
+                        return null;
+                    })()}
+                </div>
+            )}
+            
             <div className="flex justify-end space-x-3 mt-8">
                 <Button
                     type="button"
@@ -543,7 +673,7 @@ export default function NewPurchaseInvoiceForm({
                 <Button
                     type="submit"
                     variant="primary"
-                    disabled={submitting}
+                    disabled={submitting || !validateDistributions().isValid}
                     className="flex items-center gap-2"
                 >
                     {submitting ? (

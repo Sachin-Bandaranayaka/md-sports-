@@ -327,6 +327,62 @@ export default function EditPurchaseInvoiceForm({
         return Object.values(itemDistributions[itemIndex]).reduce((sum, qty) => sum + (Number(qty) || 0), 0);
     };
 
+    // Helper function to validate distributions
+    const validateDistributions = () => {
+        if (!formData.items || formData.items.length === 0) return { isValid: false, error: 'No items to validate' };
+        
+        if (shops.length === 0) {
+            return { isValid: false, error: 'No shops available for distribution. Please configure at least one shop before editing purchase invoices.' };
+        }
+
+        for (let i = 0; i < formData.items.length; i++) {
+            const item = formData.items[i];
+            const distribution = itemDistributions[i] || {};
+            
+            // Calculate total distributed quantity for this item
+            const totalDistributed = Object.values(distribution).reduce((sum, qty) => {
+                const num = Number(qty) || 0;
+                return sum + num;
+            }, 0);
+            
+            const requiredQuantity = Number(item.quantity);
+            
+            if (totalDistributed === 0) {
+                return { 
+                    isValid: false, 
+                    error: `Product "${item.productName || `Product ${item.productId}`}" has no distribution set. Please distribute all quantities to shops.` 
+                };
+            }
+            
+            if (totalDistributed !== requiredQuantity) {
+                return { 
+                    isValid: false, 
+                    error: `Product "${item.productName || `Product ${item.productId}`}" distribution mismatch. Required: ${requiredQuantity}, Distributed: ${totalDistributed}` 
+                };
+            }
+        }
+        
+        return { isValid: true, error: null };
+    };
+
+    const getItemDistributionStatus = (itemIndex: number) => {
+        if (!formData.items || !formData.items[itemIndex]) return { status: 'none', message: 'No item' };
+        
+        const item = formData.items[itemIndex];
+        const requiredQty = Number(item.quantity);
+        const distributedQty = getTotalDistributedForItem(itemIndex);
+        
+        if (distributedQty === 0) {
+            return { status: 'none', message: 'Not distributed' };
+        } else if (distributedQty < requiredQty) {
+            return { status: 'partial', message: `${distributedQty}/${requiredQty} distributed` };
+        } else if (distributedQty === requiredQty) {
+            return { status: 'complete', message: 'Fully distributed' };
+        } else {
+            return { status: 'over', message: `Over-distributed: ${distributedQty}/${requiredQty}` };
+        }
+    };
+
     // New helper to get shop options for combobox, ensuring shop.id is string
     const shopOptions = shops.map(shop => ({ value: String(shop.id), label: shop.name }));
 
@@ -369,28 +425,21 @@ export default function EditPurchaseInvoiceForm({
             setError("Please add at least one item to the invoice.");
             return;
         }
-        for (let i = 0; i < formData.items.length; i++) {
-            const item = formData.items[i];
-            if (!item.productId || Number(item.quantity) <= 0 || Number(item.price) < 0) {
-                setError(`Please ensure all fields for item #${i + 1} (Product, valid Quantity, valid Price) are correctly filled.`);
-                return;
-            }
-            
-            // Ensure we have a valid distribution object for this item index
-            const distributedAmount = (itemDistributions[i] && typeof itemDistributions[i] === 'object') 
-                ? getTotalDistributedForItem(i) 
-                : 0;
-                
-            if (distributedAmount > Number(item.quantity)) {
-                setError(`Distributed quantity for ${item.productName || `item #${i + 1}`} (${distributedAmount}) exceeds item quantity (${item.quantity}).`);
-                return;
-            }
+        // Validate all items have valid products and quantities
+        const invalidItems = (formData.items || []).filter(item =>
+            !item.productId || !item.quantity || item.quantity <= 0 || !item.price || item.price <= 0
+        );
 
-            // Auto-distribute to single shop if no distribution is set and only one shop has this product
-            if (distributedAmount === 0 && Number(item.quantity) > 0) {
-                // This will be handled by the backend logic, but we could add a warning here
-                console.warn(`Item ${i + 1} (${item.productName}) has no distribution set. Backend will attempt to infer target shop.`);
-            }
+        if (invalidItems.length > 0) {
+            setError('Please ensure all items have a product, quantity, and price.');
+            return;
+        }
+
+        // Validate distributions
+        const { isValid, error: validationError } = validateDistributions();
+        if (!isValid) {
+            setError(validationError || 'An unexpected error occurred during distribution validation.');
+            return;
         }
 
         setSubmitting(true);
@@ -563,13 +612,29 @@ export default function EditPurchaseInvoiceForm({
                                 <label className="block text-xs font-medium text-gray-600 mb-1">Subtotal</label>
                                 <input type="text" value={(Number(item.quantity) * Number(item.price)).toFixed(2)} readOnly className="block w-full rounded-md border border-gray-300 shadow-sm bg-gray-100 sm:text-sm text-gray-700 p-2 cursor-default" />
                             </div>
-                            <div className="md:col-span-2 flex items-end space-x-2">
-                                <Button type="button" variant="outline" size="sm" onClick={() => handleOpenDistributionModal(index)} className="w-full flex items-center justify-center text-xs py-2" disabled={!item.productId || !item.quantity || Number(item.quantity) <= 0}>
-                                    <Store className="w-3 h-3 mr-1" /> Distribute
-                                </Button>
-                                <Button type="button" variant="destructive" size="sm" onClick={() => handleRemoveItem(index)} className="h-8 w-8 p-0">
-                                    <Trash className="h-4 w-4" />
-                                </Button>
+                            <div className="md:col-span-2 flex flex-col space-y-1">
+                                <div className="flex items-center space-x-2">
+                                    <Button type="button" variant="outline" size="sm" onClick={() => handleOpenDistributionModal(index)} className="flex-1 flex items-center justify-center text-xs py-2" disabled={!item.productId || !item.quantity || Number(item.quantity) <= 0}>
+                                        <Store className="w-3 h-3 mr-1" /> Distribute
+                                    </Button>
+                                    <Button type="button" variant="destructive" size="sm" onClick={() => handleRemoveItem(index)} className="h-8 w-8 p-0">
+                                        <Trash className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                                {/* Distribution Status Indicator */}
+                                {(() => {
+                                    const status = getItemDistributionStatus(index);
+                                    return (
+                                        <div className={`text-xs px-2 py-1 rounded-md text-center ${
+                                            status.status === 'complete' ? 'bg-green-100 text-green-700' :
+                                            status.status === 'partial' ? 'bg-yellow-100 text-yellow-700' :
+                                            status.status === 'over' ? 'bg-red-100 text-red-700' :
+                                            'bg-gray-100 text-gray-600'
+                                        }`}>
+                                            {status.message}
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         </motion.div>
                     ))}
@@ -659,17 +724,62 @@ export default function EditPurchaseInvoiceForm({
                                 )) : <p className="text-sm text-gray-500 py-4 text-center">No shops available for distribution.</p>}
                             </div>
                             <div className="mt-6 flex justify-end">
-                                <Button variant="default" onClick={() => setShowDistributionModal(false)}>Done</Button>
+                                <Button variant="primary" onClick={() => setShowDistributionModal(false)}>Done</Button>
                             </div>
                         </motion.div>
                     </motion.div>
                 </AnimatePresence>
             )}
+            
+            {/* Validation Summary */}
+            {formData.items && formData.items.length > 0 && (
+                <div className="mt-6">
+                    {(() => {
+                        const { isValid, error } = validateDistributions();
+                        if (!isValid) {
+                            return (
+                                <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                                    <div className="flex items-center">
+                                        <Info className="w-5 h-5 text-red-600 mr-2" />
+                                        <div>
+                                            <h4 className="text-sm font-medium text-red-800">Distribution Required</h4>
+                                            <p className="text-sm text-red-700 mt-1">{error}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        }
+                        
+                        // Show success state when all validations pass
+                        const allItemsDistributed = formData.items.every((_, index) => {
+                            const status = getItemDistributionStatus(index);
+                            return status.status === 'complete';
+                        });
+                        
+                        if (allItemsDistributed && formData.items.length > 0) {
+                            return (
+                                <div className="bg-green-50 border border-green-200 rounded-md p-4">
+                                    <div className="flex items-center">
+                                        <Info className="w-5 h-5 text-green-600 mr-2" />
+                                        <div>
+                                            <h4 className="text-sm font-medium text-green-800">Ready to Update</h4>
+                                            <p className="text-sm text-green-700 mt-1">All items are properly distributed to shops.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        }
+                        
+                        return null;
+                    })()}
+                </div>
+            )}
+            
             <div className="flex justify-end gap-3 pt-8">
                 <Button type="button" variant="outline" onClick={() => router.back()} disabled={submitting}>
                     <XCircle className="w-4 h-4 mr-2" /> Cancel
                 </Button>
-                <Button type="submit" variant="default" disabled={submitting || !formData.items || formData.items.length === 0} className="min-w-[120px]">
+                <Button type="submit" variant="primary" disabled={submitting || !formData.items || formData.items.length === 0 || !validateDistributions().isValid} className="min-w-[120px]">
                     {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />} Update Invoice
                 </Button>
             </div>

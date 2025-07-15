@@ -332,8 +332,9 @@ async function getPurchaseInvoiceUpdates(shopId: string | null, since: number): 
             gte: new Date(since)
           }
         }
-      ],
-      ...(shopId && { shopId })
+      ]
+      // Note: Purchase invoices are distributed to multiple shops via distributions JSON field
+      // They are not tied to a single shopId, so we don't filter by shopId here
     };
 
     const purchaseInvoices = await prisma.purchaseInvoice.findMany({
@@ -345,7 +346,7 @@ async function getPurchaseInvoiceUpdates(shopId: string | null, since: number): 
         status: true,
         createdAt: true,
         updatedAt: true,
-        shopId: true,
+        distributions: true, // JSON field containing shop distributions
         supplier: {
           select: {
             name: true
@@ -366,10 +367,11 @@ async function getPurchaseInvoiceUpdates(shopId: string | null, since: number): 
         total: invoice.total,
         status: invoice.status,
         supplierName: invoice.supplier?.name,
-        action: invoice.createdAt.getTime() >= since ? 'created' : 'updated'
+        action: invoice.createdAt.getTime() >= since ? 'created' : 'updated',
+        distributions: invoice.distributions // Include distributions info
       },
       timestamp: Math.max(invoice.createdAt.getTime(), invoice.updatedAt.getTime()),
-      shopId: invoice.shopId || undefined
+      shopId: shopId || undefined // Use the requested shopId filter, not from invoice
     }));
   } catch (error) {
     console.error('Error fetching purchase invoice updates:', error);
