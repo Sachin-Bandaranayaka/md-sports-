@@ -199,11 +199,18 @@ export default function AuditTrailPage() {
         return;
       }
 
+      // Get CSRF token from cookie
+      const csrfToken = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('csrfToken='))
+        ?.split('=')[1];
+
       const response = await fetch('/api/audit-trail/recover', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
+          ...(csrfToken && { 'X-CSRF-Token': csrfToken }),
         },
         body: JSON.stringify({ auditLogId }),
       });
@@ -238,11 +245,18 @@ export default function AuditTrailPage() {
         return;
       }
 
+      // Get CSRF token from cookie
+      const csrfToken = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('csrfToken='))
+        ?.split('=')[1];
+
       const response = await fetch('/api/audit-trail/recover', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
+          ...(csrfToken && { 'X-CSRF-Token': csrfToken }),
         },
         body: JSON.stringify({ auditLogIds }),
       });
@@ -255,12 +269,13 @@ export default function AuditTrailPage() {
         setSelectedItems([]);
         fetchRecycleBinItems();
       } else {
-        throw new Error('Failed to permanently delete items');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to permanently delete items');
       }
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to permanently delete items',
+        description: error instanceof Error ? error.message : 'Failed to permanently delete items',
         variant: 'destructive',
       });
     }

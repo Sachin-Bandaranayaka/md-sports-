@@ -217,6 +217,8 @@ model Invoice {
   invoiceNumber String        @unique
   customerId    Int?
   total         Float
+  discountType  String?       @default("amount")
+  discountValue Float?        @default(0)
   totalProfit   Float?        @default(0)
   profitMargin  Float?        @default(0)
   status        String

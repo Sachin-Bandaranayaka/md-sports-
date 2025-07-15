@@ -59,12 +59,12 @@ export interface Supplier {
 
 // Purchase Invoice types
 export interface PurchaseItem {
-    id: string;
+    id?: string;
     productId: string;
     productName: string;
     quantity: number;
-    unitPrice: number;
-    total: number;
+    price: number;
+    total?: number;
 }
 
 export interface PurchaseInvoice {
@@ -80,7 +80,7 @@ export interface PurchaseInvoice {
     discount: number;
     total: number;
     notes: string;
-    status: 'paid' | 'partial' | 'unpaid';
+    status: 'paid' | 'partial' | 'unpaid' | 'pending_approval' | 'void';
     paymentMethod: string;
     createdAt: string;
 }
@@ -195,3 +195,14 @@ export interface Account {
 
 // Invoice discount
 export type InvoiceDiscountType = 'amount' | 'percent';
+
+export interface Category {
+    id: number;
+    name: string;
+}
+
+export interface Shop {
+    id: number;
+    name: string;
+    isDefault?: boolean;
+}

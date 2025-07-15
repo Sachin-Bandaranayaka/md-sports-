@@ -559,14 +559,20 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
                             const profitMargin = calculatedTotalInvoiceAmount > 0 ? (totalProfit / calculatedTotalInvoiceAmount) * 100 : 0;
 
                             // Apply discount if provided
-                            let netTotal = calculatedTotalInvoiceAmount;
-                            if (invoiceDetails.discountAmount && invoiceDetails.discountAmount > 0) {
-                                netTotal = calculatedTotalInvoiceAmount - invoiceDetails.discountAmount;
+                            let subtotal = calculatedTotalInvoiceAmount;
+                            let discountAmount = 0;
+                            if (invoiceDetails.discountType && invoiceDetails.discountValue > 0) {
+                                discountAmount = invoiceDetails.discountType === 'percent'
+                                    ? (subtotal * invoiceDetails.discountValue) / 100
+                                    : invoiceDetails.discountValue;
                             }
+                            let netTotal = subtotal - discountAmount;
 
                             await tx.invoice.update({
                                 where: { id: createdInvoice.id },
                                 data: {
+                                    discountType: invoiceDetails.discountType,
+                                    discountValue: invoiceDetails.discountValue,
                                     total: netTotal,
                                     totalProfit: totalProfit,
                                     profitMargin: profitMargin

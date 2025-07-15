@@ -14,32 +14,38 @@ export interface DeletedInvoiceResult {
  * (cache invalidation, notifications, etc.).
  */
 export async function deleteInvoice(invoiceId: number, userId: number): Promise<DeletedInvoiceResult> {
-  const auditService = AuditService.getInstance();
-  const invoice = await prisma.invoice.findUnique({
-    where: { id: invoiceId },
-    include: { items: true, customer: true }
-  });
+  return await prisma.$transaction(async (tx) => {
+    const auditService = AuditService.getInstance();
+    const invoice = await tx.invoice.findUnique({
+      where: { id: invoiceId },
+      include: { items: true, customer: true }
+    });
 
-  if (!invoice) {
-    throw new Error('Invoice not found');
-  }
-
-  await auditService.softDelete('Invoice', invoiceId, invoice, userId, true);
-
-  // Adjust inventory as before
-  if (invoice.items.length > 0) {
-    for (const item of invoice.items) {
-      await prisma.inventoryItem.updateMany({
-        where: { productId: item.productId, ...(invoice.shopId && { shopId: invoice.shopId }) },
-        data: { quantity: { increment: item.quantity } }
-      });
+    if (!invoice) {
+      throw new Error('Invoice not found');
     }
-  }
 
-  return {
-    id: invoiceId,
-    customerId: invoice.customerId,
-    invoiceNumber: invoice.invoiceNumber,
-    shopId: invoice.shopId
-  };
+    await auditService.softDelete('Invoice', invoiceId, invoice, String(userId), true);
+
+    // Adjust inventory
+    if (invoice.items.length > 0) {
+      for (const item of invoice.items) {
+        await tx.inventoryItem.updateMany({
+          where: { productId: item.productId, ...(invoice.shopId && { shopId: invoice.shopId }) },
+          data: { quantity: { increment: item.quantity } }
+        });
+      }
+    }
+
+    // After inventory adjustment
+    await tx.invoiceItem.deleteMany({ where: { invoiceId } });
+    await tx.invoice.delete({ where: { id: invoiceId } });
+
+    return {
+      id: invoiceId,
+      customerId: invoice.customerId,
+      invoiceNumber: invoice.invoiceNumber,
+      shopId: invoice.shopId
+    };
+  });
 } 

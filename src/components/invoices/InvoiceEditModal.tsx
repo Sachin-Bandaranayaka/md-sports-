@@ -44,6 +44,8 @@ interface InvoiceFormData {
     notes: string;
     items: InvoiceItem[];
     subtotal: number;
+    discountType: 'amount' | 'percent';
+    discountValue: number;
     tax: number;
     total: number;
     status?: string;
@@ -79,6 +81,8 @@ const InvoiceEditModal: React.FC<InvoiceEditModalProps> = ({
         notes: '',
         items: [],
         subtotal: 0,
+        discountType: 'amount',
+        discountValue: 0,
         tax: 0,
         total: 0,
         shopId: '',
@@ -109,6 +113,8 @@ const InvoiceEditModal: React.FC<InvoiceEditModalProps> = ({
                     total: item.total || (item.quantity * item.price) || 0
                 })) || [],
                 subtotal: initialData.subtotal || initialData.total || 0,
+                discountType: initialData.discountType || 'amount',
+                discountValue: initialData.discountValue || 0,
                 tax: initialData.tax || 0,
                 total: initialData.total || 0,
                 status: initialData.status,
@@ -120,10 +126,13 @@ const InvoiceEditModal: React.FC<InvoiceEditModalProps> = ({
         }
     }, [isOpen, initialData]);
 
-    // Calculate totals when items change
+    // Calculate totals when items or discount change
     useEffect(() => {
         const subtotal = formData.items.reduce((sum, item) => sum + item.total, 0);
-        const total = subtotal; // No tax applied
+        const discountAmount = formData.discountType === 'percent'
+            ? (subtotal * formData.discountValue) / 100
+            : formData.discountValue;
+        const total = Math.max(subtotal - discountAmount, 0); // No tax applied
 
         setFormData(prev => ({
             ...prev,
@@ -131,7 +140,7 @@ const InvoiceEditModal: React.FC<InvoiceEditModalProps> = ({
             tax: 0,
             total
         }));
-    }, [formData.items]);
+    }, [formData.items, formData.discountType, formData.discountValue]);
 
     const handleCustomerSelect = (customerId: string) => {
         const customer = customers.find(c => c && c.id != null && c.id.toString() === customerId);
@@ -253,6 +262,8 @@ const InvoiceEditModal: React.FC<InvoiceEditModalProps> = ({
             notes: '',
             items: [],
             subtotal: 0,
+            discountType: 'amount',
+            discountValue: 0,
             tax: 0,
             total: 0,
             shopId: '',
@@ -487,11 +498,69 @@ const InvoiceEditModal: React.FC<InvoiceEditModalProps> = ({
                     )}
                 </div>
 
+                {/* Discount Section */}
+                <div>
+                    <h3 className="text-lg font-semibold mb-4">Discount</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <Label htmlFor="discountType">Discount Type</Label>
+                            <select
+                                id="discountType"
+                                value={formData.discountType}
+                                onChange={(e) => setFormData(prev => ({ 
+                                    ...prev, 
+                                    discountType: e.target.value as 'amount' | 'percent' 
+                                }))}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                disabled={formData.status === 'paid'}
+                            >
+                                <option value="amount">Fixed Amount</option>
+                                <option value="percent">Percentage</option>
+                            </select>
+                        </div>
+                        <div>
+                            <Label htmlFor="discountValue">Discount Value</Label>
+                            <Input
+                                id="discountValue"
+                                type="number"
+                                min="0"
+                                step={formData.discountType === 'percent' ? '0.01' : '1'}
+                                max={formData.discountType === 'percent' ? '100' : undefined}
+                                value={formData.discountValue}
+                                onChange={(e) => setFormData(prev => ({ 
+                                    ...prev, 
+                                    discountValue: parseFloat(e.target.value) || 0 
+                                }))}
+                                placeholder={formData.discountType === 'percent' ? 'Enter percentage' : 'Enter amount'}
+                                disabled={formData.status === 'paid'}
+                            />
+                        </div>
+                        <div>
+                            <Label>Discount Amount</Label>
+                            <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-black">
+                                LKR {(formData.discountType === 'percent'
+                                    ? (formData.subtotal * formData.discountValue) / 100
+                                    : formData.discountValue).toFixed(2)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Invoice Summary */}
                 {formData.items.length > 0 && (
                     <div className="bg-gray-50 p-4 rounded-lg">
                         <div className="space-y-2 text-black">
-                            <div className="flex justify-between font-semibold text-lg">
+                            <div className="flex justify-between">
+                                <span>Subtotal:</span>
+                                <span>LKR {(formData.subtotal || 0).toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between text-red-600">
+                                <span>Discount:</span>
+                                <span>- LKR {(formData.discountType === 'percent'
+                                    ? (formData.subtotal * formData.discountValue) / 100
+                                    : formData.discountValue).toFixed(2)}</span>
+                            </div>
+                            <div className="border-t pt-2 flex justify-between font-semibold text-lg">
                                 <span>Total:</span>
                                 <span>LKR {(formData.total || 0).toFixed(2)}</span>
                             </div>

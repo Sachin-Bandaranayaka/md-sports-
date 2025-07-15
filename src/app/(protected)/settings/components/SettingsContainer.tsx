@@ -20,6 +20,10 @@ export default function SettingsContainer() {
     const [testAiStatus, setTestAiStatus] = useState<{ success?: boolean; message?: string } | null>(null);
     const [isBackingUp, setIsBackingUp] = useState(false);
     const [backupStatus, setBackupStatus] = useState<{ success?: boolean; message?: string } | null>(null);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [backupData, setBackupData] = useState<object | null>(null);
+    const [isRestoring, setIsRestoring] = useState(false);
+    const [restoreStatus, setRestoreStatus] = useState<{ success?: boolean; message?: string } | null>(null);
 
     // Set the active tab from URL query parameter if present
     useEffect(() => {
@@ -289,6 +293,51 @@ export default function SettingsContainer() {
         }
     };
 
+    const handleFileUpload = (file: File | null) => {
+      setSelectedFile(file);
+      setRestoreStatus(null);
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = JSON.parse(e.target?.result as string);
+            setBackupData(data);
+          } catch (error) {
+            setRestoreStatus({ success: false, message: 'Invalid JSON file' });
+          }
+        };
+        reader.readAsText(file);
+      }
+    };
+
+    const handleRestore = async () => {
+      if (!backupData) return;
+      setIsRestoring(true);
+      setRestoreStatus({ message: 'Restoring database...' });
+
+      try {
+        const response = await fetch('/api/backup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify(backupData),
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          setRestoreStatus({ success: true, message: 'Restore completed successfully!' });
+        } else {
+          throw new Error(data.error || 'Restore failed');
+        }
+      } catch (error) {
+        setRestoreStatus({ success: false, message: error instanceof Error ? error.message : 'Failed to restore backup' });
+      } finally {
+        setIsRestoring(false);
+      }
+    };
+
     return (
         <div className="bg-tertiary p-6 rounded-lg shadow-sm border border-gray-200">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">System Settings</h2>
@@ -481,6 +530,35 @@ export default function SettingsContainer() {
                                 {backupStatus.message}
                             </div>
                         )}
+                    </div>
+
+                    <div className="space-y-6 mt-6">
+                      <h3 className="text-lg font-medium text-gray-900">Database Restore</h3>
+                      <p className="text-gray-500">
+                        Upload a backup JSON file to restore your database data.
+                      </p>
+
+                      <div className="flex items-center space-x-4">
+                        <input
+                          type="file"
+                          accept=".json"
+                          onChange={(e) => handleFileUpload(e.target.files?.[0] ?? null)}
+                          className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                        />
+                        <button
+                          onClick={handleRestore}
+                          disabled={isRestoring || !selectedFile}
+                          className={`px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 ${isRestoring ? 'opacity-50' : ''}`}
+                        >
+                          {isRestoring ? 'Restoring...' : 'Restore Backup'}
+                        </button>
+                      </div>
+
+                      {restoreStatus && (
+                        <div className={`p-3 rounded-md ${restoreStatus.success ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+                          {restoreStatus.message}
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex justify-end mt-6">

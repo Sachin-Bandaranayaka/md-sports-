@@ -60,6 +60,8 @@ interface InvoiceFormData {
     paymentMethod: 'Cash' | 'Credit' | 'Card' | 'Bank';
     shopId: string | null;
     items: InvoiceItem[];
+    discountType: 'amount' | 'percent';
+    discountValue: number;
 }
 
 // Interface for Invoice from API
@@ -87,6 +89,8 @@ interface ApiInvoice {
         product: Product; // Product might also have weightedAverageCost for newly added items
     }>;
     shopId?: string; // Ensure shopId is string here too
+    discountType?: string;
+    discountValue?: number;
 }
 
 export default function EditInvoice() {
@@ -152,13 +156,25 @@ export default function EditInvoice() {
         status: 'pending',
         paymentMethod: 'Cash',
         shopId: null,
-        items: []
+        items: [],
+        discountType: 'amount',
+        discountValue: 0,
     });
 
     // Calculate invoice total based on line items
-    const invoiceTotal = useMemo(() => {
+    const invoiceSubtotal = useMemo(() => {
         return formData.items.reduce((sum, item) => sum + item.total, 0);
     }, [formData.items]);
+
+    const discountAmount = useMemo(() => {
+        return formData.discountType === 'percent'
+            ? (invoiceSubtotal * formData.discountValue) / 100
+            : formData.discountValue;
+    }, [invoiceSubtotal, formData.discountType, formData.discountValue]);
+
+    const invoiceTotal = useMemo(() => {
+        return Math.max(invoiceSubtotal - discountAmount, 0);
+    }, [invoiceSubtotal, discountAmount]);
 
     // Fetch invoice data when component mounts
     useEffect(() => {
@@ -204,7 +220,9 @@ export default function EditInvoice() {
                     status: invoiceData.status as any,
                     paymentMethod: invoiceData.paymentMethod as any,
                     shopId: invoiceData.shopId || null, // Will be string if present
-                    items
+                    items,
+                    discountType: (invoiceData.discountType as 'amount' | 'percent') || 'amount',
+                    discountValue: invoiceData.discountValue || 0,
                 });
 
                 // Ensure we have customer type and credit limit
@@ -318,7 +336,7 @@ export default function EditInvoice() {
         const { name, value } = e.target;
         setFormData({
             ...formData,
-            [name]: value
+            [name]: name === 'discountValue' ? (parseFloat(value) || 0) : value
         });
     };
 
@@ -559,6 +577,8 @@ export default function EditInvoice() {
                     price: item.price,
                     total: item.total
                 })),
+                discountType: formData.discountType,
+                discountValue: formData.discountValue,
                 // Include the sendSms flag
                 sendSms: sendSms
             };
@@ -845,7 +865,27 @@ export default function EditInvoice() {
                                             <h3 className="font-semibold text-sm text-gray-900 mb-2">Invoice Summary</h3>
                                             <div className="flex justify-between text-sm text-gray-900">
                                                 <span>Subtotal:</span>
-                                                <span>Rs. {invoiceTotal.toLocaleString()}</span>
+                                                <span>Rs. {invoiceSubtotal.toLocaleString()}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-sm text-gray-900 mt-1">
+                                                <div className="flex items-center gap-2">
+                                                    <label className="mr-1">Discount:</label>
+                                                    <select
+                                                        value={formData.discountType}
+                                                        onChange={(e) => setFormData(prev => ({ ...prev, discountType: e.target.value as 'amount' | 'percent' }))}
+                                                        className="border border-gray-300 rounded px-1 py-0.5 text-xs"
+                                                    >
+                                                        <option value="amount">Rs</option>
+                                                        <option value="percent">%</option>
+                                                    </select>
+                                                </div>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    value={formData.discountValue}
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, discountValue: parseFloat(e.target.value) || 0 }))}
+                                                    className="w-24 border border-gray-300 rounded px-1 py-0.5 text-right text-sm"
+                                                />
                                             </div>
                                             <div className="flex justify-between text-sm text-gray-900 mt-1">
                                                 <span>Tax (0%):</span>
@@ -1065,6 +1105,65 @@ export default function EditInvoice() {
                                         </tr>
                                     </tfoot>
                                 </table>
+                            </div>
+                        </div>
+
+                        {/* Discount Section */}
+                        <div>
+                            <h2 className="text-lg font-semibold mb-4 text-gray-900 border-b pb-2">Discount</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Discount Type
+                                    </label>
+                                    <select
+                                        name="discountType"
+                                        value={formData.discountType}
+                                        onChange={handleInputChange}
+                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
+                                    >
+                                        <option value="amount">Fixed Amount</option>
+                                        <option value="percent">Percentage</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Discount Value
+                                    </label>
+                                    <input
+                                        type="number"
+                                        name="discountValue"
+                                        value={formData.discountValue}
+                                        onChange={handleInputChange}
+                                        min="0"
+                                        step={formData.discountType === 'percent' ? '0.01' : '1'}
+                                        max={formData.discountType === 'percent' ? '100' : undefined}
+                                        placeholder={formData.discountType === 'percent' ? 'Enter percentage' : 'Enter amount'}
+                                        className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-900"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Discount Amount
+                                    </label>
+                                    <div className="w-full rounded-md border border-gray-300 p-2.5 text-sm text-gray-500 bg-gray-50">
+                                        Rs. {discountAmount.toLocaleString()}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="mt-4 p-4 bg-gray-50 rounded-md">
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-gray-600">Subtotal:</span>
+                                    <span className="font-medium">Rs. {invoiceSubtotal.toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm mt-1">
+                                    <span className="text-gray-600">Discount:</span>
+                                    <span className="font-medium text-red-600">- Rs. {discountAmount.toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-lg font-bold mt-2 pt-2 border-t border-gray-200">
+                                    <span>Total:</span>
+                                    <span>Rs. {invoiceTotal.toLocaleString()}</span>
+                                </div>
                             </div>
                         </div>
 

@@ -288,31 +288,28 @@ export default function NewPurchaseInvoiceForm({
                 paidAmount: Number(formData.paidAmount || 0),
             };
 
-            // Add distribution data if available and correctly structured
-            const hasActualDistributions = itemDistributions.some(dist => Object.keys(dist).length > 0);
+            // Prepare distributions, ensuring length matches items
+            const hasAnyDistribution = itemDistributions.some(dist => Object.keys(dist).length > 0);
 
-            if (hasActualDistributions) {
-                preparedData.distributions = itemDistributions.map((dist, index) => {
-                    const item = formData.items?.[index];
-                    // Ensure distribution is only added if item exists and distribution is not empty
-                    if (item && Object.keys(dist).length > 0) {
-                        return dist;
-                    }
-                    return {}; // Return empty object if no distribution for this item
-                });
-            } else if (shops.length > 0) { // If no specific distributions, check for a default shop
-                // Attempt to use the first shop as a default if no specific distributions
-                // This is a placeholder, you might have a more specific way to define a "default" shop
+            let distributions: Array<Record<number, number>>;
+
+            if (!hasAnyDistribution && shops.length > 0) {
+                // No distributions provided, assign all to default shop
                 const defaultShop = shops.find(s => s.isDefault) || shops[0];
                 if (defaultShop) {
-                    preparedData.defaultShopId = defaultShop.id;
+                    distributions = formData.items.map(item => ({
+                        [defaultShop.id]: Number(item.quantity)
+                    }));
+                } else {
+                    // No default shop, set empty (will cause API error)
+                    distributions = formData.items.map(() => ({}));
                 }
+            } else {
+                // Use provided distributions, fill missing with empty
+                distributions = formData.items.map((item, index) => itemDistributions[index] || {});
             }
 
-            // Remove itemDistributions if it was added in error previously
-            if (preparedData.itemDistributions) {
-                delete preparedData.itemDistributions;
-            }
+            preparedData.distributions = distributions;
 
             console.log('Submitting purchase invoice:', preparedData);
 
