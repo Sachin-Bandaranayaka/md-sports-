@@ -206,6 +206,15 @@ export default function InventoryHeaderActions() {
                     <Store className="h-4 w-4 mr-2" />
                     Shop Distribution
                 </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push('/inventory/bulk-import')}
+                    className="text-black"
+                >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Bulk Import
+                </Button>
                 {/* <Button
                     variant="info"
                     size="sm"

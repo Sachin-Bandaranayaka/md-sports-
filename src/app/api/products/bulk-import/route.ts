@@ -98,15 +98,18 @@ export async function POST(request: NextRequest) {
                 continue;
             }
 
-            let shopId: number | null = null;
+            let shopId: string | null = null;
             if (initialQuantity > 0) {
                 if (!row.ShopName?.trim()) {
-                    results.push({ row: rowIndex, success: false, productName: name, message: 'Shop Name is required if Initial Quantity is greater than 0.' });
+                    results.push({ row: rowIndex, success: false, productName: name, message: 'Shop Name is required when Initial Quantity is greater than 0. Either provide a valid shop name or set Initial Quantity to 0.' });
                     continue;
                 }
                 const shop = await prisma.shop.findFirst({ where: { name: row.ShopName.trim() } });
                 if (!shop) {
-                    results.push({ row: rowIndex, success: false, productName: name, message: `Shop '${row.ShopName.trim()}' not found.` });
+                    // Get available shop names for better error message
+                    const availableShops = await prisma.shop.findMany({ select: { name: true } });
+                    const shopNames = availableShops.map(s => s.name).join(', ');
+                    results.push({ row: rowIndex, success: false, productName: name, message: `Shop '${row.ShopName.trim()}' not found. Available shops: ${shopNames}` });
                     continue;
                 }
                 shopId = shop.id;

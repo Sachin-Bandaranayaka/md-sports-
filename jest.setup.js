@@ -2,6 +2,115 @@
 import '@testing-library/jest-dom';
 import { cleanupCache } from './src/lib/cache';
 
+// Mock Next.js Request and Response for API route testing
+global.Request = class MockRequest {
+  constructor(url, options = {}) {
+    this.url = url;
+    this.method = options.method || 'GET';
+    this.headers = new Map(Object.entries(options.headers || {}));
+    this.body = options.body;
+    this._formData = null;
+  }
+
+  async json() {
+    if (typeof this.body === 'string') {
+      return JSON.parse(this.body);
+    }
+    return this.body;
+  }
+
+  async formData() {
+    return this._formData || new FormData();
+  }
+
+  headers = {
+    get: (key) => this.headers.get(key) || null,
+  };
+};
+
+global.Response = class MockResponse {
+  constructor(body, options = {}) {
+    this.body = body;
+    this.status = options.status || 200;
+    this.statusText = options.statusText || 'OK';
+    this.headers = new Map(Object.entries(options.headers || {}));
+  }
+
+  async json() {
+    if (typeof this.body === 'string') {
+      return JSON.parse(this.body);
+    }
+    return this.body;
+  }
+
+  static json(data, options = {}) {
+    return new Response(JSON.stringify(data), {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+};
+
+// Mock FormData for file upload tests
+global.FormData = class MockFormData extends Map {
+  append(key, value) {
+    this.set(key, value);
+  }
+
+  get(key) {
+    return super.get(key);
+  }
+};
+
+// Mock File constructor for testing
+global.File = class MockFile {
+  constructor(parts, name, options = {}) {
+    this.name = name;
+    this.size = parts.reduce((total, part) => total + part.length, 0);
+    this.type = options.type || '';
+    this.lastModified = Date.now();
+  }
+};
+
+// Mock fetch globally for component tests
+global.fetch = jest.fn();
+
+// Mock window.open for template download tests
+Object.defineProperty(window, 'open', {
+  value: jest.fn(),
+  writable: true,
+});
+
+// Mock environment variables
+process.env.NODE_ENV = 'test';
+process.env.TEST_DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
+
+// Suppress console.warn for React act warnings in tests
+const originalWarn = console.warn;
+beforeAll(() => {
+  console.warn = (...args) => {
+    if (
+      typeof args[0] === 'string' &&
+      args[0].includes('Warning: An update to')
+    ) {
+      return;
+    }
+    originalWarn.call(console, ...args);
+  };
+});
+
+afterAll(() => {
+  console.warn = originalWarn;
+});
+
+// Clear all mocks after each test
+afterEach(() => {
+  jest.clearAllMocks();
+});
+
 // Set up environment variables for testing
 process.env.JWT_SECRET = 'test-secret-key';
 process.env.JWT_ACCESS_TOKEN_EXPIRES_IN = '12h';
