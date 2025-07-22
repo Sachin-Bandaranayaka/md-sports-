@@ -317,12 +317,7 @@ export default function Suppliers() {
                                                 className="rounded border-gray-300 text-primary focus:ring-primary"
                                             />
                                         </th>
-                                        <th className="px-6 py-3">ID</th>
                                         <th className="px-6 py-3">Supplier Name</th>
-                                        <th className="px-6 py-3">Contact Person</th>
-                                        <th className="px-6 py-3">City</th>
-                                        <th className="px-6 py-3">Contact</th>
-                                        <th className="px-6 py-3">Total Purchases</th>
                                         <th className="px-6 py-3">Status</th>
                                         <th className="px-6 py-3">Actions</th>
                                     </tr>
@@ -344,24 +339,8 @@ export default function Suppliers() {
                                                 />
                                             </td>
                                             <td className="px-6 py-4 font-medium text-gray-900">
-                                                {supplier.id}
-                                            </td>
-                                            <td className="px-6 py-4 font-medium text-gray-900">
                                                 {supplier.name}
                                             </td>
-                                            <td className="px-6 py-4">{supplier.contactPerson}</td>
-                                            <td className="px-6 py-4">{supplier.city}</td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center space-x-2">
-                                                    <a href={`mailto:${supplier.email}`} className="text-blue-500 hover:text-blue-700">
-                                                        <Mail className="w-4 h-4" />
-                                                    </a>
-                                                    <a href={`tel:${supplier.phone}`} className="text-blue-500 hover:text-blue-700">
-                                                        <Phone className="w-4 h-4" />
-                                                    </a>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">Rs. {supplier.totalPurchases?.toLocaleString()}</td>
                                             <td className="px-6 py-4">
                                                 <span className={`px-2 py-1 rounded-full text-xs ${supplier.status === 'active'
                                                     ? 'bg-green-100 text-green-800'

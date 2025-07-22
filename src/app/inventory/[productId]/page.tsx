@@ -627,7 +627,6 @@ export default function ProductDetail() {
                                 <table className="w-full text-sm">
                                     <thead className="text-xs text-black uppercase bg-gray-50">
                                         <tr>
-                                            <th className="px-4 py-2 text-left">Branch ID</th>
                                             <th className="px-4 py-2 text-left">Branch Name</th>
                                             <th className="px-4 py-2 text-left">Quantity</th>
                                         </tr>
@@ -635,7 +634,6 @@ export default function ProductDetail() {
                                     <tbody>
                                         {product.branchStock.map((branch) => (
                                             <tr key={branch.branchId} className="border-b">
-                                                <td className="px-4 py-2 text-black">{branch.branchId}</td>
                                                 <td className="px-4 py-2">
                                                     <div className="flex items-center text-black">
                                                         <Store className="w-4 h-4 mr-2 text-black" />

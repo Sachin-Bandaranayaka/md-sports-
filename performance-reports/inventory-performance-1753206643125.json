@@ -1,0 +1,79 @@
+{
+  "timestamp": "2025-07-22T17:50:42.454Z",
+  "tests": [
+    {
+      "name": "Transfer List",
+      "url": "/api/inventory/transfers",
+      "duration": 27,
+      "status": 401,
+      "success": false,
+      "threshold": 1000,
+      "withinThreshold": true
+    },
+    {
+      "name": "Shops List",
+      "url": "/api/shops",
+      "duration": 9,
+      "status": 401,
+      "success": false,
+      "threshold": 2000,
+      "withinThreshold": true
+    },
+    {
+      "name": "Products List",
+      "url": "/api/products",
+      "duration": 582,
+      "status": 200,
+      "success": true,
+      "threshold": 2000,
+      "withinThreshold": true
+    },
+    {
+      "name": "Inventory Summary",
+      "url": "/api/inventory/summary",
+      "duration": 21,
+      "status": 401,
+      "success": false,
+      "threshold": 2000,
+      "withinThreshold": true
+    },
+    {
+      "name": "Transfer List Query",
+      "duration": 88,
+      "threshold": 150,
+      "withinThreshold": true
+    },
+    {
+      "name": "Inventory Availability Check",
+      "duration": 63,
+      "threshold": 75,
+      "withinThreshold": true
+    },
+    {
+      "name": "Transfer Creation Transaction",
+      "duration": 161,
+      "threshold": 225,
+      "withinThreshold": true
+    },
+    {
+      "name": "Transfer Completion Update",
+      "duration": 69,
+      "threshold": 112.5,
+      "withinThreshold": true
+    }
+  ],
+  "alerts": [
+    {
+      "type": "CONCURRENCY",
+      "message": "Low success rate for concurrent operations: 0%",
+      "timestamp": "2025-07-22T17:50:43.125Z"
+    }
+  ],
+  "summary": {
+    "totalTests": 8,
+    "passedTests": 8,
+    "successRate": 100,
+    "alertCount": 1,
+    "status": "WARNING"
+  }
+}

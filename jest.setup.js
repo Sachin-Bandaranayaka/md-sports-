@@ -78,11 +78,13 @@ global.File = class MockFile {
 // Mock fetch globally for component tests
 global.fetch = jest.fn();
 
-// Mock window.open for template download tests
-Object.defineProperty(window, 'open', {
-  value: jest.fn(),
-  writable: true,
-});
+// Mock window.open for template download tests (only in jsdom environment)
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'open', {
+    value: jest.fn(),
+    writable: true,
+  });
+}
 
 // Mock environment variables
 process.env.NODE_ENV = 'test';
@@ -167,21 +169,58 @@ jest.mock('@prisma/client', () => ({
       findUnique: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
-      delete: jest.fn()
+      delete: jest.fn(),
+      deleteMany: jest.fn()
     },
     product: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
-      delete: jest.fn()
+      delete: jest.fn(),
+      deleteMany: jest.fn()
+    },
+    shop: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      deleteMany: jest.fn()
+    },
+    inventoryItem: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      upsert: jest.fn(),
+      delete: jest.fn(),
+      deleteMany: jest.fn()
+    },
+    inventoryTransfer: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      deleteMany: jest.fn()
+    },
+    transferItem: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      deleteMany: jest.fn()
     },
     auditLog: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
-      delete: jest.fn()
+      delete: jest.fn(),
+      deleteMany: jest.fn()
     },
     refreshToken: {
       findMany: jest.fn(),
@@ -191,7 +230,9 @@ jest.mock('@prisma/client', () => ({
       updateMany: jest.fn(),
       delete: jest.fn(),
       deleteMany: jest.fn()
-    }
+    },
+    $transaction: jest.fn(),
+    $disconnect: jest.fn()
   }))
 }));
 
@@ -202,21 +243,58 @@ jest.mock('@/lib/prisma', () => ({
       findUnique: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
-      delete: jest.fn()
+      delete: jest.fn(),
+      deleteMany: jest.fn()
     },
     product: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
-      delete: jest.fn()
+      delete: jest.fn(),
+      deleteMany: jest.fn()
+    },
+    shop: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      deleteMany: jest.fn()
+    },
+    inventoryItem: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      upsert: jest.fn(),
+      delete: jest.fn(),
+      deleteMany: jest.fn()
+    },
+    inventoryTransfer: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      deleteMany: jest.fn()
+    },
+    transferItem: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      deleteMany: jest.fn()
     },
     auditLog: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
-      delete: jest.fn()
+      delete: jest.fn(),
+      deleteMany: jest.fn()
     },
     refreshToken: {
       findMany: jest.fn(),
@@ -226,7 +304,9 @@ jest.mock('@/lib/prisma', () => ({
       updateMany: jest.fn(),
       delete: jest.fn(),
       deleteMany: jest.fn()
-    }
+    },
+    $transaction: jest.fn(),
+    $disconnect: jest.fn()
   }
 }));
 

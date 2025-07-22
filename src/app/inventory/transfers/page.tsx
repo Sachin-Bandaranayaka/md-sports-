@@ -231,17 +231,6 @@ export default function TransfersPage() {
                             <FileText className="w-4 h-4 mr-2" />
                             Inventory
                         </Button>
-                        {user && hasPermission(user.permissions, 'inventory:transfer') && (
-                            <Button
-                                variant="primary"
-                                size="sm"
-                                onClick={handleNewTransfer}
-                                className="shadow-sm"
-                            >
-                                <Plus className="w-4 h-4 mr-2" />
-                                New Transfer
-                            </Button>
-                        )}
                     </div>
                 </div>
 
@@ -411,6 +400,21 @@ export default function TransfersPage() {
                         </table>
                     </div>
                 </div>
+
+                {/* New Transfer button at bottom */}
+                {user && hasPermission(user.permissions, 'inventory:transfer') && (
+                    <div className="flex justify-center pt-6">
+                        <Button
+                            variant="primary"
+                            size="lg"
+                            onClick={handleNewTransfer}
+                            className="shadow-lg px-8 py-3"
+                        >
+                            <Plus className="w-5 h-5 mr-2" />
+                            New Transfer
+                        </Button>
+                    </div>
+                )}
             </div>
         </MainLayout>
     );
