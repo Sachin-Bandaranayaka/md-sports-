@@ -6,6 +6,7 @@ import { permissionService } from '@/lib/services/PermissionService';
 import { transferCacheService } from '@/lib/transferCache';
 import { trackTransferOperation } from '@/lib/transferPerformanceMonitor';
 import { deduplicateRequest } from '@/lib/request-deduplication';
+import { auditService } from '@/services/auditService';
 
 // Type definition for transfer items
 interface TransferItem {
@@ -299,6 +300,28 @@ export async function POST(req: NextRequest) {
 
         // Invalidate relevant caches
         await transferCacheService.invalidateTransferCache(result.id, [sourceShopId, destinationShopId]);
+
+        // Log audit trail for inventory transfer creation
+        try {
+            await auditService.logAction({
+                action: 'CREATE',
+                entityType: 'inventorytransfer',
+                entityId: result.id,
+                userId: userId,
+                details: {
+                    fromShopId: sourceShopId,
+                    toShopId: destinationShopId,
+                    status: 'pending',
+                    itemCount: items.length,
+                    items: items.map((item: TransferItem) => ({
+                        productId: item.productId,
+                        quantity: item.quantity
+                    }))
+                }
+            });
+        } catch (auditError) {
+            console.error('Failed to log audit trail for inventory transfer creation:', auditError);
+        }
 
         console.log('Transfer created successfully with ID:', result.id);
         operation.end(true);

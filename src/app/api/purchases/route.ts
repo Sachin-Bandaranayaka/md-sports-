@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-
+import { requirePermission } from '@/lib/utils/middleware';
+import { extractToken, verifyToken } from '@/lib/auth';
+import { auditService } from '@/services/auditService';
 
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { getToken } from 'next-auth/jwt';
@@ -414,6 +416,37 @@ export async function POST(request: NextRequest) {
         );
 
         // Real-time updates now handled by polling system
+
+        // Log audit trail for purchase invoice creation
+        try {
+            const token = extractToken(req);
+            if (token) {
+                const decoded = verifyToken(token);
+                if (decoded?.userId) {
+                    await auditService.logAction({
+                        action: 'CREATE',
+                        entityType: 'purchaseinvoice',
+                        entityId: purchase.invoice.id,
+                        userId: decoded.userId,
+                        details: {
+                            invoiceNumber: purchase.invoice.invoiceNumber,
+                            supplierId: purchase.invoice.supplierId,
+                            totalAmount: purchase.invoice.totalAmount,
+                            status: purchase.invoice.status,
+                            itemCount: purchase.invoice.items.length,
+                            items: purchase.invoice.items.map(item => ({
+                                productId: item.productId,
+                                quantity: item.quantity,
+                                unitPrice: item.unitPrice,
+                                totalPrice: item.totalPrice
+                            }))
+                        }
+                    });
+                }
+            }
+        } catch (auditError) {
+            console.error('Failed to log audit trail for purchase invoice creation:', auditError);
+        }
 
         // After successful transaction, invalidate relevant caches
         try {

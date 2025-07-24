@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { validateTokenPermission, getShopIdFromToken, extractToken, verifyToken } from '@/lib/auth';
 import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
+import { auditService } from '@/services/auditService';
 
 export async function GET(req: NextRequest) {
   try {
@@ -161,6 +162,11 @@ export async function GET(req: NextRequest) {
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
+        
+        // Get user info for audit logging
+        const token = extractToken(request);
+        const payload = token ? await verifyToken(token) : null;
+        const userId = payload?.userId;
 
         const newShop = await prisma.shop.create({
             data: {
@@ -170,6 +176,25 @@ export async function POST(request: NextRequest) {
                 status: body.status,
             },
         });
+
+        // Log the shop creation
+         if (userId) {
+             try {
+                 await auditService.logAction({
+                     action: 'CREATE',
+                     entityType: 'shop',
+                     entityId: newShop.id,
+                     userId: userId,
+                     details: {
+                         name: newShop.name,
+                         location: newShop.location,
+                         status: newShop.status
+                     }
+                 });
+             } catch (auditError) {
+                 console.error('Failed to log audit trail for shop creation:', auditError);
+             }
+         }
 
         return NextResponse.json({
             success: true,

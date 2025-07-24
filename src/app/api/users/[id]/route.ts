@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requirePermission } from '@/lib/utils/middleware';
+import { auditService } from '@/services/auditService';
+import { verifyToken, extractToken } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 
 // GET: Get user by ID
@@ -215,6 +217,33 @@ export async function PUT(
             }
         });
 
+        // Log audit trail for user update
+        try {
+            const token = extractToken(req);
+            if (token) {
+                const decoded = verifyToken(token);
+                if (decoded?.userId) {
+                    await auditService.logAction({
+                        action: 'UPDATE',
+                        entityType: 'user',
+                        entityId: userId,
+                        userId: decoded.userId,
+                        details: {
+                            name: updatedUser.name,
+                            email: updatedUser.email,
+                            phone: updatedUser.phone,
+                            roleId: updatedUser.roleId,
+                            shopId: updatedUser.shopId,
+                            permissions: updatedUser.permissions,
+                            isActive: updatedUser.isActive
+                        }
+                    });
+                }
+            }
+        } catch (auditError) {
+            console.error('Failed to log audit trail for user update:', auditError);
+        }
+
         return NextResponse.json({
             success: true,
             message: 'User updated successfully',
@@ -263,7 +292,25 @@ export async function DELETE(
             );
         }
 
-        // Delete user
+        // Soft delete user using audit service
+        try {
+            const token = extractToken(req);
+            if (token) {
+                const decoded = verifyToken(token);
+                if (decoded?.userId) {
+                    await auditService.softDelete({
+                        entityType: 'user',
+                        entityId: userId,
+                        userId: decoded.userId,
+                        originalData: existingUser
+                    });
+                }
+            }
+        } catch (auditError) {
+            console.error('Failed to log audit trail for user deletion:', auditError);
+        }
+
+        // Hard delete user from database
         await prisma.user.delete({
             where: { id: userId }
         });

@@ -538,8 +538,29 @@ export async function PUT(
         ];
         await Promise.all(invalidationPromises);
 
-        // TODO: Add audit logging for invoice updates
-        // Note: Audit logging temporarily disabled due to type conflicts
+        // Log audit trail for invoice update
+        try {
+            const auditService = AuditService.getInstance();
+            await auditService.logAction({
+                action: 'UPDATE',
+                entityType: 'invoice',
+                entityId: invoiceId.toString(),
+                userId: userId,
+                details: {
+                    invoiceNumber: updatedInvoice.invoiceNumber,
+                    customerId: updatedInvoice.customerId,
+                    total: updatedInvoice.total,
+                    status: updatedInvoice.status,
+                    paymentMethod: updatedInvoice.paymentMethod,
+                    shopId: updatedInvoice.shopId,
+                    itemCount: updatedInvoice.items.length,
+                    totalProfit: updatedInvoice.totalProfit,
+                    profitMargin: updatedInvoice.profitMargin
+                }
+            });
+        } catch (auditError) {
+            console.error('Failed to log audit trail for invoice update:', auditError);
+        }
 
         return NextResponse.json({
             success: true,

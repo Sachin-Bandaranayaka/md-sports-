@@ -44,7 +44,8 @@ export default function EditProductPage() {
         description: '',
         retailPrice: '',
         basePrice: '',
-        categoryId: ''
+        categoryId: '',
+        minStockLevel: ''
     });
 
     useEffect(() => {
@@ -74,7 +75,8 @@ export default function EditProductPage() {
                     description: productInfo.description || '',
                     retailPrice: productInfo.price?.toString() || '',
                     basePrice: productInfo.weightedAverageCost?.toString() || '',
-                    categoryId: productInfo.categoryId?.toString() || ''
+                    categoryId: productInfo.categoryId?.toString() || '',
+                    minStockLevel: productInfo.minStockLevel?.toString() || '10'
                 });
 
                 // Fetch categories
@@ -119,7 +121,8 @@ export default function EditProductPage() {
                 description: formData.description || null,
                 retailPrice: parseFloat(formData.retailPrice) || 0,
                 basePrice: parseFloat(formData.basePrice) || 0,
-                categoryId: formData.categoryId ? parseInt(formData.categoryId) : null
+                categoryId: formData.categoryId ? parseInt(formData.categoryId) : null,
+                minStockLevel: parseInt(formData.minStockLevel) || 10
             };
 
             const response = await fetch(`/api/products/${productId}`, {
@@ -283,6 +286,26 @@ export default function EditProductPage() {
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                                     placeholder="0.00"
                                 />
+                            </div>
+
+                            {/* Low Stock Threshold */}
+                            <div>
+                                <label htmlFor="minStockLevel" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Low Stock Threshold
+                                </label>
+                                <input
+                                    type="number"
+                                    id="minStockLevel"
+                                    name="minStockLevel"
+                                    value={formData.minStockLevel}
+                                    onChange={handleInputChange}
+                                    min="1"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                                    placeholder="Enter minimum stock level"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Products will be marked as "Low Stock" when quantity falls below this threshold
+                                </p>
                             </div>
 
 

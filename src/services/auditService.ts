@@ -352,10 +352,195 @@ export class AuditService {
           restoredData = await this.prisma.receipt.create({
             data: {
               receiptNumber: originalData.receiptNumber,
-              amount: originalData.amount,
               paymentId: originalData.paymentId,
-              issuedAt: originalData.issuedAt,
+              receiptDate: originalData.receiptDate ? new Date(originalData.receiptDate) : new Date(),
+              bankName: originalData.bankName,
+              accountNumber: originalData.accountNumber,
+              chequeNumber: originalData.chequeNumber,
+              transactionId: originalData.transactionId,
               notes: originalData.notes,
+              confirmedBy: originalData.confirmedBy,
+            },
+          });
+          break;
+
+        case 'user':
+          restoredData = await this.prisma.user.create({
+            data: {
+              id: originalData.id,
+              name: originalData.name,
+              email: originalData.email,
+              password: originalData.password,
+              phone: originalData.phone,
+              roleId: originalData.roleId,
+              roleName: originalData.roleName,
+              shopId: originalData.shopId,
+              permissions: originalData.permissions,
+              allowedAccounts: originalData.allowedAccounts,
+              isActive: originalData.isActive ?? true,
+            },
+          });
+          break;
+
+        case 'shop':
+          restoredData = await this.prisma.shop.create({
+            data: {
+              id: originalData.id,
+              name: originalData.name,
+              location: originalData.location,
+              contact_person: originalData.contact_person,
+              phone: originalData.phone,
+              email: originalData.email,
+              is_active: originalData.is_active ?? true,
+              opening_time: originalData.opening_time,
+              closing_time: originalData.closing_time,
+              manager_id: originalData.manager_id,
+              opening_date: originalData.opening_date ? new Date(originalData.opening_date) : null,
+              status: originalData.status,
+              address_line1: originalData.address_line1,
+              address_line2: originalData.address_line2,
+              city: originalData.city,
+              state: originalData.state,
+              postal_code: originalData.postal_code,
+              country: originalData.country,
+              latitude: originalData.latitude,
+              longitude: originalData.longitude,
+              tax_rate: originalData.tax_rate,
+            },
+          });
+          break;
+
+        case 'inventoryitem':
+          restoredData = await this.prisma.inventoryItem.create({
+            data: {
+              productId: originalData.productId,
+              shopId: originalData.shopId,
+              quantity: originalData.quantity,
+              shopSpecificCost: originalData.shopSpecificCost,
+              minStockLevel: originalData.minStockLevel,
+              maxStockLevel: originalData.maxStockLevel,
+            },
+          });
+          break;
+
+        case 'inventorytransfer':
+          restoredData = await this.prisma.inventoryTransfer.create({
+            data: {
+              fromShopId: originalData.fromShopId,
+              toShopId: originalData.toShopId,
+              fromUserId: originalData.fromUserId,
+              toUserId: originalData.toUserId,
+              status: originalData.status || 'pending',
+              notes: originalData.notes,
+            },
+          });
+          break;
+
+        case 'purchaseinvoice':
+          restoredData = await this.prisma.purchaseInvoice.create({
+            data: {
+              invoiceNumber: originalData.invoiceNumber,
+              supplierId: originalData.supplierId,
+              total: originalData.total,
+              status: originalData.status,
+              distributions: originalData.distributions,
+              date: originalData.date ? new Date(originalData.date) : null,
+              dueDate: originalData.dueDate ? new Date(originalData.dueDate) : null,
+            },
+          });
+          break;
+
+        case 'payment':
+          restoredData = await this.prisma.payment.create({
+            data: {
+              invoiceId: originalData.invoiceId,
+              customerId: originalData.customerId,
+              amount: originalData.amount,
+              paymentMethod: originalData.paymentMethod,
+              referenceNumber: originalData.referenceNumber,
+              accountId: originalData.accountId,
+            },
+          });
+          break;
+
+        case 'notification':
+          restoredData = await this.prisma.notification.create({
+            data: {
+              userId: originalData.userId,
+              title: originalData.title,
+              message: originalData.message,
+              isRead: originalData.isRead ?? false,
+            },
+          });
+          break;
+
+        case 'systemsettings':
+          restoredData = await this.prisma.systemSettings.create({
+            data: {
+              key: originalData.key,
+              value: originalData.value,
+              description: originalData.description,
+            },
+          });
+          break;
+
+        case 'account':
+          restoredData = await this.prisma.account.create({
+            data: {
+              name: originalData.name,
+              type: originalData.type,
+              balance: originalData.balance,
+              description: originalData.description,
+              isActive: originalData.isActive ?? true,
+              parentId: originalData.parentId,
+            },
+          });
+          break;
+
+        case 'transaction':
+          restoredData = await this.prisma.transaction.create({
+            data: {
+              date: originalData.date ? new Date(originalData.date) : new Date(),
+              description: originalData.description,
+              accountId: originalData.accountId,
+              toAccountId: originalData.toAccountId,
+              type: originalData.type,
+              amount: originalData.amount,
+              reference: originalData.reference,
+              category: originalData.category,
+            },
+          });
+          break;
+
+        case 'quotation':
+          restoredData = await this.prisma.quotation.create({
+            data: {
+              quotationNumber: originalData.quotationNumber,
+              customerId: originalData.customerId,
+              total: originalData.total,
+              validUntil: originalData.validUntil ? new Date(originalData.validUntil) : null,
+              shopId: originalData.shopId,
+            },
+          });
+          break;
+
+        case 'invoice':
+          restoredData = await this.prisma.invoice.create({
+            data: {
+              invoiceNumber: originalData.invoiceNumber,
+              customerId: originalData.customerId,
+              total: originalData.total,
+              discountType: originalData.discountType,
+              discountValue: originalData.discountValue,
+              totalProfit: originalData.totalProfit,
+              profitMargin: originalData.profitMargin,
+              status: originalData.status,
+              paymentMethod: originalData.paymentMethod,
+              invoiceDate: originalData.invoiceDate ? new Date(originalData.invoiceDate) : null,
+              dueDate: originalData.dueDate ? new Date(originalData.dueDate) : null,
+              notes: originalData.notes,
+              shopId: originalData.shopId,
+              createdBy: originalData.createdBy,
             },
           });
           break;

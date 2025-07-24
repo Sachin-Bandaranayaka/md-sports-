@@ -1,24 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="1" failures="1" errors="0" time="0.264">
-  <testsuite name="Inventory transfer reservation flow" errors="0" failures="1" skipped="0" timestamp="2025-07-22T17:30:12" time="0.227" tests="1">
+<testsuites name="jest tests" tests="14" failures="1" errors="0" time="0.449">
+  <testsuite name="Inventory transfer reservation flow" errors="0" failures="1" skipped="0" timestamp="2025-07-24T03:39:14" time="0.137" tests="1">
     <testcase classname="Inventory transfer reservation flow" name="reservation, cancel, complete flow" time="0">
-      <failure>TypeError: Cannot read properties of undefined (reading &apos;create&apos;)
-    at Object.create (/Users/sachin/Documents/md-sports-/tests/integration/inventoryTransfer.test.ts:102:37)
-    at Promise.then.completed (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/utils.js:298:28)
-    at new Promise (&lt;anonymous&gt;)
-    at callAsyncCircusFn (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusHook (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:281:40)
-    at processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at _runTestsForDescribeBlock (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:95:7)
-    at _runTestsForDescribeBlock (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:121:9)
-    at run (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/Users/sachin/Documents/md-sports-/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/Users/sachin/Documents/md-sports-/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+      <failure>TypeError: Cannot read properties of undefined (reading &apos;id&apos;)
+    at Object.id (/Users/sachin/Documents/md-sports-/tests/integration/inventoryTransfer.test.ts:104:21)</failure>
     </testcase>
-    <testcase classname="" name="Test execution failure: could be caused by test hooks like &apos;afterAll&apos;." time="0">
-      <failure>{&quot;message&quot;:&quot;&quot;,&quot;stack&quot;:&quot;TypeError: Cannot read properties of undefined (reading &apos;deleteMany&apos;)\n    at Object.deleteMany (/Users/sachin/Documents/md-sports-/tests/integration/inventoryTransfer.test.ts:118:32)\n    at Promise.then.completed (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/utils.js:298:28)\n    at new Promise (&lt;anonymous&gt;)\n    at callAsyncCircusFn (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/utils.js:231:10)\n    at _callCircusHook (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:281:40)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at _runTestsForDescribeBlock (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:154:7)\n    at _runTestsForDescribeBlock (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:121:9)\n    at run (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/run.js:71:3)\n    at runAndTransformResultsToJestFormat (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)\n    at jestAdapter (/Users/sachin/Documents/md-sports-/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)\n    at runTestInternal (/Users/sachin/Documents/md-sports-/node_modules/jest-runner/build/runTest.js:367:16)\n    at runTest (/Users/sachin/Documents/md-sports-/node_modules/jest-runner/build/runTest.js:444:34)&quot;}</failure>
+  </testsuite>
+  <testsuite name="Inventory Management System" errors="0" failures="0" skipped="0" timestamp="2025-07-24T03:39:15" time="0.04" tests="13">
+    <testcase classname="Inventory Management System › Product Creation and Management" name="should validate product data correctly" time="0.001">
+    </testcase>
+    <testcase classname="Inventory Management System › Product Creation and Management" name="should calculate weighted average cost correctly" time="0">
+    </testcase>
+    <testcase classname="Inventory Management System › Product Creation and Management" name="should handle barcode uniqueness validation" time="0.001">
+    </testcase>
+    <testcase classname="Inventory Management System › Stock Level Management" name="should track stock levels correctly" time="0">
+    </testcase>
+    <testcase classname="Inventory Management System › Stock Level Management" name="should calculate stock alerts correctly" time="0">
+    </testcase>
+    <testcase classname="Inventory Management System › Stock Level Management" name="should handle stock distribution across shops" time="0.004">
+    </testcase>
+    <testcase classname="Inventory Management System › Inventory Transfers" name="should validate transfer data" time="0.001">
+    </testcase>
+    <testcase classname="Inventory Management System › Inventory Transfers" name="should process transfer correctly" time="0">
+    </testcase>
+    <testcase classname="Inventory Management System › Category Management" name="should validate category data" time="0">
+    </testcase>
+    <testcase classname="Inventory Management System › Category Management" name="should handle category hierarchy" time="0.001">
+    </testcase>
+    <testcase classname="Inventory Management System › Inventory Value Calculations" name="should calculate total inventory value" time="0">
+    </testcase>
+    <testcase classname="Inventory Management System › Inventory Value Calculations" name="should calculate profit margins" time="0">
+    </testcase>
+    <testcase classname="Inventory Management System › Permission-based Access" name="should restrict access based on permissions" time="0">
     </testcase>
   </testsuite>
 </testsuites>

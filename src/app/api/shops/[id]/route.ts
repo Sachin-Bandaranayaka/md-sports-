@@ -1,5 +1,7 @@
 import { NextResponse, NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
+import { auditService } from '@/services/auditService';
+import { verifyToken, extractToken } from '@/lib/auth';
 
 // GET: Fetch a specific shop by ID
 export async function GET(
@@ -128,6 +130,34 @@ export async function PUT(
             }
         });
 
+        // Log audit trail for shop update
+        try {
+            const token = extractToken(request as NextRequest);
+            if (token) {
+                const decoded = verifyToken(token);
+                if (decoded?.userId) {
+                    await auditService.logAction({
+                        action: 'UPDATE',
+                        entityType: 'shop',
+                        entityId: id,
+                        userId: decoded.userId,
+                        details: {
+                            name: updatedShop.name,
+                            location: updatedShop.location,
+                            contact_person: updatedShop.contact_person,
+                            phone: updatedShop.phone,
+                            email: updatedShop.email,
+                            is_active: updatedShop.is_active,
+                            manager_id: updatedShop.manager_id,
+                            status: updatedShop.status
+                        }
+                    });
+                }
+            }
+        } catch (auditError) {
+            console.error('Failed to log audit trail for shop update:', auditError);
+        }
+
         return NextResponse.json({
             success: true,
             message: 'Shop updated successfully',
@@ -211,7 +241,25 @@ export async function DELETE(
             }, { status: 409 }); // 409 Conflict
         }
 
-        // Delete the shop
+        // Soft delete shop using audit service
+        try {
+            const token = extractToken(request);
+            if (token) {
+                const decoded = verifyToken(token);
+                if (decoded?.userId) {
+                    await auditService.softDelete({
+                        entityType: 'shop',
+                        entityId: id,
+                        userId: decoded.userId,
+                        originalData: existingShop
+                    });
+                }
+            }
+        } catch (auditError) {
+            console.error('Failed to log audit trail for shop deletion:', auditError);
+        }
+
+        // Hard delete shop from database
         await prisma.shop.delete({
             where: { id }
         });
@@ -228,4 +276,4 @@ export async function DELETE(
             error: error instanceof Error ? error.message : String(error)
         }, { status: 500 });
     }
-} 
+}

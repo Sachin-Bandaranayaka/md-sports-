@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { revalidateTag, revalidatePath } from 'next/cache';
 import { prisma, safeQuery } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { auditService } from '@/services/auditService';
+import { verifyToken, extractToken } from '@/lib/auth';
 
 import { cacheService } from '@/lib/cache';
 
@@ -109,7 +111,6 @@ export async function PUT(
         }
 
         const productData = await req.json();
-        const userId = req.headers.get('x-user-id'); // Assuming you pass userId in headers
 
         // Fetch existing product first to compare changes for audit log
         const existingProduct = await prisma.product.findUnique({
@@ -128,6 +129,7 @@ export async function PUT(
         if (productData.description !== undefined) dataToUpdate.description = productData.description || null;
         if (productData.basePrice !== undefined) dataToUpdate.weightedAverageCost = productData.basePrice; // Assuming basePrice maps to WAC
         if (productData.retailPrice !== undefined) dataToUpdate.price = productData.retailPrice;
+        if (productData.minStockLevel !== undefined) dataToUpdate.minStockLevel = productData.minStockLevel;
         if (productData.categoryId !== undefined) {
             dataToUpdate.category = productData.categoryId ? { connect: { id: parseInt(productData.categoryId) } } : { disconnect: true };
         }
@@ -138,6 +140,10 @@ export async function PUT(
         });
 
         // Audit Log Generation
+        const token = extractToken(req);
+        const decoded = token ? verifyToken(token) : null;
+        const userId = decoded?.userId;
+
         const changes: Record<string, { old: any, new: any }> = {};
         (Object.keys(dataToUpdate) as Array<keyof typeof dataToUpdate>).forEach(key => {
             // Type assertion for existingProduct keys
@@ -152,13 +158,16 @@ export async function PUT(
 
         if (Object.keys(changes).length > 0) {
             try {
-                await prisma.auditLog.create({
-                    data: {
-                        userId: userId ? parseInt(userId, 10) : null,
-                        action: 'UPDATE_PRODUCT',
-                        entity: 'Product',
-                        entityId: id,
-                        details: changes
+                await auditService.log({
+                    userId: userId || null,
+                    action: 'UPDATE_PRODUCT',
+                    entity: 'Product',
+                    entityId: id,
+                    details: {
+                        productName: updatedProduct.name,
+                        sku: updatedProduct.sku,
+                        barcode: updatedProduct.barcode,
+                        changes: changes
                     }
                 });
             } catch (auditError) {
@@ -278,6 +287,31 @@ export async function DELETE(
                     where: { id }
                 });
             });
+
+            // Audit Log for Product Deletion
+            const token = extractToken(req);
+            const decoded = token ? verifyToken(token) : null;
+            const userId = decoded?.userId;
+
+            try {
+                await auditService.log({
+                    userId: userId || null,
+                    action: 'DELETE_PRODUCT',
+                    entity: 'Product',
+                    entityId: id,
+                    details: {
+                        productName: existingProduct.name,
+                        sku: existingProduct.sku,
+                        barcode: existingProduct.barcode,
+                        description: existingProduct.description,
+                        retailPrice: existingProduct.retailPrice,
+                        categoryId: existingProduct.categoryId
+                    }
+                });
+            } catch (auditError) {
+                console.error('Failed to create audit log for product deletion:', auditError);
+                // Do not fail the main operation if audit logging fails
+            }
 
             // Invalidate product cache
             await cacheService.invalidatePattern('products:*');

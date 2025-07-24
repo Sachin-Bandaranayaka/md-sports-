@@ -3,6 +3,8 @@ import { revalidateTag, revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { getToken } from 'next-auth/jwt';
+import { auditService } from '@/services/auditService';
+import { verifyToken, extractToken } from '@/lib/auth';
 import { cacheService } from '@/lib/cache';
 
 // GET /api/purchases/[id] - Get a specific purchase invoice
@@ -362,6 +364,37 @@ export async function PUT(
             console.log('Purchase invoice updated successfully');
         }
 
+        // Log audit trail for purchase invoice update
+        try {
+            const token = extractToken(request);
+            if (token) {
+                const decoded = verifyToken(token);
+                if (decoded?.userId) {
+                    await auditService.logAction({
+                        action: 'UPDATE',
+                        entityType: 'purchaseinvoice',
+                        entityId: purchaseId.toString(),
+                        userId: decoded.userId,
+                        details: {
+                            invoiceNumber: result.fullUpdatedInvoice.invoiceNumber,
+                            supplierId: result.fullUpdatedInvoice.supplierId,
+                            totalAmount: result.fullUpdatedInvoice.total,
+                            status: result.fullUpdatedInvoice.status,
+                            itemCount: result.fullUpdatedInvoice.items.length,
+                            items: result.fullUpdatedInvoice.items.map(item => ({
+                                productId: item.productId,
+                                quantity: item.quantity,
+                                unitPrice: item.price,
+                                totalPrice: item.totalPrice
+                            }))
+                        }
+                    });
+                }
+            }
+        } catch (auditError) {
+            console.error('Failed to log audit trail for purchase invoice update:', auditError);
+        }
+
         // After successful transaction, invalidate relevant caches
         try {
             await cacheService.invalidateInventory(); // Handles 'inventory:summary:*' and 'products:*'
@@ -559,6 +592,37 @@ export async function DELETE(
         // Real-time updates now handled by polling system
         if (result && result.deletedInvoiceId) {
             console.log(`Purchase invoice ${result.deletedInvoiceId} deleted successfully`);
+        }
+
+        // Log audit trail for purchase invoice deletion
+        try {
+            const token = extractToken(request);
+            if (token) {
+                const decoded = verifyToken(token);
+                if (decoded?.userId) {
+                    await auditService.logAction({
+                        action: 'DELETE',
+                        entityType: 'purchaseinvoice',
+                        entityId: purchaseId.toString(),
+                        userId: decoded.userId,
+                        details: {
+                            invoiceNumber: purchaseToDelete.invoiceNumber,
+                            supplierId: purchaseToDelete.supplierId,
+                            totalAmount: purchaseToDelete.total,
+                            status: purchaseToDelete.status,
+                            itemCount: purchaseToDelete.items.length,
+                            items: purchaseToDelete.items.map(item => ({
+                                productId: item.productId,
+                                quantity: item.quantity,
+                                unitPrice: item.price,
+                                totalPrice: item.total
+                            }))
+                        }
+                    });
+                }
+            }
+        } catch (auditError) {
+            console.error('Failed to log audit trail for purchase invoice deletion:', auditError);
         }
 
         // After successful transaction, invalidate relevant caches

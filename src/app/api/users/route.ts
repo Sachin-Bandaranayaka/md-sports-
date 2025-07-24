@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requirePermission } from '@/lib/utils/middleware';
 import { permissionService } from '@/lib/services/PermissionService';
+import { auditService } from '@/services/auditService';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
+import { verifyToken, extractToken } from '@/lib/auth';
 
 // GET: List all users
 export async function GET(req: NextRequest) {
@@ -157,7 +159,12 @@ export async function POST(req: NextRequest) {
             shopAssignedPermissionId = permission.id.toString();
         }
 
-                        // Prepare user data
+                        // Get current user for audit logging
+        const token = extractToken(req);
+        const currentUser = token ? await verifyToken(token) : null;
+        const currentUserId = currentUser?.sub;
+
+        // Prepare user data
         const newUser = await prisma.user.create({
             data: {
                 id: randomUUID(),
@@ -170,6 +177,21 @@ export async function POST(req: NextRequest) {
                 permissions: userData.permissions,
                 allowedAccounts: userData.allowedAccounts || [],
                 isActive: true
+            },
+        });
+
+        // Log user creation in audit trail
+        await auditService.logAction({
+            userId: currentUserId,
+            action: 'CREATE',
+            entity: 'User',
+            entityId: parseInt(newUser.id) || 0,
+            details: {
+                name: newUser.name,
+                email: newUser.email,
+                roleName: newUser.roleName,
+                shopId: newUser.shopId,
+                permissions: newUser.permissions,
             },
         });
 
