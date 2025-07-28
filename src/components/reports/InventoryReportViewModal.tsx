@@ -77,9 +77,9 @@ export default function InventoryReportViewModal({
                                     <td className="px-3 py-2">{item.sku || 'N/A'}</td>
                                     <td className="px-3 py-2">{item.shopName}</td>
                                     <td className="px-3 py-2">{item.category}</td>
-                                    <td className="px-3 py-2 text-right">{item.quantity.toLocaleString()}</td>
-                                    <td className="px-3 py-2 text-right">{formatCurrency(item.price)}</td>
-                                    <td className="px-3 py-2 text-right">{formatCurrency(item.totalValue)}</td>
+                                    <td className="px-3 py-2 text-right">{(item.quantity || 0).toLocaleString()}</td>
+                                    <td className="px-3 py-2 text-right">{formatCurrency(item.price || 0)}</td>
+                                    <td className="px-3 py-2 text-right">{formatCurrency(item.totalValue || 0)}</td>
                                 </tr>
                             ))}
                             {reportData.details.length === 0 && (
@@ -96,4 +96,4 @@ export default function InventoryReportViewModal({
             </div>
         </div>
     );
-} 
+}

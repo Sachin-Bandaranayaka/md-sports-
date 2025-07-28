@@ -141,8 +141,8 @@ export async function PUT(
 
         // Audit Log Generation
         const token = extractToken(req);
-        const decoded = token ? verifyToken(token) : null;
-        const userId = decoded?.userId;
+        const decoded = token ? await verifyToken(token) : null;
+        const userId = decoded?.sub as string | null;
 
         const changes: Record<string, { old: any, new: any }> = {};
         (Object.keys(dataToUpdate) as Array<keyof typeof dataToUpdate>).forEach(key => {
@@ -158,7 +158,7 @@ export async function PUT(
 
         if (Object.keys(changes).length > 0) {
             try {
-                await auditService.log({
+                await auditService.logAction({
                     userId: userId || null,
                     action: 'UPDATE_PRODUCT',
                     entity: 'Product',
@@ -290,11 +290,11 @@ export async function DELETE(
 
             // Audit Log for Product Deletion
             const token = extractToken(req);
-            const decoded = token ? verifyToken(token) : null;
-            const userId = decoded?.userId;
+            const decoded = token ? await verifyToken(token) : null;
+            const userId = decoded?.sub as string | null;
 
             try {
-                await auditService.log({
+                await auditService.logAction({
                     userId: userId || null,
                     action: 'DELETE_PRODUCT',
                     entity: 'Product',
@@ -304,7 +304,7 @@ export async function DELETE(
                         sku: existingProduct.sku,
                         barcode: existingProduct.barcode,
                         description: existingProduct.description,
-                        retailPrice: existingProduct.retailPrice,
+                        price: existingProduct.price,
                         categoryId: existingProduct.categoryId
                     }
                 });

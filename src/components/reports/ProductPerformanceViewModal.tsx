@@ -48,7 +48,7 @@ export default function ProductPerformanceViewModal({
     if (!isOpen || !reportData) return null;
 
     const formatCurrency = (amount: number) => {
-        return amount.toLocaleString(undefined, { style: 'currency', currency: 'LKR' });
+        return (amount || 0).toLocaleString(undefined, { style: 'currency', currency: 'LKR' });
     };
 
     return (
@@ -72,8 +72,8 @@ export default function ProductPerformanceViewModal({
                         <h3 className="text-lg font-semibold text-gray-700 mb-1">Summary for {reportData.summary.month} {reportData.summary.year}</h3>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                             <p>Total Revenue: <span className="font-semibold">{formatCurrency(reportData.summary.overallTotalRevenue)}</span></p>
-                            <p>Total Items Sold: <span className="font-semibold">{reportData.summary.overallTotalProductsSold.toLocaleString()}</span></p>
-                            <p>Categories w/ Sales: <span className="font-semibold">{reportData.summary.numberOfCategoriesWithSales.toLocaleString()}</span></p>
+                            <p>Total Items Sold: <span className="font-semibold">{(reportData.summary.overallTotalProductsSold || 0).toLocaleString()}</span></p>
+                            <p>Categories w/ Sales: <span className="font-semibold">{(reportData.summary.numberOfCategoriesWithSales || 0).toLocaleString()}</span></p>
                         </div>
                     </div>
                 )}
@@ -91,23 +91,23 @@ export default function ProductPerformanceViewModal({
                         </thead>
                         <tbody>
                             {reportData.details?.map((category: CategoryPerformanceDetail, catIndex: number) => (
-                                <React.Fragment key={category.categoryId || catIndex}>
-                                    {category.products.map((product: ProductPerformanceDetail, prodIndex: number) => (
+                                <React.Fragment key={catIndex}>
+                                    {(category.products || []).map((product: ProductPerformanceDetail, prodIndex: number) => (
                                         <tr key={product.productId || prodIndex} className="border-b hover:bg-gray-50">
                                             {prodIndex === 0 && (
-                                                <td rowSpan={category.products.length + 1} className="px-3 py-2 align-top font-medium border-r">
+                                                <td rowSpan={(category.products || []).length + 1} className="px-3 py-2 align-top font-medium border-r">
                                                     {category.categoryName}
                                                 </td>
                                             )}
                                             <td className="px-3 py-2">{product.productName}</td>
                                             <td className="px-3 py-2">{product.sku}</td>
-                                            <td className="px-3 py-2 text-right">{product.totalQuantitySold.toLocaleString()}</td>
+                                            <td className="px-3 py-2 text-right">{(product.totalQuantitySold || 0).toLocaleString()}</td>
                                             <td className="px-3 py-2 text-right">{formatCurrency(product.totalSalesAmount)}</td>
                                         </tr>
                                     ))}
                                     <tr className="bg-gray-50 font-semibold border-b">
                                         <td colSpan={3} className="px-3 py-2 text-right">Category Total:</td>
-                                        <td className="px-3 py-2 text-right">{category.totalCategoryQuantity.toLocaleString()}</td>
+                                        <td className="px-3 py-2 text-right">{(category.totalCategoryQuantity || 0).toLocaleString()}</td>
                                         <td className="px-3 py-2 text-right">{formatCurrency(category.totalCategorySales)}</td>
                                     </tr>
                                 </React.Fragment>

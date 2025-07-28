@@ -13,7 +13,7 @@ interface InvoiceDetail {
     id: number;
     invoiceNumber: string;
     createdAt: string;
-    customer: { name: string; };
+    customer: { name: string; } | null;
     shop: { name: string | null; } | null;
     total: number;
     items: InvoiceItemDetail[];
@@ -44,7 +44,7 @@ export default function SalesReportViewModal({ isOpen, onClose, reportName, repo
     };
 
     const formatCurrency = (amount: number) => {
-        return amount.toLocaleString(undefined, { style: 'currency', currency: 'LKR' });
+        return (amount || 0).toLocaleString(undefined, { style: 'currency', currency: 'LKR' });
     };
 
     return (
@@ -60,7 +60,7 @@ export default function SalesReportViewModal({ isOpen, onClose, reportName, repo
                     <h3 className="text-lg font-semibold text-gray-700 mb-1">Summary for {reportData.summary.month} {reportData.summary.year}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         <p>Total Sales: <span className="font-semibold">{formatCurrency(reportData.summary.totalSales)}</span></p>
-                        <p>Number of Invoices: <span className="font-semibold">{reportData.summary.numberOfInvoices.toLocaleString()}</span></p>
+                        <p>Number of Invoices: <span className="font-semibold">{(reportData.summary.numberOfInvoices || 0).toLocaleString()}</span></p>
                     </div>
                 </div>
                 <div className="overflow-y-auto flex-grow report-table-container pr-1">
@@ -79,7 +79,7 @@ export default function SalesReportViewModal({ isOpen, onClose, reportName, repo
                                 <tr key={invoice.id} className="border-b hover:bg-gray-50">
                                     <td className="px-3 py-2">{invoice.invoiceNumber}</td>
                                     <td className="px-3 py-2">{formatDate(invoice.createdAt)}</td>
-                                    <td className="px-3 py-2">{invoice.customer.name}</td>
+                                    <td className="px-3 py-2">{invoice.customer?.name || 'N/A'}</td>
                                     <td className="px-3 py-2">{invoice.shop?.name || 'N/A'}</td>
                                     <td className="px-3 py-2 text-right">{formatCurrency(invoice.total)}</td>
                                 </tr>
@@ -98,4 +98,4 @@ export default function SalesReportViewModal({ isOpen, onClose, reportName, repo
             </div>
         </div>
     );
-} 
+}
