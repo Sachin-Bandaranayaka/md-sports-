@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken, extractToken } from '@/lib/auth';
 import { Prisma } from '@prisma/client';
+import { AuditService } from '@/services/auditService';
 
 // Get all receipts with pagination and optional filtering
 export async function GET(request: Request) {
@@ -229,6 +230,22 @@ export async function POST(request: Request) {
 
             return receipt;
         });
+
+        // Log audit action
+            const auditService = AuditService.getInstance();
+            await auditService.logAction({
+                userId: receiptData.confirmedBy,
+                action: 'CREATE',
+                entity: 'Receipt',
+                entityId: result.id,
+                details: {
+                    receiptNumber: result.receiptNumber,
+                    paymentId: result.paymentId,
+                    amount: existingPayment.amount,
+                    paymentMethod: existingPayment.paymentMethod,
+                    accountId: existingPayment.accountId
+                }
+            });
 
         return NextResponse.json(result, { status: 201 });
     } catch (error) {

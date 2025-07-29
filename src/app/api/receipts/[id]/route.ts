@@ -78,6 +78,21 @@ export async function PUT(
             );
         }
 
+        // Get user ID from token for audit logging
+        const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+        let userId: number = 1; // Default system user ID
+        
+        if (token) {
+            try {
+                const decoded = await verifyToken(token);
+                if (decoded && typeof decoded.userId === 'number') {
+                    userId = decoded.userId;
+                }
+            } catch (error) {
+                console.warn('Invalid token for audit logging, using default user ID');
+            }
+        }
+
         // Update receipt
         const updatedReceipt = await prisma.receipt.update({
             where: { id },
@@ -98,6 +113,19 @@ export async function PUT(
                     }
                 },
                 confirmedByUser: true
+            }
+        });
+
+        // Log the update to the audit trail
+        await auditService.logAction({
+            userId: userId.toString(),
+            action: 'UPDATE',
+            entity: 'Receipt',
+            entityId: id,
+            details: {
+                receiptNumber: updatedReceipt.receiptNumber,
+                originalData: existingReceipt,
+                updatedFields: receiptData
             }
         });
 
@@ -141,12 +169,12 @@ export async function DELETE(
 
         // Get user ID from token for audit logging
         const token = request.headers.get('Authorization')?.replace('Bearer ', '');
-        let userId = 1; // Default system user ID
+        let userId: number = 1; // Default system user ID
         
         if (token) {
             try {
                 const decoded = await verifyToken(token);
-                if (decoded && decoded.userId) {
+                if (decoded && typeof decoded.userId === 'number') {
                     userId = decoded.userId;
                 }
             } catch (error) {
@@ -229,7 +257,7 @@ export async function DELETE(
             'Receipt',
             id,
             existingReceipt,
-            userId,
+            userId.toString(),
             true // canRecover
         );
 
@@ -283,12 +311,12 @@ export async function PATCH(
 
         // Get user ID from token for audit logging
         const token = request.headers.get('Authorization')?.replace('Bearer ', '');
-        let userId = 1; // Default system user ID
+        let userId: number = 1; // Default system user ID
         
         if (token) {
             try {
                 const decoded = await verifyToken(token);
-                if (decoded && decoded.userId) {
+                if (decoded && typeof decoded.userId === 'number') {
                     userId = decoded.userId;
                 }
             } catch (error) {
@@ -402,13 +430,13 @@ export async function PATCH(
                         paymentMethod: paymentMethod !== undefined ? { old: existingReceipt.payment.paymentMethod, new: paymentMethod } : undefined,
                         accountId: accountId !== undefined ? { 
                             old: existingReceipt.payment.accountId, 
-                            new: parseInt(accountId.toString()),
+                            new: parseInt(accountId),
                             oldAccountName: existingReceipt.payment.account?.name,
-                            newAccountName: accountId !== undefined ? (await tx.account.findUnique({ where: { id: parseInt(accountId.toString()) } }))?.name : undefined
+                            newAccountName: accountId !== undefined ? (await tx.account.findUnique({ where: { id: parseInt(accountId) } }))?.name : undefined
                         } : undefined
                     }
                 },
-                userId
+                userId: userId.toString()
             });
 
             return {
