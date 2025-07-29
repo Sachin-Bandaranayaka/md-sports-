@@ -306,32 +306,7 @@ export default function CreateTransferPage() {
                             <p className="text-gray-900">Move products between shops</p>
                         </div>
                     </div>
-                    <div className="flex gap-3">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => router.push('/inventory/transfers')}
-                            disabled={submitting}
-                            className="px-4 py-2 bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 shadow-sm transition-all flex items-center gap-2"
-                        >
-                            <XCircle className="w-4 h-4" />
-                            Cancel
-                        </Button>
-                        <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={handleSubmit}
-                            disabled={submitting || transferItems.length === 0}
-                            className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 shadow-sm hover:shadow-md transition-all flex items-center gap-2"
-                        >
-                            {submitting ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                                <Save className="w-4 h-4" />
-                            )}
-                            Create Transfer
-                        </Button>
-                    </div>
+
                 </div>
 
                 {/* Error message */}
@@ -405,7 +380,7 @@ export default function CreateTransferPage() {
                                             <option
                                                 key={shop.id}
                                                 value={shop.id}
-                                                disabled={sourceShopId === shop.id}
+                                                disabled={sourceShopId === shop.id.toString()}
                                             >
                                                 {shop.name}
                                             </option>
@@ -462,7 +437,7 @@ export default function CreateTransferPage() {
                                                 <Button
                                                     type="button"
                                                     variant="outline"
-                                                    size="xs"
+                                                    size="sm"
                                                     onClick={() => addItemToTransfer(product)}
                                                     disabled={submitting}
                                                     className="px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary/90 shadow-sm hover:shadow transition-all flex items-center gap-1"
@@ -586,6 +561,34 @@ export default function CreateTransferPage() {
                         )}
                     </div>
                 </form>
+                
+                {/* Action buttons moved to bottom right */}
+                <div className="flex justify-end gap-3 mt-6">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.push('/inventory/transfers')}
+                        disabled={submitting}
+                        className="px-4 py-2 bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 shadow-sm transition-all flex items-center gap-2"
+                    >
+                        <XCircle className="w-4 h-4" />
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={handleSubmit}
+                        disabled={submitting || transferItems.length === 0}
+                        className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 shadow-sm hover:shadow-md transition-all flex items-center gap-2"
+                    >
+                        {submitting ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                            <Save className="w-4 h-4" />
+                        )}
+                        Create Transfer
+                    </Button>
+                </div>
             </div>
         </MainLayout>
     );

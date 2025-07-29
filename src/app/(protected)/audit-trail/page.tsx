@@ -103,7 +103,7 @@ export default function AuditTrailPage() {
   const { toast } = useToast();
   const { accessToken, isAuthenticated } = useAuth();
 
-  const entityTypes = ['all', 'product', 'customer', 'supplier', 'category', 'invoice', 'receipt'];
+  const entityTypes = ['all', 'product', 'customer', 'supplier', 'category', 'invoice', 'receipt', 'ExpensePayment'];
 
   useEffect(() => {
     if (activeTab === 'recycle-bin') {

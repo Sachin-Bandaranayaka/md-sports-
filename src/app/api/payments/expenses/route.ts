@@ -1,9 +1,26 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { auditService } from '@/services/auditService';
+import { verifyToken } from '@/lib/auth';
 
 export async function POST(request: Request) {
     try {
         const paymentData = await request.json();
+        
+        // Get user ID for audit logging
+        let userId: number | null = null;
+        const authHeader = request.headers.get('authorization');
+        if (authHeader) {
+            try {
+                const token = authHeader.replace('Bearer ', '');
+                const decoded = verifyToken(token) as any;
+                if (decoded && typeof decoded.userId === 'number') {
+                    userId = decoded.userId;
+                }
+            } catch (error) {
+                console.warn('Invalid token for audit logging, using default user ID');
+            }
+        }
 
         // Validate payment data for expense payments
         if (!paymentData.amount || !paymentData.paymentMethod || !paymentData.expenseAccountId || !paymentData.fromAccountId) {
@@ -111,6 +128,27 @@ export async function POST(request: Request) {
 
             return expenseTransaction;
         });
+
+        // Log the expense payment creation to audit trail
+        if (userId) {
+            await auditService.logAction({
+                userId: userId.toString(),
+                action: 'CREATE',
+                entity: 'ExpensePayment',
+                entityId: result.id,
+                details: {
+                    amount: paymentData.amount,
+                    description: paymentData.description || `Expense payment - ${expenseAccount.name}`,
+                    expenseAccountId: expenseAccountId,
+                    expenseAccountName: expenseAccount.name,
+                    fromAccountId: fromAccountId,
+                    fromAccountName: fromAccount.name,
+                    paymentMethod: paymentData.paymentMethod,
+                    referenceNumber: paymentData.referenceNumber,
+                    transactionId: result.id
+                }
+            });
+        }
 
         return NextResponse.json(
             {

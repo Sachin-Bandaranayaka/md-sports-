@@ -107,7 +107,17 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
         paymentMethod: 'Cash',
         notes: '',
         shopId: '',
-        items: [],
+        items: [{
+            id: Date.now().toString(),
+            productId: 0,
+            productName: '',
+            quantity: 0,
+            price: 0,
+            costPrice: 0,
+            total: 0,
+            productSearch: '',
+            showProductDropdown: false
+        }],
         subtotal: 0,
         discountType: 'amount',
         discountValue: 0,
@@ -183,6 +193,20 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
             setLocalCustomers(customers);
         }
     }, [customers]);
+
+    // Initialize dropdown ref for the first item when modal opens
+    useEffect(() => {
+        if (isOpen && formData.items.length > 0) {
+            const firstItemId = formData.items[0].id;
+            if (!itemProductDropdownRefs[firstItemId]) {
+                const newRef = React.createRef<HTMLDivElement>();
+                setItemProductDropdownRefs(prev => ({
+                    ...prev,
+                    [firstItemId]: newRef
+                }));
+            }
+        }
+    }, [isOpen, formData.items, itemProductDropdownRefs]);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -731,7 +755,17 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
             paymentMethod: 'Cash',
             notes: '',
             shopId: '',
-            items: [],
+            items: [{
+                id: Date.now().toString(),
+                productId: 0,
+                productName: '',
+                quantity: 0,
+                price: 0,
+                costPrice: 0,
+                total: 0,
+                productSearch: '',
+                showProductDropdown: false
+            }],
             subtotal: 0,
             discountType: 'amount',
             discountValue: 0,
@@ -747,6 +781,7 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
         setQuantity(1);
         setCustomPrice(0);
         setProductStock(null);
+        setItemProductDropdownRefs({});
 
         onClose();
     };
