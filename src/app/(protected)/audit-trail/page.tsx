@@ -41,10 +41,19 @@ import {
   Download,
   RefreshCw,
   AlertTriangle,
+  CalendarIcon,
+  X,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 
 interface RecycleBinItem {
   id: number;
@@ -84,6 +93,8 @@ export default function AuditTrailPage() {
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [entityFilter, setEntityFilter] = useState('all');
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const [pagination, setPagination] = useState({
     offset: 0,
     limit: 20,
@@ -100,7 +111,7 @@ export default function AuditTrailPage() {
     } else {
       fetchAuditHistory();
     }
-  }, [activeTab, entityFilter, pagination.offset]);
+  }, [activeTab, entityFilter, dateFrom, dateTo, pagination.offset]);
 
   const fetchRecycleBinItems = async () => {
     setLoading(true);
@@ -119,6 +130,8 @@ export default function AuditTrailPage() {
         limit: pagination.limit.toString(),
         offset: pagination.offset.toString(),
         ...(entityFilter !== 'all' && { entity: entityFilter }),
+        ...(dateFrom && { dateFrom: dateFrom.toISOString() }),
+        ...(dateTo && { dateTo: dateTo.toISOString() })
       });
 
       const response = await fetch(`/api/audit-trail?${params}`, {
@@ -162,6 +175,8 @@ export default function AuditTrailPage() {
         limit: pagination.limit.toString(),
         offset: pagination.offset.toString(),
         ...(entityFilter !== 'all' && { entity: entityFilter }),
+        ...(dateFrom && { dateFrom: dateFrom.toISOString() }),
+        ...(dateTo && { dateTo: dateTo.toISOString() })
       });
 
       const response = await fetch(`/api/audit-trail?${params}`, {
@@ -342,7 +357,7 @@ export default function AuditTrailPage() {
           <TabsTrigger value="audit-history">Audit History</TabsTrigger>
         </TabsList>
 
-        <div className="flex gap-4 mb-4">
+        <div className="flex gap-4 mb-4 flex-wrap">
           <div className="flex-1">
             <Input
               placeholder="Search..."
@@ -363,6 +378,71 @@ export default function AuditTrailPage() {
               ))}
             </SelectContent>
           </Select>
+          <div className="flex gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className={cn(
+                    "w-40 py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-left flex items-center text-sm",
+                    !dateFrom && "text-gray-500"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4 text-gray-400" />
+                  <span className="text-gray-900">
+                    {dateFrom ? format(dateFrom, "MMM dd, yyyy") : "From Date"}
+                  </span>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 bg-white border border-gray-200 shadow-lg rounded-md" align="start">
+                <CalendarComponent
+                  mode="single"
+                  selected={dateFrom}
+                  onSelect={setDateFrom}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className={cn(
+                    "w-40 py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-left flex items-center text-sm",
+                    !dateTo && "text-gray-500"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4 text-gray-400" />
+                  <span className="text-gray-900">
+                    {dateTo ? format(dateTo, "MMM dd, yyyy") : "To Date"}
+                  </span>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 bg-white border border-gray-200 shadow-lg rounded-md" align="start">
+                <CalendarComponent
+                  mode="single"
+                  selected={dateTo}
+                  onSelect={setDateTo}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+            {(dateFrom || dateTo) && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setDateFrom(undefined);
+                  setDateTo(undefined);
+                }}
+                className="flex items-center"
+              >
+                <X className="mr-1 h-3 w-3" />
+                Clear
+              </Button>
+            )}
+          </div>
         </div>
 
         <TabsContent value="recycle-bin">

@@ -5,9 +5,19 @@ import { cleanupCache } from './src/lib/cache';
 // Mock Next.js Request and Response for API route testing
 global.Request = class MockRequest {
   constructor(url, options = {}) {
-    this.url = url;
-    this.method = options.method || 'GET';
-    this.headers = new Map(Object.entries(options.headers || {}));
+    Object.defineProperty(this, 'url', {
+      value: url,
+      writable: false,
+      enumerable: true,
+      configurable: true
+    });
+    Object.defineProperty(this, 'method', {
+      value: options.method || 'GET',
+      writable: false,
+      enumerable: true,
+      configurable: true
+    });
+    this._headers = new Map(Object.entries(options.headers || {}));
     this.body = options.body;
     this._formData = null;
   }
@@ -23,9 +33,18 @@ global.Request = class MockRequest {
     return this._formData || new FormData();
   }
 
-  headers = {
-    get: (key) => this.headers.get(key) || null,
-  };
+  get headers() {
+    return {
+      get: (key) => this._headers.get(key) || null,
+      entries: () => this._headers.entries(),
+      keys: () => this._headers.keys(),
+      values: () => this._headers.values(),
+      has: (key) => this._headers.has(key),
+      set: (key, value) => this._headers.set(key, value),
+      delete: (key) => this._headers.delete(key),
+      forEach: (callback) => this._headers.forEach(callback),
+    };
+  }
 };
 
 global.Response = class MockResponse {

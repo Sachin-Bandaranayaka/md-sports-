@@ -62,7 +62,7 @@ const customJestConfig = {
     '<rootDir>/tests/e2e/'
   ],
   transformIgnorePatterns: [
-    '/node_modules/(?!(.*\.mjs$|@radix-ui|lucide-react))'
+    '/node_modules/(?!(.*\.mjs$|@radix-ui|lucide-react|jose))'
   ],
   testTimeout: 10000,
   maxWorkers: '50%',

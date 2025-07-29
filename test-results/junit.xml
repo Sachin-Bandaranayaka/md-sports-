@@ -1,37 +1,55 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="14" failures="1" errors="0" time="0.449">
-  <testsuite name="Inventory transfer reservation flow" errors="0" failures="1" skipped="0" timestamp="2025-07-24T03:39:14" time="0.137" tests="1">
-    <testcase classname="Inventory transfer reservation flow" name="reservation, cancel, complete flow" time="0">
-      <failure>TypeError: Cannot read properties of undefined (reading &apos;id&apos;)
-    at Object.id (/Users/sachin/Documents/md-sports-/tests/integration/inventoryTransfer.test.ts:104:21)</failure>
+<testsuites name="jest tests" tests="24" failures="0" errors="0" time="1.236">
+  <testsuite name="AuditTrailPage" errors="0" failures="0" skipped="0" timestamp="2025-07-29T02:11:36" time="0.895" tests="12">
+    <testcase classname="AuditTrailPage › Initial Rendering" name="should render the audit trail page with tabs" time="0.056">
+    </testcase>
+    <testcase classname="AuditTrailPage › Initial Rendering" name="should render filter controls" time="0.012">
+    </testcase>
+    <testcase classname="AuditTrailPage › Entity Filter" name="should filter by entity type" time="0.021">
+    </testcase>
+    <testcase classname="AuditTrailPage › Entity Filter" name="should have entity filter dropdown" time="0.019">
+    </testcase>
+    <testcase classname="AuditTrailPage › Date Filter" name="should filter by date range" time="0.175">
+    </testcase>
+    <testcase classname="AuditTrailPage › Date Filter" name="should handle date filter interactions" time="0.032">
+    </testcase>
+    <testcase classname="AuditTrailPage › Tab Switching" name="should switch between recycle bin and audit history tabs" time="0.029">
+    </testcase>
+    <testcase classname="AuditTrailPage › Data Display" name="should display recycle bin items" time="0.016">
+    </testcase>
+    <testcase classname="AuditTrailPage › Data Display" name="should display audit history items when tab is switched" time="0.024">
+    </testcase>
+    <testcase classname="AuditTrailPage › Error Handling" name="should show error toast when API call fails" time="0.011">
+    </testcase>
+    <testcase classname="AuditTrailPage › Error Handling" name="should show authentication error when not authenticated" time="0.006">
+    </testcase>
+    <testcase classname="AuditTrailPage › Loading States" name="should show loading state while fetching data" time="0.114">
     </testcase>
   </testsuite>
-  <testsuite name="Inventory Management System" errors="0" failures="0" skipped="0" timestamp="2025-07-24T03:39:15" time="0.04" tests="13">
-    <testcase classname="Inventory Management System › Product Creation and Management" name="should validate product data correctly" time="0.001">
+  <testsuite name="/api/audit-trail" errors="0" failures="0" skipped="0" timestamp="2025-07-29T02:11:37" time="0.06" tests="12">
+    <testcase classname="/api/audit-trail › Authentication" name="should return 401 when no authorization header is provided" time="0.001">
     </testcase>
-    <testcase classname="Inventory Management System › Product Creation and Management" name="should calculate weighted average cost correctly" time="0">
+    <testcase classname="/api/audit-trail › Authentication" name="should return 401 when token verification fails" time="0.001">
     </testcase>
-    <testcase classname="Inventory Management System › Product Creation and Management" name="should handle barcode uniqueness validation" time="0.001">
+    <testcase classname="/api/audit-trail › Recycle Bin Items (type=deleted)" name="should fetch recycle bin items without filters" time="0">
     </testcase>
-    <testcase classname="Inventory Management System › Stock Level Management" name="should track stock levels correctly" time="0">
+    <testcase classname="/api/audit-trail › Recycle Bin Items (type=deleted)" name="should fetch recycle bin items with entity filter" time="0">
     </testcase>
-    <testcase classname="Inventory Management System › Stock Level Management" name="should calculate stock alerts correctly" time="0">
+    <testcase classname="/api/audit-trail › Recycle Bin Items (type=deleted)" name="should fetch recycle bin items with date filters" time="0">
     </testcase>
-    <testcase classname="Inventory Management System › Stock Level Management" name="should handle stock distribution across shops" time="0.004">
+    <testcase classname="/api/audit-trail › Recycle Bin Items (type=deleted)" name="should fetch recycle bin items with entity and date filters combined" time="0">
     </testcase>
-    <testcase classname="Inventory Management System › Inventory Transfers" name="should validate transfer data" time="0.001">
+    <testcase classname="/api/audit-trail › Audit Entries (type=all)" name="should fetch audit entries without filters" time="0">
     </testcase>
-    <testcase classname="Inventory Management System › Inventory Transfers" name="should process transfer correctly" time="0">
+    <testcase classname="/api/audit-trail › Audit Entries (type=all)" name="should fetch audit entries with entity filter" time="0.001">
     </testcase>
-    <testcase classname="Inventory Management System › Category Management" name="should validate category data" time="0">
+    <testcase classname="/api/audit-trail › Audit Entries (type=all)" name="should fetch audit entries with date filters" time="0">
     </testcase>
-    <testcase classname="Inventory Management System › Category Management" name="should handle category hierarchy" time="0.001">
+    <testcase classname="/api/audit-trail › Entity History (type=history)" name="should fetch entity history without date filters" time="0.001">
     </testcase>
-    <testcase classname="Inventory Management System › Inventory Value Calculations" name="should calculate total inventory value" time="0">
+    <testcase classname="/api/audit-trail › Entity History (type=history)" name="should fetch entity history with date filters" time="0">
     </testcase>
-    <testcase classname="Inventory Management System › Inventory Value Calculations" name="should calculate profit margins" time="0">
-    </testcase>
-    <testcase classname="Inventory Management System › Permission-based Access" name="should restrict access based on permissions" time="0">
+    <testcase classname="/api/audit-trail › Error Handling" name="should handle service errors gracefully" time="0.001">
     </testcase>
   </testsuite>
 </testsuites>

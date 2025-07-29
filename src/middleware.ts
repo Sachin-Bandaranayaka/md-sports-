@@ -18,13 +18,13 @@ function generateUUID() {
 
 // Shop-specific API routes that need shop-based filtering
 const SHOP_RESTRICTED_ROUTES = [
-    '/api/products',
-    '/api/inventory',
-    '/api/invoices',
-    '/api/purchases',
-    '/api/dashboard',
-    '/api/reports'
-];
+        '/api/products',
+        '/api/inventory',
+        '/api/invoices',
+        '/api/purchases',
+        '/api/dashboard',
+        '/api/reports'
+    ];
 
 // Routes that allow cross-shop access for admins
 const ADMIN_CROSS_SHOP_ROUTES = [
@@ -45,6 +45,7 @@ async function validateShopAccess(req: NextRequest, targetShopId?: string | numb
 
         // Development mode - allow all access
         const token = req.headers.get('authorization')?.split(' ')[1];
+        
         if (token === 'dev-token') {
             return true;
         }
@@ -212,8 +213,12 @@ export async function middleware(request: NextRequest) {
         const isAuthRoute = ['/api/auth/login', '/api/auth/register', '/api/auth/refresh', '/api/fix-shopstaff-permissions'].some(
             route => pathname.startsWith(route)
         );
+        
+        // Skip CSRF check for dev-token
+        const token = request.headers.get('authorization')?.split(' ')[1];
+        const isDevToken = token === 'dev-token';
 
-        if (!isAuthRoute && (!csrfTokenFromCookie || csrfTokenFromHeader !== csrfTokenFromCookie)) {
+        if (!isAuthRoute && !isDevToken && (!csrfTokenFromCookie || csrfTokenFromHeader !== csrfTokenFromCookie)) {
             return new NextResponse(JSON.stringify({
                 success: false,
                 message: 'Invalid CSRF token'

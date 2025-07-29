@@ -3,8 +3,8 @@ import { revalidateTag, revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { getToken } from 'next-auth/jwt';
-import { auditService } from '@/services/auditService';
-import { verifyToken, extractToken } from '@/lib/auth';
+import { AuditService } from '@/services/auditService';
+import { verifyToken, extractToken, getUserIdFromToken } from '@/lib/auth';
 import { cacheService } from '@/lib/cache';
 
 // GET /api/purchases/[id] - Get a specific purchase invoice
@@ -98,7 +98,7 @@ export async function PUT(
         if (dirtyData.supplierId) cleanedInvoiceData.supplier = { connect: { id: Number(dirtyData.supplierId) } };
         else if (dirtyData.supplierId === null && originalPurchase.supplierId) cleanedInvoiceData.supplier = { disconnect: true };
 
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: any) => {
             const inventoryUpdates: Array<{ productId: number, shopId: number, newQuantity: number, oldQuantity?: number }> = [];
 
             if (originalPurchase.items && originalPurchase.items.length > 0) {
@@ -160,7 +160,7 @@ export async function PUT(
 
                     let currentTotalProductQuantity = 0;
                     const allInventoryForProductAfterReversal = await tx.inventoryItem.findMany({ where: { productId: oldItem.productId } });
-                    currentTotalProductQuantity = allInventoryForProductAfterReversal.reduce((sum, inv) => sum + inv.quantity, 0);
+                    currentTotalProductQuantity = allInventoryForProductAfterReversal.reduce((sum: number, inv: any) => sum + inv.quantity, 0);
 
                     // Recalculate WAC based on remaining purchase history after removing this item
                     const remainingPurchaseItems = await tx.purchaseInvoiceItem.findMany({
@@ -173,7 +173,7 @@ export async function PUT(
                     let totalRemainingQuantity = 0;
                     let totalRemainingValue = 0;
 
-                    remainingPurchaseItems.forEach(purchaseItem => {
+                    remainingPurchaseItems.forEach((purchaseItem: any) => {
                         totalRemainingQuantity += purchaseItem.quantity;
                         totalRemainingValue += purchaseItem.quantity * purchaseItem.price;
                     });
@@ -331,7 +331,7 @@ export async function PUT(
                     let totalPurchaseQuantity = 0;
                     let totalPurchaseValue = 0;
 
-                    allPurchaseItems.forEach(purchaseItem => {
+                    allPurchaseItems.forEach((purchaseItem: any) => {
                         totalPurchaseQuantity += purchaseItem.quantity;
                         totalPurchaseValue += purchaseItem.quantity * purchaseItem.price;
                     });
@@ -368,24 +368,25 @@ export async function PUT(
         try {
             const token = extractToken(request);
             if (token) {
-                const decoded = verifyToken(token);
-                if (decoded?.userId) {
+                const decoded = await verifyToken(token);
+                if (decoded?.userId && result.fullUpdatedInvoice) {
+                    const auditService = AuditService.getInstance();
                     await auditService.logAction({
+                        userId: decoded.userId as string,
                         action: 'UPDATE',
-                        entityType: 'purchaseinvoice',
-                        entityId: purchaseId.toString(),
-                        userId: decoded.userId,
+                        entity: 'PurchaseInvoice',
+                        entityId: purchaseId,
                         details: {
                             invoiceNumber: result.fullUpdatedInvoice.invoiceNumber,
                             supplierId: result.fullUpdatedInvoice.supplierId,
                             totalAmount: result.fullUpdatedInvoice.total,
                             status: result.fullUpdatedInvoice.status,
                             itemCount: result.fullUpdatedInvoice.items.length,
-                            items: result.fullUpdatedInvoice.items.map(item => ({
+                            items: result.fullUpdatedInvoice.items.map((item: any) => ({
                                 productId: item.productId,
                                 quantity: item.quantity,
                                 unitPrice: item.price,
-                                totalPrice: item.totalPrice
+                                totalPrice: item.total
                             }))
                         }
                     });
@@ -470,7 +471,7 @@ export async function DELETE(
                 { status: 404 });
         }
 
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: any) => {
             const inventoryUpdates: Array<{ productId: number, shopId: number, newQuantity: number, oldQuantity?: number }> = [];
 
             if (purchaseToDelete.items && purchaseToDelete.items.length > 0) {
@@ -566,7 +567,7 @@ export async function DELETE(
 
                     let totalRemainingQuantity = 0;
                     let totalRemainingValue = 0;
-                    remainingPurchaseItems.forEach(pItem => {
+                    remainingPurchaseItems.forEach((pItem: any) => {
                         totalRemainingQuantity += pItem.quantity;
                         totalRemainingValue += pItem.quantity * pItem.price;
                     });
@@ -596,30 +597,28 @@ export async function DELETE(
 
         // Log audit trail for purchase invoice deletion
         try {
-            const token = extractToken(request);
-            if (token) {
-                const decoded = verifyToken(token);
-                if (decoded?.userId) {
-                    await auditService.logAction({
-                        action: 'DELETE',
-                        entityType: 'purchaseinvoice',
-                        entityId: purchaseId.toString(),
-                        userId: decoded.userId,
-                        details: {
-                            invoiceNumber: purchaseToDelete.invoiceNumber,
-                            supplierId: purchaseToDelete.supplierId,
-                            totalAmount: purchaseToDelete.total,
-                            status: purchaseToDelete.status,
-                            itemCount: purchaseToDelete.items.length,
-                            items: purchaseToDelete.items.map(item => ({
-                                productId: item.productId,
-                                quantity: item.quantity,
-                                unitPrice: item.price,
-                                totalPrice: item.total
-                            }))
-                        }
-                    });
-                }
+            const userId = await getUserIdFromToken(request);
+            if (userId) {
+                const auditService = AuditService.getInstance();
+                await auditService.logAction({
+                    userId: userId,
+                    action: 'DELETE',
+                    entity: 'PurchaseInvoice',
+                    entityId: purchaseId,
+                    details: {
+                        invoiceNumber: purchaseToDelete.invoiceNumber,
+                        supplierId: purchaseToDelete.supplierId,
+                        totalAmount: purchaseToDelete.total,
+                        status: purchaseToDelete.status,
+                        itemCount: purchaseToDelete.items.length,
+                        items: purchaseToDelete.items.map((item: any) => ({
+                            productId: item.productId,
+                            quantity: item.quantity,
+                            unitPrice: item.price,
+                            totalPrice: item.total
+                        }))
+                    }
+                });
             }
         } catch (auditError) {
             console.error('Failed to log audit trail for purchase invoice deletion:', auditError);

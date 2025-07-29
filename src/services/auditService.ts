@@ -54,6 +54,8 @@ export class AuditService {
    */
   async logAction(entry: AuditLogEntry): Promise<void> {
     try {
+      console.log('DEBUG: AuditService.logAction called with:', JSON.stringify(entry, null, 2));
+      
       // Prepare details object with all the additional information
       const details = {
         ...entry.details,
@@ -66,7 +68,7 @@ export class AuditService {
         recoveredBy: entry.recoveredBy,
       };
 
-      await this.prisma.auditLog.create({
+      const result = await this.prisma.auditLog.create({
         data: {
           userId: entry.userId,
           action: entry.action,
@@ -75,6 +77,8 @@ export class AuditService {
           details: details,
         },
       });
+      
+      console.log('DEBUG: Audit log created successfully with ID:', result.id);
     } catch (error) {
       console.error('Failed to log audit entry:', error);
       // Don't throw error to avoid breaking the main operation
@@ -114,12 +118,28 @@ export class AuditService {
   async getRecycleBinItems(
     entity?: string,
     limit: number = 50,
-    offset: number = 0
+    offset: number = 0,
+    dateFrom?: string,
+    dateTo?: string
   ): Promise<{ items: RecycleBinItem[]; total: number }> {
-    const where = {
+    const where: any = {
       action: 'DELETE',
       ...(entity && { entity }),
     };
+
+    // Add date filtering
+    if (dateFrom || dateTo) {
+      where.createdAt = {};
+      if (dateFrom) {
+        where.createdAt.gte = new Date(dateFrom);
+      }
+      if (dateTo) {
+        // Add one day to include the entire end date
+        const endDate = new Date(dateTo);
+        endDate.setDate(endDate.getDate() + 1);
+        where.createdAt.lt = endDate;
+      }
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.auditLog.findMany({
@@ -182,11 +202,27 @@ export class AuditService {
   async getAuditEntries(
     entity?: string,
     limit: number = 50,
-    offset: number = 0
+    offset: number = 0,
+    dateFrom?: string,
+    dateTo?: string
   ): Promise<{ items: AuditLogEntry[]; total: number }> {
     const where: any = {};
     if (entity) {
       where.entity = entity;
+    }
+
+    // Add date filtering
+    if (dateFrom || dateTo) {
+      where.createdAt = {};
+      if (dateFrom) {
+        where.createdAt.gte = new Date(dateFrom);
+      }
+      if (dateTo) {
+        // Add one day to include the entire end date
+        const endDate = new Date(dateTo);
+        endDate.setDate(endDate.getDate() + 1);
+        where.createdAt.lt = endDate;
+      }
     }
 
     const [items, total] = await Promise.all([
@@ -572,13 +608,31 @@ export class AuditService {
   async getEntityHistory(
     entity: string,
     entityId: number,
-    limit: number = 20
+    limit: number = 20,
+    dateFrom?: string,
+    dateTo?: string
   ): Promise<AuditLogEntry[]> {
+    const where: any = {
+      entity,
+      entityId,
+    };
+
+    // Add date filtering
+    if (dateFrom || dateTo) {
+      where.createdAt = {};
+      if (dateFrom) {
+        where.createdAt.gte = new Date(dateFrom);
+      }
+      if (dateTo) {
+        // Add one day to include the entire end date
+        const endDate = new Date(dateTo);
+        endDate.setDate(endDate.getDate() + 1);
+        where.createdAt.lt = endDate;
+      }
+    }
+
     const entries = await this.prisma.auditLog.findMany({
-      where: {
-        entity,
-        entityId,
-      },
+      where,
       include: {
         user: {
           select: {

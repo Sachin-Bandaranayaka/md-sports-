@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requirePermission } from '@/lib/utils/middleware';
-import { extractToken, verifyToken } from '@/lib/auth';
-import { auditService } from '@/services/auditService';
+import { extractToken, verifyToken, getUserIdFromToken } from '@/lib/auth';
+import { AuditService } from '@/services/auditService';
 
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { getToken } from 'next-auth/jwt';
@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
 
         // Create the purchase invoice with items in a transaction
         const purchase = await prisma.$transaction(
-            async (tx) => {
+            async (tx: any) => {
                 // Create the purchase invoice
                 const createdInvoice = await tx.purchaseInvoice.create({
                     data: invoiceData
@@ -224,7 +224,7 @@ export async function POST(request: NextRequest) {
                             where: { productId: parseInt(item.productId) }
                         });
 
-                        const currentTotalQuantity = inventoryItems.reduce((sum, inv) => sum + inv.quantity, 0);
+                        const currentTotalQuantity = inventoryItems.reduce((sum: number, inv: any) => sum + inv.quantity, 0);
                         const newQuantity = item.quantity;
                         const currentCost = product?.weightedAverageCost || 0;
                         const newCost = item.price;
@@ -419,30 +419,37 @@ export async function POST(request: NextRequest) {
 
         // Log audit trail for purchase invoice creation
         try {
-            const token = extractToken(req);
-            if (token) {
-                const decoded = verifyToken(token);
-                if (decoded?.userId) {
-                    await auditService.logAction({
-                        action: 'CREATE',
-                        entityType: 'purchaseinvoice',
-                        entityId: purchase.invoice.id,
-                        userId: decoded.userId,
-                        details: {
-                            invoiceNumber: purchase.invoice.invoiceNumber,
-                            supplierId: purchase.invoice.supplierId,
-                            totalAmount: purchase.invoice.totalAmount,
-                            status: purchase.invoice.status,
-                            itemCount: purchase.invoice.items.length,
-                            items: purchase.invoice.items.map(item => ({
-                                productId: item.productId,
-                                quantity: item.quantity,
-                                unitPrice: item.unitPrice,
-                                totalPrice: item.totalPrice
-                            }))
-                        }
-                    });
-                }
+            console.log('DEBUG: Starting audit logging for purchase invoice');
+            const userId = await getUserIdFromToken(request);
+            console.log('DEBUG: getUserIdFromToken result:', userId);
+            console.log('DEBUG: purchase object:', purchase);
+            console.log('DEBUG: purchase.invoice exists:', !!purchase?.invoice);
+            
+            if (userId && purchase?.invoice) {
+                console.log('DEBUG: Conditions met, creating audit log');
+                const auditService = AuditService.getInstance();
+                await auditService.logAction({
+                    userId: userId,
+                    action: 'CREATE',
+                    entity: 'PurchaseInvoice',
+                    entityId: purchase.invoice.id,
+                    details: {
+                        invoiceNumber: purchase.invoice.invoiceNumber,
+                        supplierId: purchase.invoice.supplierId,
+                        totalAmount: purchase.invoice.total,
+                        status: purchase.invoice.status,
+                        itemCount: purchase.invoice.items?.length || 0,
+                        items: purchase.invoice.items?.map(item => ({
+                            productId: item.productId,
+                            quantity: item.quantity,
+                            unitPrice: item.price,
+                            totalPrice: item.total
+                        }))
+                    }
+                });
+                console.log('DEBUG: Audit log completed successfully');
+            } else {
+                console.log('DEBUG: Audit logging skipped - userId:', userId, 'purchase.invoice:', !!purchase?.invoice);
             }
         } catch (auditError) {
             console.error('Failed to log audit trail for purchase invoice creation:', auditError);
