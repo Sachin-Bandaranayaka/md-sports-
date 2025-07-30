@@ -13,8 +13,8 @@ function getDefaultTransfer(id: number) {
         status: 'pending',
         created_at: new Date().toISOString(),
         completed_at: null,
-        source_shop_id: 0,
-        destination_shop_id: 0,
+        source_shop_id: '0',
+        destination_shop_id: '0',
         source_shop_name: 'Unknown Shop',
         destination_shop_name: 'Unknown Shop',
         initiated_by: 'Unknown User',
@@ -110,8 +110,8 @@ export async function GET(
                             status: transferData.status,
                             created_at: transferData.createdAt.toISOString(),
                             completed_at: null, // This field isn't in the Prisma schema
-                            source_shop_id: transferData.fromShopId,
-                            destination_shop_id: transferData.toShopId,
+                            source_shop_id: transferData.fromShopId.toString(),
+                            destination_shop_id: transferData.toShopId.toString(),
                             source_shop_name: transferData.fromShop.name,
                             destination_shop_name: transferData.toShop.name,
                             initiated_by: transferData.fromUser.name,
@@ -226,7 +226,8 @@ export async function PATCH(
 
                             // Process each transfer item for completion
                             for (const item of transfer.transferItems) {
-                                // Check source inventory
+                                // Note: Source inventory was already decremented during transfer creation
+                                // We only need to get the cost information for destination inventory
                                 const sourceInventory = await tx.inventoryItem.findFirst({
                                     where: {
                                         shopId: transfer.fromShopId,
@@ -234,21 +235,9 @@ export async function PATCH(
                                     }
                                 });
 
-                                if (!sourceInventory || sourceInventory.quantity < item.quantity) {
-                                    throw new Error(`Insufficient inventory for product ID ${item.productId} in source shop`);
+                                if (!sourceInventory) {
+                                    throw new Error(`Source inventory not found for product ID ${item.productId}`);
                                 }
-
-                                // Get the shop-specific cost from source inventory
-                                const transferCostPerUnit = sourceInventory.shopSpecificCost || 0;
-
-                                // Update source inventory (decrease quantity)
-                                await tx.inventoryItem.update({
-                                    where: { id: sourceInventory.id },
-                                    data: {
-                                        quantity: sourceInventory.quantity - item.quantity,
-                                        updatedAt: new Date()
-                                    }
-                                });
 
                                 // Collect items for batch processing
                                 affectedProductIds.add(item.productId);
@@ -408,7 +397,7 @@ export async function PATCH(
         }
 
         // Invalidate relevant caches
-        await transferCacheService.invalidateTransferCache(params.id, [result.fromShopId, result.toShopId]);
+        await transferCacheService.invalidateTransferCache(resolvedParams.id, [result.fromShopId, result.toShopId]);
 
         operation.end(true);
         return NextResponse.json({
@@ -417,7 +406,7 @@ export async function PATCH(
             data: result
         });
     } catch (error) {
-        console.error(`Error ${body?.action || 'updating'} transfer ${id}:`, error);
+        console.error(`Error updating transfer ${id}:`, error);
         operation.end(false, 'update_error');
         return NextResponse.json({
             success: false,
@@ -589,7 +578,7 @@ export async function PUT(
         }
 
         // Invalidate relevant caches
-        await transferCacheService.invalidateTransferCache(id, [result.fromShopId, result.toShopId]);
+        await transferCacheService.invalidateTransferCache(id.toString(), [result.fromShopId, result.toShopId]);
 
         operation.end(true);
         return NextResponse.json({
@@ -690,7 +679,7 @@ export async function DELETE(
         }
 
         // Invalidate relevant caches
-        await transferCacheService.invalidateTransferCache(id, [result.fromShopId, result.toShopId]);
+        await transferCacheService.invalidateTransferCache(id.toString(), [result.fromShopId, result.toShopId]);
 
         operation.end(true);
         return NextResponse.json({
