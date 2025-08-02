@@ -2,35 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
 
-export async function GET() {
-    try {
-        const shops = await prisma.shop.findMany({
-            where: {
-                is_active: true
-            },
-            select: {
-                name: true
-            },
-            orderBy: {
-                name: 'asc'
-            }
-        });
-
-        const shopNames = shops.map(shop => shop.name);
-
-        return NextResponse.json({
-            success: true,
-            shopNames
-        });
-    } catch (error) {
-        console.error('Error fetching shop names:', error);
-        return NextResponse.json(
-            { success: false, message: 'Failed to fetch shop names' },
-            { status: 500 }
-        );
-    }
-}
-
 export async function POST(request: NextRequest) {
     try {
         const authHeader = request.headers.get('Authorization');
@@ -50,7 +21,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Invalid input: ids must be an array' }, { status: 400 });
         }
 
-        const shops = await prisma.shop.findMany({
+        const categories = await prisma.category.findMany({
             where: {
                 id: {
                     in: ids
@@ -62,9 +33,9 @@ export async function POST(request: NextRequest) {
             }
         });
 
-        return NextResponse.json(shops);
+        return NextResponse.json(categories);
     } catch (error) {
-        console.error('Error fetching shop names by IDs:', error);
+        console.error('Error fetching category names by IDs:', error);
         return NextResponse.json(
             { error: 'Internal server error' },
             { status: 500 }

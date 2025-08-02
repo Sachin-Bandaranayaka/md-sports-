@@ -54,6 +54,15 @@ import {
 } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
 
 interface RecycleBinItem {
   id: number;
@@ -100,8 +109,14 @@ export default function AuditTrailPage() {
     limit: 20,
     total: 0,
   });
+  const [selectedAudit, setSelectedAudit] = useState<AuditHistoryItem | null>(null);
   const { toast } = useToast();
   const { accessToken, isAuthenticated } = useAuth();
+  
+  // State for entity name resolution
+  const [shopNames, setShopNames] = useState<Record<string, string>>({});
+  const [customerNames, setCustomerNames] = useState<Record<string, string>>({});
+  const [categoryNames, setCategoryNames] = useState<Record<string, string>>({});
 
   const entityTypes = ['all', 'product', 'customer', 'supplier', 'category', 'invoice', 'receipt', 'ExpensePayment'];
 
@@ -596,12 +611,11 @@ export default function AuditTrailPage() {
                       <TableHead>Entity</TableHead>
                       <TableHead>User</TableHead>
                       <TableHead>Date</TableHead>
-                      <TableHead>Details</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {auditHistory.map((item) => (
-                      <TableRow key={item.id}>
+                      <TableRow key={item.id} onClick={() => setSelectedAudit(item)} className="cursor-pointer hover:bg-gray-100">
                         <TableCell>
                           <Badge className={getActionBadgeColor(item.action)}>
                             {item.action}
@@ -618,19 +632,6 @@ export default function AuditTrailPage() {
                         <TableCell>
                           {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
                         </TableCell>
-                        <TableCell>
-                          <div className="max-w-xs truncate">
-                            {item.details && Object.keys(item.details).length > 0 ? (
-                              <ul className="list-none p-0 m-0">
-                                {Object.entries(item.details).map(([key, value]) => (
-                                  <li key={key} className="text-sm">
-                                    <span className="font-medium">{key}:</span> {typeof value === 'object' ? JSON.stringify(value) : value}
-                                  </li>
-                                ))}
-                              </ul>
-                            ) : 'No details'}
-                          </div>
-                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -638,6 +639,35 @@ export default function AuditTrailPage() {
               )}
             </CardContent>
           </Card>
+          <Drawer open={!!selectedAudit} onOpenChange={(open: boolean) => !open && setSelectedAudit(null)}>
+            <DrawerContent>
+              <DrawerHeader>
+                <DrawerTitle>Audit Details</DrawerTitle>
+                <DrawerDescription>
+                  Details for {selectedAudit?.entity} {selectedAudit?.action} by {selectedAudit?.user?.name || 'System'} on {selectedAudit ? format(new Date(selectedAudit.createdAt), 'PPP') : ''}
+                </DrawerDescription>
+              </DrawerHeader>
+              <div className="p-4">
+                {selectedAudit && (
+                   <AuditDetailsComponent 
+                     item={selectedAudit}
+                     shopNames={shopNames}
+                     setShopNames={setShopNames}
+                     customerNames={customerNames}
+                     setCustomerNames={setCustomerNames}
+                     categoryNames={categoryNames}
+                     setCategoryNames={setCategoryNames}
+                     accessToken={accessToken}
+                   />
+                 )}
+              </div>
+              <DrawerFooter>
+                <DrawerClose asChild>
+                  <Button variant="outline">Close</Button>
+                </DrawerClose>
+              </DrawerFooter>
+            </DrawerContent>
+          </Drawer>
         </TabsContent>
       </Tabs>
 
@@ -668,3 +698,333 @@ export default function AuditTrailPage() {
     </div>
   );
 }
+
+interface AuditDetailsProps {
+   item: AuditHistoryItem;
+   shopNames: Record<string, string>;
+   setShopNames: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+   customerNames: Record<string, string>;
+   setCustomerNames: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+   categoryNames: Record<string, string>;
+   setCategoryNames: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+   accessToken: string | null;
+ }
+
+const AuditDetailsComponent: React.FC<AuditDetailsProps> = ({
+   item,
+   shopNames,
+   setShopNames,
+   customerNames,
+   setCustomerNames,
+   categoryNames,
+   setCategoryNames,
+   accessToken
+ }) => {
+  const { entity, details, action, user, createdAt } = item;
+  
+  // Fetch related data for better display
+  useEffect(() => {
+    const fetchRelatedData = async () => {
+      if (!details) return;
+      
+      const shopIds = new Set<string>();
+      const customerIds = new Set<number>();
+      const categoryIds = new Set<number>();
+      
+      // Extract IDs from details
+      Object.entries(details).forEach(([key, value]) => {
+        if (key === 'shopId' && typeof value === 'string') {
+          shopIds.add(value);
+        }
+        if (key === 'customerId' && typeof value === 'number') {
+          customerIds.add(value);
+        }
+        if (key === 'categoryId' && typeof value === 'number') {
+          categoryIds.add(value);
+        }
+        // Handle nested objects
+        if (typeof value === 'object' && value !== null) {
+          if ('shopId' in value && typeof value.shopId === 'string') {
+            shopIds.add(value.shopId);
+          }
+          if ('customerId' in value && typeof value.customerId === 'number') {
+            customerIds.add(value.customerId);
+          }
+          if ('categoryId' in value && typeof value.categoryId === 'number') {
+            categoryIds.add(value.categoryId);
+          }
+        }
+      });
+      
+      // Fetch shop names
+      if (shopIds.size > 0) {
+        try {
+          const response = await fetch('/api/shops/names', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              ...(accessToken && { Authorization: `Bearer ${accessToken}` })
+            },
+            body: JSON.stringify({ ids: Array.from(shopIds) })
+          });
+          if (response.ok) {
+            const shops = await response.json();
+            const shopMap: Record<string, string> = {};
+            shops.forEach((shop: any) => {
+              shopMap[shop.id] = shop.name;
+            });
+            setShopNames(shopMap);
+          }
+        } catch (error) {
+          console.error('Failed to fetch shop names:', error);
+        }
+      }
+      
+      // Fetch customer names
+      if (customerIds.size > 0) {
+        try {
+          const response = await fetch('/api/customers/names', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              ...(accessToken && { Authorization: `Bearer ${accessToken}` })
+            },
+            body: JSON.stringify({ ids: Array.from(customerIds) })
+          });
+          if (response.ok) {
+            const customers = await response.json();
+            const customerMap: Record<string, string> = {};
+            customers.forEach((customer: any) => {
+              customerMap[customer.id] = customer.name;
+            });
+            setCustomerNames(customerMap);
+          }
+        } catch (error) {
+          console.error('Failed to fetch customer names:', error);
+        }
+      }
+      
+      // Fetch category names
+      if (categoryIds.size > 0) {
+        try {
+          const response = await fetch('/api/categories/names', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              ...(accessToken && { Authorization: `Bearer ${accessToken}` })
+            },
+            body: JSON.stringify({ ids: Array.from(categoryIds) })
+          });
+          if (response.ok) {
+            const categories = await response.json();
+            const categoryMap: Record<string, string> = {};
+            categories.forEach((category: any) => {
+              categoryMap[category.id] = category.name;
+            });
+            setCategoryNames(categoryMap);
+          }
+        } catch (error) {
+          console.error('Failed to fetch category names:', error);
+        }
+      }
+    };
+    
+    fetchRelatedData();
+  }, [details]);
+  
+  const formatValue = (key: string, value: any): { display: string; type: string } => {
+    if (value === null || value === undefined) return { display: 'N/A', type: 'null' };
+    
+    // Handle specific field types
+    if (key === 'shopId' && typeof value === 'string') {
+      const shopName = shopNames[value];
+      return { 
+        display: shopName ? `${shopName} (${value.slice(-8)})` : value, 
+        type: 'reference' 
+      };
+    }
+    
+    if (key === 'customerId' && typeof value === 'number') {
+      const customerName = customerNames[value];
+      return { 
+        display: customerName ? `${customerName} (#${value})` : `Customer #${value}`, 
+        type: 'reference' 
+      };
+    }
+    
+    if (key === 'categoryId' && typeof value === 'number') {
+      const categoryName = categoryNames[value];
+      return { 
+        display: categoryName ? `${categoryName} (#${value})` : `Category #${value}`, 
+        type: 'reference' 
+      };
+    }
+    
+    if (typeof value === 'boolean') {
+      return { display: value ? 'Yes' : 'No', type: 'boolean' };
+    }
+    
+    if (typeof value === 'number') {
+      // Format currency fields
+      if (key.toLowerCase().includes('price') || key.toLowerCase().includes('total') || key.toLowerCase().includes('amount')) {
+        return { display: `$${value.toLocaleString()}`, type: 'currency' };
+      }
+      return { display: value.toLocaleString(), type: 'number' };
+    }
+    
+    if (typeof value === 'object') {
+      // Handle change objects (old/new values)
+      if (value && typeof value === 'object' && ('old' in value || 'new' in value)) {
+        const oldVal = 'old' in value ? value.old : 'N/A';
+        const newVal = 'new' in value ? value.new : 'N/A';
+        return { 
+          display: `${oldVal} → ${newVal}`, 
+          type: 'change' 
+        };
+      }
+      return { display: JSON.stringify(value, null, 2), type: 'object' };
+    }
+    
+    return { display: String(value), type: 'string' };
+  };
+
+  const getEntityIcon = (entityType: string) => {
+    switch (entityType.toLowerCase()) {
+      case 'product': return '📦';
+      case 'customer': return '👤';
+      case 'supplier': return '🏢';
+      case 'category': return '📂';
+      case 'order': return '🛒';
+      case 'invoice': return '📄';
+      default: return '📋';
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="border-b pb-4">
+        <div className="flex items-center gap-3 mb-3">
+          <span className="text-2xl">{getEntityIcon(entity)}</span>
+          <div>
+            <h3 className="text-lg font-semibold capitalize">
+              {entity} {action}
+            </h3>
+            <p className="text-sm text-gray-600">
+              {format(new Date(createdAt), 'PPpp')}
+            </p>
+          </div>
+        </div>
+        
+        {user && (
+          <div className="bg-gray-50 rounded-lg p-3">
+            <h4 className="font-medium text-sm text-gray-700 mb-1">Performed by</h4>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                {user.name?.charAt(0).toUpperCase() || 'U'}
+              </div>
+              <div>
+                <p className="font-medium text-sm">{user.name}</p>
+                <p className="text-xs text-gray-600">{user.email}</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Details Section */}
+      {details && Object.keys(details).length > 0 ? (
+        <div>
+          <h4 className="font-semibold mb-3 flex items-center gap-2">
+            📊 Change Details
+          </h4>
+          <div className="border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="font-semibold">Field</TableHead>
+                  <TableHead className="font-semibold">Value</TableHead>
+                  <TableHead className="font-semibold w-20">Type</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                  {Object.entries(details).map(([key, value]) => {
+                    const { display, type } = formatValue(key, value);
+                    return (
+                      <TableRow key={key} className="hover:bg-gray-50">
+                        <TableCell className="font-medium">
+                          {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                        </TableCell>
+                        <TableCell className="max-w-md">
+                          <div className="break-words">
+                            {type === 'object' ? (
+                              <pre className="text-xs bg-gray-100 p-2 rounded overflow-x-auto">
+                                {display}
+                              </pre>
+                            ) : (
+                              <span className={cn(
+                                "px-2 py-1 rounded text-sm",
+                                type === 'boolean' && 'bg-green-100 text-green-800',
+                                type === 'number' && 'bg-blue-100 text-blue-800',
+                                type === 'currency' && 'bg-emerald-100 text-emerald-800',
+                                type === 'reference' && 'bg-indigo-100 text-indigo-800',
+                                type === 'change' && 'bg-orange-100 text-orange-800',
+                                type === 'string' && 'bg-gray-100 text-gray-800',
+                                type === 'null' && 'bg-gray-50 text-gray-500'
+                              )}>
+                                {display}
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">
+                            {type === 'reference' ? 'ref' : type === 'currency' ? 'money' : type === 'change' ? 'diff' : type}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+            </Table>
+          </div>
+        </div>
+      ) : (
+        <div className="text-center py-8 text-gray-500">
+          <div className="text-4xl mb-2">📭</div>
+          <p>No detailed changes recorded for this action.</p>
+        </div>
+      )}
+
+      {/* Entity-specific additional info */}
+      {entity.toLowerCase() === 'product' && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h5 className="font-medium text-blue-900 mb-2">💡 Product Information</h5>
+          <p className="text-sm text-blue-800">
+            This audit entry tracks changes to product data including inventory, pricing, and specifications.
+          </p>
+        </div>
+      )}
+      
+      {entity.toLowerCase() === 'customer' && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <h5 className="font-medium text-green-900 mb-2">👤 Customer Information</h5>
+          <p className="text-sm text-green-800">
+            This audit entry tracks changes to customer profile, contact details, and account settings.
+          </p>
+        </div>
+      )}
+      
+      {entity.toLowerCase() === 'order' && (
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+          <h5 className="font-medium text-purple-900 mb-2">🛒 Order Information</h5>
+          <p className="text-sm text-purple-800">
+            This audit entry tracks changes to order status, items, shipping, and payment information.
+          </p>
+        </div>
+      )}    </div>
+  );
+};
+
+// Export the AuditDetailsComponent for use in the main component
+export { AuditDetailsComponent };
