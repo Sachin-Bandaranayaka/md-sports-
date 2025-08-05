@@ -125,6 +125,9 @@ export async function POST(request: NextRequest) {
       // Clear data in proper order (respecting foreign key constraints)
       await tx.inventoryItem.deleteMany({});
       await tx.invoice.deleteMany({});
+      // Delete purchase invoice items and purchase invoices before products to avoid FK violations
+      await tx.purchaseInvoiceItem.deleteMany({});
+      await tx.purchaseInvoice.deleteMany({});
       await tx.product.deleteMany({});
       await tx.customer.deleteMany({});
       await tx.category.deleteMany({});
@@ -280,4 +283,4 @@ export async function POST(request: NextRequest) {
       error: 'Failed to restore backup: ' + (error instanceof Error ? error.message : String(error))
     }, { status: 500 });
   }
-} 
+}
