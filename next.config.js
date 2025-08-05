@@ -24,10 +24,9 @@ const nextConfig = {
     optimizeServerReact: true,
     optimizePackageImports: ['lucide-react', 'recharts', 'framer-motion'],
     forceSwcTransforms: true,
+    // Critical bundle optimization
+    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs'],
   },
-  
-  // NEW: Critical bundle optimization
-  serverExternalPackages: ['@prisma/client', 'bcryptjs'],
   
   webpack: (config, { isServer, buildId, dev, defaultLoaders, webpack }) => {
     // Fixes npm packages that depend on `pg` module and axios compatibility

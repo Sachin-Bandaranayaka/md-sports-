@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { getUserIdFromToken } from '@/lib/auth';
 import { randomBytes } from 'crypto';
 
 // Extended Invoice type with public link fields
@@ -24,8 +23,8 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const userId = await getUserIdFromToken(request);
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -42,10 +41,7 @@ export async function POST(
     const invoice = await prisma.invoice.findFirst({
       where: {
         id: invoiceId,
-        OR: [
-          { createdBy: session.user.id },
-          { customer: { createdBy: session.user.id } },
-        ],
+        createdBy: userId,
       },
     }) as any; // Type assertion to handle missing fields
 
@@ -100,8 +96,8 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const userId = await getUserIdFromToken(request);
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -118,10 +114,7 @@ export async function GET(
     const invoice = await prisma.invoice.findFirst({
       where: {
         id: invoiceId,
-        OR: [
-          { createdBy: session.user.id },
-          { customer: { createdBy: session.user.id } },
-        ],
+        createdBy: userId,
       },
     }) as any; // Type assertion to handle missing fields
 
@@ -178,8 +171,8 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const userId = await getUserIdFromToken(request);
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -196,10 +189,7 @@ export async function DELETE(
     const invoice = await prisma.invoice.findFirst({
       where: {
         id: invoiceId,
-        OR: [
-          { createdBy: session.user.id },
-          { customer: { createdBy: session.user.id } },
-        ],
+        createdBy: userId,
       },
     }) as any; // Type assertion to handle missing fields
 
