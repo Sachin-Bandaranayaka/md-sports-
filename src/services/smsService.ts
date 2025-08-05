@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 import axios from 'axios';
 
 interface SMSOptions {
@@ -111,7 +111,7 @@ export class SMSService {
      * @param invoiceId Invoice ID
      * @returns Response from notify.lk API
      */
-    async sendInvoiceNotification(invoiceId: number): Promise<NotifyLKResponse> {
+    async sendInvoiceNotification(invoiceId: number, includePublicLink: boolean = true): Promise<NotifyLKResponse> {
         try {
             // Get invoice with customer details
             const invoice = await prisma.invoice.findUnique({
@@ -119,7 +119,7 @@ export class SMSService {
                 include: {
                     customer: true
                 }
-            });
+            }) as any; // Type assertion to handle missing fields
 
             if (!invoice) {
                 return {
@@ -128,15 +128,35 @@ export class SMSService {
                 };
             }
 
-            if (!invoice.customer.phone) {
+            if (!invoice.customer?.phone) {
                 return {
                     status: 400,
                     message: 'Customer phone number not available'
                 };
             }
 
-            // Prepare message
-            const message = `Dear ${invoice.customer.name}, your invoice #${invoice.invoiceNumber} for LKR ${invoice.total.toFixed(2)} has been created. Thank you for your business with MS Sport.`;
+            let message = `Dear ${invoice.customer.name}, your invoice #${invoice.invoiceNumber} for LKR ${invoice.total.toFixed(2)} has been created.`;
+
+            // Generate public link if requested and token exists
+            if (includePublicLink && invoice.publicToken) {
+                try {
+                    // Check if token is still valid
+                    const isExpired = invoice.publicTokenExpiresAt && new Date() > new Date(invoice.publicTokenExpiresAt);
+                    
+                    if (!isExpired) {
+                        // Get base URL from environment or use default
+                        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001';
+                        const publicUrl = `${baseUrl}/public/invoice/${invoice.publicToken}`;
+                        
+                        message += ` View/download your invoice: ${publicUrl}`;
+                    }
+                } catch (linkError) {
+                    console.error('Failed to generate public link for SMS:', linkError);
+                    // Continue without link if generation fails
+                }
+            }
+            
+            message += ' Thank you for your business with MS Sport.';
 
             // Send SMS
             return this.sendSMS({
@@ -174,7 +194,7 @@ export class SMSService {
                 };
             }
 
-            if (!invoice.customer.phone) {
+            if (!invoice.customer?.phone) {
                 return {
                     status: 400,
                     message: 'Customer phone number not available'
@@ -200,4 +220,4 @@ export class SMSService {
 }
 
 // Export singleton instance
-export const smsService = new SMSService(); 
+export const smsService = new SMSService();

@@ -213,34 +213,40 @@ model Supplier {
 }
 
 model Invoice {
-  id            Int           @id @default(autoincrement())
-  invoiceNumber String        @unique
-  customerId    Int?
-  total         Float
-  discountType  String?       @default("amount")
-  discountValue Float?        @default(0)
-  totalProfit   Float?        @default(0)
-  profitMargin  Float?        @default(0)
-  status        String
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  paymentMethod String?       @default("Cash")
-  invoiceDate   DateTime?     @db.Date
-  dueDate       DateTime?     @db.Date
-  notes         String?
-  shopId        String?
-  createdBy     String?
-  customer      Customer?     @relation(fields: [customerId], references: [id])
-  shop          Shop?         @relation(fields: [shopId], references: [id])
-  createdByUser User?         @relation(fields: [createdBy], references: [id])
-  items         InvoiceItem[]
-  payments      Payment[]
+  id                    Int           @id @default(autoincrement())
+  invoiceNumber         String        @unique
+  customerId            Int?
+  total                 Float
+  discountType          String?       @default("amount")
+  discountValue         Float?        @default(0)
+  totalProfit           Float?        @default(0)
+  profitMargin          Float?        @default(0)
+  status                String
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  paymentMethod         String?       @default("Cash")
+  invoiceDate           DateTime?     @db.Date
+  dueDate               DateTime?     @db.Date
+  notes                 String?
+  shopId                String?
+  createdBy             String?
+  // Public link fields
+  publicToken           String?       @unique
+  publicTokenExpiresAt  DateTime?
+  publicViewCount       Int?          @default(0)
+  publicLastViewedAt    DateTime?
+  customer              Customer?     @relation(fields: [customerId], references: [id])
+  shop                  Shop?         @relation(fields: [shopId], references: [id])
+  createdByUser         User?         @relation(fields: [createdBy], references: [id])
+  items                 InvoiceItem[]
+  payments              Payment[]
 
   @@index([status])
   @@index([paymentMethod])
   @@index([createdAt])
   @@index([customerId])
   @@index([shopId])
+  @@index([publicToken])
   @@index([status, createdAt])
   @@index([paymentMethod, createdAt])
   @@index([status, paymentMethod, createdAt])

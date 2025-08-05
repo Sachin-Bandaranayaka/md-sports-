@@ -482,6 +482,42 @@ export default function SettingsContainer() {
                         </div>
 
                         <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-700">Backup Time</label>
+                            <input
+                                type="time"
+                                className="w-full p-2 border border-gray-300 rounded-md"
+                                value={settings['db_backup_time'] || '00:00'}
+                                onChange={(e) => handleInputChange('db_backup_time', e.target.value)}
+                            />
+                            <p className="text-xs text-gray-500">Time for scheduled backups (24-hour format)</p>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-700">Backup Location</label>
+                            <input
+                                type="text"
+                                className="w-full p-2 border border-gray-300 rounded-md"
+                                value={settings['db_backup_location'] || './backups'}
+                                onChange={(e) => handleInputChange('db_backup_location', e.target.value)}
+                                placeholder="Path to backup directory"
+                            />
+                            <p className="text-xs text-gray-500">Directory where backups will be stored</p>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-700">Backup Retention (days)</label>
+                            <input
+                                type="number"
+                                min="1"
+                                max="365"
+                                className="w-full p-2 border border-gray-300 rounded-md"
+                                value={settings['db_backup_retention'] || '7'}
+                                onChange={(e) => handleInputChange('db_backup_retention', e.target.value)}
+                            />
+                            <p className="text-xs text-gray-500">Number of days to keep backups</p>
+                        </div>
+
+                        <div className="space-y-2">
                             <label className="block text-sm font-medium text-gray-700">Log Level</label>
                             <select
                                 className="w-full p-2 border border-gray-300 rounded-md"

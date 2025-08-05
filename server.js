@@ -2,6 +2,7 @@ const { createServer } = require('http');
 const { parse } = require('url');
 const next = require('next');
 const { Server } = require('socket.io');
+const { scheduleBackups } = require('./utils/backupScheduler');
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = 'localhost';
@@ -46,6 +47,9 @@ app.prepare().then(() => {
 
   // Make io available globally
   global.io = io;
+
+  // Initialize automated database backups
+  scheduleBackups();
 
   // Start the server
   server.listen(port, (err) => {
