@@ -156,14 +156,17 @@ export default function InventoryDistribution() {
 
     // Handle sort
     const handleSort = (column: string, shopId?: number) => {
-        if (sortBy === column && (selectedShopForSort ?? null) === (shopId ?? null)) {
+        const shopIdentifier = shopId ?? null;
+
+        if (sortBy === column && (selectedShopForSort ?? null) === shopIdentifier) {
+            // Toggle sort direction when clicking the same column (and same shop when applicable)
             setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
         } else {
+            // Switching to a new column (or different shop column)
             setSortBy(column);
             setSortDirection('asc');
-            if (shopId) {
-                setSelectedShopForSort(shopId);
-            }
+            // Always update the selected shop identifier – this also resets it to null when no shop is provided
+            setSelectedShopForSort(shopIdentifier);
         }
     };
 
