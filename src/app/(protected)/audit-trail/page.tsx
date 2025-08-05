@@ -882,6 +882,37 @@ const AuditDetailsComponent: React.FC<AuditDetailsProps> = ({
           type: 'change' 
         };
       }
+      
+      // Handle arrays (especially items arrays)
+      if (Array.isArray(value)) {
+        if (key.toLowerCase() === 'items' && value.length > 0) {
+          // Format items array for purchase invoices
+          const itemsDisplay = value.map((item, index) => {
+            const productInfo = item.productId ? `Product #${item.productId}` : 'Unknown Product';
+            const quantity = item.quantity || 0;
+            const price = item.price ? `$${Number(item.price).toLocaleString()}` : '$0';
+            const total = item.total ? `$${Number(item.total).toLocaleString()}` : 
+                         (item.quantity && item.price) ? `$${(Number(item.quantity) * Number(item.price)).toLocaleString()}` : '$0';
+            return `${index + 1}. ${productInfo} - Qty: ${quantity}, Price: ${price}, Total: ${total}`;
+          }).join('\n');
+          return { display: itemsDisplay, type: 'items' };
+        }
+        
+        // Handle other arrays
+        if (value.length === 0) {
+          return { display: 'Empty array', type: 'array' };
+        }
+        
+        const arrayDisplay = value.map((item, index) => {
+          if (typeof item === 'object') {
+            return `${index + 1}. ${JSON.stringify(item)}`;
+          }
+          return `${index + 1}. ${String(item)}`;
+        }).join('\n');
+        
+        return { display: arrayDisplay, type: 'array' };
+      }
+      
       return { display: JSON.stringify(value, null, 2), type: 'object' };
     }
     
@@ -961,6 +992,24 @@ const AuditDetailsComponent: React.FC<AuditDetailsProps> = ({
                               <pre className="text-xs bg-gray-100 p-2 rounded overflow-x-auto">
                                 {display}
                               </pre>
+                            ) : type === 'items' ? (
+                              <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                                <div className="font-medium text-blue-900 mb-2 flex items-center gap-1">
+                                  📦 Invoice Items
+                                </div>
+                                <pre className="text-xs text-blue-800 whitespace-pre-wrap">
+                                  {display}
+                                </pre>
+                              </div>
+                            ) : type === 'array' ? (
+                              <div className="bg-purple-50 border border-purple-200 rounded p-3">
+                                <div className="font-medium text-purple-900 mb-2 flex items-center gap-1">
+                                  📋 Array Data
+                                </div>
+                                <pre className="text-xs text-purple-800 whitespace-pre-wrap">
+                                  {display}
+                                </pre>
+                              </div>
                             ) : (
                               <span className={cn(
                                 "px-2 py-1 rounded text-sm",
@@ -979,7 +1028,12 @@ const AuditDetailsComponent: React.FC<AuditDetailsProps> = ({
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="text-xs">
-                            {type === 'reference' ? 'ref' : type === 'currency' ? 'money' : type === 'change' ? 'diff' : type}
+                            {type === 'reference' ? 'ref' : 
+                             type === 'currency' ? 'money' : 
+                             type === 'change' ? 'diff' : 
+                             type === 'items' ? 'items' :
+                             type === 'array' ? 'list' : 
+                             type}
                           </Badge>
                         </TableCell>
                       </TableRow>
@@ -1020,6 +1074,15 @@ const AuditDetailsComponent: React.FC<AuditDetailsProps> = ({
           <h5 className="font-medium text-purple-900 mb-2">🛒 Order Information</h5>
           <p className="text-sm text-purple-800">
             This audit entry tracks changes to order status, items, shipping, and payment information.
+          </p>
+        </div>
+      )}
+      
+      {(entity.toLowerCase() === 'purchaseinvoice' || entity.toLowerCase() === 'purchase_invoice') && (
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+          <h5 className="font-medium text-orange-900 mb-2">📄 Purchase Invoice Information</h5>
+          <p className="text-sm text-orange-800">
+            This audit entry tracks changes to purchase invoice data including supplier details, items, quantities, pricing, and payment status.
           </p>
         </div>
       )}    </div>

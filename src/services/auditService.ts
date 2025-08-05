@@ -235,6 +235,40 @@ export class AuditService {
       this.prisma.auditLog.count({ where }),
     ]);
 
+    // Collect all relevant userIds (direct and nested in details)
+    const userIdsSet = new Set<string>();
+    items.forEach((item) => {
+      if (item.userId) userIdsSet.add(item.userId.toString());
+      const details: any = item.details;
+      if (details?.deletedBy) userIdsSet.add(details.deletedBy.toString());
+      if (details?.recoveredBy) userIdsSet.add(details.recoveredBy.toString());
+    });
+
+    const userIds = Array.from(userIdsSet);
+
+    let userMap: Record<string, { id: string; name: string | null; email: string | null }> = {};
+    if (userIds.length) {
+      const users = await this.prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true, name: true, email: true },
+      });
+      userMap = Object.fromEntries(users.map((u) => [u.id, u]));
+    }
+
+    // Attach user info to each audit log entry for UI consumption
+    (items as any).forEach((item: any) => {
+      item.user = item.userId ? userMap[item.userId] : undefined;
+      const details: any = item.details;
+      if (details) {
+        if (details.deletedBy) {
+          item.deletedByUser = userMap[details.deletedBy];
+        }
+        if (details.recoveredBy) {
+          item.recoveredByUser = userMap[details.recoveredBy];
+        }
+      }
+    });
+
     return { items: items as AuditLogEntry[], total };
   }
 
