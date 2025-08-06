@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/Button';
-import { Download, Eye, Calendar, DollarSign, User, Building2, Phone, Mail, MapPin } from 'lucide-react';
+import { Download, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import InvoiceTemplate from '@/components/invoices/InvoiceTemplate';
 
 interface Product {
   id: number;
@@ -273,225 +273,57 @@ export default function PublicInvoiceView() {
         </div>
 
         {/* Invoice Content */}
-        <Card id="invoice-content" className="bg-white">
-          <CardHeader className="border-b">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <CardTitle className="text-2xl font-bold text-gray-900">
-                  Invoice #{invoice.invoiceNumber}
-                </CardTitle>
-                <div className="flex items-center gap-2 mt-2">
-                  <StatusBadge status={invoice.status} />
-                  {invoice.publicViewCount !== undefined && (
-                    <Badge variant="outline" className="text-xs">
-                      <Eye className="w-3 h-3 mr-1" />
-                      Viewed {invoice.publicViewCount} times
-                    </Badge>
-                  )}
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-3xl font-bold text-gray-900">
-                  {formatCurrency(invoice.total)}
-                </div>
-                <div className="text-sm text-gray-500 mt-1">
-                  {invoice.paymentMethod && (
-                    <span className="flex items-center justify-end gap-1">
-                      <DollarSign className="w-3 h-3" />
-                      {invoice.paymentMethod}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </CardHeader>
-
-          <CardContent className="p-6">
-            {/* Company and Customer Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-              {/* Company Info */}
-              {invoice.shop && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <Building2 className="w-5 h-5" />
-                    From
-                  </h3>
-                  <div className="space-y-2">
-                    <p className="font-medium text-gray-900">{invoice.shop.name}</p>
-                    {invoice.shop.address_line1 && (
-                      <p className="text-gray-600 flex items-start gap-2">
-                        <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                        <span>
-                          {invoice.shop.address_line1}
-                          {invoice.shop.address_line2 && <><br />{invoice.shop.address_line2}</>}
-                          {invoice.shop.city && <><br />{invoice.shop.city}</>}
-                          {invoice.shop.state && `, ${invoice.shop.state}`}
-                          {invoice.shop.postal_code && ` ${invoice.shop.postal_code}`}
-                          {invoice.shop.country && <><br />{invoice.shop.country}</>}
-                        </span>
-                      </p>
-                    )}
-                    {invoice.shop.phone && (
-                      <p className="text-gray-600 flex items-center gap-2">
-                        <Phone className="w-4 h-4" />
-                        {invoice.shop.phone}
-                      </p>
-                    )}
-                    {invoice.shop.email && (
-                      <p className="text-gray-600 flex items-center gap-2">
-                        <Mail className="w-4 h-4" />
-                        {invoice.shop.email}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Customer Info */}
-              {invoice.customer && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <User className="w-5 h-5" />
-                    Bill To
-                  </h3>
-                  <div className="space-y-2">
-                    <p className="font-medium text-gray-900">{invoice.customer.name}</p>
-                    {invoice.customer.address && (
-                      <p className="text-gray-600 flex items-start gap-2">
-                        <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                        <span>
-                          {invoice.customer.address}
-                          {invoice.customer.city && <><br />{invoice.customer.city}</>}
-                          {invoice.customer.postalCode && ` ${invoice.customer.postalCode}`}
-                        </span>
-                      </p>
-                    )}
-                    {invoice.customer.phone && (
-                      <p className="text-gray-600 flex items-center gap-2">
-                        <Phone className="w-4 h-4" />
-                        {invoice.customer.phone}
-                      </p>
-                    )}
-                    {invoice.customer.email && (
-                      <p className="text-gray-600 flex items-center gap-2">
-                        <Mail className="w-4 h-4" />
-                        {invoice.customer.email}
-                      </p>
-                    )}
-                  </div>
-                </div>
+        <div id="invoice-content" className="bg-white">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <StatusBadge status={invoice.status} />
+              {invoice.publicViewCount !== undefined && (
+                <Badge variant="outline" className="text-xs">
+                  <Eye className="w-3 h-3 mr-1" />
+                  Viewed {invoice.publicViewCount} times
+                </Badge>
               )}
             </div>
-
-            {/* Invoice Details */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">Invoice Date</p>
-                <p className="text-gray-900 flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  {invoice.invoiceDate ? formatDate(invoice.invoiceDate) : formatDate(invoice.createdAt)}
-                </p>
-              </div>
-              {invoice.dueDate && (
-                <div>
-                  <p className="text-sm font-medium text-gray-500 mb-1">Due Date</p>
-                  <p className="text-gray-900 flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    {formatDate(invoice.dueDate)}
-                  </p>
-                </div>
-              )}
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">Payment Method</p>
-                <p className="text-gray-900">{invoice.paymentMethod || 'Cash'}</p>
-              </div>
-            </div>
-
-            <Separator className="my-6" />
-
-            {/* Invoice Items */}
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Items</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-2 font-medium text-gray-500">Item</th>
-                      <th className="text-center py-3 px-2 font-medium text-gray-500">Qty</th>
-                      <th className="text-right py-3 px-2 font-medium text-gray-500">Price</th>
-                      <th className="text-right py-3 px-2 font-medium text-gray-500">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {invoice.items.map((item) => (
-                      <tr key={item.id} className="border-b border-gray-100">
-                        <td className="py-3 px-2">
-                          <div>
-                            <p className="font-medium text-gray-900">{item.product.name}</p>
-                            {item.product.description && (
-                              <p className="text-sm text-gray-500">{item.product.description}</p>
-                            )}
-                            {item.product.sku && (
-                              <p className="text-xs text-gray-400">SKU: {item.product.sku}</p>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-3 px-2 text-center text-gray-900">{item.quantity}</td>
-                        <td className="py-3 px-2 text-right text-gray-900">
-                          {formatCurrency(item.price)}
-                        </td>
-                        <td className="py-3 px-2 text-right font-medium text-gray-900">
-                          {formatCurrency(item.total)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Totals */}
-            <div className="flex justify-end">
-              <div className="w-full max-w-sm space-y-2">
-                <div className="flex justify-between py-2">
-                  <span className="text-gray-600">Subtotal:</span>
-                  <span className="font-medium text-gray-900">{formatCurrency(subtotal)}</span>
-                </div>
-                {discount > 0 && (
-                  <div className="flex justify-between py-2">
-                    <span className="text-gray-600">
-                      Discount ({invoice.discountType === 'percentage' ? `${invoice.discountValue}%` : 'Amount'}):
-                    </span>
-                    <span className="font-medium text-red-600">-{formatCurrency(discount)}</span>
-                  </div>
-                )}
-                <Separator />
-                <div className="flex justify-between py-2">
-                  <span className="text-lg font-semibold text-gray-900">Total:</span>
-                  <span className="text-lg font-bold text-gray-900">{formatCurrency(invoice.total)}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Notes */}
-            {invoice.notes && (
-              <div className="mt-8 pt-6 border-t border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Notes</h3>
-                <p className="text-gray-600 whitespace-pre-wrap">{invoice.notes}</p>
-              </div>
+          </div>
+          
+          <InvoiceTemplate
+             invoice={{
+               id: invoice.id,
+               invoiceNumber: invoice.invoiceNumber,
+               customerId: invoice.customerId || 0,
+               customerName: invoice.customer?.name || '',
+               customer: invoice.customer,
+               dueDate: invoice.dueDate || '',
+               createdAt: invoice.createdAt,
+               paymentMethod: invoice.paymentMethod || 'Cash',
+               notes: invoice.notes || '',
+               items: invoice.items.map(item => ({
+                 id: item.id.toString(),
+                 productId: item.productId.toString(),
+                 productName: item.product.name,
+                 quantity: item.quantity,
+                 price: item.price,
+                 total: item.total,
+                 product: item.product
+               })),
+               subtotal: subtotal,
+               tax: 0,
+               total: invoice.total,
+               status: invoice.status,
+               discountAmount: discount
+             }}
+           />
+          
+          {/* Public View Footer */}
+          <div className="mt-8 pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
+            <p>This is a public view of the invoice. For any questions, please contact the issuing company.</p>
+            {invoice.publicLastViewedAt && (
+              <p className="mt-2">
+                Last viewed: {format(new Date(invoice.publicLastViewedAt), 'dd/MM/yyyy HH:mm')}
+              </p>
             )}
-
-            {/* Footer */}
-            <div className="mt-8 pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
-              <p>This is a public view of the invoice. For any questions, please contact the issuing company.</p>
-              {invoice.publicLastViewedAt && (
-                <p className="mt-2">
-                  Last viewed: {format(new Date(invoice.publicLastViewedAt), 'dd/MM/yyyy HH:mm')}
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
