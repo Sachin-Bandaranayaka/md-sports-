@@ -6,8 +6,7 @@ import prisma, { executeQuery } from '@/lib/prisma';
 import { ShopAccessControl } from '@/lib/utils/shopMiddleware';
 import { measureAsync } from '@/lib/performance';
 import { cacheService, CACHE_CONFIG } from '@/lib/cache';
-// Note: smsService import commented out as it may not be available
-// import { smsService } from '@/lib/sms';
+import { smsService } from '@/services/smsService';
 import { AuditService } from '@/services/auditService';
 
 // Helper function to retry on prepared statement errors
@@ -472,6 +471,12 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
             const invoice = await measureAsync('invoice-transaction', () =>
                 prisma.$transaction(
                     async (tx) => {
+                        // Generate public token for the invoice
+                        const crypto = require('crypto');
+                        const publicToken = crypto.randomBytes(32).toString('hex');
+                        const publicTokenExpiresAt = new Date();
+                        publicTokenExpiresAt.setDate(publicTokenExpiresAt.getDate() + 60); // 60 days from now
+
                         const createdInvoice = await tx.invoice.create({
                             data: {
                                 invoiceNumber: finalInvoiceNumber,
@@ -485,7 +490,11 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
                                 shopId: invoiceDetails.shopId || null,
                                 createdBy: userId,
                                 totalProfit: 0, // Will be updated after items are processed
-                                profitMargin: 0 // Will be updated after items are processed
+                                profitMargin: 0, // Will be updated after items are processed
+                                publicToken: publicToken,
+                                publicTokenExpiresAt: publicTokenExpiresAt,
+                                publicViewCount: 0,
+                                publicLastViewedAt: null
                             },
                         });
 
@@ -672,23 +681,23 @@ export const POST = ShopAccessControl.withShopAccess(async (request: NextRequest
 
             if (sendSms) {
                 try {
-                    // SMS service temporarily disabled
-                    console.log('SMS notification requested but service is not available');
-                    // TODO: Implement SMS service
-                    // await smsService.init();
-                    // if (smsService.isConfigured()) {
-                    //     smsService.sendInvoiceNotification(invoice!.id)
-                    //         .then((result: any) => {
-                    //             if (result.status >= 200 && result.status < 300) {
-                    //                 console.log('SMS notification sent successfully');
-                    //             } else {
-                    //                 console.warn('Failed to send SMS notification:', result.message);
-                    //             }
-                    //         })
-                    //         .catch((error: any) => {
-                    //             console.error('Error sending SMS notification:', error);
-                    //         });
-                    // }
+                    await smsService.init();
+                    if (smsService.isConfigured()) {
+                        // Send SMS notification asynchronously
+                        smsService.sendInvoiceNotification(invoice!.id)
+                            .then((result: any) => {
+                                if (result.status >= 200 && result.status < 300) {
+                                    console.log('SMS notification sent successfully');
+                                } else {
+                                    console.warn('Failed to send SMS notification:', result.message);
+                                }
+                            })
+                            .catch((error: any) => {
+                                console.error('Error sending SMS notification:', error);
+                            });
+                    } else {
+                        console.log('SMS service is not configured');
+                    }
                 } catch (smsError) {
                     console.error('SMS notification error:', smsError);
                 }

@@ -57,6 +57,10 @@ interface Shop {
     country?: string | null;
 }
 
+interface User {
+    name: string;
+}
+
 interface Invoice {
     id: number;
     invoiceNumber: string;
@@ -66,10 +70,13 @@ interface Invoice {
     status: string;
     createdAt: string;
     updatedAt: string;
+    publicViewCount?: number | null;
+    publicLastViewedAt?: Date | null;
     customer: Customer;
     shop?: Shop | null;
     items: InvoiceItem[];
-    payments: Payment[];
+    payments?: Payment[];
+    createdByUser?: User | null;
 }
 
 /**
@@ -87,7 +94,7 @@ const formatDate = (dateString: string) => {
 /**
  * Generate PDF for an invoice
  */
-export const generateInvoicePDF = (invoice: Invoice): void => {
+export const generateInvoicePDF = (invoice: Invoice): Buffer => {
     // Create a new PDF document
     const doc = new jsPDF();
 
@@ -346,6 +353,6 @@ export const generateInvoicePDF = (invoice: Invoice): void => {
         });
     }
 
-    // Save the PDF
-    doc.save(`Invoice-${invoice.invoiceNumber}.pdf`);
+    // Return the PDF as a buffer
+    return Buffer.from(doc.output('arraybuffer'));
 };

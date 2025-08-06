@@ -84,7 +84,7 @@ interface Invoice {
     publicToken?: string;
     publicTokenExpiresAt?: string;
     publicViewCount?: number;
-    publicLastViewedAt?: string;
+    publicLastViewedAt?: string | null;
 }
 
 // Status badge component
@@ -269,10 +269,10 @@ export default function InvoiceDetail() {
                 // Update the invoice with new public link data
                 setInvoice(prev => prev ? {
                     ...prev,
-                    publicToken: result.data.publicToken,
-                    publicTokenExpiresAt: result.data.publicTokenExpiresAt,
-                    publicViewCount: result.data.publicViewCount || 0,
-                    publicLastViewedAt: result.data.publicLastViewedAt
+                    publicToken: result.token,
+                    publicTokenExpiresAt: result.expiresAt,
+                    publicViewCount: 0,
+                    publicLastViewedAt: null
                 } : null);
                 
                 setLinkStatus({
