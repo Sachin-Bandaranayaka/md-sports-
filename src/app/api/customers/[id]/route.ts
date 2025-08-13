@@ -26,7 +26,8 @@ export async function GET(
 
         const customer = await prisma.customer.findUnique({
             where: {
-                id: id
+                id: id,
+                isDeleted: false
             },
             include: {
                 invoices: {

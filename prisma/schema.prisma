@@ -190,11 +190,15 @@ model Customer {
   taxId              String?
   notes              String?
   status             String?
+  isDeleted          Boolean     @default(false)
+  deletedAt          DateTime?
+  deletedBy          String?
   invoices           Invoice[]
   payments           Payment[]
   quotations         Quotation[]
 
   @@index([name])
+  @@index([isDeleted])
 }
 
 model Supplier {

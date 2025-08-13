@@ -10,6 +10,7 @@ export async function GET(request: Request) {
                 creditLimit: {
                     gt: 0,
                 },
+                isDeleted: false,
                 // OR use another field like customerType: 'Credit' if applicable
             },
             select: {
@@ -76,4 +77,4 @@ export async function GET(request: Request) {
             { status: 500 }
         );
     }
-} 
+}

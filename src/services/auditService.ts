@@ -95,6 +95,20 @@ export class AuditService {
     userId: string, // Changed to string
     canRecover: boolean = true
   ): Promise<void> {
+    const deletedAt = new Date();
+    
+    // Update the entity table directly for Customer
+    if (entity.toLowerCase() === 'customer') {
+      await this.prisma.customer.update({
+        where: { id: entityId },
+        data: {
+          isDeleted: true,
+          deletedAt: deletedAt,
+          deletedBy: userId,
+        },
+      });
+    }
+    
     await this.logAction({
       userId,
       action: 'DELETE',
@@ -102,7 +116,7 @@ export class AuditService {
       entityId,
       originalData,
       isDeleted: true,
-      deletedAt: new Date(),
+      deletedAt: deletedAt,
       deletedBy: userId, // No toString needed
       canRecover,
       details: {
@@ -277,7 +291,7 @@ export class AuditService {
    */
   async recoverItem(
     auditLogId: number,
-    userId: number
+    userId: string
   ): Promise<{ success: boolean; message: string; data?: any }> {
     try {
       const auditEntry = await this.prisma.auditLog.findUnique({
@@ -307,7 +321,7 @@ export class AuditService {
       const updatedDetails = {
         ...details,
         recoveredAt: new Date(),
-        recoveredBy: userId.toString(),
+        recoveredBy: userId,
       };
 
       await this.prisma.auditLog.update({
@@ -374,7 +388,8 @@ export class AuditService {
           break;
 
         case 'customer':
-          restoredData = await this.prisma.customer.create({
+          restoredData = await this.prisma.customer.update({
+            where: { id: originalData.id },
             data: {
               name: originalData.name,
               email: originalData.email,
@@ -387,6 +402,9 @@ export class AuditService {
               creditLimit: originalData.creditLimit,
               paymentTerms: originalData.paymentTerms,
               isActive: originalData.isActive ?? true,
+              isDeleted: false,
+              deletedAt: null,
+              deletedBy: null,
             },
           });
           break;
@@ -703,6 +721,25 @@ export class AuditService {
    * Permanently delete items from recycle bin
    */
   async permanentlyDelete(auditLogIds: number[]): Promise<void> {
+    // First, get the audit log entries to identify what needs to be permanently deleted
+    const auditEntries = await this.prisma.auditLog.findMany({
+      where: {
+        id: { in: auditLogIds },
+        action: 'DELETE',
+      },
+    });
+
+    // Permanently delete customers from the Customer table
+    const customerEntries = auditEntries.filter(entry => entry.entity.toLowerCase() === 'customer');
+    if (customerEntries.length > 0) {
+      const customerIds = customerEntries.map(entry => entry.entityId).filter(id => id !== null);
+      await this.prisma.customer.deleteMany({
+        where: {
+          id: { in: customerIds },
+        },
+      });
+    }
+
     // Permanently remove audit log entries (DELETE actions)
     await this.prisma.auditLog.deleteMany({
       where: {

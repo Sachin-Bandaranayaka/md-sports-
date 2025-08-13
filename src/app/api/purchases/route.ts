@@ -391,16 +391,15 @@ export async function POST(request: NextRequest) {
                 }
 
                 // If there's a paidAmount, create a payment record
-                if (body.paidAmount && body.paidAmount > 0) {
-                    await tx.payment.create({
-                        data: {
-                            amount: parseFloat(body.paidAmount as unknown as string) || 0,
-                            paymentMethod: body.paymentMethod || 'cash', // Default or from body
-                            invoice: { connect: { id: createdInvoice.id } }
-                        }
-                    });
-                }
-
+                // Immediate safe fix: DO NOT create a sales Payment here.
+                // Payments in the current schema are related to sales Invoices, not PurchaseInvoices.
+                // Creating a Payment here attempts to connect to an Invoice with a PurchaseInvoice id and causes P2025.
+                // TODO: Implement SupplierPayment/PurchasePayment model or extend Payment to support purchase invoices.
+                // For now, skip creating any payment to avoid runtime errors when creating purchase invoices.
+                // if (body.paidAmount && body.paidAmount > 0) {
+                //   // Implement purchase payment recording here once schema supports it
+                // }
+                
                 // Fetch the complete invoice with items
                 const fullInvoice = await tx.purchaseInvoice.findUnique({
                     where: { id: createdInvoice.id },
@@ -439,7 +438,7 @@ export async function POST(request: NextRequest) {
                         totalAmount: purchase.invoice.total,
                         status: purchase.invoice.status,
                         itemCount: purchase.invoice.items?.length || 0,
-                        items: purchase.invoice.items?.map(item => ({
+                        items: purchase.invoice.items?.map((item: any) => ({
                             productId: item.productId,
                             quantity: item.quantity,
                             unitPrice: item.price,

@@ -653,12 +653,23 @@ export async function DELETE(
         console.error('Error deleting invoice:', error);
         const err = error as Error;
 
-        // Check for foreign key constraint violation with receipts
+        // Check for foreign key constraint violations
         if (err.message && err.message.includes('Receipt_paymentId_fkey')) {
             return NextResponse.json(
                 {
                     success: false,
                     message: 'Cannot delete invoice with associated receipts. Please delete the receipts first.',
+                    error: err.message
+                },
+                { status: 400 }
+            );
+        }
+
+        if (err.message && err.message.includes('Payment_invoiceId_fkey')) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: 'Cannot delete invoice with associated payments. Please delete the payments first.',
                     error: err.message
                 },
                 { status: 400 }

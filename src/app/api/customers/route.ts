@@ -1,21 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/utils/middleware';
 import { prisma } from '@/lib/prisma';
-import { AuditService } from '@/services/auditService';
 import { verifyToken } from '@/lib/auth';
+import { AuditService } from '@/services/auditService';
 
 export async function GET() {
     try {
-        // Get IDs of soft-deleted customers
-        const auditService = AuditService.getInstance();
-        const deletedCustomerIds = await auditService.getDeletedEntityIds('Customer');
-
-        // Fetch customers from database using Prisma
+        // Fetch customers from database using Prisma, excluding soft-deleted ones
         const customers = await prisma.customer.findMany({
             where: {
-                id: {
-                    notIn: deletedCustomerIds
-                }
+                isDeleted: false
             },
             orderBy: {
                 name: 'asc'
@@ -128,7 +122,7 @@ export async function POST(request: NextRequest) {
         // Log CREATE action
         const auditService = AuditService.getInstance();
         await auditService.logAction({
-            userId,
+            userId: userId ? String(userId) : null,
             action: 'CREATE',
             entity: 'Customer',
             entityId: customer.id,

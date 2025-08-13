@@ -18,7 +18,15 @@ export async function deleteInvoice(invoiceId: number, userId: number): Promise<
     const auditService = AuditService.getInstance();
     const invoice = await tx.invoice.findUnique({
       where: { id: invoiceId },
-      include: { items: true, customer: true }
+      include: { 
+        items: true, 
+        customer: true,
+        payments: {
+          include: {
+            receipt: true
+          }
+        }
+      }
     });
 
     if (!invoice) {
@@ -26,6 +34,18 @@ export async function deleteInvoice(invoiceId: number, userId: number): Promise<
     }
 
     await auditService.softDelete('Invoice', invoiceId, invoice, String(userId), true);
+
+    // Delete receipts first (they reference payments)
+    if (invoice.payments.length > 0) {
+      for (const payment of invoice.payments) {
+        if (payment.receipt) {
+          await tx.receipt.delete({ where: { id: payment.receipt.id } });
+        }
+      }
+    }
+
+    // Delete payments (they reference the invoice)
+    await tx.payment.deleteMany({ where: { invoiceId } });
 
     // Adjust inventory
     if (invoice.items.length > 0) {
@@ -37,8 +57,10 @@ export async function deleteInvoice(invoiceId: number, userId: number): Promise<
       }
     }
 
-    // After inventory adjustment
+    // Delete invoice items
     await tx.invoiceItem.deleteMany({ where: { invoiceId } });
+    
+    // Finally delete the invoice
     await tx.invoice.delete({ where: { id: invoiceId } });
 
     return {
@@ -48,4 +70,4 @@ export async function deleteInvoice(invoiceId: number, userId: number): Promise<
       shopId: invoice.shopId
     };
   });
-} 
+}

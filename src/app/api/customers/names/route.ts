@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
@@ -25,7 +25,8 @@ export async function POST(request: NextRequest) {
             where: {
                 id: {
                     in: ids
-                }
+                },
+                isDeleted: false
             },
             select: {
                 id: true,
