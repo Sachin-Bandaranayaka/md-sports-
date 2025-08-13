@@ -182,11 +182,12 @@ export async function PUT(
             }
         });
 
-        // Check for duplicate mobile number if phone is being updated
+        // Check for duplicate mobile number if phone is being updated (excluding soft-deleted customers)
         if (phone && phone.trim()) {
             const existingCustomer = await prisma.customer.findFirst({
                 where: {
                     phone: phone.trim(),
+                    isDeleted: false,
                     id: {
                         not: id // Exclude the current customer being updated
                     }

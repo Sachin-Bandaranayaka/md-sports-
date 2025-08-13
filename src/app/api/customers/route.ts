@@ -72,11 +72,12 @@ export async function POST(request: NextRequest) {
             creditPeriod = parseInt(customerData.creditPeriod) || null;
         }
 
-        // Check for duplicate mobile number if phone is provided
+        // Check for duplicate mobile number if phone is provided (excluding soft-deleted customers)
         if (customerData.phone && customerData.phone.trim()) {
             const existingCustomer = await prisma.customer.findFirst({
                 where: {
-                    phone: customerData.phone.trim()
+                    phone: customerData.phone.trim(),
+                    isDeleted: false
                 }
             });
 
