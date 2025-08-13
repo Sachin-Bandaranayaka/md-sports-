@@ -350,6 +350,16 @@ export async function PUT(
                         where: { id: Number(newItem.productId) },
                         data: { weightedAverageCost: newWeightedAverageCost }
                     });
+
+                    // CRITICAL FIX: Update all shop-specific costs to match the new global WAC
+                    // This ensures consistency between global WAC and shop-specific costs
+                    await tx.inventoryItem.updateMany({
+                        where: { 
+                            productId: Number(newItem.productId),
+                            quantity: { gt: 0 } // Only update items with positive quantity
+                        },
+                        data: { shopSpecificCost: newWeightedAverageCost }
+                    });
                 }
             }
             const fullUpdatedInvoice = await tx.purchaseInvoice.findUnique({
@@ -579,6 +589,16 @@ export async function DELETE(
                     await tx.product.update({
                         where: { id: productId },
                         data: { weightedAverageCost: newCalculatedWAC >= 0 ? newCalculatedWAC : 0 }
+                    });
+
+                    // CRITICAL FIX: Update all shop-specific costs to match the new global WAC
+                    // This ensures consistency between global WAC and shop-specific costs
+                    await tx.inventoryItem.updateMany({
+                        where: { 
+                            productId: productId,
+                            quantity: { gt: 0 } // Only update items with positive quantity
+                        },
+                        data: { shopSpecificCost: newCalculatedWAC >= 0 ? newCalculatedWAC : 0 }
                     });
                     // ---- END WAC Recalculation ----
                 }
