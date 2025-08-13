@@ -34,7 +34,9 @@ async function fetchInvoicesData({
     timePeriod,
     searchQueryParam,
     sortByParam,
-    shopId
+    shopId,
+    dateFromParam,
+    dateToParam
 }: {
     pageParam?: number;
     status?: string;
@@ -43,6 +45,8 @@ async function fetchInvoicesData({
     searchQueryParam?: string;
     sortByParam?: string;
     shopId?: string;
+    dateFromParam?: string;
+    dateToParam?: string;
 }) {
     const page = typeof pageParam === 'string' ? parseInt(pageParam, 10) : pageParam;
     const skip = (page - 1) * ITEMS_PER_PAGE;
@@ -60,7 +64,42 @@ async function fetchInvoicesData({
         }),
     };
 
-    if (timePeriod && timePeriod !== 'all') {
+    // Explicit date range filters take precedence over timePeriod
+    if (dateFromParam || dateToParam) {
+        const createdAt: Prisma.DateTimeFilter = {};
+        let start: Date | undefined;
+        let end: Date | undefined;
+
+        const parseDateOnly = (val: string) => {
+            // Parse YYYY-MM-DD as a local date (avoids timezone off-by-one)
+            const m = val.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (m) {
+                const y = Number(m[1]);
+                const mo = Number(m[2]);
+                const d = Number(m[3]);
+                return new Date(y, mo - 1, d);
+            }
+            return new Date(val);
+        };
+
+        if (dateFromParam) {
+            start = parseDateOnly(dateFromParam);
+            start.setHours(0, 0, 0, 0);
+        }
+        if (dateToParam) {
+            end = parseDateOnly(dateToParam);
+            end.setHours(23, 59, 59, 999);
+        }
+        // Normalize if user selected reversed range
+        if (start && end && start > end) {
+            const tmp = start;
+            start = end;
+            end = tmp;
+        }
+        if (start) createdAt.gte = start;
+        if (end) createdAt.lte = end;
+        whereClause.createdAt = createdAt;
+    } else if (timePeriod && timePeriod !== 'all') {
         const now = new Date();
         let startDate: Date;
 
@@ -280,6 +319,8 @@ export default async function InvoicesList({
         timePeriod?: string;
         sortBy?: string;
         shopId?: string;
+        dateFrom?: string;
+        dateTo?: string;
     };
 }) {
     const cookieStore = await cookies();
@@ -293,7 +334,7 @@ export default async function InvoicesList({
         }
     }
 
-    const { page, status, paymentMethod, search, timePeriod, sortBy, shopId } = searchParams;
+    const { page, status, paymentMethod, search, timePeriod, sortBy, shopId, dateFrom, dateTo } = searchParams;
 
     const appliedShopId = userShopId || shopId;
 
@@ -305,7 +346,9 @@ export default async function InvoicesList({
             searchQueryParam: search,
             timePeriod: timePeriod,
             sortByParam: sortBy,
-            shopId: appliedShopId
+            shopId: appliedShopId,
+            dateFromParam: dateFrom,
+            dateToParam: dateTo
         }),
         prisma.shop.findMany({
             select: {
@@ -339,4 +382,4 @@ export default async function InvoicesList({
             shops={shops}
         />
     );
-} 
+}

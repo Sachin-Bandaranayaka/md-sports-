@@ -369,7 +369,7 @@ export default async function PurchaseInvoiceDetailPage({ params }: PurchaseInvo
                                                                     return (
                                                                         <div key={shopId} className="flex items-center justify-between bg-green-50 px-2 py-1 rounded text-sm">
                                                                             <span className="text-green-700 font-medium">{shopName}</span>
-                                                                            <span className="text-green-900 font-semibold">{quantity}</span>
+                                                                            <span className="text-green-900 font-semibold">{String(quantity)}</span>
                                                                         </div>
                                                                     );
                                                                 })}

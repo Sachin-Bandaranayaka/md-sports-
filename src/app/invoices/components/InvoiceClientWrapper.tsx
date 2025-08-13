@@ -645,6 +645,12 @@ export default function InvoiceClientWrapper({
                                     onClick={() => {
                                         setDateFrom(undefined);
                                         setDateTo(undefined);
+                                        // Immediately reflect in URL so results refresh even when both dates become undefined
+                                        const params = new URLSearchParams(searchParams);
+                                        params.delete('dateFrom');
+                                        params.delete('dateTo');
+                                        params.set('page', '1');
+                                        router.push(`/invoices?${params.toString()}`);
                                     }}
                                     className="w-full py-1 px-3 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 bg-white rounded-md hover:bg-gray-50 flex items-center justify-center"
                                 >
