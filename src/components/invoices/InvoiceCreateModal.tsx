@@ -97,7 +97,18 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
     isLoading = false,
     onCustomersUpdate
 }) => {
-    const { accessToken } = useAuth();
+    const { accessToken, user } = useAuth();
+    const isShopStaff = useMemo(() => user?.roleName?.toLowerCase() === 'shop staff', [user?.roleName]);
+    
+    // Memo for available shops based on user role
+    const availableShops = useMemo(() => {
+        const safeShops = Array.isArray(shops) ? shops : [];
+        if (isShopStaff && user?.shopId) {
+            return safeShops.filter(s => s.id?.toString() === user.shopId?.toString());
+        }
+        return safeShops;
+    }, [shops, isShopStaff, user?.shopId]);
+
     const [formData, setFormData] = useState<InvoiceFormData>({
         customerId: 0,
         customerName: '',
@@ -126,6 +137,13 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
         total: 0
     });
 
+    // If user is Shop Staff, pre-select their assigned shop when modal opens
+    useEffect(() => {
+        if (isOpen && isShopStaff && user?.shopId) {
+            setFormData(prev => ({ ...prev, shopId: user.shopId as string }));
+        }
+    }, [isOpen, isShopStaff, user?.shopId]);
+
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [submitting, setSubmitting] = useState(false);
     const isSubmittingRef = useRef(false);
@@ -141,7 +159,7 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
     const [showProductDropdown, setShowProductDropdown] = useState(false);
     const customerDropdownRef = useRef<HTMLDivElement>(null);
     const [itemProductDropdownRefs, setItemProductDropdownRefs] = useState<Record<string, React.RefObject<HTMLDivElement>>>({});
-    
+
     // Debounced search values for better performance
     const debouncedCustomerSearch = useDebounce(customerSearch, 300);
     const debouncedProductSearch = useDebounce(productSearch, 300);
@@ -754,7 +772,7 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
             dueDate: defaultDueDate.toISOString().split('T')[0],
             paymentMethod: 'Cash',
             notes: '',
-            shopId: '',
+            shopId: isShopStaff && user?.shopId ? (user.shopId as string) : '',
             items: [{
                 id: Date.now().toString(),
                 productId: 0,
@@ -851,12 +869,13 @@ const InvoiceCreateModal: React.FC<InvoiceCreateModalProps> = ({
                             id="shop"
                             value={formData.shopId || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, shopId: e.target.value }))}
+                            disabled={isShopStaff}
                             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white ${
                                 errors.shopId ? 'border-red-500' : 'border-gray-300'
                             }`}
                         >
-                            <option value="">Select a shop *</option>
-                            {Array.isArray(shops) && shops.map(shop => (
+                            {!isShopStaff && <option value="">Select a shop *</option>}
+                            {Array.isArray(availableShops) && availableShops.map((shop: Shop) => (
                                 <option key={shop.id} value={shop.id}>
                                     {shop.name}
                                 </option>
