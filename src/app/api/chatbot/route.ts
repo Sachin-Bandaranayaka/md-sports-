@@ -66,31 +66,47 @@ export async function POST(req: NextRequest) {
         }
         console.log(`[Chatbot API] API key for this request. Length: ${apiKey.length}.`);
 
+        // Detect if the provided key is an OpenRouter key and set provider-specific configs
+        const isOpenRouterKey = apiKey.startsWith('sk-or-');
+        const baseURL = isOpenRouterKey ? 'https://openrouter.ai/api/v1' : 'https://api.deepseek.com';
+        const model = isOpenRouterKey ? 'deepseek/deepseek-chat' : 'deepseek-chat';
+        const defaultHeaders = isOpenRouterKey
+            ? {
+                  'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+                  'X-Title': 'MS Sports'
+              }
+            : undefined;
+
         // Instantiate OpenAI client for this specific request
         const deepseekClient = new OpenAI({
             apiKey,
-            baseURL: 'https://api.deepseek.com',
+            baseURL,
             dangerouslyAllowBrowser: false,
+            ...(defaultHeaders ? { defaultHeaders } as any : {}),
         });
 
         const businessContextContent = await getBusinessContext();
-        const businessContext = { role: 'system', content: businessContextContent };
+        const businessContext = { role: 'system', content: businessContextContent } as const;
         const finalMessages = [businessContext, ...messages];
 
-        console.log(`[Chatbot API] Sending ${finalMessages.length} messages to Deepseek.`);
+        console.log(`[Chatbot API] Sending ${finalMessages.length} messages to ${isOpenRouterKey ? 'OpenRouter (Deepseek model)' : 'Deepseek'} .`);
 
         const response = await deepseekClient.chat.completions.create({
-            model: 'deepseek-chat',
+            model,
             messages: finalMessages,
             temperature: 0.7,
             max_tokens: 500,
         });
 
-        console.log('[Chatbot API] Successfully received response from Deepseek.');
+        console.log('[Chatbot API] Successfully received response from AI provider.');
         return NextResponse.json(response.choices[0].message);
 
     } catch (error: any) {
         console.error('[Chatbot API] Error processing request:', error.message);
+        // Provide a clearer hint if an OpenRouter key is used against Deepseek endpoint
+        if (typeof error.message === 'string' && error.message.includes('Authentication') && error.message.includes('invalid')) {
+            console.error('[Chatbot API] Hint: If you are using an OpenRouter key (starts with "sk-or-"), ensure the request is sent to OpenRouter baseURL.');
+        }
         if (error.message.includes('API key') || error.message.includes('configure')) {
             return NextResponse.json({ error: error.message }, { status: 403 });
         }
@@ -99,4 +115,4 @@ export async function POST(req: NextRequest) {
             { status: 500 }
         );
     }
-} 
+}
