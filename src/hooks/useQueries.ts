@@ -62,6 +62,7 @@ export const useInventory = (filters?: any) => {
       if (filters?.limit) params.append('limit', filters.limit.toString());
       if (filters?.search) params.append('search', filters.search);
       if (filters?.category) params.append('category', filters.category);
+      if (filters?.status) params.append('status', filters.status);
       if (filters?.shop) params.append('shop', filters.shop);
 
       return fetchApi<PaginatedResponse<any>>(`/api/inventory/summary?${params.toString()}`);
