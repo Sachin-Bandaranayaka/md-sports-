@@ -397,7 +397,7 @@ export async function PATCH(
         }
 
         // Invalidate relevant caches
-        await transferCacheService.invalidateTransferCache(resolvedParams.id, [result.fromShopId, result.toShopId]);
+        await transferCacheService.invalidateTransferCache(parseInt(resolvedParams.id), [parseInt(result.fromShopId), parseInt(result.toShopId)]);
 
         operation.end(true);
         return NextResponse.json({
@@ -420,7 +420,7 @@ export async function PUT(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const operation = trackTransferOperation('update');
+    const operation = trackTransferOperation('detail');
 
     // Token and user role check
     const token = extractToken(req);
@@ -493,7 +493,10 @@ export async function PUT(
                     async (tx) => {
                         // Check if transfer exists and is pending
                         const existingTransfer = await tx.inventoryTransfer.findUnique({
-                            where: { id }
+                            where: { id },
+                            include: {
+                                transferItems: true
+                            }
                         });
 
                         if (!existingTransfer) {
@@ -512,7 +515,21 @@ export async function PUT(
                             throw new Error('Invalid shop selection');
                         }
 
-                        // Verify products exist and have sufficient stock
+                        // First, restore the original quantities that were decremented when the transfer was created
+                        for (const existingItem of existingTransfer.transferItems) {
+                            await tx.inventoryItem.updateMany({
+                                where: {
+                                    productId: existingItem.productId,
+                                    shopId: existingTransfer.fromShopId
+                                },
+                                data: {
+                                    quantity: { increment: existingItem.quantity },
+                                    updatedAt: new Date()
+                                }
+                            });
+                        }
+
+                        // Verify products exist and have sufficient stock after restoration
                         for (const item of items) {
                             const inventory = await tx.inventoryItem.findFirst({
                                 where: {
@@ -533,6 +550,22 @@ export async function PUT(
                                 throw new Error(`Insufficient stock for "${productName}". Available: ${inventory.quantity}, Requested: ${item.quantity}`);
                             }
                         }
+
+                        // --- Inventory Adjustment Logic ---
+                        // Then, deduct the new quantities for the updated transfer
+                        for (const newItem of items) {
+                            await tx.inventoryItem.updateMany({
+                                where: {
+                                    productId: newItem.productId,
+                                    shopId: sourceShopId
+                                },
+                                data: {
+                                    quantity: { decrement: newItem.quantity },
+                                    updatedAt: new Date()
+                                }
+                            });
+                        }
+                        // --- End Inventory Adjustment Logic ---
 
                         // Update transfer
                         const updatedTransfer = await tx.inventoryTransfer.update({
@@ -578,7 +611,7 @@ export async function PUT(
         }
 
         // Invalidate relevant caches
-        await transferCacheService.invalidateTransferCache(id.toString(), [result.fromShopId, result.toShopId]);
+        await transferCacheService.invalidateTransferCache(id, [parseInt(result.fromShopId), parseInt(result.toShopId)]);
 
         operation.end(true);
         return NextResponse.json({
@@ -679,7 +712,7 @@ export async function DELETE(
         }
 
         // Invalidate relevant caches
-        await transferCacheService.invalidateTransferCache(id.toString(), [result.fromShopId, result.toShopId]);
+        await transferCacheService.invalidateTransferCache(id, [parseInt(result.fromShopId), parseInt(result.toShopId)]);
 
         operation.end(true);
         return NextResponse.json({

@@ -97,13 +97,13 @@ BEGIN
         -- Insert shops
         INSERT INTO shops (name, location, contact_person, phone, email) 
         VALUES 
-            ('MD Sports Main Store', 'Colombo', 'John Doe', '+94123456789', 'main@mdsports.lk'),
-            ('MD Sports Kandy Branch', 'Kandy', 'Jane Smith', '+94123456790', 'kandy@mdsports.lk');
+            ('MS Sports Main Store', 'Colombo', 'John Doe', '+94123456789', 'main@mssports.lk'),
+('MS Sports Kandy Branch', 'Kandy', 'Jane Smith', '+94123456790', 'kandy@mssports.lk');
             
         -- Insert inventory items
         WITH 
-            main_store AS (SELECT id FROM shops WHERE name = 'MD Sports Main Store' LIMIT 1),
-            kandy_store AS (SELECT id FROM shops WHERE name = 'MD Sports Kandy Branch' LIMIT 1),
+            main_store AS (SELECT id FROM shops WHERE name = 'MS Sports Main Store' LIMIT 1),
+kandy_store AS (SELECT id FROM shops WHERE name = 'MS Sports Kandy Branch' LIMIT 1),
             basketball AS (SELECT id FROM products WHERE name = 'Professional Basketball' LIMIT 1),
             jersey AS (SELECT id FROM products WHERE name = 'Team Jersey' LIMIT 1)
         INSERT INTO inventory_items (shop_id, product_id, quantity, reorder_level) 
@@ -143,4 +143,4 @@ async function createTables() {
 }
 
 // Execute the function
-createTables(); 
+createTables();

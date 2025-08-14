@@ -1,4 +1,4 @@
--- Migration to populate test data for MD Sports
+-- Migration to populate test data for MS Sports
 -- This should be run as a migration to ensure proper permissions
 
 -- First, add more categories
@@ -12,8 +12,8 @@ ON CONFLICT DO NOTHING;
 
 -- Add more shops
 INSERT INTO "Shop" (id, name, location, address_line1, city, state, postal_code, phone, email, is_active, status) VALUES 
-('shop_001', 'Athletic Central', 'Kuala Lumpur', '123 Sports Street', 'Kuala Lumpur', 'Selangor', '50000', '012-3456789', 'athletic@mdsports.com', true, 'open'),
-('shop_002', 'Sports World East', 'Penang', '456 Victory Road', 'Penang', 'Penang', '10000', '012-9876543', 'east@mdsports.com', true, 'open')
+('shop_001', 'Athletic Central', 'Kuala Lumpur', '123 Sports Street', 'Kuala Lumpur', 'Selangor', '50000', '012-3456789', 'athletic@mssports.com', true, 'open'),
+('shop_002', 'Sports World East', 'Penang', '456 Victory Road', 'Penang', 'Penang', '10000', '012-9876543', 'east@mssports.com', true, 'open')
 ON CONFLICT DO NOTHING;
 
 -- Add products in batches (this is a sample - repeat with different values)
@@ -58,4 +58,4 @@ SELECT 'Customers', COUNT(*) FROM "Customer"
 UNION ALL
 SELECT 'Suppliers', COUNT(*) FROM "Supplier"
 UNION ALL
-SELECT 'InventoryItems', COUNT(*) FROM "InventoryItem"; 
+SELECT 'InventoryItems', COUNT(*) FROM "InventoryItem";

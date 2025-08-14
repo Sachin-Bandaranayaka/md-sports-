@@ -200,7 +200,7 @@ describe('Accessibility Tests', () => {
     it('should have proper heading hierarchy', async () => {
       // Mock heading structure check
       const mockHeadings = [
-        { level: 1, text: 'MD Sports Dashboard' },
+        { level: 1, text: 'MS Sports Dashboard' },
         { level: 2, text: 'Quick Stats' },
         { level: 3, text: 'Sales Today' },
         { level: 3, text: 'Inventory Status' },
@@ -379,7 +379,7 @@ describe('Accessibility Tests', () => {
         },
         {
           src: '/images/logo.png',
-          alt: 'MD Sports company logo',
+          alt: 'MS Sports company logo',
           isDecorative: false,
           hasAlt: true,
         },

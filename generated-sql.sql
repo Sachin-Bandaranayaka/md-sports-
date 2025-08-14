@@ -27,7 +27,7 @@ INSERT INTO "Shop" (id, name, location, address_line1, city, state, postal_code,
     'Penang',
     '78628',
     '014-4734641',
-    'shop3@mdsports.com',
+    'shop3@mssports.com',
     true,
     'open'
   );
@@ -40,7 +40,7 @@ INSERT INTO "Shop" (id, name, location, address_line1, city, state, postal_code,
     'Penang',
     '37253',
     '012-7508232',
-    'shop4@mdsports.com',
+    'shop4@mssports.com',
     true,
     'open'
   );
@@ -53,7 +53,7 @@ INSERT INTO "Shop" (id, name, location, address_line1, city, state, postal_code,
     'Johor',
     '63869',
     '016-8521036',
-    'shop5@mdsports.com',
+    'shop5@mssports.com',
     true,
     'open'
   );
@@ -66,7 +66,7 @@ INSERT INTO "Shop" (id, name, location, address_line1, city, state, postal_code,
     'Penang',
     '23129',
     '019-7752856',
-    'shop6@mdsports.com',
+    'shop6@mssports.com',
     true,
     'open'
   );

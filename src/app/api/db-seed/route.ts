@@ -43,7 +43,7 @@ export async function POST() {
                 sku: 'BB-PRO-001',
                 barcode: '123456789012',
                 description: 'Official size and weight basketball',
-                cost: 25.00,
+                weightedAverageCost: 25.00,
                 price: 39.99,
                 categoryId: equipment.id
             }
@@ -55,7 +55,7 @@ export async function POST() {
                 sku: 'APP-JRS-001',
                 barcode: '123456789013',
                 description: 'Official team jersey',
-                cost: 35.00,
+                weightedAverageCost: 35.00,
                 price: 59.99,
                 categoryId: apparel.id
             }
@@ -86,14 +86,14 @@ export async function POST() {
         // Create shops
         const mainStore = await prisma.shop.create({
             data: {
-                name: 'MD Sports Main Store',
+                name: 'MS Sports Main Store',
                 location: 'Colombo'
             }
         });
 
         const branchStore = await prisma.shop.create({
             data: {
-                name: 'MD Sports Kandy Branch',
+                name: 'MS Sports Kandy Branch',
                 location: 'Kandy'
             }
         });
@@ -143,4 +143,4 @@ export async function POST() {
             error: error instanceof Error ? error.message : String(error)
         }, { status: 500 });
     }
-} 
+}

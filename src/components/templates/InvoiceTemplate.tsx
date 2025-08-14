@@ -130,15 +130,15 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
                 name: invoice.shop.name,
                 address: shopAddress || invoice.shop.location,
                 phone: invoice.shop.phone || "+94 11 234 5678",
-                email: invoice.shop.email || "info@mdsports.lk"
+                email: invoice.shop.email || "info@mssports.lk"
             };
         }
         
         return companyInfo || {
-            name: "MD Sports Management Pvt. Ltd",
+            name: "MS Sports Management Pvt. Ltd",
             address: "No 28, Malalsekara Mawatha, Colombo 07",
             phone: "+94 11 234 5678",
-            email: "info@mdsports.lk"
+            email: "info@mssports.lk"
         };
     };
     

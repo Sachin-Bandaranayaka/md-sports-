@@ -124,7 +124,7 @@ async function main() {
         state: getRandomElement(['Selangor', 'Kuala Lumpur', 'Johor', 'Penang', 'Perak']),
         postal_code: `${getRandomNumber(10000, 99999)}`,
         phone: generatePhoneNumber(),
-        email: `shop${existingShops.length + i + 1}@mdsports.com`,
+        email: `shop${existingShops.length + i + 1}@mssports.com`,
         is_active: true,
         status: 'open'
       };
@@ -274,4 +274,4 @@ main()
   .catch((e) => {
     console.error('❌ Script failed:', e);
     process.exit(1);
-  }); 
+  });

@@ -12,7 +12,7 @@ import { Toaster } from 'sonner';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'MD Sports',
+  title: 'MS Sports',
   description: 'Inventory Management System',
 };
 

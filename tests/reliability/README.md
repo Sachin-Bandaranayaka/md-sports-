@@ -1,6 +1,6 @@
-# MS Sport Reliability Testing Suite
+# MS Sports Reliability Testing Suite
 
-This comprehensive testing suite is designed to validate the reliability of the MS Sport application under realistic usage conditions, specifically for your use case of **2 shop staff users + 1-2 admins** handling **2000+ products** and **50-100 invoices per day**.
+This comprehensive testing suite is designed to validate the reliability of the MS Sports application under realistic usage conditions, specifically for your use case of **2 shop staff users + 1-2 admins** handling **2000+ products** and **50-100 invoices per day**.
 
 ## 🎯 Testing Objectives
 
@@ -34,7 +34,7 @@ scripts/
 
 ### Prerequisites
 
-1. **Application Running**: Ensure your MS Sport application is running on `http://localhost:3000`
+1. **Application Running**: Ensure your MS Sports application is running on `http://localhost:3000`
 2. **Database Setup**: Database should be populated with test data
 3. **Dependencies**: Install required packages
 
@@ -305,4 +305,4 @@ Modify test data in `stress-test-config.yml` for realistic scenarios specific to
 
 ---
 
-**Ready to test your MS Sport application's reliability? Start with the quick test and work your way up to extended testing!** 
+**Ready to test your MS Sports application's reliability? Start with the quick test and work your way up to extended testing!**

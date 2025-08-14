@@ -1,6 +1,6 @@
-# MD Sports Inventory Management System
+# MS Sports Inventory Management System
 
-A comprehensive inventory management system for MD Sports, a retail business with multiple shop locations in Sri Lanka. This system allows for centralized inventory management, inter-shop transfers, role-based access control, and comprehensive reporting.
+A comprehensive inventory management system for MS Sports, a retail business with multiple shop locations in Sri Lanka. This system allows for centralized inventory management, inter-shop transfers, role-based access control, and comprehensive reporting.
 
 ## Features
 
@@ -137,7 +137,7 @@ src/
 
 ## License
 
-This project is proprietary and owned by MD Sports.
+This project is proprietary and owned by MS Sports.
 
 ## Acknowledgments
 

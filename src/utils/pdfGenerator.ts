@@ -119,7 +119,7 @@ export const generateInvoicePDF = (invoice: Invoice): Buffer => {
     // Shop/Company details on the right
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    const shopName = invoice.shop?.name || 'MD Sports';
+    const shopName = invoice.shop?.name || 'MS Sports';
     doc.text(shopName, 150, 20, { align: 'right' });
 
     doc.setFontSize(10);

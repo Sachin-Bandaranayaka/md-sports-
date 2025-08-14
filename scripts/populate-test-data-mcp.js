@@ -109,7 +109,7 @@ shopNames.forEach((shopName, index) => {
     '${getRandomElement(['Selangor', 'Kuala Lumpur', 'Johor', 'Penang', 'Perak'])}',
     '${getRandomNumber(10000, 99999)}',
     '${generatePhoneNumber()}',
-    'shop${index + 3}@mdsports.com',
+    'shop${index + 3}@mssports.com',
     true,
     'open'
   );`);
@@ -190,4 +190,4 @@ console.log('📋 Instructions:');
 console.log('1. Copy the SQL statements above');
 console.log('2. Execute them in your database client');
 console.log('3. Repeat the product and customer sections to reach 2000 products and 1000 customers');
-console.log('4. Run the inventory items query at the end'); 
+console.log('4. Run the inventory items query at the end');
