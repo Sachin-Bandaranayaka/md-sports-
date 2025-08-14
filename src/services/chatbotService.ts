@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios';
+import { authGet, authPost, getCsrfToken } from '@/utils/api';
 
 export interface ChatMessage {
     role: 'user' | 'assistant' | 'system';
@@ -30,8 +30,8 @@ export const chatbotService = {
         try {
             console.log('[ChatbotService] Step 1: Checking API key configuration via /api/test-settings...');
             try {
-                const configResponse = await axios.get('/api/test-settings');
-                const configData = configResponse.data;
+                const configResponse = await authGet('/api/test-settings');
+                const configData = await configResponse.json();
                 console.log('[ChatbotService] /api/test-settings response:', configData);
 
                 if (!configData.success || configData.isEmpty || configData.valueLength === 0) {
@@ -40,60 +40,48 @@ export const chatbotService = {
                 }
                 console.log('[ChatbotService] API key seems configured according to /api/test-settings.');
             } catch (configError: any) {
-                console.error('[ChatbotService] Error during /api/test-settings check:', configError.response?.data || configError.message);
-                throw new Error(configError.response?.data?.message || configError.message || 'Failed to verify API key configuration. Please check AI Assistant settings.');
+                console.error('[ChatbotService] Error during /api/test-settings check:', configError);
+                const message = (configError instanceof Error ? configError.message : undefined) || 'Failed to verify API key configuration. Please check AI Assistant settings.';
+                throw new Error(message);
             }
 
-            // Get CSRF token from cookie
-            const csrfToken = getCookie('csrfToken');
+            // Get CSRF token from cookie (for logging purposes only; headers are added by authPost)
+            const csrfToken = getCookie('csrfToken') || getCsrfToken();
             if (!csrfToken) {
                 console.warn('[ChatbotService] CSRF token cookie not found. POST request might fail.');
             }
             console.log(`[ChatbotService] CSRF Token from cookie: ${csrfToken ? 'found' : 'not found'}`);
 
             console.log('[ChatbotService] Step 2: API key configured, proceeding to POST /api/chatbot...');
-            const response = await axios.post('/api/chatbot',
-                { messages },
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(csrfToken && { 'X-CSRF-Token': csrfToken }), // Include CSRF token if found
+            const response = await authPost('/api/chatbot', { messages });
+
+            if (!response.ok) {
+                let errorMessage = `Chatbot service request failed with status ${response.status}.`;
+                try {
+                    const errData = await response.json();
+                    if (errData && (errData.error || errData.message)) {
+                        errorMessage = errData.error || errData.message || errorMessage;
+                    } else if (response.status === 403) {
+                        errorMessage = 'Access to the chatbot service was denied (403). Please check API key and configuration in AI Assistant settings, or a CSRF token issue might exist.';
+                    } else if (response.status === 401) {
+                        errorMessage = 'Authentication required to use the chatbot.';
                     }
+                } catch {
+                    // ignore JSON parse error and use default message
                 }
-            );
-            console.log('[ChatbotService] Successfully received response from /api/chatbot.');
-            return response.data;
-
-        } catch (error: any) {
-            console.error('[ChatbotService] Error sending message:', error.isAxiosError ? error.toJSON() : error);
-
-            if (axios.isAxiosError(error)) {
-                const axiosError = error as AxiosError<{ error?: string, message?: string }>;
-                console.error('[ChatbotService] Axios error details. Status:', axiosError.response?.status, 'Data:', axiosError.response?.data);
-
-                let serviceErrorMessage = 'Failed to communicate with the chatbot service.';
-
-                if (axiosError.response) {
-                    const responseData = axiosError.response.data;
-                    if (responseData && (responseData.error || responseData.message)) {
-                        serviceErrorMessage = responseData.error || responseData.message || serviceErrorMessage;
-                    } else if (axiosError.response.status === 403) {
-                        serviceErrorMessage = 'Access to the chatbot service was denied (403). Please check API key and configuration in AI Assistant settings, or a CSRF token issue might exist.';
-                    } else {
-                        serviceErrorMessage = `Chatbot service request failed with status ${axiosError.response.status}.`;
-                    }
-                } else if (axiosError.request) {
-                    serviceErrorMessage = 'No response received from the chatbot service. Please check your network connection and server status.';
-                } else {
-                    serviceErrorMessage = `Error setting up chatbot request: ${axiosError.message}`;
-                }
-                console.error('[ChatbotService] Throwing error with message:', serviceErrorMessage);
-                throw new Error(serviceErrorMessage);
+                console.error('[ChatbotService] Throwing error with message:', errorMessage);
+                throw new Error(errorMessage);
             }
 
-            // Fallback for non-Axios errors or errors from the initial config check that weren't AxiosErrors
-            console.error('[ChatbotService] Non-Axios error, throwing original or generic message.');
-            throw new Error(error.message || 'An unexpected error occurred with the chatbot service.');
+            console.log('[ChatbotService] Successfully received response from /api/chatbot.');
+            return await response.json();
+
+        } catch (error: any) {
+            console.error('[ChatbotService] Error sending message:', error);
+
+            // Fallback for non-Fetch specific errors
+            console.error('[ChatbotService] Non-Axios/FETCH error, throwing original or generic message.');
+            throw new Error(error?.message || 'An unexpected error occurred with the chatbot service.');
         }
     },
 
@@ -118,13 +106,9 @@ export const chatbotService = {
      */
     async checkConfiguration(): Promise<{ isConfigured: boolean; message?: string }> {
         try {
-            const csrfToken = getCookie('csrfToken');
-            const response = await axios.get('/api/test-settings', {
-                headers: {
-                    ...(csrfToken && { 'X-CSRF-Token': csrfToken }),
-                }
-            });
-            const data = response.data;
+            const csrfToken = getCookie('csrfToken') || getCsrfToken();
+            const response = await authGet('/api/test-settings');
+            const data = await response.json();
 
             if (!data.success || !data.exists) {
                 return {
@@ -149,4 +133,4 @@ export const chatbotService = {
             };
         }
     }
-}; 
+};

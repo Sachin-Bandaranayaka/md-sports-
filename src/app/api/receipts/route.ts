@@ -206,10 +206,13 @@ export async function POST(request: Request) {
             }
 
             // Create accounting transaction for the income
+            const customerName = receipt.payment.customer?.name || 'Unknown Customer';
+            const invoiceNumber = receipt.payment.invoice?.invoiceNumber || 'Unknown Invoice';
+            
             await tx.transaction.create({
                 data: {
                     date: receiptData.receiptDate ? new Date(receiptData.receiptDate) : new Date(),
-                    description: `Payment received from ${receipt.payment.customer.name} - Invoice ${receipt.payment.invoice.invoiceNumber}`,
+                    description: `Payment received from ${customerName} - Invoice ${invoiceNumber}`,
                     accountId: account.id,
                     type: 'income',
                     amount: existingPayment.amount,
